@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Sidebar Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    min-height: 100vh;
+    background: #eaf3fd url('/images/Count-Inside-Bg.png') center/cover no-repeat fixed;
+  }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    position: relative;
+    width: 220px;
+    min-width: 220px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 14px 16px;
+    color: #eaf1ff;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,0.35) 0%, rgba(70,140,255,0) 45%),
+      linear-gradient(160deg, #123064 0%, #0c2452 38%, #081a3d 70%, #061225 100%);
+    box-shadow: 6px 0 24px -8px rgba(4, 15, 40, 0.55);
+    overflow: hidden;
+  }
+  .sidebar::before {
+    /* subtle top sheen for the 3D feel */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 18%);
+    pointer-events: none;
+  }
+
+  /* ---- brand row ---- */
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    z-index: 1;
+  }
+  .brand-logo {
+    height: 34px;
+    display: block;
+  }
+  .bell-btn {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #1f4d94, #0e2a5c);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), 0 3px 8px rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  .bell-btn svg { width: 15px; height: 15px; stroke: #cfe0ff; }
+  .bell-dot {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4d4d;
+    box-shadow: 0 0 0 2px #0c2452;
+  }
+
+  /* ---- profile row ---- */
+  .profile-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    z-index: 1;
+  }
+  .avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4f8dff;
+    box-shadow: 0 4px 10px -2px rgba(20,90,220,0.65), inset 0 0 0 2px rgba(255,255,255,0.08);
+  }
+  .profile-name {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #ffffff;
+    line-height: 1.15;
+  }
+  .profile-role {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8fabd9;
+  }
+
+  /* ---- language toggle ---- */
+  .lang-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto 22px;
+    padding: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #dfe9f8 0%, #ccdcf3 100%);
+    box-shadow: inset 0 2px 5px rgba(20,70,160,0.35), inset 0 -1px 0 rgba(255,255,255,0.25);
+    z-index: 1;
+  }
+  .lang-btn {
+    width: 70px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 4px 0;
+    border-radius: 999px;
+    color: #5c7bab;
+    background: transparent;
+  }
+  .lang-btn.active {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(10,40,120,0.25);
+    background: linear-gradient(180deg, #2f8dff 0%, #0a3fc9 100%);
+    box-shadow: 0 6px 14px -3px rgba(20,90,220,0.55), 0 2px 3px rgba(20,90,220,0.4), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -3px 5px rgba(0,0,30,0.18);
+  }
+
+  /* ---- menu ---- */
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 1;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #b7c9ea;
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .menu-item:hover:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: #e6edfb;
+  }
+  .menu-item.active {
+    color: #ffffff;
+    background: linear-gradient(100deg, #0a3fc9 0%, #2f8dff 55%, #3fc4ff 100%);
+    box-shadow: 0 8px 18px -6px rgba(20,90,220,0.75), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 6px rgba(0,0,0,0.12);
+  }
+  .menu-item .icon {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    stroke: currentColor;
+  }
+  .menu-item .chevron {
+    margin-left: auto;
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+  }
+
+  /* ---- footer ---- */
+  .sidebar-footer {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1;
+  }
+  .exp-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #bcd3ff;
+    background: rgba(79, 141, 255, 0.16);
+    border: 1px solid rgba(114, 168, 255, 0.35);
+  }
+  .exp-pill svg { width: 13px; height: 13px; stroke: #bcd3ff; }
+  .logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    border: none;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    background: linear-gradient(100deg, #0a3fc9 0%, #2f8dff 55%, #3fc4ff 100%);
+    box-shadow: 0 10px 20px -6px rgba(20,90,220,0.6), inset 0 -3px 6px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.3);
+  }
+  .logout-btn svg { width: 15px; height: 15px; stroke: #fff; }
+
+  /* ============ main placeholder ============ */
+  .main {
+    flex: 1;
+    padding: 24px;
+    color: #14336b;
+    font-size: 13px;
+    opacity: 0.55;
+  }
+</style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand-row">
+      <img class="brand-logo" src="/images/count_whitelogo.png" alt="EazyCount" />
+      <button class="bell-btn" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="bell-dot"></span>
+      </button>
+    </div>
+
+    <div class="profile-row">
+      <img class="avatar" src="/images/avatar1.png" alt="Boss avatar" />
+      <div>
+        <div class="profile-name">BOSS</div>
+        <div class="profile-role">Owner</div>
+      </div>
+    </div>
+
+    <div class="lang-toggle">
+      <button class="lang-btn active">EN</button>
+      <button class="lang-btn">中</button>
+    </div>
+
+    <nav class="menu">
+      <a class="menu-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7"/><path d="M9 22V12h6v10"/><path d="M21 22V9"/><path d="M3 22V9"/></svg>
+        1. Home
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        2. Admin
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        3. Account
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 21c0-3.3 3-6 6.5-6s6.5 2.7 6.5 6"/><circle cx="17.5" cy="8.5" r="2.6"/><path d="M15.8 15.2c2.8.6 5.2 2.7 5.2 5.8"/></svg>
+        4. Ownership
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        5. Process
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12.5" y="8" width="3" height="10"/><rect x="18" y="5" width="3" height="13"/></svg>
+        6. Data Capture
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+        7. Transaction Payment
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        8. Report
+        <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+      <a class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4Z"/></svg>
+        9. Maintenance
+        <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="exp-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Exp: 3m 15d left
+      </div>
+      <button class="logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">Main content area (dashboard content will go here)</div>
+
+</body>
+</html>
