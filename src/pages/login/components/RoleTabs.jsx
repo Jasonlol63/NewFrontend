@@ -18,7 +18,7 @@ export default function RoleTabs({ options, value, onChange }) {
             <span
               aria-hidden="true"
               className={cn(
-                "absolute inset-0 -z-10 bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] shadow-[inset_0_-3px_10px_rgba(255,255,255,0.25),0_6px_14px_-2px_rgba(20,90,220,0.55)] transition-opacity duration-[250ms] ease-out",
+                "absolute inset-0 -z-10 bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] shadow-[inset_0_-3px_10px_rgba(255,255,255,0.25)] transition-opacity duration-[250ms] ease-out",
                 active ? "opacity-100" : "opacity-0"
               )}
             />

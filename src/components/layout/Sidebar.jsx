@@ -12,11 +12,11 @@ import {
   FileText,
   Wrench,
   ChevronRight,
+  ChevronDown,
   Clock,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import PillSwitch from "@/components/shared/PillSwitch.jsx";
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
@@ -43,47 +43,78 @@ export default function Sidebar({
   onLogout,
 }) {
   const [lang, setLang] = useState("en");
+  const activeLang = LANG_OPTIONS.find((opt) => opt.value === lang) ?? LANG_OPTIONS[0];
+  const cycleLang = () => {
+    const idx = LANG_OPTIONS.findIndex((opt) => opt.value === lang);
+    setLang(LANG_OPTIONS[(idx + 1) % LANG_OPTIONS.length].value);
+  };
 
   return (
     <aside
       className={cn(
-        "relative flex h-screen w-[220px] min-w-[220px] flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff]",
-        "bg-[radial-gradient(120%_90%_at_100%_0%,rgba(70,140,255,0.35)_0%,rgba(70,140,255,0)_45%),linear-gradient(160deg,#123064_0%,#0c2452_38%,#081a3d_70%,#061225_100%)]",
+        "relative flex h-screen w-[260px] min-w-[260px] flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff]",
         "shadow-[6px_0_24px_-8px_rgba(4,15,40,0.55)]",
         "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_18%)]"
       )}
+      style={{
+        backgroundImage:
+          "radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,0.3) 0%, rgba(70,140,255,0) 45%), linear-gradient(160deg, rgba(18,48,100,0.45) 0%, rgba(12,36,82,0.4) 38%, rgba(8,26,61,0.35) 70%, rgba(6,18,37,0.35) 100%), url('/images/count-sidebar-bg-2-crop.png')",
+        backgroundSize: "cover, cover, cover",
+        backgroundPosition: "center, center, bottom",
+        backgroundRepeat: "no-repeat, no-repeat, no-repeat",
+      }}
     >
-      {/* Brand row */}
-      <div className="z-10 mb-[22px] flex items-center justify-between">
-        <img src="/images/count_whitelogo.png" alt="EazyCount" className="block h-[34px]" />
+      {/* Brand row: glowing icon + EAZYCOUNT + EN dropdown + bell */}
+      <div className="z-10 mb-3.5 flex items-center gap-1.5">
+        <div
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-[11px] border border-white/25 p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_10px_-4px_rgba(0,10,40,0.5)] backdrop-blur-[10px]"
+          style={{ backgroundImage: "linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))" }}
+        >
+          <img src="/images/Logo-2.png" alt="" className="h-full w-full object-contain" />
+        </div>
+        <div className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold tracking-[0.2px] text-white">
+          EAZYCOUNT
+        </div>
+        <button
+          type="button"
+          onClick={cycleLang}
+          className="flex flex-none items-center gap-0.5 rounded-[9px] border border-[rgba(120,170,255,0.4)] bg-[rgba(30,58,120,0.55)] px-1.5 py-[6px] text-[10.5px] font-bold text-white cursor-pointer"
+        >
+          {activeLang.label}
+          <ChevronDown size={10} className="stroke-[#b7c9ea]" />
+        </button>
         <button
           type="button"
           aria-label="Notifications"
-          className="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border-none bg-[linear-gradient(145deg,#1f4d94,#0e2a5c)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25),0_3px_8px_rgba(0,0,0,0.35)] cursor-pointer"
+          className="relative flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[10px] border border-[rgba(120,170,255,0.4)] bg-[rgba(30,58,120,0.55)] cursor-pointer"
         >
-          <Bell size={15} className="stroke-[#cfe0ff]" />
-          <span className="absolute right-[5px] top-1 h-2 w-2 rounded-full bg-[#ff4d4d] shadow-[0_0_0_2px_#0c2452]" />
+          <Bell size={14} className="stroke-[#cfe0ff]" />
+          <span className="absolute -right-[5px] -top-[5px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] font-extrabold text-white shadow-[0_0_0_2px_#0c2452]">
+            3
+          </span>
         </button>
       </div>
 
-      {/* Profile row */}
-      <div className="z-10 mb-4 flex items-center gap-3">
-        <img
-          src={avatarSrc}
-          alt={`${userName} avatar`}
-          className="h-[46px] w-[46px] rounded-full border-2 border-[#4f8dff] object-cover shadow-[0_4px_10px_-2px_rgba(20,90,220,0.65),inset_0_0_0_2px_rgba(255,255,255,0.08)]"
-        />
-        <div>
-          <div className="text-[15px] font-extrabold tracking-[0.3px] text-white leading-[1.15]">
-            {userName}
-          </div>
-          <div className="text-[11px] font-medium text-[#8fabd9]">{userRole}</div>
-        </div>
-      </div>
+      <div className="z-10 mx-1 mb-4 h-px bg-[linear-gradient(90deg,transparent_0%,rgba(103,232,249,0.7)_50%,transparent_100%)] shadow-[0_0_8px_1px_rgba(56,189,248,0.5)]" />
 
-      {/* Language toggle */}
-      <div className="z-10 mb-[22px] flex justify-center">
-        <PillSwitch options={LANG_OPTIONS} value={lang} onChange={setLang} itemWidth={70} compact />
+      {/* Profile card */}
+      <div className="z-10 mb-[22px] flex items-center gap-3 rounded-2xl border border-[rgba(90,160,255,0.3)] bg-[rgba(23,45,95,0.55)] px-3.5 py-3.5">
+        <div
+          className="relative h-[50px] w-[50px] flex-none rounded-full p-[2px] shadow-[0_0_10px_1px_rgba(56,189,248,0.5)]"
+          style={{ backgroundImage: "conic-gradient(from 180deg, #38bdf8, #0a3fc9, #38bdf8)" }}
+        >
+          <img
+            src={avatarSrc}
+            alt={`${userName} avatar`}
+            className="h-full w-full rounded-full border-2 border-[#0c2452] object-cover"
+          />
+          <span className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full border-2 border-[#12305f] bg-[#31d67a]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15px] font-extrabold leading-[1.25] text-white">{userName}</div>
+          <div className="mt-[3px] text-[11.5px] font-medium text-[#9db8e8]">{userRole}</div>
+        </div>
+        <ChevronRight size={18} className="flex-none stroke-[#7c93c4]" />
       </div>
 
       {/* Menu */}
@@ -110,14 +141,14 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="z-10 mt-3.5 flex flex-col gap-2.5">
-        <div className="flex items-center justify-center gap-1.5 rounded-full border border-[rgba(114,168,255,0.35)] bg-[rgba(79,141,255,0.16)] px-2.5 py-2 text-[11.5px] font-semibold text-[#bcd3ff]">
+        <div className="flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(114,168,255,0.35)] bg-[rgba(79,141,255,0.16)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[#bcd3ff]">
           <Clock size={13} className="stroke-[#bcd3ff]" />
           {expiryLabel}
         </div>
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] py-[11px] text-[13.5px] font-bold text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)] cursor-pointer"
+          className="flex items-center justify-center gap-2 rounded-xl border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] py-2 text-[13.5px] font-bold text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)] cursor-pointer"
         >
           <LogOut size={15} className="stroke-white" />
           Logout

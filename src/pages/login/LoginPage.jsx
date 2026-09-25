@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Eye, EyeOff, Lock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,11 @@ const LANG_OPTIONS = [
   { value: "zh", label: "中" },
 ];
 
+// the gif's final (fully-assembled) frame holds from 2.12s to 2.91s before
+// it loops back to frame 1 — swap mid-hold, well clear of either edge, so
+// the cut lands on a frame that already looks identical to the static logo
+const LOGO_ANIMATION_MS = 2500;
+
 export default function LoginPage() {
   const [role, setRole] = useState("admin");
   const [lang, setLang] = useState("en");
@@ -24,30 +29,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [logoSrc, setLogoSrc] = useState(
+    "/images/count_logo_puzzle_animation.gif"
+  );
+
+  useEffect(() => {
+    const preload = new Image();
+    preload.src = "/images/count_logo.png";
+    const timer = setTimeout(() => {
+      setLogoSrc("/images/count_logo.png");
+    }, LOGO_ANIMATION_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   const onSubmit = (e) => {
     e.preventDefault();
   };
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-[#dbe9fb] bg-[url('/images/count_bg.png')] bg-cover bg-center bg-no-repeat"
-    >
-      <div className="mb-[8vh] w-[400px] py-[30px] text-center">
-        <div className="mx-auto mb-[14px] h-[76px] w-[76px] rotate-[-45deg] drop-shadow-[0_10px_14px_rgba(20,90,200,0.35)]">
+    <div className="flex min-h-screen items-center justify-center bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
+      <div className="w-[400px] py-[30px] text-center">
+        <div className="mx-auto mb-[14px] h-[76px] w-[76px] rotate-[-45deg]">
           <img
-            src="/images/count_logo.png"
+            src={logoSrc}
             alt="Count logo"
             className="block h-full w-full"
           />
         </div>
 
-        <h1 className="m-0 mb-1 text-[21px] font-bold tracking-[-0.2px] text-[#14336b]">
+        <h1 className="m-0 mb-5 text-[21px] font-bold tracking-[-0.2px] text-[#14336b]">
           Accounting Management System
         </h1>
-        <p className="mx-0 mb-5 text-[10px] font-semibold tracking-[3px] text-[#7fa8d6]">
-          SIMPLER ACCOUNTING BRIGHTER BUSINESS
-        </p>
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />
@@ -112,7 +124,7 @@ export default function LoginPage() {
                 to="/reset-password"
                 className="font-semibold text-[#2f6fef] no-underline"
               >
-                Forget Password?
+                Forget Password
               </Link>
             </div>
 
