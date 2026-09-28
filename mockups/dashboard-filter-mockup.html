@@ -12,6 +12,16 @@
   --navy:#14336b;--ink:#14336b;--ink-sub:#5b74a3;--ink-faint:#8ba0c9;
   --page-bg:#eaf3fd;--card:#ffffff;--card-line:#dbe6f6;
   --pill-bg:#eef3fb;--pill-line:#dfe9f8;--danger:#ef4444;
+  --grad-accent:linear-gradient(100deg,#0a3fc9 0%,#2f8dff 55%,#3fc4ff 100%);
+  --shadow-accent:inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.12), 0 8px 16px -7px rgba(20,90,220,0.55);
+  /* ---- tokens copied 1:1 from the old dashboard.css / design-tokens.css ---- */
+  --scd-border:#e5e7eb;--scd-card:#ffffff;--scd-card-foreground:#111827;
+  --scd-muted-foreground:#6b7280;--scd-muted:#9ca3af;
+  --scd-primary:#3b82f6;--scd-primary-strong:#2563eb;
+  --scd-primary-gradient:linear-gradient(180deg,#63C4FF 0%,#0D60FF 100%);
+  --scd-danger:#ef4444;--scd-success:#22c55e;
+  --scd-shadow-card:0 1px 3px rgba(15,23,42,.06);
+  --scd-shadow-filter:0 2px 8px rgba(0,0,0,.1);
 }
 *{box-sizing:border-box;}
 body{margin:0;color:var(--ink);font-family:'Inter',system-ui,sans-serif;background:var(--page-bg);}
@@ -20,7 +30,8 @@ body{margin:0;color:var(--ink);font-family:'Inter',system-ui,sans-serif;backgrou
              linear-gradient(200deg, #eaf3fd 0%, #cfe3fb 55%, #bcd8f7 100%);
 }
 .wave{position:absolute;left:0;right:0;bottom:0;height:36%;pointer-events:none;}
-main{position:relative;z-index:2;flex:1;min-width:0;padding:26px 32px 40px;overflow-y:auto;}
+main{position:relative;z-index:2;flex:1;min-width:0;height:100vh;padding:26px 32px 40px;overflow-y:auto;display:flex;flex-direction:column;}
+.filterblock2,.kpis{flex:none;}
 
 /* ---------------- sidebar, matches src/components/layout/Sidebar.jsx ---------------- */
 .sidebar{
@@ -58,90 +69,101 @@ main{position:relative;z-index:2;flex:1;min-width:0;padding:26px 32px 40px;overf
 .sb-logout{display:flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:9px;font-size:13.5px;font-weight:700;color:#fff;background-image:linear-gradient(100deg,#0a3fc9 0%,#2f8dff 55%,#3fc4ff 100%);box-shadow:0 10px 20px -6px rgba(20,90,220,0.6);}
 @media (max-width:900px){.sidebar{display:none;}}
 
-.topline{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:16px;flex-wrap:wrap;}
-.topline h1{font-family:'Manrope',sans-serif;font-size:24px;font-weight:800;margin:0 0 4px;color:var(--navy);}
-.topline p{margin:0;font-size:13px;color:var(--ink-sub);}
-.tagline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-sub);font-style:italic;white-space:nowrap;}
-.tagline .ln{width:24px;height:1px;background:linear-gradient(90deg,transparent,#7fb3ff);}
+/* ================================================================
+   Dashboard content (Filter panel / KPI / Trend Chart / Currency)
+   — replicated 1:1 from the production dashboard.css / userlist.css
+   ================================================================ */
 
-/* ---------------- collapsible filter block ---------------- */
-.filterblock{
-  background:var(--card);border:1px solid var(--card-line);border-radius:18px;
-  box-shadow:0 14px 30px -22px rgba(20,60,140,0.35);
-  margin-bottom:18px;overflow:hidden;
+/* ---- filter panel (dashboard-filter-panel) ---- */
+.filterblock2{
+  background:var(--scd-card);border:1px solid var(--scd-border);border-radius:10px;
+  box-shadow:var(--scd-shadow-filter);
+  margin-bottom:16px;overflow:hidden;
 }
-.fhead{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;flex-wrap:wrap;}
-.fhead-ic{width:32px;height:32px;border-radius:10px;flex:none;background:linear-gradient(135deg,#0a3fc9,#3fc4ff);display:flex;align-items:center;justify-content:center;color:#fff;}
-.fhead-ic svg{width:16px;height:16px;}
-.fhead-label{font-size:13px;font-weight:800;color:var(--navy);flex:none;}
-.summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0;}
-.stag{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--ink-sub);background:var(--pill-bg);border:1px solid var(--pill-line);border-radius:9px;padding:5px 10px;white-space:nowrap;}
-.stag b{color:var(--navy);font-weight:800;}
-.fhead-toggle{flex:none;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#2f8dff;padding:6px 12px;border-radius:9px;background:var(--pill-bg);}
-.fhead-toggle svg{width:14px;height:14px;transition:transform .2s;}
-.filterblock.expanded .fhead-toggle svg{transform:rotate(180deg);}
+.frow2{display:flex;align-items:center;gap:8px;padding:8px 20px;}
+.flabel2{width:auto;min-width:88px;flex:none;font-size:13px;font-weight:700;color:#1f2937;}
 
-.fbody{max-height:0;overflow:hidden;transition:max-height .25s ease;}
-.filterblock.expanded .fbody{max-height:900px;}
-.fbody-in{padding:4px 16px 16px;border-top:1px solid var(--card-line);}
+/* date range pill (.date-range-picker) */
+.fdatebtn2{display:inline-flex;align-items:stretch;gap:0;border:1px solid rgba(148,163,184,.55);border-radius:10px;
+  background:#fff;color:#374151;font-weight:600;font-size:13px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,.06);flex:none;cursor:pointer;}
+.fdatebtn2 .cal-ic{display:flex;align-items:center;justify-content:center;width:32px;flex:none;background:var(--scd-primary);color:#fff;}
+.fdatebtn2 .cal-ic svg{width:13px;height:13px;}
+.fdatebtn2 .txt{display:flex;align-items:center;padding:7px 12px;white-space:nowrap;}
+.fdatebtn2 .chev{display:flex;align-items:center;padding-right:12px;color:#94a3b8;}
+.fdatebtn2 .chev svg{width:12px;height:12px;}
 
-/* unified filter section: same card, same header, same chip everywhere */
-.frow-top{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:14px;margin-bottom:10px;}
-@media (max-width:560px){.frow-top{grid-template-columns:1fr;}}
+/* joined "segment group" pill control used by Group ID / Company / Currency */
+.segwrap{display:inline-flex;max-width:100%;overflow-x:auto;border:1px solid var(--scd-border);border-radius:10px;
+  background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.05);flex:none;min-width:0;}
+.segwrap button{flex:none;border:none;border-right:1px solid var(--scd-border);background:#fff;color:#1f2937;
+  font-size:12.5px;font-weight:600;padding:7px 14px;cursor:pointer;white-space:nowrap;}
+.segwrap button:last-child{border-right:none;}
+.segwrap button:hover:not(.active){background:#f8fafc;}
+.segwrap button.active{background:var(--scd-primary-gradient);color:#fff;}
 
-.fsec{background:var(--pill-bg);border:1px solid var(--pill-line);border-radius:13px;padding:12px;margin-bottom:10px;}
-.fsec:last-child{margin-bottom:0;}
-.fsec-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;min-height:16px;}
-.fsec-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--navy);}
-.fsec-label .dot{width:5px;height:5px;border-radius:50%;background:var(--danger);}
-.fsec-hint{font-size:10.5px;color:var(--ink-faint);font-weight:600;}
-.chipwrap{display:flex;flex-wrap:wrap;gap:7px;}
-.chip{
-  height:32px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:700;
-  background:#fff;border:1px solid var(--pill-line);color:var(--ink-sub);cursor:pointer;white-space:nowrap;
-  display:inline-flex;align-items:center;gap:6px;line-height:1;
-}
-.chip svg{width:13px;height:13px;flex:none;color:#2f8dff;}
-.chip.active{color:#fff;background:linear-gradient(100deg,#0a3fc9,#2f8dff 60%,#3fc4ff);border-color:transparent;box-shadow:0 6px 14px -6px rgba(20,90,220,0.55);}
-.chip.active svg{color:#fff;}
-.chip.static{cursor:default;}
-.chip.static.active{
-  color:var(--navy);background:#fff;border-color:var(--pill-line);box-shadow:none;
-}
-.chip.static.active svg{color:#2f8dff;}
-.chip.static:hover{border-color:#bcd3ff;}
+/* kpi cards (.dashboard-kpi-card) */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(1,1fr);}}
+.kpi{background:var(--scd-card);border:1px solid rgba(226,232,240,.95);border-radius:16px;padding:20px 22px;
+  box-shadow:var(--scd-shadow-card);display:flex;flex-direction:column;gap:12px;}
+.kpi-top{display:flex;align-items:center;gap:9px;}
+.kpi-ic{flex:none;display:flex;align-items:center;justify-content:center;color:var(--ic,#3b82f6);}
+.kpi-ic svg{width:18px;height:18px;}
+.kpi-lbl{font-size:14px;font-weight:700;color:#111827;white-space:nowrap;}
+.kpi-valrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.kpi-val{font-family:'Manrope',sans-serif;font-size:27px;font-weight:700;color:#111827;letter-spacing:-.02em;white-space:nowrap;}
+.kpi-badge{font-size:12px;font-weight:600;border-radius:999px;padding:4px 9px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap;}
+.kpi-badge.up{color:#16a34a;background:rgba(34,197,94,.14);}
+.kpi-badge.down{color:#dc2626;background:rgba(239,68,68,.12);}
+.kpi-note{font-size:12.5px;}
+.kpi-note b{font-weight:700;}
+.kpi-note b.up{color:#16a34a;}
+.kpi-note b.down{color:#dc2626;}
+.kpi-note span{color:#9ca3af;}
+.kpi-note.muted{color:#9ca3af;}
 
-.fdone{display:flex;justify-content:flex-end;margin-top:12px;}
-.fdone button{font-size:12px;font-weight:700;color:#fff;padding:8px 16px;border-radius:9px;border:none;background:linear-gradient(100deg,#0a3fc9,#3fc4ff);cursor:pointer;}
-
-.hint{font-size:11.5px;color:var(--ink-faint);margin:0 0 18px;display:flex;align-items:center;gap:6px;}
-.hint svg{width:13px;height:13px;flex:none;}
-
-/* kpi + chart context */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
-@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr);}}
-.kpi{background:var(--card);border:1px solid var(--card-line);border-radius:18px;padding:16px 18px;box-shadow:0 14px 30px -22px rgba(20,60,140,0.3);}
-.kpi-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.kpi-ic{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none;}
-.kpi-ic svg{width:16px;height:16px;}
-.kpi-lbl{font-size:12.5px;font-weight:700;color:var(--ink-sub);}
-.kpi-val{font-family:'Manrope',sans-serif;font-size:21px;font-weight:800;color:var(--navy);}
-.kpi-delta{font-size:11.5px;font-weight:700;margin-top:6px;}
-.up{color:#16a34a;}
-.down{color:#ef4444;}
-.kpi-sub{font-size:11px;color:var(--ink-faint);}
-
-.lower{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+/* lower row: trend chart + currency summary */
+.lower{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;flex:1;min-height:280px;}
 @media (max-width:900px){.lower{grid-template-columns:1fr;}}
-.panel{background:var(--card);border:1px solid var(--card-line);border-radius:18px;padding:18px;box-shadow:0 14px 30px -22px rgba(20,60,140,0.3);}
-.panel h3{margin:0 0 14px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;color:var(--navy);}
-.chart-ph{height:190px;border-radius:12px;background:linear-gradient(180deg,#f2f7ff,#eaf2ff);border:1px dashed var(--card-line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-faint);}
-.curr-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;font-size:12.5px;border-bottom:1px solid var(--card-line);}
-.curr-row:last-child{border-bottom:none;}
-.curr-row .name{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);}
-.curr-row .dotc{width:8px;height:8px;border-radius:50%;}
-.curr-row .amt2{font-weight:700;color:var(--navy);}
-.curr-row .rate{color:var(--ink-faint);font-size:11.5px;}
+.panel{background:var(--scd-card);border:1px solid rgba(226,232,240,.95);border-radius:16px;padding:20px;
+  box-shadow:var(--scd-shadow-card);display:flex;flex-direction:column;min-height:0;}
+
+.panel-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.panel-title h3{margin:0;font-size:16px;font-weight:700;color:#111827;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#374151;white-space:nowrap;background:none;border:none;cursor:pointer;padding:0;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.daterange-chip{font-size:13px;font-weight:600;color:#374151;background:#f9fafb;border:1px solid var(--scd-border);border-radius:8px;padding:6px 12px;white-space:nowrap;}
+
+.trendchart{display:flex;gap:8px;flex:1;min-height:0;}
+.trend-axis{display:flex;flex-direction:column;justify-content:space-between;font-size:10.5px;font-weight:500;color:#94a3b8;padding:2px 0 0;text-align:right;width:58px;flex:none;}
+.trend-svg-wrap{flex:1;min-width:0;display:flex;flex-direction:column;}
+.trend-svg-wrap svg{flex:1;min-height:0;}
+.trend-xaxis{display:flex;justify-content:space-between;font-size:10px;font-weight:500;color:#94a3b8;margin-top:4px;padding:0 2px;flex:none;}
+
+/* currency summary panel */
+.curr-summary{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px;flex-wrap:wrap;}
+.curr-summary-label{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;}
+.curr-summary-val{font-family:'Manrope',sans-serif;font-size:27px;font-weight:700;color:#111827;letter-spacing:-.02em;margin-bottom:5px;}
+.curr-summary-sub{font-size:12px;color:#64748b;}
+
+.donut{position:relative;width:120px;height:120px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;}
+.donut-in{position:relative;width:86px;height:86px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.donut-in b{font-size:19px;color:#111827;font-weight:700;line-height:1.15;}
+.donut-in .code{font-size:10.5px;color:#6b7280;font-weight:600;text-transform:uppercase;margin-top:2px;}
+.donut-in .cap{font-size:9.5px;color:#94a3b8;line-height:1.3;}
+
+.curr-table{width:100%;border-collapse:collapse;flex:1;overflow-y:auto;}
+.curr-table th{text-align:right;font-size:10.5px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;padding:0 0 8px;border-bottom:1px solid #e2e8f0;}
+.curr-table th:first-child{text-align:left;}
+.curr-table td{padding:8px 0;font-size:13px;font-weight:600;color:#111827;text-align:right;font-variant-numeric:tabular-nums;}
+.curr-table td:first-child{text-align:left;}
+.curr-table tr{border-radius:8px;}
+.curr-table tr.is-active td{background:#f8fafc;}
+.curr-table tr.is-active td:first-child{border-radius:8px 0 0 8px;}
+.curr-table tr.is-active td:last-child{border-radius:0 8px 8px 0;}
+.curr-name{display:flex;align-items:center;gap:8px;}
+.curr-name .dotc{width:8px;height:8px;border-radius:50%;flex:none;}
 </style>
 </head>
 <body>
@@ -187,174 +209,232 @@ main{position:relative;z-index:2;flex:1;min-width:0;padding:26px 32px 40px;overf
   </aside>
 
   <main>
-    <div class="topline">
-      <div>
-        <h1>Dashboard</h1>
+    <div class="filterblock2">
+      <div class="frow2">
+        <div class="flabel2">Date Range:</div>
+        <button class="fdatebtn2">
+          <span class="cal-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+          <span class="txt">01/09/2026 - 28/09/2026</span>
+          <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
+        </button>
       </div>
-    </div>
-
-    <div class="filterblock expanded" id="filterblock">
-      <div class="fhead" id="fhead">
-        <div class="fhead-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg></div>
-        <div class="fhead-label">Filters</div>
-        <div class="summary">
-          <div class="stag">Date <b>27/09 – 27/09</b></div>
-          <div class="stag">Group <b>AP</b></div>
-          <div class="stag">Company <b>C168</b></div>
-          <div class="stag">Currency <b>MYR</b></div>
-        </div>
-        <div class="fhead-toggle" id="ftoggle">
-          <span id="ftoggle-text">Collapse</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="frow2">
+        <div class="flabel2">Group ID:</div>
+        <div class="segwrap">
+          <button>All</button>
+          <button class="active">AP</button>
+          <button>IG</button>
         </div>
       </div>
-
-      <div class="fbody">
-        <div class="fbody-in">
-          <div class="frow-top">
-            <div class="fsec" style="margin-bottom:0;">
-              <div class="fsec-top">
-                <div class="fsec-label">Date range</div>
-              </div>
-              <div class="chipwrap">
-                <div class="chip static active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>27/09/2026 &ndash; 27/09/2026</div>
-              </div>
-            </div>
-            <div class="fsec" style="margin-bottom:0;">
-              <div class="fsec-top">
-                <div class="fsec-label">Group ID</div>
-              </div>
-              <div class="chipwrap">
-                <div class="chip">All</div>
-                <div class="chip active">AP</div>
-                <div class="chip">IG</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="fsec">
-            <div class="fsec-top">
-              <div class="fsec-label"><span class="dot"></span>Company</div>
-              <div class="fsec-hint">单选 &middot; 24 家</div>
-            </div>
-            <div class="chipwrap">
-              <div class="chip active">C168</div>
-              <div class="chip">M204</div>
-              <div class="chip">S091</div>
-              <div class="chip">V330</div>
-              <div class="chip">D775</div>
-              <div class="chip">K118</div>
-              <div class="chip">L903</div>
-              <div class="chip">P442</div>
-              <div class="chip">R017</div>
-              <div class="chip">T654</div>
-              <div class="chip">W209</div>
-              <div class="chip">X381</div>
-              <div class="chip">Y072</div>
-              <div class="chip">Z550</div>
-              <div class="chip">A916</div>
-              <div class="chip">B284</div>
-              <div class="chip">E633</div>
-              <div class="chip">F108</div>
-              <div class="chip">G841</div>
-              <div class="chip">H395</div>
-              <div class="chip">J022</div>
-              <div class="chip">N177</div>
-              <div class="chip">Q460</div>
-              <div class="chip">U759</div>
-            </div>
-          </div>
-
-          <div class="fsec">
-            <div class="fsec-top">
-              <div class="fsec-label">Currency</div>
-              <div class="fsec-hint">单选 &middot; 14 种</div>
-            </div>
-            <div class="chipwrap">
-              <div class="chip active">MYR</div>
-              <div class="chip">SGD</div>
-              <div class="chip">USD</div>
-              <div class="chip">CNY</div>
-              <div class="chip">EUR</div>
-              <div class="chip">HKD</div>
-              <div class="chip">IDR</div>
-              <div class="chip">THB</div>
-              <div class="chip">NPR</div>
-              <div class="chip">VND</div>
-              <div class="chip">PHP</div>
-              <div class="chip">JPY</div>
-              <div class="chip">AUD</div>
-              <div class="chip">GBP</div>
-            </div>
-          </div>
-
-          <div class="fdone"><button id="fdonebtn">Done</button></div>
+      <div class="frow2">
+        <div class="flabel2">Company:</div>
+        <div class="segwrap">
+          <button class="active">All</button>
+          <button>95</button>
+          <button>AG</button>
+          <button>CX</button>
+          <button>RS</button>
+          <button>VG</button>
+        </div>
+      </div>
+      <div class="frow2">
+        <div class="flabel2">Currency:</div>
+        <div class="segwrap">
+          <button class="active">MYR</button>
+          <button>SGD</button>
+          <button>USD</button>
+          <button>HKD</button>
+          <button>CNY</button>
+          <button>EUR</button>
+          <button>IDR</button>
+          <button>THB</button>
+          <button>NPR</button>
         </div>
       </div>
     </div>
 
     <div class="kpis">
       <div class="kpi">
-        <div class="kpi-top"><div class="kpi-ic" style="background:linear-gradient(135deg,#0a3fc9,#3fc4ff);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="kpi-lbl">Profit</div></div>
-        <div class="kpi-val">RM 18,420.00</div>
-        <div class="kpi-delta up">&uarr; 24.6% <span class="kpi-sub">vs previous period</span></div>
+        <div class="kpi-top">
+          <div class="kpi-ic" style="--ic:#3b82f6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="kpi-lbl">Profit</div>
+        </div>
+        <div class="kpi-valrow">
+          <div class="kpi-val">2,880.00</div>
+          <div class="kpi-badge up">&uarr; 71.4%</div>
+        </div>
+        <div class="kpi-note"><b class="up">+1,200.00</b> <span>than previous period</span></div>
       </div>
+
       <div class="kpi">
-        <div class="kpi-top"><div class="kpi-ic" style="background:linear-gradient(135deg,#f472b6,#ef4444);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2M4 7l1 13h14l1-13"/></svg></div><div class="kpi-lbl">Expenses</div></div>
-        <div class="kpi-val">RM 7,918.44</div>
-        <div class="kpi-delta down">&darr; 9.2% <span class="kpi-sub">vs previous period</span></div>
+        <div class="kpi-top">
+          <div class="kpi-ic" style="--ic:#ef4444;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 7 10 14 14 10 21 17"/><polyline points="21 10 21 17 14 17"/></svg></div>
+          <div class="kpi-lbl">Expenses</div>
+        </div>
+        <div class="kpi-valrow">
+          <div class="kpi-val">-6,136.36</div>
+          <div class="kpi-badge down">&darr; 20.5%</div>
+        </div>
+        <div class="kpi-note"><b class="down">-1,044.53</b> <span>than previous period</span></div>
       </div>
+
       <div class="kpi">
-        <div class="kpi-top"><div class="kpi-ic" style="background:linear-gradient(135deg,#22c55e,#0d9488);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/></svg></div><div class="kpi-lbl">Net profit</div></div>
-        <div class="kpi-val">RM 10,501.56</div>
-        <div class="kpi-delta up">&uarr; 31.8% <span class="kpi-sub">vs previous period</span></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-top"><div class="kpi-ic" style="background:linear-gradient(135deg,#f59e0b,#f97316);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div><div class="kpi-lbl">Earnings</div></div>
-        <div class="kpi-val">RM 3,214.90</div>
-        <div class="kpi-delta up">&uarr; 6.4% <span class="kpi-sub">MYR &middot; 27-09-2026</span></div>
+        <div class="kpi-top">
+          <div class="kpi-ic" style="--ic:#10b981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 17l6-6 4 4 8-9"/></svg></div>
+          <div class="kpi-lbl">Net Profit</div>
+        </div>
+        <div class="kpi-valrow">
+          <div class="kpi-val">-3,256.36</div>
+          <div class="kpi-badge up">&uarr; 4.6%</div>
+        </div>
+        <div class="kpi-note"><b class="up">+155.47</b> <span>than previous period</span></div>
       </div>
     </div>
 
     <div class="lower">
       <div class="panel">
-        <h3>Trend chart</h3>
-        <div class="chart-ph">Profit / expenses / net profit / earnings over Sep 1&ndash;27</div>
+        <div class="panel-head">
+          <div class="panel-title"><h3>Trend Chart</h3></div>
+          <div class="legend">
+            <button class="legend-item is-on"><span class="legend-dot" style="background:#3b82f6;"></span>Profit</button>
+            <button class="legend-item is-on"><span class="legend-dot" style="background:#ef4444;"></span>Expenses</button>
+            <button class="legend-item is-on"><span class="legend-dot" style="background:#10b981;"></span>Net Profit</button>
+          </div>
+          <div class="daterange-chip">01-09-2026 to 28-09-2026</div>
+        </div>
+
+        <div class="trendchart">
+          <div class="trend-axis">
+            <span>2,305.31</span>
+            <span>-1,761.67</span>
+            <span>-4,261.67</span>
+            <span>-6,761.67</span>
+          </div>
+          <div class="trend-svg-wrap">
+            <svg viewBox="0 0 600 190" preserveAspectRatio="none" style="width:100%;height:100%;display:block;">
+              <defs>
+                <linearGradient id="profitFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
+                </linearGradient>
+                <linearGradient id="netFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#10b981" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="#10b981" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <g stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4 4">
+                <line x1="0" y1="0" x2="600" y2="0"/>
+                <line x1="0" y1="63" x2="600" y2="63"/>
+                <line x1="0" y1="126" x2="600" y2="126"/>
+                <line x1="0" y1="189" x2="600" y2="189"/>
+              </g>
+              <path d="M0,98 L22,109 Q44,120 55.5,135 Q67,150 78,159 Q89,168 100,159 Q111,150 122,131 Q133,112 155.5,106 Q178,100 200,103 Q222,106 244.5,102 Q267,98 289,101 Q311,104 333.5,102 Q356,100 378,98 Q400,96 422,94 Q444,92 466.5,89 Q489,86 500,83 Q511,80 522,82 Q533,84 544.5,90 Q556,96 567,98 Q578,100 589,101 L600,102 L600,190 L0,190 Z" fill="url(#netFill)"/>
+              <path d="M0,80 L22,76 Q44,72 66.5,69 Q89,66 111,75 Q133,84 155.5,77 Q178,70 200,74 Q222,78 244.5,76 Q267,74 289,78 Q311,82 333.5,84 Q356,86 378,82 Q400,78 422,75 Q444,72 466.5,70 Q489,68 511,55 Q533,42 555.5,50 Q578,58 589,62 L600,66 L600,190 L0,190 Z" fill="url(#profitFill)"/>
+              <path fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                d="M0,80 L22,76 Q44,72 66.5,69 Q89,66 111,75 Q133,84 155.5,77 Q178,70 200,74 Q222,78 244.5,76 Q267,74 289,78 Q311,82 333.5,84 Q356,86 378,82 Q400,78 422,75 Q444,72 466.5,70 Q489,68 511,55 Q533,42 555.5,50 Q578,58 589,62 L600,66"/>
+              <path fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                d="M0,104 L22,107 Q44,110 66.5,112 Q89,114 111,117 Q133,120 155.5,113 Q178,106 200,103 Q222,100 244.5,104 Q267,108 289,110 Q311,112 333.5,108 Q356,104 378,101 Q400,98 422,104 Q444,110 466.5,113 Q489,116 511,112 Q533,108 555.5,110 Q578,112 589,111 L600,110"/>
+              <path fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                d="M0,98 L22,109 Q44,120 55.5,135 Q67,150 78,159 Q89,168 100,159 Q111,150 122,131 Q133,112 155.5,106 Q178,100 200,103 Q222,106 244.5,102 Q267,98 289,101 Q311,104 333.5,102 Q356,100 378,98 Q400,96 422,94 Q444,92 466.5,89 Q489,86 500,83 Q511,80 522,82 Q533,84 544.5,90 Q556,96 567,98 Q578,100 589,101 L600,102"/>
+            </svg>
+            <div class="trend-xaxis">
+              <span>1</span><span>3</span><span>5</span><span>7</span><span>9</span><span>11</span><span>13</span><span>15</span><span>17</span><span>19</span><span>21</span><span>23</span><span>25</span><span>27</span>
+            </div>
+          </div>
+        </div>
       </div>
+
       <div class="panel">
-        <h3>Currency breakdown</h3>
-        <div class="curr-row"><div class="name"><span class="dotc" style="background:#0a3fc9;"></span>MYR</div><div><div class="amt2">10,501.56</div><div class="rate">rate 1.00</div></div></div>
-        <div class="curr-row"><div class="name"><span class="dotc" style="background:#3fc4ff;"></span>SGD</div><div><div class="amt2">2,140.80</div><div class="rate">rate 3.28</div></div></div>
-        <div class="curr-row"><div class="name"><span class="dotc" style="background:#f59e0b;"></span>USD</div><div><div class="amt2">1,860.25</div><div class="rate">rate 4.42</div></div></div>
-        <div class="curr-row"><div class="name"><span class="dotc" style="background:#a78bfa;"></span>CNY</div><div><div class="amt2">690.10</div><div class="rate">rate 0.61</div></div></div>
+        <div class="curr-summary">
+          <div>
+            <div class="curr-summary-label">Net Profit &middot; MYR</div>
+            <div class="curr-summary-val">46,037.59</div>
+            <div class="curr-summary-sub">Includes multi-currency conversion</div>
+          </div>
+          <div class="donut" style="background:conic-gradient(#2563eb 0% 59.4%, #7c3aed 59.4% 83%, #16a34a 83% 89%, #0891b2 89% 94%, #dc2626 94% 97.5%, #ca8a04 97.5% 100%);">
+            <div class="donut-in"><b>59.4%</b><span class="code">MYR</span><span class="cap">Share of Total</span></div>
+          </div>
+        </div>
+
+        <table class="curr-table">
+          <thead>
+            <tr><th>Currency</th><th>Amount (MYR)</th><th>Original Amount</th><th>Rate</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#dc2626;"></span>CNY</div></td>
+              <td>742.59</td>
+              <td>1,221.78</td>
+              <td>0.607795</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#7c3aed;"></span>EUR</div></td>
+              <td>16,759.18</td>
+              <td>3,606.35</td>
+              <td>4.647128</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#db2777;"></span>HKD</div></td>
+              <td>&mdash;</td>
+              <td>&mdash;</td>
+              <td>0.519352</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#ea580c;"></span>IDR</div></td>
+              <td>&mdash;</td>
+              <td>&mdash;</td>
+              <td>0.000228</td>
+            </tr>
+            <tr class="is-active">
+              <td><div class="curr-name"><span class="dotc" style="background:#2563eb;"></span>MYR</div></td>
+              <td>29,927.38</td>
+              <td>&mdash;</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#84cc16;"></span>NPR</div></td>
+              <td>428.82</td>
+              <td>16,139.55</td>
+              <td>0.026570</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#0891b2;"></span>SGD</div></td>
+              <td>-2,188.75</td>
+              <td>-686.33</td>
+              <td>3.189079</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#ca8a04;"></span>THB</div></td>
+              <td>&mdash;</td>
+              <td>&mdash;</td>
+              <td>0.122072</td>
+            </tr>
+            <tr>
+              <td><div class="curr-name"><span class="dotc" style="background:#16a34a;"></span>USD</div></td>
+              <td>368.37</td>
+              <td>90.36</td>
+              <td>4.076600</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
 </div>
 
 <script>
-var block = document.getElementById('filterblock');
-var toggleText = document.getElementById('ftoggle-text');
-function setState(expanded){
-  block.classList.toggle('expanded', expanded);
-  toggleText.textContent = expanded ? 'Collapse' : 'Edit';
-}
-document.getElementById('fhead').addEventListener('click', function(e){
-  if (e.target.closest('.chip')) return;
-  setState(!block.classList.contains('expanded'));
-});
-document.getElementById('fdonebtn').addEventListener('click', function(e){
-  e.stopPropagation();
-  setState(false);
-});
-document.querySelectorAll('.fsec .chipwrap').forEach(function(wrap){
-  var chips = wrap.querySelectorAll('.chip:not(.static)');
-  chips.forEach(function(el){
-    el.addEventListener('click', function(e){
-      e.stopPropagation();
-      chips.forEach(function(o){ o.classList.remove('active'); });
+document.querySelectorAll('.segwrap').forEach(function(seg){
+  var btns = seg.querySelectorAll('button');
+  btns.forEach(function(el){
+    el.addEventListener('click', function(){
+      btns.forEach(function(o){ o.classList.remove('active'); });
       el.classList.add('active');
     });
+  });
+});
+document.querySelectorAll('.legend-item').forEach(function(el){
+  el.addEventListener('click', function(){
+    el.classList.toggle('is-on');
   });
 });
 </script>
