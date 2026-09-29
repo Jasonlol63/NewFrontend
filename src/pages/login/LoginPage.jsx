@@ -48,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
+    <div className="flex min-h-screen items-center justify-center pb-20 bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
       <div className="w-[400px] py-[30px] text-center">
         <div className="mx-auto mb-[14px] h-[76px] w-[76px] rotate-[-45deg]">
           <img
