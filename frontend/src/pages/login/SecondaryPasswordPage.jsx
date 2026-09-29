@@ -1,18 +1,56 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
+import StatusDialog from "@/components/shared/StatusDialog.jsx";
+import { postForm } from "@/lib/api";
+
+// Owner and admin ("user") have separate verify endpoints.
+const VERIFY_URLS = {
+  owner: "/auth/verify-owner-secondary-password",
+  user: "/auth/verify-user-secondary-password",
+};
+
+// Backend verify error messages -> dialog title. Anything unlisted is shown
+// as the backend sent it.
+const ERROR_TITLES = {
+  "Secondary password is incorrect": "Username/Password Incorrect",
+};
+
+const CONFIRM_TEXT = { en: "Try again", zh: "重新输入" };
 
 export default function SecondaryPasswordPage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+
+  // Only reachable right after a successful login that needs this step.
+  const verifyUrl = VERIFY_URLS[state?.userType];
+  if (!verifyUrl) {
+    return <Navigate to="/login" replace />;
+  }
 
   const onChangePassword = (e) => {
     setPassword(e.target.value.replace(/\D/g, "").slice(0, 6));
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || password.length !== 6) return;
+    setSubmitting(true);
+    try {
+      await postForm(verifyUrl, { secondary_password: password });
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setErrorTitle(ERROR_TITLES[err.message] ?? err.message);
+      setErrorOpen(true);
+      setPassword("");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -63,13 +101,22 @@ export default function SecondaryPasswordPage() {
 
             <button
               type="submit"
-              className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+              disabled={submitting || password.length !== 6}
+              className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
             >
               Verify
             </button>
           </form>
         </div>
       </div>
+
+      <StatusDialog
+        open={errorOpen}
+        onOpenChange={setErrorOpen}
+        type="error"
+        title={errorTitle}
+        confirmText={CONFIRM_TEXT[state.lang] ?? CONFIRM_TEXT.en}
+      />
     </div>
   );
 }

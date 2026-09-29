@@ -23,6 +23,12 @@ const ERROR_TITLES = {
   "You do not have access to this Company or Group": "Invalid access this tenant",
 };
 
+// Backend `redirect` values that mean "verify the secondary password next".
+const SECONDARY_REDIRECTS = {
+  "/owner-secondary-password": "owner",
+  "/user-secondary-password": "user",
+};
+
 const CONFIRM_TEXT = { en: "Try again", zh: "重新输入" };
 
 const LANG_OPTIONS = [
@@ -65,13 +71,18 @@ export default function LoginPage() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await postForm("/auth/login", {
+      const res = await postForm("/auth/login", {
         tenant_code: companyId.trim(),
         password,
         login_role: role,
         [role === "member" ? "account_id" : "login_id"]: username.trim(),
       });
-      navigate("/dashboard");
+      const secondaryFor = SECONDARY_REDIRECTS[res.redirect];
+      if (secondaryFor) {
+        navigate("/secondary-password", { state: { userType: secondaryFor, lang } });
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setErrorTitle(ERROR_TITLES[err.message] ?? err.message);
       setErrorOpen(true);

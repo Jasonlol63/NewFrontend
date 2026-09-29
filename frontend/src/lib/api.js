@@ -1,4 +1,6 @@
-// Backend replies HTTP 200 for business errors too, so success is judged by `status`.
+// Backend replies HTTP 200 for business errors too, so success is judged by the
+// body: most endpoints send `status: "success"`, the secondary-password verify
+// endpoints send `success: true`.
 export async function postForm(url, params) {
   const res = await fetch(url, {
     method: "POST",
@@ -7,7 +9,7 @@ export async function postForm(url, params) {
     body: new URLSearchParams(params),
   });
   const body = await res.json().catch(() => null);
-  if (!res.ok || !body || body.status !== "success") {
+  if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
     throw new Error(body?.message || "Network error, please try again");
   }
   return body;
