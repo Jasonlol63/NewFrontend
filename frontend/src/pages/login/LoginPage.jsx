@@ -17,16 +17,12 @@ const ROLE_OPTIONS = [
 const COMPANY_NOT_FOUND = {
   en: {
     title: "Company not found",
-    description: (id) => (
-      <>We couldn&apos;t find Company / Group ID <b>{id}</b>. Check that it&apos;s correct, or contact your administrator.</>
-    ),
+    description: "Group/Company Not Found",
     confirm: "Try again",
   },
   zh: {
     title: "找不到这个公司",
-    description: (id) => (
-      <>没有找到 Company / Group ID <b>{id}</b>，请检查是否输入正确，或联系管理员确认。</>
-    ),
+    description: "Group/Company Not Found",
     confirm: "重新输入",
   },
 };
@@ -174,7 +170,7 @@ export default function LoginPage() {
         onOpenChange={setErrorOpen}
         type="error"
         title={errorCopy.title}
-        description={errorCopy.description(companyId)}
+        description={errorCopy.description}
         confirmText={errorCopy.confirm}
       />
     </div>
