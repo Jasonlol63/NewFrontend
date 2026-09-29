@@ -54,6 +54,53 @@ body {
   --shadow-notice: 0 12px 24px -16px rgba(20, 70, 160, 0.5);
 }
 
+/* Status dialog animations: pop in once, ripple + burst on entry, then only a soft glow */
+@theme {
+  --animate-dialog-overlay: dialog-fade 0.2s ease-out;
+  --animate-dialog-in: dialog-in 0.25s cubic-bezier(0.3, 0.8, 0.3, 1);
+  --animate-status-pop: status-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-status-draw: status-draw 0.4s ease-out 0.3s forwards;
+  --animate-status-draw-late: status-draw 0.25s ease-out 0.6s forwards;
+  --animate-status-dot: dialog-fade-in 0.2s ease-out 0.75s forwards;
+  --animate-status-ripple: status-ripple 0.9s ease-out 0.25s;
+  --animate-status-ripple-loop: status-ripple 0.9s ease-out 0.25s, status-ripple-soft 3.2s ease-out 1.6s infinite;
+  --animate-status-glow: status-glow 3.2s ease-in-out 1.6s infinite;
+  --animate-status-burst: status-burst 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.3s both;
+
+  @keyframes dialog-fade {
+    from { opacity: 0; }
+  }
+  @keyframes dialog-fade-in {
+    to { opacity: 1; }
+  }
+  @keyframes dialog-in {
+    from { opacity: 0; translate: 0 8px; scale: 0.97; }
+  }
+  @keyframes status-pop {
+    from { opacity: 0; transform: scale(0.4); }
+  }
+  @keyframes status-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes status-ripple {
+    0% { opacity: 0.45; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.9); }
+  }
+  @keyframes status-ripple-soft {
+    0% { opacity: 0.22; transform: scale(1); }
+    70%, 100% { opacity: 0; transform: scale(1.6); }
+  }
+  @keyframes status-glow {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.9; }
+  }
+  @keyframes status-burst {
+    0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(0.4); }
+    30% { opacity: 0.9; }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(-50px) scale(1); }
+  }
+}
+
 @utility bg-notice-gradient {
   background-image: linear-gradient(100deg, #e4eeff 0%, #d3e6ff 50%, #c6ecff 100%);
 }

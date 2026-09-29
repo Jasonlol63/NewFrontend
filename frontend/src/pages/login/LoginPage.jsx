@@ -6,11 +6,30 @@ import IconInput from "./components/IconInput.jsx";
 import RoleTabs from "./components/RoleTabs.jsx";
 import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
+import StatusDialog from "@/components/shared/StatusDialog.jsx";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
   { value: "member", label: "Member" },
 ];
+
+// Design-only: the login API isn't wired yet, so submitting always shows this error.
+const COMPANY_NOT_FOUND = {
+  en: {
+    title: "Company not found",
+    description: (id) => (
+      <>We couldn&apos;t find Company / Group ID <b>{id}</b>. Check that it&apos;s correct, or contact your administrator.</>
+    ),
+    confirm: "Try again",
+  },
+  zh: {
+    title: "找不到这个公司",
+    description: (id) => (
+      <>没有找到 Company / Group ID <b>{id}</b>，请检查是否输入正确，或联系管理员确认。</>
+    ),
+    confirm: "重新输入",
+  },
+};
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
@@ -30,6 +49,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
   const [logoSrc, setLogoSrc] = useState(
     "/images/count_logo_puzzle_animation.gif"
   );
@@ -45,7 +65,10 @@ export default function LoginPage() {
 
   const onSubmit = (e) => {
     e.preventDefault();
+    setErrorOpen(true);
   };
+
+  const errorCopy = COMPANY_NOT_FOUND[lang] ?? COMPANY_NOT_FOUND.en;
 
   return (
     <div className="flex min-h-screen items-center justify-center pb-20 bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
@@ -145,6 +168,15 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      <StatusDialog
+        open={errorOpen}
+        onOpenChange={setErrorOpen}
+        type="error"
+        title={errorCopy.title}
+        description={errorCopy.description(companyId)}
+        confirmText={errorCopy.confirm}
+      />
     </div>
   );
 }
