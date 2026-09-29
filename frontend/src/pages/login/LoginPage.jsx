@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, Eye, EyeOff, Lock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IconInput from "./components/IconInput.jsx";
@@ -7,25 +7,23 @@ import RoleTabs from "./components/RoleTabs.jsx";
 import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
+import { postForm } from "@/lib/api";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
   { value: "member", label: "Member" },
 ];
 
-// Design-only: the login API isn't wired yet, so submitting always shows this error.
-const COMPANY_NOT_FOUND = {
-  en: {
-    title: "Company not found",
-    description: "Group/Company Not Found",
-    confirm: "Try again",
-  },
-  zh: {
-    title: "找不到这个公司",
-    description: "Group/Company Not Found",
-    confirm: "重新输入",
-  },
+// Backend login error messages -> dialog title. Anything unlisted (expired,
+// maintenance, network) is shown as the backend sent it.
+const ERROR_TITLES = {
+  "Group/Company Not Found!": "Group/Company Not Found",
+  "Username or password is incorrect": "Username/Password Not Found",
+  "Account ID, Company ID or password is incorrect": "Username/Password Not Found",
+  "You do not have access to this Company or Group": "Invalid access this tenant",
 };
+
+const CONFIRM_TEXT = { en: "Try again", zh: "重新输入" };
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
@@ -46,6 +44,9 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
   const [logoSrc, setLogoSrc] = useState(
     "/images/count_logo_puzzle_animation.gif"
   );
@@ -59,12 +60,25 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setErrorOpen(true);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await postForm("/auth/login", {
+        tenant_code: companyId.trim(),
+        password,
+        login_role: role,
+        [role === "member" ? "account_id" : "login_id"]: username.trim(),
+      });
+      navigate("/dashboard");
+    } catch (err) {
+      setErrorTitle(ERROR_TITLES[err.message] ?? err.message);
+      setErrorOpen(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
-
-  const errorCopy = COMPANY_NOT_FOUND[lang] ?? COMPANY_NOT_FOUND.en;
 
   return (
     <div className="flex min-h-screen items-center justify-center pb-20 bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
@@ -152,7 +166,8 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="mt-1 flex h-[42px] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
+              disabled={submitting}
+              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[42px] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
             >
               Login
               <ArrowRight size={15} />
@@ -169,9 +184,8 @@ export default function LoginPage() {
         open={errorOpen}
         onOpenChange={setErrorOpen}
         type="error"
-        title={errorCopy.title}
-        description={errorCopy.description}
-        confirmText={errorCopy.confirm}
+        title={errorTitle}
+        confirmText={CONFIRM_TEXT[lang] ?? CONFIRM_TEXT.en}
       />
     </div>
   );

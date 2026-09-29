@@ -94,15 +94,20 @@ export default function StatusDialog({
         <Dialog.Overlay className="fixed inset-0 z-50 animate-dialog-overlay bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px] motion-reduce:animate-none" />
         <Dialog.Content
           style={TONES[type] ?? TONES.error}
+          {...(description ? {} : { "aria-describedby": undefined })}
           className="fixed left-1/2 top-1/2 z-50 w-[min(360px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 animate-dialog-in rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] px-[26px] pb-6 pt-[30px] text-center shadow-[0_40px_80px_-24px_rgba(20,51,107,0.5),0_12px_28px_-12px_rgba(20,70,160,0.3),inset_0_1px_0_#fff] outline-none motion-reduce:animate-none"
         >
           <StatusIcon type={type} />
           <Dialog.Title className="m-0 mb-1.5 text-lg font-bold tracking-[-0.2px] text-brand-navy">
             {title}
           </Dialog.Title>
-          <Dialog.Description className="m-0 mb-[22px] text-[13px] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
-            {description}
-          </Dialog.Description>
+          {description ? (
+            <Dialog.Description className="m-0 mb-[22px] text-[13px] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
+              {description}
+            </Dialog.Description>
+          ) : (
+            <div className="mb-4" />
+          )}
           <div className="flex gap-2.5">
             {cancelText && (
               <button
