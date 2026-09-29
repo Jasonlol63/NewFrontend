@@ -1,0 +1,30 @@
+package com.eazycount.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProcessSubmitted {
+
+    private Integer id;
+
+    private Integer tenantId;
+
+    private Integer processId;
+
+    private String createdBy;
+
+    private LocalDate captureDate;
+
+    private LocalDateTime createdAt;
+}

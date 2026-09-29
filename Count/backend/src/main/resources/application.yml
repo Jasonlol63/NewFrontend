@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: Count
+
+  # IT operator accounts live outside the repo/jar — see backend/it-operators.yml.
+  # "optional:" so the app still boots (with zero IT accounts) when the file is absent.
+  config:
+    import: "optional:file:./it-operators.yml,optional:file:./application-site-local.yml"
+
+  sql:
+    init:
+      mode: never
+  
+  session:
+    store-type: none
+    timeout: 1h
+    cookie:
+      name: JSESSIONID
+      http-only: true
+      same-site: lax
+  
+  datasource:
+    driverClassName: com.mysql.cj.jdbc.Driver
+    # Login dev DB — apply schema.sql then sql/schema.sql (pending tenant tables)
+    url: jdbc:mysql://localhost:3306/count_real?&serverTimezone=Asia/Shanghai
+    username: root
+    password: 
+    dbcp2:
+      min-idle: 5                                # 数据库连接池的最小维持连接数
+      initial-size: 5                            # 初始化连接数
+      max-total: 5                               # 最大连接数
+      max-wait-millis: 150                       # 等待连接获取的最大超时时间
+  
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:Count168}
+
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 2KB
+      max-file-size: 200MB
+      max-request-size: 215MB
+  
+  jwt:
+    secret: your-very-long-secret-key-at-least-32-characters
+    # Idle-timeout window: a session is force-logged-out after this long with no requests.
+    # Slides forward on every authenticated request (see JwtAuthTokenFilter/AuthTokenStore.touch).
+    access-token-expiration: 3600000
+    # Outer cap on the signed JWT itself, independent of the idle timeout above.
+    jwt-expiration: 604800000
+    refresh-token-expiration: 604800000
+    cookie-name: ec_access_token
+
+server:
+  port: 8082
+#  address: 255.255.0.0
+
+mybatis:
+  mapper-locations: classpath:mybatis/*.xml
+  type-handlers-package: com.eazycount.handler
+  configuration:
+    map-underscore-to-camel-case: true
+
+file:
+  image-dir: backend/src/main/resources/static/
+
+app:
+  mail:
+    from: ${spring.mail.username}
+  exchange-rate:
+    # Daily at 00:05 — Frankfurter/ECB data itself only refreshes once a day, so there is
+    # no benefit to polling more often.
+    cron: "0 5 0 * * *"
+    # v1's /latest (base+symbols) is ECB-only and does not carry every currency tenants use
+    # (e.g. NPR) — v2's /rates (base+quotes, array-of-rows response) aggregates multiple
+    # providers and does. ExchangeRateSyncJob is written against this v2 request/response shape.
+    frankfurter-url: https://api.frankfurter.dev/v2/rates

@@ -1,0 +1,85 @@
+package com.eazycount.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+/*
+ * Manual "Add Transaction" submit — single DTO for request and result.
+ * PAYMENT/CLAIM/CLEAR/CONTRA (Cr/Dr), ADJUSTMENT (Win/Loss To-only), PROFIT (Win/Loss From+To),
+ * RATE (Cr/Dr two legs + optional Middle-Man fee Win/Loss + FX header).
+ * Backs "TransactionController#submit".
+ */
+@Getter
+@Setter
+public class TransactionSubmitDTO {
+
+    // ── Request ──────────────────────────────────────────────────────────────
+    private Integer tenantId;
+
+    /* Defaults to PAYMENT when omitted. Supported: PAYMENT, CLAIM, CLEAR, CONTRA, ADJUSTMENT, PROFIT, RATE. */
+    private String transactionType;
+    private String transactionDate;
+
+    /* To Account — payer (maps to "transactions.account_id"). From Account — receiver maps to "transactions.from_account_id".*/
+    private Integer toAccountId;
+    private Integer fromAccountId;
+
+    private Integer currencyId;
+    private String currencyCode;
+    private BigDecimal amount;
+    private String remark;
+
+    /* Internal only — never set by the manual Transaction Payment UI. Set by BankProcessServiceImpl
+     * when submitting the one-off Bank Balance Contra, so the resulting row links back to the
+     * process via transactions.bank_process_id. */
+    private Integer bankProcessId;
+
+    // ── RATE (ignored for other types) ────────────────────────────────────
+    /* Leg1 To (payer, first currency). Leg1 From (receiver, first currency). */
+    private Integer leg1ToAccountId;
+    private Integer leg1FromAccountId;
+    private Integer leg1CurrencyId;
+    private String leg1CurrencyCode;
+    private BigDecimal leg1Amount;
+
+    /* Leg2 To (payer, second currency). Leg2 From (receiver, second currency).*/
+    private Integer leg2ToAccountId;
+    private Integer leg2FromAccountId;
+    private Integer leg2CurrencyId;
+    private String leg2CurrencyCode;
+    private BigDecimal leg2Amount;
+
+    /* Request: raw submitted rate. */
+    private BigDecimal exchangeRate;
+    private String rateExpression;
+    private Integer middlemanAccountId;
+
+    /* Legacy plain multiplier; prefer middlemanRateExpression when present (see resolveMiddleman). */
+    private BigDecimal middlemanRate;
+    /* Raw Rate-Mul input, e.g. "/1.55" (divide mode) or "2.93" (multiply mode / new-rate). */
+    private String middlemanRateExpression;
+    /* Service Fee face value, second (leg2) currency, no FX conversion. */
+    private BigDecimal middlemanAmount;
+    /* Platform Fee face value, second (leg2) currency; always positive, always subtracted from profit. */
+    private BigDecimal platformFeeAmount;
+
+    // ── Result-only ──────────────────────────────────────────────────────────
+    private Integer id;
+
+    /* APPROVED or PENDING (Contra Inbox) — see AccessControlUtils.isManualTransactionApprovalExempt. */
+    private String approvalStatus;
+
+    private String amountDisplay;
+    private String exchangeRateDisplay;
+
+    /* RATE only. */
+    private String rateGroupId;
+    private Integer leg1Id;
+    private Integer leg2Id;
+    private Integer middlemanId;
+    private Integer middlemanRateId;
+    private Integer middlemanFeeId;
+    private Integer middlemanPlatformFeeId;
+}

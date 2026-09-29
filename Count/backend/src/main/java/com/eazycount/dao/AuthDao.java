@@ -1,0 +1,80 @@
+package com.eazycount.dao;
+
+import com.eazycount.dto.AdminTenantDTO;
+import com.eazycount.dto.OwnerTenantDTO;
+import com.eazycount.dto.UserTenantDTO;
+import com.eazycount.entity.Admin;
+import com.eazycount.entity.Owner;
+import com.eazycount.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface AuthDao {
+
+    List<OwnerTenantDTO> findAccessibleTenantsByOwnerId(
+            @Param("ownerId") Integer ownerId,
+            @Param("tenantCode") String tenantCode);
+
+    List<AdminTenantDTO> findAccessibleTenantsByAdminId(
+            @Param("adminId") Integer adminId,
+            @Param("tenantCode") String tenantCode);
+
+    List<UserTenantDTO> findAccessibleTenantsByMemberId(
+            @Param("userId") Integer userId,
+            @Param("tenantCode") String tenantCode);
+
+    /** Tenant-scoped: login_id may repeat across companies, so identity resolution needs the target tenant code. */
+    Admin findAdminByLoginId(@Param("loginId") String loginId, @Param("tenantCode") String tenantCode);
+
+    /** Session-rebuild path: identify by PK, not by login_id (which may repeat across companies). */
+    Admin findAdminById(@Param("id") Integer id);
+
+    /**
+     * Global, tenant-agnostic lookup -- may return any one of several matches now that login_id
+     * isn't unique. Only for the generic {@code requireIdentity} diagnostic path, never for
+     * authentication/session decisions (use {@link #findAdminByLoginId} for those).
+     */
+    Admin findAdminByLoginIdGlobal(@Param("loginId") String loginId);
+
+    Admin findAdminByEmail(@Param("email") String email);
+
+    Owner findOwnerByOwnerCode(@Param("ownerCode") String ownerCode);
+
+    User findMemberByAccountId(@Param("accountId") String accountId);
+
+    /** Member login: account_id scoped to login group/company code (supports same code in other tenants). */
+    User findMemberByAccountIdAndTenantCode(
+            @Param("accountId") String accountId,
+            @Param("tenantCode") String tenantCode);
+
+    User findMemberById(@Param("memberId") Integer memberId);
+
+    Admin findAdminSecondaryPasswordById(@Param("adminId") Integer adminId);
+
+    Owner findOwnerSecondaryPasswordById(@Param("ownerId") Integer ownerId);
+
+    void updateAdminLastLogin(@Param("adminId") Integer adminId);
+
+    void updateAdminLastLogout(@Param("adminId") Integer adminId);
+
+    void updateAdminPassword(@Param("adminId") Integer adminId, @Param("password") String password);
+
+    void updateAdminSecondaryPassword(@Param("adminId") Integer adminId, @Param("secondaryPassword") String secondaryPassword);
+
+    void updateOwnerLastLogin(@Param("ownerId") Integer ownerId);
+
+    void updateOwnerLastLogout(@Param("ownerId") Integer ownerId);
+
+    void updateOwnerPassword(@Param("ownerId") Integer ownerId, @Param("password") String password);
+
+    void updateOwnerSecondaryPassword(@Param("ownerId") Integer ownerId, @Param("secondaryPassword") String secondaryPassword);
+
+    void updateMemberPassword(@Param("memberId") Integer memberId, @Param("password") String password);
+
+    void updateMemberLastLogin(@Param("memberId") Integer memberId);
+
+    void updateMemberLastLogout(@Param("memberId") Integer memberId);
+}

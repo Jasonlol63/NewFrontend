@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eazycount.dao.MaintenanceDao">
+
+    <!-- Payment Maintenance: manual Cr/Dr + ADJUSTMENT / PROFIT (Domain/Renew are PAYMENT). No WIN/LOSE. -->
+    <sql id="paymentMaintenanceTransactionTypes">
+        'PAYMENT', 'CLAIM', 'CLEAR', 'CONTRA', 'RATE', 'ADJUSTMENT', 'PROFIT'
+    </sql>
+
+    <!-- Bank Process Maintenance: posted WIN/LOSE lines only. -->
+    <sql id="bankProcessMaintenanceTransactionTypes">
+        'WIN', 'LOSE'
+    </sql>
+
+    <select id="findByIdsAndTenantId" resultType="com.eazycount.entity.Transaction">
+        SELECT
+            t.id AS id,
+            t.tenant_id AS tenantId,
+            t.transaction_type AS transactionType,
+            t.account_id AS accountId,
+            t.from_account_id AS fromAccountId,
+            t.currency_id AS currencyId,
+            t.amount AS amount,
+            t.transaction_date AS transactionDate,
+            t.description AS description,
+            t.remark AS remark,
+            t.created_by AS createdBy,
+            t.updated_by AS updatedBy,
+            t.approval_status AS approvalStatus,
+            t.approved_by AS approvedBy,
+            t.approved_at AS approvedAt,
+            t.bank_process_posted_id AS bankProcessPostedId,
+            t.rate_group_id AS rateGroupId,
+            t.created_at AS createdAt,
+            t.updated_at AS updatedAt
+        FROM transactions t
+        WHERE t.tenant_id = #{tenantId}
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <delete id="deleteByIdsAndTenantId">
+        DELETE FROM transactions
+        WHERE tenant_id = #{tenantId}
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- Copy live Payment Maintenance rows into archive (excludes Bank Process posted lines). -->
+    <insert id="archivePaymentMaintenanceToDeleted">
+        INSERT INTO transactions_deleted (
+            transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
+            transaction_date, description, remark, approval_status, approved_by, approved_at,
+            created_by, created_at, deleted_by, deleted_at,
+            bank_process_posted_id, rate_group_id
+        )
+        SELECT
+            t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
+            t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
+            t.created_by, t.created_at,  #{deletedBy}, NOW(),
+            t.bank_process_posted_id, t.rate_group_id
+        FROM transactions t
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NULL
+          AND t.approval_status = 'APPROVED'
+          AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </insert>
+
+    <!-- Copy live Bank Process Maintenance rows into archive (posted WIN/LOSE only). -->
+    <insert id="archiveBankProcessMaintenanceToDeleted">
+        INSERT INTO transactions_deleted (
+            transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
+            transaction_date, description, remark, approval_status, approved_by, approved_at,
+            created_by, created_at, deleted_by, deleted_at,
+            bank_process_posted_id, rate_group_id )
+        SELECT
+            t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
+            t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
+            t.created_by, t.created_at, #{deletedBy}, NOW(),
+            t.bank_process_posted_id, t.rate_group_id
+        FROM transactions t
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NOT NULL
+          AND t.approval_status = 'APPROVED'
+          AND bpap.outcome = 'POSTED'
+          AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </insert>
+
+    <select id="findBankProcessMaintenanceIdsByPostedIds" resultType="int">
+        SELECT t.id
+        FROM transactions t
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NOT NULL
+          AND t.approval_status = 'APPROVED'
+          AND bpap.outcome = 'POSTED'
+          AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
+          AND t.bank_process_posted_id IN
+        <foreach collection="postedIds" item="postedId" open="(" separator="," close=")">
+            #{postedId}
+        </foreach>
+    </select>
+
+    <select id="findBankProcessIdsByTransactionIds" resultType="int">
+        SELECT DISTINCT bpap.bank_process_id
+        FROM transactions t
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="findBankProcessCardOwnersByTransactionIds" resultType="map">
+        SELECT t.id AS id, bp.card_owner AS cardOwner
+        FROM transactions t
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process bp ON bp.id = bpap.bank_process_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="findPaymentMaintenanceIdsByRateGroupIds" resultType="int">
+        SELECT t.id
+        FROM transactions t
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NULL
+          AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+          AND t.rate_group_id IN
+        <foreach collection="rateGroupIds" item="rateGroupId" open="(" separator="," close=")">
+            #{rateGroupId}
+        </foreach>
+    </select>
+
+    <!-- Payment Maintenance list: Created At, Account(To/From), Amount, Description, Remark, Submitter. -->
+    <select id="findPaymentMaintenanceRows" resultType="com.eazycount.dto.MaintenancePaymentDTO">
+        SELECT
+            t.id AS id,
+            t.transaction_type AS transactionType,
+            t.created_at AS createdAt,
+            to_a.account_id AS toAccountCode,
+            from_a.account_id AS fromAccountCode,
+            t.amount AS amount,
+            UPPER(c.code) AS currencyCode,
+            t.description AS description,
+            t.remark AS remark,
+            t.created_by AS createdBy,
+            FALSE AS deleted,
+            NULL AS deletedBy,
+            NULL AS deletedAt
+        FROM transactions t
+        INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
+        INNER JOIN account to_a ON to_a.id = t.account_id
+        LEFT JOIN account from_a ON from_a.id = t.from_account_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NULL
+          AND t.approval_status = 'APPROVED'
+          AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+          AND t.transaction_date &gt;= #{dateFrom}
+          AND t.transaction_date &lt;= #{dateTo}
+        <if test="transactionType != null and transactionType != ''">
+            AND t.transaction_type = #{transactionType}
+        </if>
+        <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
+            AND UPPER(c.code) IN
+            <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
+                UPPER(#{code})
+            </foreach>
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(to_a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(from_a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY t.created_at DESC, t.id DESC
+    </select>
+
+    <!-- Soft-deleted Payment Maintenance rows (still shown in list with Deleter). -->
+    <select id="findPaymentMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenancePaymentDTO">
+        SELECT
+            td.transaction_id AS id,
+            td.transaction_type AS transactionType,
+            td.created_at AS createdAt,
+            to_a.account_id AS toAccountCode,
+            from_a.account_id AS fromAccountCode,
+            td.amount AS amount,
+            UPPER(c.code) AS currencyCode,
+            td.description AS description,
+            td.remark AS remark,
+            td.approval_status AS approvalStatus,
+            td.approved_by AS approvedBy,
+            td.approved_at AS approvedAt,
+            td.created_by AS createdBy,
+            TRUE AS deleted,
+            td.deleted_by AS deletedBy,
+            td.deleted_at AS deletedAt
+        FROM transactions_deleted td
+        INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
+        INNER JOIN account to_a ON to_a.id = td.account_id
+        LEFT JOIN account from_a ON from_a.id = td.from_account_id
+        WHERE td.tenant_id = #{tenantId}
+          AND td.bank_process_posted_id IS NULL
+          AND td.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+          AND td.transaction_date &gt;= #{dateFrom}
+          AND td.transaction_date &lt;= #{dateTo}
+        <if test="transactionType != null and transactionType != ''">
+            AND td.transaction_type = #{transactionType}
+        </if>
+        <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
+            AND UPPER(c.code) IN
+            <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
+                UPPER(#{code})
+            </foreach>
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(to_a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(from_a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.deleted_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY td.created_at DESC, td.transaction_id DESC
+    </select>
+
+    <!-- Bank Process Maintenance list: posted WIN/LOSE ({@code bank_process_posted_id IS NOT NULL}). -->
+    <select id="findBankProcessMaintenanceRows" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
+        SELECT
+            t.id AS id,
+            t.transaction_type AS transactionType,
+            t.created_at AS createdAt,
+            to_a.account_id AS toAccountCode,
+            COALESCE(from_a.account_id, bp.card_owner) AS fromAccountCode,
+            t.amount AS amount,
+            UPPER(c.code) AS currencyCode,
+            t.description AS description,
+            t.remark AS remark,
+            t.created_by AS createdBy,
+            FALSE AS deleted,
+            NULL AS deletedBy,
+            NULL AS deletedAt,
+            bp.id AS bankProcessId,
+            bpap.period_type AS periodType,
+            t.transaction_date AS transactionDate,
+            CASE
+                WHEN t.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
+                WHEN t.account_id = bp.customer_account_id THEN 'SELL_PRICE'
+                WHEN t.account_id = bp.company_account_id THEN 'PROFIT'
+                WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
+                ELSE NULL
+            END AS chargeCategory
+        FROM transactions t
+        INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
+        INNER JOIN account to_a ON to_a.id = t.account_id
+        LEFT JOIN account from_a ON from_a.id = t.from_account_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process bp ON bp.id = bpap.bank_process_id
+        LEFT JOIN bank_process_share bps ON bps.bank_process_id = bp.id AND bps.account_id = t.account_id
+        WHERE t.tenant_id = #{tenantId}
+          AND t.bank_process_posted_id IS NOT NULL
+          AND t.approval_status = 'APPROVED'
+          AND bpap.outcome = 'POSTED'
+          AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
+          AND t.transaction_date &gt;= #{dateFrom}
+          AND t.transaction_date &lt;= #{dateTo}
+        <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
+            AND UPPER(c.code) IN
+            <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
+                UPPER(#{code})
+            </foreach>
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(to_a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(from_a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(bp.card_owner, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(t.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY t.created_at DESC, t.id DESC
+    </select>
+
+    <select id="findBankProcessMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
+        SELECT
+            td.transaction_id AS id,
+            td.transaction_type AS transactionType,
+            td.created_at AS createdAt,
+            to_a.account_id AS toAccountCode,
+            COALESCE(from_a.account_id, bp.card_owner) AS fromAccountCode,
+            td.amount AS amount,
+            UPPER(c.code) AS currencyCode,
+            td.description AS description,
+            td.remark AS remark,
+            td.approval_status AS approvalStatus,
+            td.approved_by AS approvedBy,
+            td.approved_at AS approvedAt,
+            td.created_by AS createdBy,
+            TRUE AS deleted,
+            td.deleted_by AS deletedBy,
+            td.deleted_at AS deletedAt,
+            bp.id AS bankProcessId,
+            bpap.period_type AS periodType,
+            td.transaction_date AS transactionDate,
+            CASE
+                WHEN td.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
+                WHEN td.account_id = bp.customer_account_id THEN 'SELL_PRICE'
+                WHEN td.account_id = bp.company_account_id THEN 'PROFIT'
+                WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
+                ELSE NULL
+            END AS chargeCategory
+        FROM transactions_deleted td
+        INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
+        INNER JOIN account to_a ON to_a.id = td.account_id
+        LEFT JOIN account from_a ON from_a.id = td.from_account_id
+        LEFT JOIN bank_process_accounting_posted bpap ON bpap.id = td.bank_process_posted_id
+        LEFT JOIN bank_process bp ON bp.id = bpap.bank_process_id
+        LEFT JOIN bank_process_share bps ON bps.bank_process_id = bp.id AND bps.account_id = td.account_id
+        WHERE td.tenant_id = #{tenantId}
+          AND td.bank_process_posted_id IS NOT NULL
+          AND td.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
+          AND td.transaction_date &gt;= #{dateFrom}
+          AND td.transaction_date &lt;= #{dateTo}
+        <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
+            AND UPPER(c.code) IN
+            <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
+                UPPER(#{code})
+            </foreach>
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(to_a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(from_a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(bp.card_owner, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(td.deleted_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY td.created_at DESC, td.transaction_id DESC
+    </select>
+
+    <!-- Transaction Maintenance (view-only): every data_capture_line row (MAIN+SUB, one category at a time — never mix GAME/BANK). -->
+    <select id="findTransactionLineMaintenanceRows" resultType="com.eazycount.dto.MaintenanceTransactionDTO">
+        SELECT
+            dl.id AS id,
+            dl.created_at AS dtsCreated,
+            p.code AS process,
+            dl.id_product AS idProduct,
+            a.account_id AS account,
+            CASE WHEN dl.product_type = 'MAIN' THEN dl.description_main ELSE dl.description_sub END AS description,
+            dc.remark AS remark,
+            dl.source_percent AS percent,
+            UPPER(c.code) AS currency,
+            dl.rate_expression AS rate,
+            CASE WHEN dl.processed_amount &gt;= 0 THEN dl.processed_amount ELSE NULL END AS cr,
+            CASE WHEN dl.processed_amount &lt; 0 THEN ABS(dl.processed_amount) ELSE NULL END AS dr,
+            dc.created_by AS createdBy,
+            FALSE AS deleted,
+            NULL AS deletedBy,
+            NULL AS deletedAt
+        FROM data_capture_line dl
+        INNER JOIN data_captures dc ON dc.id = dl.capture_id AND dc.tenant_id = dl.tenant_id
+        INNER JOIN process p ON p.id = dc.process_id
+        INNER JOIN currency c ON c.id = dl.currency_id AND c.tenant_id = dl.tenant_id
+        INNER JOIN account a ON a.id = dl.account_id
+        WHERE dl.tenant_id = #{tenantId}
+          AND dc.capture_date &gt;= #{dateFrom}
+          AND dc.capture_date &lt;= #{dateTo}
+          AND dc.category = #{category}
+        <if test="process != null and process != ''">
+            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(dl.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dl.description_main, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dl.description_sub, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dc.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dc.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY dl.created_at DESC, dl.id DESC
+    </select>
+
+    <!-- Capture Maintenance (live rows): one row per data_captures header — a submission can cover several -->
+    <!-- products (data_capture_line rows), rolled up here, not shown per-product. Product/W-L Group mirror -->
+    <!-- each other: BANK -> process.code (already the fixed SALARY/BONUS/PROFIT/COMMISSION code); GAME -> the -->
+    <!-- description(s) selected at submit time (data_capture_description), comma-joined if more than one, -->
+    <!-- falling back to process.code when none were selected. -->
+    <sql id="captureDescriptionAgg">
+        (
+            SELECT dcd.capture_id, GROUP_CONCAT(DISTINCT pd.name ORDER BY pd.name SEPARATOR ', ') AS description_names
+            FROM data_capture_description dcd
+            INNER JOIN process_description pd ON pd.id = dcd.description_id
+            GROUP BY dcd.capture_id
+        )
+    </sql>
+
+    <sql id="captureProductExpr">
+        CASE
+            WHEN p.category = 'BANK' THEN p.code
+            WHEN desc_agg.description_names IS NOT NULL AND desc_agg.description_names &lt;&gt; '' THEN desc_agg.description_names
+            ELSE p.code
+        END
+    </sql>
+
+    <select id="findCaptureLineMaintenanceRows" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
+        SELECT
+            dc.id AS id,
+            dc.created_at AS dtsCreated,
+            p.code AS process,
+            UPPER(c.code) AS currency,
+            <include refid="captureProductExpr"/> AS product,
+            <include refid="captureProductExpr"/> AS wlGroup,
+            dc.created_by AS createdBy,
+            FALSE AS deleted,
+            NULL AS deletedBy,
+            NULL AS deletedAt
+        FROM data_capture_line dl
+        INNER JOIN data_captures dc ON dc.id = dl.capture_id AND dc.tenant_id = dl.tenant_id
+        INNER JOIN process p ON p.id = dc.process_id
+        INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.capture_id = dc.id
+        WHERE dl.tenant_id = #{tenantId}
+          AND dc.capture_date &gt;= #{dateFrom}
+          AND dc.capture_date &lt;= #{dateTo}
+          AND dc.category = #{category}
+        <if test="process != null and process != ''">
+            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(p.code) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(c.code) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        GROUP BY dc.id
+        ORDER BY dc.created_at DESC, dc.id DESC
+    </select>
+
+    <!-- Capture Maintenance archived (soft-deleted) rows — same rollup, sourced from data_capture_line_deleted. -->
+    <!-- A capture is archived as a whole (never partially), so every line under one capture_id shares the same -->
+    <!-- deleted_by/deleted_at; MAX() here is just to satisfy GROUP BY, not a real aggregation of differing values. -->
+    <select id="findCaptureLineMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
+        SELECT
+            dc.id AS id,
+            dc.created_at AS dtsCreated,
+            p.code AS process,
+            UPPER(c.code) AS currency,
+            <include refid="captureProductExpr"/> AS product,
+            <include refid="captureProductExpr"/> AS wlGroup,
+            dc.created_by AS createdBy,
+            TRUE AS deleted,
+            MAX(dld.deleted_by) AS deletedBy,
+            MAX(dld.deleted_at) AS deletedAt
+        FROM data_capture_line_deleted dld
+        INNER JOIN data_captures dc ON dc.id = dld.capture_id AND dc.tenant_id = dld.tenant_id
+        INNER JOIN process p ON p.id = dc.process_id
+        INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.capture_id = dc.id
+        WHERE dld.tenant_id = #{tenantId}
+          AND dc.capture_date &gt;= #{dateFrom}
+          AND dc.capture_date &lt;= #{dateTo}
+          AND dc.category = #{category}
+        <if test="process != null and process != ''">
+            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(p.code) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(c.code) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        GROUP BY dc.id
+        ORDER BY MAX(dld.deleted_at) DESC, dc.id DESC
+    </select>
+
+    <!-- Capture Maintenance delete cascade. Delete unit is always the whole capture (data_captures.id); the -->
+    <!-- list above is already one row per capture, so the caller already has exactly the ids to act on. -->
+
+    <!-- transaction_id of every live line under the given captures (non-null only) — what to cascade-archive. -->
+    <select id="findCaptureLineTransactionIdsByCaptureIdsAndTenantId" resultType="int">
+        SELECT dl.transaction_id
+        FROM data_capture_line dl
+        WHERE dl.tenant_id = #{tenantId}
+          AND dl.transaction_id IS NOT NULL
+          AND dl.capture_id IN
+        <foreach collection="captureIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- Archive the WIN/LOSE transactions those lines generated (explicit id list — capture-generated rows -->
+    <!-- have bank_process_posted_id NULL and type WIN/LOSE, so neither Payment's nor BankProcess Maintenance's -->
+    <!-- archive method would match them; caller hard-deletes afterward via the existing deleteByIdsAndTenantId). -->
+    <insert id="archiveCaptureTransactionsToDeleted">
+        INSERT INTO transactions_deleted (
+            transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
+            transaction_date, description, remark, approval_status, approved_by, approved_at,
+            created_by, created_at, deleted_by, deleted_at,
+            bank_process_posted_id, rate_group_id
+        )
+        SELECT
+            t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
+            t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
+            t.created_by, t.created_at, #{deletedBy}, NOW(),
+            t.bank_process_posted_id, t.rate_group_id
+        FROM transactions t
+        WHERE t.tenant_id = #{tenantId}
+          AND t.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </insert>
+
+    <!-- Archive every live line under the given captures into data_capture_line_deleted. -->
+    <insert id="archiveCaptureLineMaintenanceToDeleted">
+        INSERT INTO data_capture_line_deleted (
+            line_id, tenant_id, capture_id, product_type, id_product, id_product_main, id_product_sub,
+            description_main, description_sub, formula_variant, display_order, account_id, currency_id,
+            source_columns, source_value, source_percent, enable_source_percent, formula,
+            processed_amount, rate, rate_expression, transaction_id, created_at, deleted_by, deleted_at
+        )
+        SELECT
+            dl.id, dl.tenant_id, dl.capture_id, dl.product_type, dl.id_product, dl.id_product_main, dl.id_product_sub,
+            dl.description_main, dl.description_sub, dl.formula_variant, dl.display_order, dl.account_id, dl.currency_id,
+            dl.source_columns, dl.source_value, dl.source_percent, dl.enable_source_percent, dl.formula,
+            dl.processed_amount, dl.rate, dl.rate_expression, dl.transaction_id, dl.created_at, #{deletedBy}, NOW()
+        FROM data_capture_line dl
+        WHERE dl.tenant_id = #{tenantId}
+          AND dl.capture_id IN
+        <foreach collection="captureIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </insert>
+
+    <!-- Hard delete every line under the given captures from data_capture_line (post-archive). -->
+    <delete id="deleteCaptureLineMaintenanceByCaptureIds">
+        DELETE FROM data_capture_line
+        WHERE tenant_id = #{tenantId}
+          AND capture_id IN
+        <foreach collection="captureIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- Drop the "already submitted" marker for fully-deleted captures — unconditional, since delete unit -->
+    <!-- is the whole capture (no "still has live lines" check needed). -->
+    <delete id="deleteProcessSubmittedByCaptureIds">
+        DELETE FROM process_submitted
+        WHERE tenant_id = #{tenantId}
+          AND capture_id IN
+        <foreach collection="captureIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- Formula Maintenance (view-only): every data_capture_formula row for one process, one category (GAME/BANK) at a time. -->
+    <!-- No date range (config table, not per-day capture). Hard delete only — no deleted/deletedBy/deletedAt columns. -->
+    <select id="findFormulaMaintenanceRows" resultType="com.eazycount.dto.MaintenanceFormulaDTO">
+        SELECT
+            f.id AS id,
+            p.code AS process,
+            f.product_type AS productType,
+            f.id_product AS idProduct,
+            f.parent_id_product AS parentIdProduct,
+            f.formula_variant AS formulaVariant,
+            f.sub_order AS subOrder,
+            f.account_id AS accountId,
+            a.account_id AS account,
+            UPPER(c.code) AS currency,
+            f.description AS description,
+            f.source_columns AS sourceColumns,
+            f.columns_display AS columnsDisplay,
+            f.formula AS formula,
+            f.input_method AS inputMethod,
+            f.source_percent AS sourcePercent,
+            f.enable_source_percent AS enableSourcePercent,
+            f.enable_input_method AS enableInputMethod,
+            f.created_by AS createdBy,
+            f.updated_by AS updatedBy,
+            f.created_at AS createdAt,
+            f.updated_at AS updatedAt
+        FROM data_capture_formula f
+        INNER JOIN process p ON p.id = f.process_id AND p.tenant_id = f.tenant_id
+        LEFT JOIN account a ON a.id = f.account_id
+        LEFT JOIN currency c ON c.id = f.currency_id AND c.tenant_id = f.tenant_id
+        WHERE f.tenant_id = #{tenantId}
+          AND p.category = #{category}
+        <if test="process != null and process != ''">
+            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(f.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.formula, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+        ORDER BY f.id_product ASC, f.product_type ASC, f.sub_order ASC, f.formula_variant ASC, f.id ASC
+    </select>
+
+    <!-- Formula Maintenance Edit: only account_id/source_percent/input_method/formula/description are editable. -->
+    <update id="updateFormulaMaintenanceRow">
+        UPDATE data_capture_formula
+        SET source_percent = #{sourcePercent},
+            input_method = #{inputMethod},
+            formula = #{formula},
+            description = #{description},
+            account_id = #{accountId},
+            updated_by = #{updatedBy}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <!-- Formula Maintenance Delete: hard delete, batch by id, tenant-scoped. -->
+    <delete id="deleteFormulaMaintenanceRows">
+        DELETE FROM data_capture_formula
+        WHERE tenant_id = #{tenantId}
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+</mapper>

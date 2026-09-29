@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eazycount.dao.AuthDao">
+
+    <resultMap id="AdminMap" type="com.eazycount.entity.Admin">
+        <id property="id" column="id"/>
+        <result property="loginId" column="login_id"/>
+        <result property="name" column="name"/>
+        <result property="password" column="password"/>
+        <result property="secondaryPassword" column="secondary_password"/>
+        <result property="email" column="email"/>
+        <result property="roleId" column="role_id"/>
+        <result property="roleCode" column="role_code"/>
+        <result property="homeTenantId" column="home_tenant_id"/>
+        <result property="status" column="status"/>
+        <result property="readOnly" column="read_only"/>
+        <result property="permissionMode" column="permission_mode"/>
+        <result property="lastLogin" column="last_login"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="AdminColumns">
+        u.id,
+        u.login_id,
+        u.name,
+        u.password,
+        u.secondary_password,
+        u.email,
+        u.role_id,
+        ur.code AS role_code,
+        u.home_tenant_id,
+        u.status,
+        u.read_only,
+        u.permission_mode,
+        u.last_login,
+        u.created_by,
+        u.created_at
+    </sql>
+
+    <resultMap id="AdminTenantDTO" type="com.eazycount.dto.AdminTenantDTO">
+        <association property="admin" javaType="com.eazycount.entity.Admin">
+            <id property="id" column="adminId"/>
+            <result property="loginId" column="adminLoginId"/>
+            <result property="name" column="adminName"/>
+            <result property="password" column="adminPassword"/>
+            <result property="secondaryPassword" column="adminSecondaryPassword"/>
+            <result property="email" column="adminEmail"/>
+            <result property="roleId" column="adminRoleId"/>
+            <result property="roleCode" column="adminRoleCode"/>
+            <result property="status" column="adminStatus"/>
+            <result property="createdBy" column="adminCreatedBy"/>
+            <result property="createdAt" column="adminCreatedAt"/>
+            <result property="lastLogin" column="adminLastLogin"/>
+            <result property="readOnly" column="adminReadOnly"/>
+        </association>
+
+        <association property="tenant" javaType="com.eazycount.entity.Tenant">
+            <id property="id" column="tenantId"/>
+            <result property="tenantType" column="tenantType"
+                    typeHandler="com.eazycount.handler.TenantTypeHandler"/>
+            <result property="code" column="tenantCode"/>
+            <result property="name" column="tenantName"/>
+            <result property="ownerId" column="tenantOwnerId"/>
+            <result property="parentId" column="parentId"/>
+            <result property="expirationDate" column="expirationDate"/>
+            <result property="status" column="tenantStatus"
+                    typeHandler="com.eazycount.handler.TenantStatusHandler"/>
+        </association>
+    </resultMap>
+
+    <resultMap id="MemberTenantDTO" type="com.eazycount.dto.UserTenantDTO">
+        <association property="user" javaType="com.eazycount.entity.User">
+            <id property="id" column="memberId"/>
+            <result property="accountId" column="memberAccountId"/>
+            <result property="name" column="memberName"/>
+            <result property="password" column="memberPassword"/>
+            <result property="role" column="memberRole"/>
+            <result property="status" column="memberStatus"/>
+            <result property="createdSource" column="memberCreatedSource"/>
+            <result property="lastLogin" column="memberLastLogin"/>
+            <result property="createdAt" column="memberCreatedAt"/>
+        </association>
+
+        <association property="tenant" javaType="com.eazycount.entity.Tenant">
+            <id property="id" column="tenantId"/>
+            <result property="tenantType" column="tenantType"
+                    typeHandler="com.eazycount.handler.TenantTypeHandler"/>
+            <result property="code" column="tenantCode"/>
+            <result property="name" column="tenantName"/>
+            <result property="ownerId" column="tenantOwnerId"/>
+            <result property="parentId" column="parentId"/>
+            <result property="expirationDate" column="expirationDate"/>
+            <result property="status" column="tenantStatus"
+                    typeHandler="com.eazycount.handler.TenantStatusHandler"/>
+        </association>
+    </resultMap>
+
+    <resultMap id="OwnerTenantDTO" type="com.eazycount.dto.OwnerTenantDTO">
+        <association property="owner" javaType="com.eazycount.entity.Owner">
+            <id property="id" column="ownerPk"/>
+            <result property="ownerCode" column="ownerCode"/>
+            <result property="name" column="ownerName"/>
+            <result property="password" column="ownerPassword"/>
+            <result property="secondaryPassword" column="ownerSecondaryPassword"/>
+            <result property="email" column="ownerEmail"/>
+            <result property="status" column="ownerStatus"/>
+            <result property="createdBy" column="ownerCreatedBy"/>
+            <result property="createdAt" column="ownerCreatedAt"/>
+        </association>
+
+        <association property="tenant" javaType="com.eazycount.entity.Tenant">
+            <id property="id" column="tenantId"/>
+            <result property="tenantType" column="tenantType"
+                    typeHandler="com.eazycount.handler.TenantTypeHandler"/>
+            <result property="code" column="tenantCode"/>
+            <result property="name" column="tenantName"/>
+            <result property="ownerId" column="tenantOwnerId"/>
+            <result property="parentId" column="parentId"/>
+            <result property="expirationDate" column="expirationDate"/>
+            <result property="status" column="tenantStatus"
+                    typeHandler="com.eazycount.handler.TenantStatusHandler"/>
+        </association>
+    </resultMap>
+
+    <select id="findAccessibleTenantsByOwnerId" resultMap="OwnerTenantDTO">
+        SELECT
+            o.id                   AS ownerPk,
+            o.owner_code           AS ownerCode,
+            o.name                 AS ownerName,
+            o.password             AS ownerPassword,
+            o.secondary_password   AS ownerSecondaryPassword,
+            o.email                AS ownerEmail,
+            o.status               AS ownerStatus,
+            o.created_by           AS ownerCreatedBy,
+            o.created_at           AS ownerCreatedAt,
+
+            t.id                   AS tenantId,
+            t.tenant_type          AS tenantType,
+            t.code                 AS tenantCode,
+            t.name                 AS tenantName,
+            t.owner_id             AS tenantOwnerId,
+            t.parent_id            AS parentId,
+            t.expiration_date      AS expirationDate,
+            t.status               AS tenantStatus
+        FROM owner o
+        INNER JOIN tenant t ON t.owner_id = o.id
+        LEFT JOIN tenant parent_t
+            ON parent_t.id = t.parent_id
+           AND parent_t.status = 'ACTIVE'
+        WHERE o.id = #{ownerId}
+          AND o.status = 'ACTIVE'
+          AND t.status = 'ACTIVE'
+          AND (
+            UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(parent_t.code)) = UPPER(TRIM(#{tenantCode}))
+          )
+        ORDER BY
+            CASE
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                 AND t.tenant_type = 'GROUP' THEN 0
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                ELSE 2
+            END,
+            t.id
+    </select>
+
+    <!--
+        Two branches UNIONed: (1) explicit grants via user_tenant_access (an admin authorized
+        into other companies besides their own), (2) the admin's home_tenant_id (their own
+        company - may have zero user_tenant_access rows, e.g. a single-company account that
+        was confirmed via activity/legacy data rather than an explicit grant row). See
+        backend/docs/login-id-tenant-scoping-plan.md. UNION (not UNION ALL) dedupes the rare
+        case where home_tenant_id also has an explicit grant row for the same tenant.
+        ORDER BY must use the output aliases, not the per-branch table aliases (t/parent_t don't
+        exist outside their own SELECT once combined by UNION).
+    -->
+    <select id="findAccessibleTenantsByAdminId" resultMap="AdminTenantDTO">
+        SELECT * FROM (
+            SELECT
+                u.id                   AS adminId,
+                u.login_id             AS adminLoginId,
+                u.name                 AS adminName,
+                u.password             AS adminPassword,
+                u.secondary_password   AS adminSecondaryPassword,
+                u.email                AS adminEmail,
+                u.role_id              AS adminRoleId,
+                ur.code                AS adminRoleCode,
+                u.status               AS adminStatus,
+                u.created_by           AS adminCreatedBy,
+                u.created_at           AS adminCreatedAt,
+                u.last_login           AS adminLastLogin,
+                u.read_only            AS adminReadOnly,
+
+                t.id                   AS tenantId,
+                t.tenant_type          AS tenantType,
+                t.code                 AS tenantCode,
+                t.name                 AS tenantName,
+                t.owner_id             AS tenantOwnerId,
+                t.parent_id            AS parentId,
+                t.expiration_date      AS expirationDate,
+                t.status               AS tenantStatus,
+                CASE
+                    WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                     AND t.tenant_type = 'GROUP' THEN 0
+                    WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                    ELSE 2
+                END AS matchRank
+            FROM user u
+            INNER JOIN user_role ur ON ur.id = u.role_id
+            INNER JOIN user_tenant_access uta ON uta.user_id = u.id
+            INNER JOIN tenant t ON t.id = uta.tenant_id
+            LEFT JOIN tenant parent_t
+                ON parent_t.id = t.parent_id
+               AND parent_t.status = 'ACTIVE'
+            WHERE u.id = #{adminId}
+              AND u.status = 'ACTIVE'
+              AND ur.status = 'ACTIVE'
+              AND t.status = 'ACTIVE'
+              AND (
+                UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                OR UPPER(TRIM(parent_t.code)) = UPPER(TRIM(#{tenantCode}))
+              )
+
+            UNION
+
+            SELECT
+                u.id                   AS adminId,
+                u.login_id             AS adminLoginId,
+                u.name                 AS adminName,
+                u.password             AS adminPassword,
+                u.secondary_password   AS adminSecondaryPassword,
+                u.email                AS adminEmail,
+                u.role_id              AS adminRoleId,
+                ur.code                AS adminRoleCode,
+                u.status               AS adminStatus,
+                u.created_by           AS adminCreatedBy,
+                u.created_at           AS adminCreatedAt,
+                u.last_login           AS adminLastLogin,
+                u.read_only            AS adminReadOnly,
+
+                t.id                   AS tenantId,
+                t.tenant_type          AS tenantType,
+                t.code                 AS tenantCode,
+                t.name                 AS tenantName,
+                t.owner_id             AS tenantOwnerId,
+                t.parent_id            AS parentId,
+                t.expiration_date      AS expirationDate,
+                t.status               AS tenantStatus,
+                CASE
+                    WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                     AND t.tenant_type = 'GROUP' THEN 0
+                    WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                    ELSE 2
+                END AS matchRank
+            FROM user u
+            INNER JOIN user_role ur ON ur.id = u.role_id
+            INNER JOIN tenant t ON t.id = u.home_tenant_id
+            LEFT JOIN tenant parent_t
+                ON parent_t.id = t.parent_id
+               AND parent_t.status = 'ACTIVE'
+            WHERE u.id = #{adminId}
+              AND u.status = 'ACTIVE'
+              AND ur.status = 'ACTIVE'
+              AND t.status = 'ACTIVE'
+              AND (
+                UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                OR UPPER(TRIM(parent_t.code)) = UPPER(TRIM(#{tenantCode}))
+              )
+        ) combined
+        ORDER BY matchRank, tenantId
+    </select>
+
+    <select id="findAccessibleTenantsByMemberId" resultMap="MemberTenantDTO">
+        SELECT
+            a.id              AS memberId,
+            a.account_id      AS memberAccountId,
+            a.name            AS memberName,
+            a.password        AS memberPassword,
+            a.role            AS memberRole,
+            a.status          AS memberStatus,
+            a.created_source  AS memberCreatedSource,
+            a.last_login      AS memberLastLogin,
+            a.created_at      AS memberCreatedAt,
+
+            t.id              AS tenantId,
+            t.tenant_type     AS tenantType,
+            t.code            AS tenantCode,
+            t.name            AS tenantName,
+            t.owner_id        AS tenantOwnerId,
+            t.parent_id       AS parentId,
+            t.expiration_date AS expirationDate,
+            t.status          AS tenantStatus
+        FROM account a
+        INNER JOIN account_tenant_access ata ON ata.account_id = a.id
+        INNER JOIN tenant t ON t.id = ata.tenant_id
+        LEFT JOIN tenant parent_t
+            ON parent_t.id = t.parent_id
+           AND parent_t.status = 'ACTIVE'
+        WHERE a.id = #{userId}
+          AND a.status = 'ACTIVE'
+          AND t.status = 'ACTIVE'
+          AND (
+            UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(parent_t.code)) = UPPER(TRIM(#{tenantCode}))
+          )
+        ORDER BY
+            CASE
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                 AND t.tenant_type = 'GROUP' THEN 0
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                ELSE 2
+            END,
+            t.id
+    </select>
+
+    <!--
+        Tenant-scoped: login_id is no longer globally unique (different companies can have the
+        same login_id belong to different people), so identity resolution must fold the tenant
+        context in here rather than checking access afterward. Matches on EITHER path, mirroring
+        the group/company hierarchy handling in findAccessibleTenantsByAdminId /
+        findMemberByAccountIdAndTenantCode:
+          - home_tenant_id (ht/ht_parent): the account's own company (or its parent group)
+          - user_tenant_access (gt/gt_parent): a company (or its parent group) this account was
+            separately granted access to
+        See backend/docs/login-id-tenant-scoping-plan.md.
+        Known limitation: if a login_id string is reused as a DIFFERENT person's home identity in
+        a company that a same-named account has also been *granted* access to via
+        user_tenant_access, both rows match here and which one LIMIT 1 returns is not guaranteed.
+        Avoid creating that combination when granting multi-tenant access.
+    -->
+    <select id="findAdminByLoginId" resultMap="AdminMap">
+        SELECT
+        <include refid="AdminColumns"/>
+        FROM user u
+        INNER JOIN user_role ur ON ur.id = u.role_id
+        LEFT JOIN tenant ht ON ht.id = u.home_tenant_id AND ht.status = 'ACTIVE'
+        LEFT JOIN tenant ht_parent ON ht_parent.id = ht.parent_id AND ht_parent.status = 'ACTIVE'
+        LEFT JOIN user_tenant_access uta ON uta.user_id = u.id
+        LEFT JOIN tenant gt ON gt.id = uta.tenant_id AND gt.status = 'ACTIVE'
+        LEFT JOIN tenant gt_parent ON gt_parent.id = gt.parent_id AND gt_parent.status = 'ACTIVE'
+        WHERE UPPER(TRIM(u.login_id)) = UPPER(TRIM(#{loginId}))
+          AND u.status = 'ACTIVE'
+          AND ur.status = 'ACTIVE'
+          AND (
+            UPPER(TRIM(ht.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(ht_parent.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(gt.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(gt_parent.code)) = UPPER(TRIM(#{tenantCode}))
+          )
+        ORDER BY
+            CASE
+                WHEN UPPER(TRIM(ht.code)) = UPPER(TRIM(#{tenantCode})) THEN 0
+                WHEN UPPER(TRIM(gt.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                ELSE 2
+            END
+        LIMIT 1
+    </select>
+
+    <select id="findAdminById" resultMap="AdminMap">
+        SELECT
+        <include refid="AdminColumns"/>
+        FROM user u
+        INNER JOIN user_role ur ON ur.id = u.role_id
+        WHERE u.id = #{id}
+          AND u.status = 'ACTIVE'
+          AND ur.status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <!-- Global fallback for the generic requireIdentity path only - see AuthDao#findAdminByLoginIdGlobal. -->
+    <select id="findAdminByLoginIdGlobal" resultMap="AdminMap">
+        SELECT
+        <include refid="AdminColumns"/>
+        FROM user u
+        INNER JOIN user_role ur ON ur.id = u.role_id
+        WHERE UPPER(TRIM(u.login_id)) = UPPER(TRIM(#{loginId}))
+          AND u.status = 'ACTIVE'
+          AND ur.status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <select id="findAdminByEmail" resultMap="AdminMap">
+        SELECT
+        <include refid="AdminColumns"/>
+        FROM user u
+        INNER JOIN user_role ur ON ur.id = u.role_id
+        WHERE LOWER(TRIM(u.email)) = LOWER(TRIM(#{email}))
+          AND u.status = 'ACTIVE'
+          AND ur.status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <select id="findOwnerByOwnerCode" resultType="com.eazycount.entity.Owner">
+        SELECT id,
+               owner_code             AS ownerCode,
+               name,
+               password,
+               secondary_password     AS secondaryPassword,
+               email,
+               status,
+               created_by             AS createdBy,
+               created_at             AS createdAt
+        FROM owner
+        WHERE UPPER(TRIM(owner_code)) = UPPER(TRIM(#{ownerCode}))
+          AND status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <select id="findMemberByAccountId" resultType="com.eazycount.entity.User">
+        SELECT id,
+               account_id             AS accountId,
+               name,
+               password,
+               role,
+               status,
+               created_source         AS createdSource,
+               last_login             AS lastLogin,
+               created_at             AS createdAt
+        FROM account
+        WHERE UPPER(TRIM(account_id)) = UPPER(TRIM(#{accountId}))
+          AND status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <!-- Prefer this when account_id may repeat across tenants -->
+    <select id="findMemberByAccountIdAndTenantCode" resultType="com.eazycount.entity.User">
+        SELECT a.id,
+               a.account_id             AS accountId,
+               a.name,
+               a.password,
+               a.role,
+               a.status,
+               a.created_source         AS createdSource,
+               a.last_login             AS lastLogin,
+               a.created_at             AS createdAt
+        FROM account a
+        INNER JOIN account_tenant_access ata ON ata.account_id = a.id
+        INNER JOIN tenant t ON t.id = ata.tenant_id
+        LEFT JOIN tenant parent_t
+            ON parent_t.id = t.parent_id
+           AND parent_t.status = 'ACTIVE'
+        WHERE UPPER(TRIM(a.account_id)) = UPPER(TRIM(#{accountId}))
+          AND a.status = 'ACTIVE'
+          AND t.status = 'ACTIVE'
+          AND (
+            UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+            OR UPPER(TRIM(parent_t.code)) = UPPER(TRIM(#{tenantCode}))
+          )
+        ORDER BY
+            CASE
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode}))
+                 AND t.tenant_type = 'GROUP' THEN 0
+                WHEN UPPER(TRIM(t.code)) = UPPER(TRIM(#{tenantCode})) THEN 1
+                ELSE 2
+            END,
+            t.id
+        LIMIT 1
+    </select>
+
+    <select id="findMemberById" resultType="com.eazycount.entity.User">
+        SELECT id,
+               account_id             AS accountId,
+               name,
+               password,
+               role,
+               status,
+               created_source         AS createdSource,
+               last_login             AS lastLogin,
+               created_at             AS createdAt
+        FROM account
+        WHERE id = #{memberId}
+          AND status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <select id="findAdminSecondaryPasswordById" resultMap="AdminMap">
+        SELECT id, secondary_password
+        FROM user
+        WHERE id = #{adminId}
+        LIMIT 1
+    </select>
+
+    <select id="findOwnerSecondaryPasswordById" resultType="com.eazycount.entity.Owner">
+        SELECT id, secondary_password AS secondaryPassword
+        FROM owner
+        WHERE id = #{ownerId}
+        LIMIT 1
+    </select>
+
+    <update id="updateAdminLastLogin">
+        UPDATE user
+        SET last_login = NOW()
+        WHERE id = #{adminId}
+    </update>
+
+    <update id="updateAdminLastLogout">
+        UPDATE user
+        SET last_logout = NOW()
+        WHERE id = #{adminId}
+    </update>
+
+    <update id="updateAdminPassword">
+        UPDATE user
+        SET password = #{password}
+        WHERE id = #{adminId}
+    </update>
+
+    <update id="updateAdminSecondaryPassword">
+        UPDATE user
+        SET secondary_password = #{secondaryPassword}
+        WHERE id = #{adminId}
+    </update>
+
+    <update id="updateOwnerLastLogin">
+        UPDATE owner
+        SET last_login = NOW()
+        WHERE id = #{ownerId}
+    </update>
+
+    <update id="updateOwnerLastLogout">
+        UPDATE owner
+        SET last_logout = NOW()
+        WHERE id = #{ownerId}
+    </update>
+
+    <update id="updateOwnerPassword">
+        UPDATE owner
+        SET password = #{password}
+        WHERE id = #{ownerId}
+    </update>
+
+    <update id="updateOwnerSecondaryPassword">
+        UPDATE owner
+        SET secondary_password = #{secondaryPassword}
+        WHERE id = #{ownerId}
+    </update>
+
+    <update id="updateMemberPassword">
+        UPDATE account
+        SET password = #{password}
+        WHERE id = #{memberId}
+    </update>
+
+    <update id="updateMemberLastLogin">
+        UPDATE account
+        SET last_login = NOW()
+        WHERE id = #{memberId}
+    </update>
+
+    <update id="updateMemberLastLogout">
+        UPDATE account
+        SET last_logout = NOW()
+        WHERE id = #{memberId}
+    </update>
+
+</mapper>

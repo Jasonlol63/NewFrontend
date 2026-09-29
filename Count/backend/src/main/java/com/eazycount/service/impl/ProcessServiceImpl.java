@@ -1,0 +1,414 @@
+package com.eazycount.service.impl;
+
+import com.eazycount.audit.AuditContext;
+import com.eazycount.audit.AuditSnapshots;
+import com.eazycount.audit.Audited;
+import com.eazycount.common.BusinessException;
+import com.eazycount.dao.AdminDao;
+import com.eazycount.dao.CurrencyDao;
+import com.eazycount.dao.DataCaptureSummaryDao;
+import com.eazycount.dao.ProcessDao;
+import com.eazycount.dao.ProcessDescDao;
+import com.eazycount.dao.TransactionDao;
+import com.eazycount.dto.AdminDTO;
+import com.eazycount.dto.ProcessDTO;
+import com.eazycount.entity.*;
+import com.eazycount.entity.Process;
+import com.eazycount.security.SessionUser;
+import com.eazycount.service.ProcessService;
+import com.eazycount.util.AccessControlUtils;
+import com.eazycount.util.AssertUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+@Service
+public class ProcessServiceImpl implements ProcessService {
+
+    @Autowired
+    private ProcessDao processDao;
+
+    @Autowired
+    private ProcessDescDao processDescDao;
+
+    @Autowired
+    private DataCaptureSummaryDao dataCaptureSummaryDao;
+
+    @Autowired
+    private AdminDao adminDao;
+
+    @Autowired
+    private CurrencyDao currencyDao;
+
+    @Autowired
+    private TransactionDao transactionDao;
+
+    @Override
+    public List<ProcessDTO> findProcessByTenantId(Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        List<ProcessDTO> rows = processDao.findProcessByTenantId(tenantId);
+        return filterByProcessAcl(rows, sessionUser, tenantId);
+    }
+
+    private List<ProcessDTO> filterByProcessAcl(List<ProcessDTO> rows, SessionUser session, Integer tenantId) {
+        if (session.user_id == null || !"user".equalsIgnoreCase(session.user_type)) {
+            return rows;
+        }
+
+        AdminTenantAccess access = adminDao.findTenantAccessByUserIdAndTenantId(session.user_id, tenantId);
+        if (access == null || access.getProcessAclMode() == null || access.getProcessAclMode() == AdminTenantAccess.AclMode.ALL) {
+            return rows;
+        }
+        if (access.getProcessAclMode() == AdminTenantAccess.AclMode.NONE) {
+            return List.of();
+        }
+
+        Set<Integer> allowedProcessIds = new HashSet<>();
+        for (AdminDTO.ProcessPermissionItem item : adminDao.findProcessPermissionsByUserTenantAccessId(access.getId())) {
+            if (item.getProcessId() != null) {
+                allowedProcessIds.add(item.getProcessId());
+            }
+        }
+
+        List<ProcessDTO> filtered = new ArrayList<>();
+        for (ProcessDTO row : rows) {
+            if (allowedProcessIds.contains(row.getId())) {
+                filtered.add(row);
+            }
+        }
+        return filtered;
+    }
+
+    @Override
+    @Audited(module = "PROCESS", action = AuditLog.Action.CREATE, entityIdExpr = "#result.id", sourceTable = "process")
+    @Transactional
+    public ProcessDTO addNewProcess(ProcessDTO processDTO) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (processDTO == null) {
+            throw new BusinessException("Request body is required!");
+        }
+
+        String code = processDTO.getCode().trim().toUpperCase();
+        processDTO.setCode(code);
+
+        Process copySource = resolveCopyFromSource(processDTO.getCopyFromProcessId(), processDTO.getTenantId());
+
+        Process.Category category = copySource != null
+                ? copySource.getCategory()
+                : (processDTO.getCategory() != null ? processDTO.getCategory() : Process.Category.GAME);
+
+        Integer currencyId = copySource != null ? copySource.getCurrencyId() : processDTO.getCurrencyId();
+        AssertUtils.requireFound(currencyDao.findByIdAndTenantId(currencyId, processDTO.getTenantId()), "Currency not found!");
+
+        // `code` is allowed to repeat within a tenant (e.g. one vendor code split into several report
+        // sections, each with its own parsing rule) -- what must not repeat is (code, description).
+        // copyFrom carries its own description set over via copyProcessChildData below, so this only
+        // needs to check the manually-picked descriptionIds path.
+        if (copySource == null) {
+            assertNoCodeDescriptionConflict(processDTO.getTenantId(), category, code, processDTO.getDescriptionIds(), null);
+        }
+
+        Process process = new Process();
+        process.setTenantId(processDTO.getTenantId());
+        process.setCategory(category);
+        process.setCode(code);
+        process.setCopiedFromProcessId(copySource != null ? copySource.getId() : null);
+        process.setCurrencyId(currencyId);
+        process.setRemoveWord(copySource != null ? copySource.getRemoveWord() : processDTO.getRemoveWord());
+        process.setReplaceWordFrom(copySource != null ? copySource.getReplaceWordFrom() : processDTO.getReplaceWordFrom());
+        process.setReplaceWordTo(copySource != null ? copySource.getReplaceWordTo() : processDTO.getReplaceWordTo());
+        process.setRemark(copySource != null ? copySource.getRemark() : processDTO.getRemark());
+        process.setEnableSaveDraft(resolveEnableSaveDraft(category, copySource, processDTO.getEnableSaveDraft()));
+        process.setStatus(Process.Status.ACTIVE);
+        process.setCreatedBy(sessionUser.login_id);
+
+        try {
+            processDao.insertNewProcess(process);
+        } catch (Exception e) {
+            throw new BusinessException("Insert process failed. Please try again!");
+        }
+        if (process.getId() == null) {
+            throw new BusinessException("Insert process failed. Please try again!");
+        }
+
+        if (copySource != null) {
+            copyProcessChildData(copySource.getId(), process.getId(), processDTO.getTenantId(), sessionUser.login_id);
+        } else {
+            List<Integer> descriptionIds = processDTO.getDescriptionIds();
+            if (descriptionIds != null && !descriptionIds.isEmpty()) {
+                List<ProcessDescriptionLink> links = new ArrayList<>();
+                Set<Integer> seenDesc = new LinkedHashSet<>();
+                for (Integer descriptionId : descriptionIds) {
+                    if (descriptionId == null || descriptionId <= 0 || !seenDesc.add(descriptionId)) {
+                        continue;
+                    }
+                    AssertUtils.requireFound(
+                            processDescDao.findDescriptionByIdAndTenantId(descriptionId, processDTO.getTenantId()),
+                            "Description not found: " + descriptionId);
+                    links.add(new ProcessDescriptionLink(null, process.getId(), descriptionId, null));
+                }
+                if (!links.isEmpty()) {
+                    try {
+                        processDao.insertProcessDescriptionLinkBatch(links);
+                    } catch (Exception e) {
+                        throw new BusinessException("Insert process description links failed!");
+                    }
+                }
+            }
+
+            List<Integer> dayOfWeeks = processDTO.getDayOfWeeks();
+            if (dayOfWeeks != null && !dayOfWeeks.isEmpty()) {
+                List<ProcessDay> days = new ArrayList<>();
+                Set<Integer> seenDays = new LinkedHashSet<>();
+                for (Integer day : dayOfWeeks) {
+                    if (day == null || day < 1 || day > 7 || !seenDays.add(day)) {
+                        continue;
+                    }
+                    days.add(new ProcessDay(null, process.getId(), day));
+                }
+                if (!days.isEmpty()) {
+                    try {
+                        processDao.insertProcessDayBatch(days);
+                    } catch (Exception e) {
+                        throw new BusinessException("Insert process days failed!");
+                    }
+                }
+            }
+        }
+
+        processDTO.setId(process.getId());
+        processDTO.setCategory(category);
+        // CREATE's audit "after" defaults to the method's return value — but that's this same
+        // request DTO echoed back, whose display-only fields (process/processDescriptions/
+        // processDays/currencyCode) are never populated on create and would show as "-" in the
+        // audit panel. A clean flat snapshot of the actual inserted row instead.
+        AuditContext.captureAfter(process.getId(), AuditSnapshots.process(process));
+        return processDTO;
+    }
+
+    @Override
+    @Audited(module = "PROCESS", action = AuditLog.Action.UPDATE, entityIdExpr = "#processDTO.id", sourceTable = "process")
+    @Transactional
+    public ProcessDTO updateProcess(ProcessDTO processDTO) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        AccessControlUtils.requireValidTenantId(processDTO != null ? processDTO.getTenantId() : null);
+        if (processDTO.getId() == null) {
+            throw new BusinessException("Process ID not found!");
+        }
+
+        Process existed = processDao.findProcessById(processDTO.getId());
+        if (existed == null || !processDTO.getTenantId().equals(existed.getTenantId())) {
+            throw new BusinessException("Process not found!");
+        }
+        AuditContext.captureBefore(existed.getId(), AuditSnapshots.process(existed));
+
+        if (currencyDao.findByIdAndTenantId(processDTO.getCurrencyId(), processDTO.getTenantId()) == null) {
+            throw new BusinessException("Currency not found!");
+        }
+
+        assertNoCodeDescriptionConflict(
+                existed.getTenantId(), existed.getCategory(), existed.getCode(),
+                processDTO.getDescriptionIds(), existed.getId());
+
+        Process process = new Process();
+        process.setId(processDTO.getId());
+        process.setTenantId(processDTO.getTenantId());
+        process.setCurrencyId(processDTO.getCurrencyId());
+        process.setRemoveWord(processDTO.getRemoveWord());
+        process.setReplaceWordFrom(processDTO.getReplaceWordFrom());
+        process.setReplaceWordTo(processDTO.getReplaceWordTo());
+        process.setRemark(processDTO.getRemark());
+        process.setEnableSaveDraft(resolveEnableSaveDraft(existed.getCategory(), null, processDTO.getEnableSaveDraft()));
+        process.setUpdatedBy(sessionUser.login_id);
+        processDao.updateProcessDetails(process);
+
+        Integer processId = processDTO.getId();
+        AuditContext.captureAfter(processId, AuditSnapshots.process(processDao.findProcessById(processId)));
+        processDao.deleteProcessDescriptionLinkByProcessId(processId);
+        processDao.deleteProcessDayByProcessId(processId);
+
+        List<Integer> descriptionIds = processDTO.getDescriptionIds();
+        if (descriptionIds != null && !descriptionIds.isEmpty()) {
+            List<ProcessDescriptionLink> links = new ArrayList<>();
+            Set<Integer> seenDesc = new LinkedHashSet<>();
+            for (Integer descriptionId : descriptionIds) {
+                if (descriptionId == null || descriptionId <= 0 || !seenDesc.add(descriptionId)) {
+                    continue;
+                }
+                AssertUtils.requireFound(
+                        processDescDao.findDescriptionByIdAndTenantId(descriptionId, processDTO.getTenantId()),
+                        "Description not found: " + descriptionId);
+                links.add(new ProcessDescriptionLink(null, processId, descriptionId, null));
+            }
+            if (!links.isEmpty()) {
+                try {
+                    processDao.insertProcessDescriptionLinkBatch(links);
+                } catch (Exception e) {
+                    throw new BusinessException("Insert process description links failed!");
+                }
+            }
+        }
+
+        List<Integer> dayOfWeeks = processDTO.getDayOfWeeks();
+        if (dayOfWeeks != null && !dayOfWeeks.isEmpty()) {
+            List<ProcessDay> days = new ArrayList<>();
+            Set<Integer> seenDays = new LinkedHashSet<>();
+            for (Integer day : dayOfWeeks) {
+                if (day == null || day < 1 || day > 7 || !seenDays.add(day)) {
+                    continue;
+                }
+                days.add(new ProcessDay(null, processId, day));
+            }
+            if (!days.isEmpty()) {
+                try {
+                    processDao.insertProcessDayBatch(days);
+                } catch (Exception e) {
+                    throw new BusinessException("Insert process days failed!");
+                }
+            }
+        }
+
+        return processDTO;
+    }
+
+    @Override
+    @Audited(module = "PROCESS", action = AuditLog.Action.DELETE, entityIdExpr = "#id", sourceTable = "process")
+    @Transactional
+    public void deleteProcessById(Integer id, Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null) {
+            throw new BusinessException("id is required!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        Process process = AssertUtils.requireFound(
+                processDao.findProcessByIdAndTenantId(id, tenantId), "Process not found!");
+        if (process.getStatus() != Process.Status.INACTIVE) {
+            throw new BusinessException("Process is not inactive, cannot be deleted!");
+        }
+
+        if (transactionDao.countTransactionsByProcessId(id, tenantId) > 0) {
+            throw new BusinessException("Process has existing transaction cannot be deleted!");
+        }
+
+        AuditContext.captureBefore(id, AuditSnapshots.process(process));
+
+        // Child rows (description_link / day / process_submitted) cascade from process FK.
+        try {
+            processDao.deleteProcessById(id, tenantId);
+        } catch (Exception e) {
+            throw new BusinessException("Failed to delete process");
+        }
+    }
+
+    @Override
+    @Audited(module = "PROCESS", action = AuditLog.Action.UPDATE, entityIdExpr = "#id", sourceTable = "process")
+    public Process updateProcessStatus(Integer id, Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null) {
+            throw new BusinessException("id is required!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        Process process = processDao.findProcessById(id);
+        if (process == null || !tenantId.equals(process.getTenantId())) {
+            throw new BusinessException("Process not found!");
+        }
+        AuditContext.captureBefore(id, AuditSnapshots.process(process));
+
+        Process.Status current = process.getStatus() != null
+                ? process.getStatus()
+                : Process.Status.ACTIVE;
+        Process.Status newStatus = (current == Process.Status.ACTIVE)
+                ? Process.Status.INACTIVE
+                : Process.Status.ACTIVE;
+
+        processDao.updateProcessStatus(id, tenantId, newStatus);
+
+        Process updated = AssertUtils.requireFound(processDao.findProcessById(id), "Process not found!");
+        AuditContext.captureAfter(id, AuditSnapshots.process(updated));
+        AuditContext.captureSummary(id, "更新流程 " + updated.getCode() + " 状态");
+        return updated;
+    }
+
+    // Save Draft is GAME-only (opt-in switch); BANK draft eligibility is decided by a fixed process-code
+    // whitelist elsewhere, so BANK rows always stay false regardless of what the request sends.
+    private Boolean resolveEnableSaveDraft(Process.Category category, Process copySource, Boolean requested) {
+        if (category != Process.Category.GAME) {
+            return Boolean.FALSE;
+        }
+        if (copySource != null) {
+            return Boolean.TRUE.equals(copySource.getEnableSaveDraft());
+        }
+        return Boolean.TRUE.equals(requested);
+    }
+
+    // Copy From link normalization: how far up the chain we'll walk to find the root before giving up
+    // and assuming the data is corrupt (self-referencing or circular copied_from_process_id).
+    private static final int COPY_FROM_ROOT_MAX_DEPTH = 10;
+
+    //Copy From: resolve and validate the source process to duplicate.Re-reads from the DB rather than trusting so the copy is race-safe.
+    // Always normalizes to the root of the chain: if the user picked a process that is itself a
+    // Copy From of another one, we silently redirect to that root instead, so copied_from_process_id
+    // never points at anything but a root. This keeps the relationship a flat star (one root, many
+    // direct children) with no multi-level chains, which is what the new-formula fan-out relies on.
+    private Process resolveCopyFromSource(Integer copyFromProcessId, Integer tenantId) {
+        if (copyFromProcessId == null) {
+            return null;
+        }
+        Process source = AssertUtils.requireFound(
+                processDao.findProcessByIdAndTenantId(copyFromProcessId, tenantId), "Copy From source process not found!");
+
+        int depth = 0;
+        while (source.getCopiedFromProcessId() != null) {
+            if (++depth > COPY_FROM_ROOT_MAX_DEPTH) {
+                throw new BusinessException("Copy From chain is too deep or circular for process " + source.getId());
+            }
+            source = AssertUtils.requireFound(
+                    processDao.findProcessByIdAndTenantId(source.getCopiedFromProcessId(), tenantId),
+                    "Copy From source process not found!");
+        }
+        return source;
+    }
+
+    // Copy From: deep-copy the source process's description links / days / formulas onto the new process.
+    private void copyProcessChildData(Integer sourceProcessId, Integer newProcessId, Integer tenantId, String createdBy) {
+        try {
+            processDao.copyProcessDescriptionLinks(sourceProcessId, newProcessId);
+            processDao.copyProcessDays(sourceProcessId, newProcessId);
+            dataCaptureSummaryDao.backfillFormulaGroupIds(sourceProcessId, tenantId);
+            dataCaptureSummaryDao.copyProcessFormulas(sourceProcessId, newProcessId, tenantId, createdBy);
+        } catch (Exception e) {
+            throw new BusinessException("Failed to copy data from source process!");
+        }
+    }
+
+    private void assertNoCodeDescriptionConflict(
+            Integer tenantId, Process.Category category, String code,
+            List<Integer> descriptionIds, Integer excludeProcessId) {
+        if (descriptionIds == null || descriptionIds.isEmpty()) {
+            return;
+        }
+        List<Integer> conflicts = processDao.findConflictingDescriptionIds(
+                tenantId, category, code, descriptionIds, excludeProcessId);
+        if (conflicts != null && !conflicts.isEmpty()) {
+            throw new BusinessException(
+                    "This Process ID already has the following Description(s) used by another process: "
+                            + conflicts);
+        }
+    }
+
+}

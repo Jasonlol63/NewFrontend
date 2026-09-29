@@ -1,0 +1,85 @@
+package com.eazycount.entity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.time.LocalDateTime;
+
+/**
+ * Maps to the {@code user} table — staff/admin identities (Admin tab login).
+ * Role is stored as {@code role_id} → {@code user_role.id}; sidebar permissions come from
+ * {@code user_role_permission}, not from this row.
+ */
+@Getter
+@Setter
+@ToString(exclude = {"password", "secondaryPassword", "rememberToken"})
+@NoArgsConstructor
+@AllArgsConstructor
+public class Admin {
+
+    private Integer id;
+
+    private String loginId;
+
+    private String name;
+
+    private String password;
+
+    private String secondaryPassword;
+
+    private String email;
+
+    private Integer roleId;
+
+    private Integer homeTenantId;
+
+    private String roleCode;
+
+    private UserStatus status;
+
+    private String createdBy;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime lastLogin;
+
+    private LocalDateTime lastLogout;
+
+    private String rememberToken;
+
+    private LocalDateTime rememberTokenExpires;
+
+    private Boolean readOnly;
+
+    /**
+     * ROLE_DEFAULT（默认）：侧边栏权限完全按角色默认（{@code user_role_permission}）。
+     * CUSTOM：完全按 {@code user_permission_override} 里这个账号的完整清单（可比角色默认多也可以少），
+     * 两者互斥，不做合并。
+     */
+    private PermissionMode permissionMode;
+
+    /** JSON field {@code role} for list/detail APIs (from joined {@code user_role.code}). */
+    @JsonProperty("role")
+    public String getRole() {
+        if (roleCode == null || roleCode.isBlank()) {
+            return null;
+        }
+        return roleCode.trim();
+    }
+
+    @Getter
+    public enum UserStatus {
+        ACTIVE,
+        INACTIVE;
+    }
+
+    @Getter
+    public enum PermissionMode {
+        ROLE_DEFAULT,
+        CUSTOM;
+    }
+}

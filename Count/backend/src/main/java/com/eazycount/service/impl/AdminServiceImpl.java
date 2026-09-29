@@ -1,0 +1,902 @@
+package com.eazycount.service.impl;
+
+import com.eazycount.audit.AuditContext;
+import com.eazycount.audit.AuditSnapshots;
+import com.eazycount.audit.Audited;
+import com.eazycount.entity.AuditLog;
+import com.eazycount.common.BusinessException;
+import com.eazycount.dao.AdminDao;
+import com.eazycount.dao.DomainDao;
+import com.eazycount.dao.PermissionDao;
+import com.eazycount.dao.TenantDao;
+import com.eazycount.dto.AdminDTO;
+import com.eazycount.entity.Admin;
+import com.eazycount.entity.AdminRole;
+import com.eazycount.entity.AdminTenantAccess;
+import com.eazycount.entity.AdminTenantAccountAccess;
+import com.eazycount.entity.AdminTenantProcessAccess;
+import com.eazycount.entity.Owner;
+import com.eazycount.entity.Permission;
+import com.eazycount.entity.Tenant;
+import com.eazycount.entity.UserPermissionOverride;
+import com.eazycount.security.SecurityUtils;
+import com.eazycount.security.SessionUser;
+import com.eazycount.service.AdminService;
+import com.eazycount.service.DomainService;
+import com.eazycount.util.AccessControlUtils;
+import com.eazycount.util.AssertUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+@Service
+public class AdminServiceImpl implements AdminService {
+
+    @Autowired
+    private AdminDao adminDao;
+
+    @Autowired
+    private PermissionDao permissionDao;
+
+    @Autowired
+    private DomainDao domainDao;
+
+    @Autowired
+    private TenantDao tenantDao;
+
+    @Autowired
+    private DomainService domainService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    public AdminServiceImpl(AdminDao adminDao) {
+        this.adminDao = adminDao;
+    }
+
+    @Override
+    public List<AdminDTO> findAdminsByTenantId(Integer tenantId) {
+        AccessControlUtils.requireValidTenantId(tenantId);
+        List<AdminDTO> list = new ArrayList<>(adminDao.findAdminsByTenantId(tenantId));
+        prependOwnerShadowRowIfViewerIsOwner(list, tenantId);
+        return list;
+    }
+
+    private void prependOwnerShadowRowIfViewerIsOwner(List<AdminDTO> list, int tenantId) {
+        SessionUser session = SecurityUtils.currentUser();
+        if (session == null || session.user_type == null || !"owner".equalsIgnoreCase(session.user_type.trim()) || session.user_id == null) {
+            return;
+        }
+
+        Tenant tenant = tenantDao.findTenantById(tenantId);
+        if (tenant == null || tenant.getOwnerId() == null
+                || !tenant.getOwnerId().equals(session.user_id)) {
+            return;
+        }
+
+        Owner owner = domainDao.findOwnerById(tenant.getOwnerId());
+        if (owner == null) {
+            return;
+        }
+
+        boolean alreadyListed = list.stream().anyMatch(row ->
+                row.getAdmin() != null && owner.getId().equals(row.getAdmin().getId()));
+        if (alreadyListed) {
+            return;
+        }
+
+        list.add(0, buildOwnerShadowListRow(owner));
+    }
+
+    @Override
+    public AdminDTO getAdminDetailByUserId(Integer userId, Integer scopeTenantId) {
+        AccessControlUtils.requireLoggedIn();
+
+        AssertUtils.requirePositive(userId, "userId");
+        AccessControlUtils.requireValidTenantId(scopeTenantId);
+
+        Tenant tenant = tenantDao.findTenantById(scopeTenantId);
+        if (tenant != null && tenant.getOwnerId() != null && tenant.getOwnerId().equals(userId)) {
+            Owner owner = domainDao.findOwnerById(userId);
+            if (owner != null) {
+                requireOwnerSessionForProfile(userId);
+                return buildOwnerShadowDetail(owner, scopeTenantId);
+            }
+        }
+
+        Admin admin = AssertUtils.requireFound(adminDao.findAdminById(userId), "User not found!");
+
+        AdminTenantAccess scopedAccess =
+                adminDao.findTenantAccessByUserIdAndTenantId(userId, scopeTenantId);
+
+        boolean ownerShadow = scopedAccess == null
+                && admin.getRoleCode() != null
+                && "OWNER".equalsIgnoreCase(admin.getRoleCode().trim());
+
+        if (scopedAccess == null && !ownerShadow) {
+            throw new BusinessException("User not found!");
+        }
+
+        AdminDTO detail = new AdminDTO();
+        detail.setId(admin.getId());
+        detail.setLoginId(admin.getLoginId());
+        detail.setName(admin.getName());
+        detail.setEmail(admin.getEmail());
+        detail.setRole(admin.getRole());
+        detail.setStatus(admin.getStatus() != null
+                ? admin.getStatus().name().toLowerCase(Locale.ROOT)
+                : "active");
+        detail.setReadOnly(admin.getReadOnly() != null ? admin.getReadOnly() : false);
+        detail.setScopeTenantId(scopeTenantId);
+
+        if (ownerShadow) {
+            detail.setTenantAccessId(null);
+            detail.setTenantIds(List.of());
+            detail.setAccountPermissions(null);
+            detail.setProcessPermissions(null);
+            detail.setPermissions(resolveEffectiveSidebarPermissionCodes(admin));
+            return detail;
+        }
+
+        detail.setTenantAccessId(scopedAccess.getId());
+        detail.setTenantIds(adminDao.findAdminTenantIdsByUserId(userId));
+        detail.setAccountPermissions(resolveAccountPermissions(scopedAccess));
+        detail.setProcessPermissions(resolveProcessPermissions(scopedAccess));
+        detail.setPermissions(resolveEffectiveSidebarPermissionCodes(admin));
+        return detail;
+    }
+
+    private List<String> resolveSidebarPermissionCodes(Integer roleId) {
+        if (roleId == null || roleId <= 0) {
+            return List.of();
+        }
+        return permissionDao.findActivePermissionsByRoleId(roleId).stream()
+                .map(p -> p.getCode() == null ? "" : p.getCode().trim().toLowerCase(Locale.ROOT))
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    // CUSTOM 读账号自己的 override 表，否则退回角色默认
+    private List<String> resolveEffectiveSidebarPermissionCodes(Admin admin) {
+        if (admin.getPermissionMode() == Admin.PermissionMode.CUSTOM && admin.getId() != null) {
+            return permissionDao.findOverridePermissionsByUserId(admin.getId()).stream()
+                    .map(p -> p.getCode() == null ? "" : p.getCode().trim().toLowerCase(Locale.ROOT))
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+        }
+        return resolveSidebarPermissionCodes(admin.getRoleId());
+    }
+
+    // 提交的清单跟角色默认完全一致（或没传）就是 ROLE_DEFAULT，否则 CUSTOM；CUSTOM 永远是完整清单，不是差集
+    private Admin.PermissionMode resolvePermissionMode(List<String> submittedPermissions, Integer roleId) {
+        if (submittedPermissions == null) {
+            return Admin.PermissionMode.ROLE_DEFAULT;
+        }
+        Set<String> submitted = normalizePermissionCodes(submittedPermissions);
+        Set<String> base = new HashSet<>(resolveSidebarPermissionCodes(roleId));
+        return submitted.equals(base) ? Admin.PermissionMode.ROLE_DEFAULT : Admin.PermissionMode.CUSTOM;
+    }
+
+    // 先删后插（跟 replaceAccountAcl/replaceProcessAcl 一个套路），切回 ROLE_DEFAULT 时顺带清掉旧的 CUSTOM 记录
+    private void persistPermissionOverrides(Integer userId, Admin.PermissionMode mode, List<String> submittedPermissions) {
+        adminDao.deleteOverridePermissionsByUserId(userId);
+        if (mode != Admin.PermissionMode.CUSTOM || submittedPermissions == null) {
+            return;
+        }
+        List<Permission> resolved = permissionDao.findActivePermissionsByCodes(submittedPermissions);
+        if (resolved.isEmpty()) {
+            return;
+        }
+        List<UserPermissionOverride> rows = resolved.stream()
+                .map(p -> new UserPermissionOverride(userId, p.getId()))
+                .toList();
+        adminDao.insertOverridePermissionsBatch(rows);
+    }
+
+    private static Set<String> normalizePermissionCodes(List<String> codes) {
+        Set<String> result = new HashSet<>();
+        for (String code : codes) {
+            if (code != null && !code.isBlank()) {
+                result.add(code.trim().toLowerCase(Locale.ROOT));
+            }
+        }
+        return result;
+    }
+
+    private List<AdminDTO.AccountPermissionItem> resolveAccountPermissions(AdminTenantAccess access) {
+        AdminTenantAccess.AclMode mode = access.getAccountAclMode();
+        if (mode == null || mode == AdminTenantAccess.AclMode.ALL) {
+            return null;
+        }
+        if (mode == AdminTenantAccess.AclMode.NONE) {
+            return List.of();
+        }
+        return adminDao.findAccountPermissionsByUserTenantAccessId(access.getId());
+    }
+
+    private List<AdminDTO.ProcessPermissionItem> resolveProcessPermissions(AdminTenantAccess access) {
+        AdminTenantAccess.AclMode mode = access.getProcessAclMode();
+        if (mode == null || mode == AdminTenantAccess.AclMode.ALL) {
+            return null;
+        }
+        if (mode == AdminTenantAccess.AclMode.NONE) {
+            return List.of();
+        }
+        return adminDao.findProcessPermissionsByUserTenantAccessId(access.getId());
+    }
+
+    @Override
+    @Transactional
+    @Audited(module = "ADMIN", action = AuditLog.Action.UPDATE, entityIdExpr = "#dto.id", sourceTable = "owner")
+    public AdminDTO updateOwnerProfile(AdminDTO dto) {
+        AccessControlUtils.requireLoggedIn();
+        if (dto == null || dto.getId() == null || dto.getId() <= 0) {
+            throw new BusinessException("Invalid request");
+        }
+
+        requireOwnerSessionForProfile(dto.getId());
+
+        Owner existing = AssertUtils.requireFound(domainDao.findOwnerById(dto.getId()), "Owner not found!");
+        AuditContext.captureBefore(dto.getId(), AuditSnapshots.owner(existing));
+
+        Owner patch = new Owner();
+        patch.setId(existing.getId());
+        patch.setOwnerCode(existing.getOwnerCode());
+        patch.setName(dto.getName() != null && !dto.getName().isBlank()
+                ? dto.getName().trim()
+                : existing.getName());
+        patch.setEmail(dto.getEmail() != null && !dto.getEmail().isBlank()
+                ? dto.getEmail().trim().toLowerCase(Locale.ROOT)
+                : existing.getEmail());
+        patch.setPassword(dto.getPassword());
+        patch.setSecondaryPassword(dto.getSecondaryPassword());
+
+        domainService.updateOwnerDetails(patch);
+
+        Owner updated = AssertUtils.requireFound(domainDao.findOwnerById(dto.getId()), "Owner not found!");
+        AuditContext.captureAfter(dto.getId(), AuditSnapshots.owner(updated));
+        return buildOwnerShadowListRow(updated);
+    }
+
+    private AdminDTO buildOwnerShadowListRow(Owner owner) {
+        AdminDTO dto = new AdminDTO();
+        dto.setIsOwnerShadow(true);
+        dto.setAdmin(mapOwnerToAdminShell(owner));
+        dto.setAdminTenantAccess(null);
+        return dto;
+    }
+
+    private AdminDTO buildOwnerShadowDetail(Owner owner, Integer scopeTenantId) {
+        AdminDTO detail = new AdminDTO();
+        detail.setIsOwnerShadow(true);
+        detail.setId(owner.getId());
+        detail.setLoginId(owner.getOwnerCode());
+        detail.setName(owner.getName());
+        detail.setEmail(owner.getEmail());
+        detail.setRole("OWNER");
+        detail.setStatus(ownerStatusLabel(owner));
+        detail.setReadOnly(false);
+        detail.setScopeTenantId(scopeTenantId);
+        detail.setTenantAccessId(null);
+        detail.setTenantIds(List.of());
+        detail.setAccountPermissions(null);
+        detail.setProcessPermissions(null);
+        detail.setPermissions(resolveOwnerSidebarPermissionCodes());
+        return detail;
+    }
+
+    private Admin mapOwnerToAdminShell(Owner owner) {
+        Admin admin = new Admin();
+        admin.setId(owner.getId());
+        admin.setLoginId(owner.getOwnerCode());
+        admin.setName(owner.getName());
+        admin.setEmail(owner.getEmail());
+        admin.setRoleCode("OWNER");
+        admin.setRoleId(resolveOwnerRoleId());
+        admin.setStatus(mapOwnerStatus(owner));
+        admin.setCreatedBy(owner.getCreatedBy());
+        admin.setLastLogin(owner.getLastLogin());
+        admin.setLastLogout(owner.getLastLogout());
+        admin.setReadOnly(false);
+        return admin;
+    }
+
+    private Integer resolveOwnerRoleId() {
+        AdminRole ownerRole = permissionDao.findStaffRoleByCode("OWNER");
+        return ownerRole != null ? ownerRole.getId() : null;
+    }
+
+    private List<String> resolveOwnerSidebarPermissionCodes() {
+        return resolveSidebarPermissionCodes(resolveOwnerRoleId());
+    }
+
+    private static String ownerStatusLabel(Owner owner) {
+        if (owner == null || owner.getStatus() == null) {
+            return "active";
+        }
+        return owner.getStatus().name().toLowerCase(Locale.ROOT);
+    }
+
+    private static Admin.UserStatus mapOwnerStatus(Owner owner) {
+        if (owner == null || owner.getStatus() == null) {
+            return Admin.UserStatus.ACTIVE;
+        }
+        return owner.getStatus() == Owner.OwnerStatus.INACTIVE
+                ? Admin.UserStatus.INACTIVE
+                : Admin.UserStatus.ACTIVE;
+    }
+
+    private void requireOwnerSessionForProfile(int ownerId) {
+        SessionUser session = SecurityUtils.currentUser();
+        if (session == null || session.user_type == null
+                || !"owner".equalsIgnoreCase(session.user_type.trim())
+                || session.user_id == null
+                || session.user_id != ownerId) {
+            throw new BusinessException("No permission");
+        }
+    }
+
+    private void assertNotTenantOwner(Integer userId, Integer scopeTenantId) {
+        Tenant tenant = tenantDao.findTenantById(scopeTenantId);
+        if (tenant != null && tenant.getOwnerId() != null && tenant.getOwnerId().equals(userId)) {
+            throw new BusinessException("Owner cannot be deleted or status toggled");
+        }
+    }
+
+    @Override
+    @Transactional
+    @Audited(module = "ADMIN", action = AuditLog.Action.CREATE, entityIdExpr = "#result.admin.id", sourceTable = "user")
+    public AdminDTO createAdmin(AdminDTO dto) {
+        SessionUser session = AccessControlUtils.requireLoggedIn();
+        if (dto == null) {
+            throw new BusinessException("Invalid Admin");
+        }
+
+        AdminRole actorRole = resolveActorRole(session);
+        AdminRole targetRole = resolveRole(dto.getRole());
+        AccessControlUtils.assertCanManageAdminTarget(
+                session, actorRole.getHierarchyLevel(), false, targetRole.getHierarchyLevel(), false);
+
+        Admin admin = persistUserForCreate(dto);
+        AdminTenantAccess primaryAccess = syncTenantGrants(admin, dto, true);
+        // Primary `user` row, with company binding + effective sidebar permissions folded into
+        // tenant_ids/permission_codes as a stopgap (see AuditSnapshots.admin) — the account/process
+        // ACL detail this also writes is still unaudited.
+        AuditContext.captureAfter(admin.getId(), AuditSnapshots.admin(
+                admin, adminDao.findAdminTenantIdsByUserId(admin.getId()), resolveEffectiveSidebarPermissionCodes(admin)));
+        return buildResult(admin, primaryAccess);
+    }
+
+    @Override
+    @Transactional
+    // Must resolve to the exact same id used for AuditContext.captureBefore/After below
+    // (mirrors resolveUserId(dto): dto.id first, dto.admin.id as fallback).
+    @Audited(module = "ADMIN", action = AuditLog.Action.UPDATE, entityIdExpr = "(#dto.id != null && #dto.id > 0) ? #dto.id : #dto.admin?.id", sourceTable = "user")
+    public AdminDTO updateAdmin(AdminDTO dto) {
+        SessionUser session = AccessControlUtils.requireLoggedIn();
+        if (dto == null) {
+            throw new BusinessException("Invalid Admin");
+        }
+        Integer userId = resolveUserId(dto);
+        if (userId == null) {
+            throw new BusinessException("Invalid Admin");
+        }
+        AccessControlUtils.requireValidTenantId(dto.getScopeTenantId());
+
+        Admin existing = loadExistingAdmin(dto);
+
+        boolean isSelf = session.user_id != null && session.user_id.equals(userId);
+        boolean roleChanging = dto.getRole() != null && !dto.getRole().isBlank()
+                && !normalizeStaffRoleCode(dto.getRole()).equals(normalizeStaffRoleCode(existing.getRoleCode()));
+        AdminRole actorRole = resolveActorRole(session);
+        AdminRole targetRole = roleChanging ? resolveRole(dto.getRole()) : resolveRole(existing.getRoleCode());
+        AccessControlUtils.assertCanManageAdminTarget(
+                session, actorRole.getHierarchyLevel(), isSelf, targetRole.getHierarchyLevel(), roleChanging);
+
+        // Primary `user` row, with company binding + effective sidebar permissions folded into
+        // tenant_ids/permission_codes as a stopgap (see AuditSnapshots.admin) — the account/process
+        // ACL detail this also writes is still unaudited.
+        AuditContext.captureBefore(userId, AuditSnapshots.admin(
+                existing, adminDao.findAdminTenantIdsByUserId(userId), resolveEffectiveSidebarPermissionCodes(existing)));
+        Admin admin = persistUserForUpdate(dto, existing);
+        AdminTenantAccess primaryAccess = syncTenantGrants(admin, dto, false);
+        AuditContext.captureAfter(userId, AuditSnapshots.admin(
+                admin, adminDao.findAdminTenantIdsByUserId(userId), resolveEffectiveSidebarPermissionCodes(admin)));
+        return buildResult(admin, primaryAccess);
+    }
+
+    private Admin persistUserForCreate(AdminDTO dto) {
+        Admin admin = mapDtoToAdmin(dto);
+        admin.setRoleId(resolveRoleId(dto.getRole()));
+        admin.setPermissionMode(resolvePermissionMode(dto.getPermissions(), admin.getRoleId()));
+
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            admin.setStatus(Admin.UserStatus.valueOf(dto.getStatus().trim().toUpperCase(Locale.ROOT)));
+        } else {
+            admin.setStatus(Admin.UserStatus.ACTIVE);
+        }
+        if (admin.getReadOnly() == null) {
+            admin.setReadOnly(false);
+        }
+
+        normalizeAdminFields(admin);
+        validateRequiredForCreate(admin);
+        assertNoDuplicateLoginId(admin.getLoginId(), admin.getHomeTenantId());
+        assertNoDuplicateEmail(admin.getEmail(), null);
+        encodePasswords(admin);
+
+        SessionUser session = SecurityUtils.currentUser();
+        admin.setCreatedBy(session.login_id);
+
+        try {
+            adminDao.insertAdmin(admin);
+        } catch (Exception e) {
+            throw new BusinessException("Insert Admin Failed!");
+        }
+        persistPermissionOverrides(admin.getId(), admin.getPermissionMode(), dto.getPermissions());
+        return admin;
+    }
+
+    private Admin persistUserForUpdate(AdminDTO dto, Admin existing) {
+        Admin admin = new Admin();
+        admin.setId(existing.getId());
+        admin.setLoginId(existing.getLoginId());
+
+        String name = dto.getName() != null && !dto.getName().isBlank()
+                ? dto.getName().trim()
+                : existing.getName();
+        String email = dto.getEmail() != null && !dto.getEmail().isBlank()
+                ? dto.getEmail().trim().toLowerCase(Locale.ROOT)
+                : existing.getEmail();
+        admin.setName(name);
+        admin.setEmail(email);
+
+        if (dto.getRole() != null && !dto.getRole().isBlank()) {
+            admin.setRoleId(resolveRoleId(dto.getRole()));
+            admin.setRoleCode(normalizeStaffRoleCode(dto.getRole()));
+        } else {
+            admin.setRoleId(existing.getRoleId());
+            admin.setRoleCode(existing.getRoleCode());
+        }
+
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            admin.setPassword(passwordEncoder.encode(dto.getPassword()));
+        } else {
+            admin.setPassword(existing.getPassword());
+        }
+
+        if (dto.getSecondaryPassword() != null && !dto.getSecondaryPassword().isBlank()) {
+            admin.setSecondaryPassword(passwordEncoder.encode(dto.getSecondaryPassword()));
+        } else {
+            admin.setSecondaryPassword(existing.getSecondaryPassword());
+        }
+
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            admin.setStatus(Admin.UserStatus.valueOf(dto.getStatus().trim().toUpperCase(Locale.ROOT)));
+        } else {
+            admin.setStatus(existing.getStatus());
+        }
+
+        if (dto.getReadOnly() != null) {
+            admin.setReadOnly(dto.getReadOnly());
+        } else {
+            admin.setReadOnly(existing.getReadOnly());
+        }
+
+        boolean permissionsSubmitted = dto.getPermissions() != null;
+        admin.setPermissionMode(permissionsSubmitted
+                ? resolvePermissionMode(dto.getPermissions(), admin.getRoleId())
+                : existing.getPermissionMode());
+
+        assertNoDuplicateEmail(admin.getEmail(), admin.getId());
+
+        try {
+            adminDao.updateAdmin(admin);
+        } catch (Exception e) {
+            throw new BusinessException("Update Admin Failed!");
+        }
+        if (permissionsSubmitted) {
+            persistPermissionOverrides(admin.getId(), admin.getPermissionMode(), dto.getPermissions());
+        }
+        return admin;
+    }
+
+    private AdminTenantAccess syncTenantGrants(Admin admin, AdminDTO dto, boolean isCreate) {
+        Integer scopeTenantId = resolveScopeTenantId(dto);
+        List<Integer> tenantIds = dto.getTenantIds();
+
+        if (!isCreate && (tenantIds == null || tenantIds.isEmpty())) {
+            AccessControlUtils.requireValidTenantId(scopeTenantId);
+            return syncScopedTenantAccess(admin.getId(), scopeTenantId, dto);
+        }
+
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            throw new BusinessException("Invalid Tenant Id!");
+        }
+
+        if (!isCreate) {
+            adminDao.deleteTenantAccessByUserIdExceptTenants(admin.getId(), tenantIds);
+        }
+
+        AdminTenantAccess primaryAccess = null;
+        for (Integer tenantId : tenantIds) {
+            if (tenantId == null || tenantId <= 0) {
+                continue;
+            }
+
+            boolean isScopedTenant = scopeTenantId != null && scopeTenantId.equals(tenantId);
+            AdminTenantAccess access = isScopedTenant
+                    ? syncScopedTenantAccess(admin.getId(), tenantId, dto)
+                    : ensureUnscopedTenantAccess(admin.getId(), tenantId);
+
+            if (primaryAccess == null || isScopedTenant) {
+                primaryAccess = access;
+            }
+        }
+
+        if (primaryAccess == null) {
+            throw new BusinessException("Insert Admin Tenant Access Failed!");
+        }
+        return primaryAccess;
+    }
+
+    private AdminTenantAccess syncScopedTenantAccess(Integer userId, Integer tenantId, AdminDTO dto) {
+        AclModes modes = resolveAclModes(dto.getAccountPermissions(), dto.getProcessPermissions());
+        AdminTenantAccess access = upsertTenantAccess(userId, tenantId, modes);
+        replaceAccountAcl(access.getId(), dto.getAccountPermissions(), modes.account());
+        replaceProcessAcl(access.getId(), dto.getProcessPermissions(), modes.process());
+        return access;
+    }
+
+    private AdminTenantAccess ensureUnscopedTenantAccess(Integer userId, Integer tenantId) {
+        AdminTenantAccess existing = adminDao.findTenantAccessByUserIdAndTenantId(userId, tenantId);
+        if (existing != null) {
+            return existing;
+        }
+        AclModes allModes = new AclModes(AdminTenantAccess.AclMode.ALL, AdminTenantAccess.AclMode.ALL);
+        return upsertTenantAccess(userId, tenantId, allModes);
+    }
+
+    private AdminTenantAccess upsertTenantAccess(Integer userId, Integer tenantId, AclModes modes) {
+        AdminTenantAccess existing = adminDao.findTenantAccessByUserIdAndTenantId(userId, tenantId);
+        if (existing != null) {
+            existing.setAccountAclMode(modes.account());
+            existing.setProcessAclMode(modes.process());
+            try {
+                adminDao.updateAdminTenantAccess(existing);
+            } catch (Exception e) {
+                throw new BusinessException("Update Admin Tenant Access Failed!");
+            }
+            return existing;
+        }
+
+        AdminTenantAccess access = new AdminTenantAccess();
+        access.setUserId(userId);
+        access.setTenantId(tenantId);
+        access.setAccountAclMode(modes.account());
+        access.setProcessAclMode(modes.process());
+        try {
+            adminDao.insertAdminTenantAccess(access);
+        } catch (Exception e) {
+            throw new BusinessException("Insert Admin Tenant Access Failed!");
+        }
+        return access;
+    }
+
+    private void replaceAccountAcl(
+            Long userTenantAccessId,
+            List<AdminDTO.AccountPermissionItem> items,
+            AdminTenantAccess.AclMode mode
+    ) {
+        if (items == null) {
+            return;
+        }
+
+        adminDao.deleteAccountAccessByUserTenantAccessId(userTenantAccessId);
+        if (mode != AdminTenantAccess.AclMode.CUSTOM) {
+            return;
+        }
+
+        List<AdminTenantAccountAccess> rows = buildAccountRows(userTenantAccessId, items);
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        try {
+            adminDao.insertAdminTenantAccountAccessBatch(rows);
+        } catch (Exception e) {
+            throw new BusinessException("Insert Admin Tenant Account Access Failed!");
+        }
+    }
+
+    private void replaceProcessAcl(
+            Long userTenantAccessId,
+            List<AdminDTO.ProcessPermissionItem> items,
+            AdminTenantAccess.AclMode mode
+    ) {
+        if (items == null) {
+            return;
+        }
+
+        adminDao.deleteProcessAccessByUserTenantAccessId(userTenantAccessId);
+        if (mode != AdminTenantAccess.AclMode.CUSTOM) {
+            return;
+        }
+
+        List<AdminTenantProcessAccess> rows = buildProcessRows(userTenantAccessId, items);
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        try {
+            adminDao.insertAdminTenantProcessAccessBatch(rows);
+        } catch (Exception e) {
+            throw new BusinessException("Insert Admin Tenant Process Access Failed!");
+        }
+    }
+
+    private List<AdminTenantAccountAccess> buildAccountRows(
+            Long userTenantAccessId,
+            List<AdminDTO.AccountPermissionItem> items
+    ) {
+        List<AdminTenantAccountAccess> rows = new ArrayList<>();
+        for (AdminDTO.AccountPermissionItem item : items) {
+            if (item.getAccountId() == null || item.getAccountId() <= 0) {
+                continue;
+            }
+            rows.add(new AdminTenantAccountAccess(
+                    null,
+                    userTenantAccessId,
+                    item.getAccountId(),
+                    null
+            ));
+        }
+        return rows;
+    }
+
+    private List<AdminTenantProcessAccess> buildProcessRows(
+            Long userTenantAccessId,
+            List<AdminDTO.ProcessPermissionItem> items
+    ) {
+        List<AdminTenantProcessAccess> rows = new ArrayList<>();
+        for (AdminDTO.ProcessPermissionItem item : items) {
+            if (item.getProcessId() == null || item.getProcessId() <= 0) {
+                continue;
+            }
+            rows.add(new AdminTenantProcessAccess(
+                    null,
+                    userTenantAccessId,
+                    item.getProcessId(),
+                    null
+            ));
+        }
+        return rows;
+    }
+
+    private Admin mapDtoToAdmin(AdminDTO dto) {
+        Admin admin = new Admin();
+        admin.setLoginId(dto.getLoginId());
+        admin.setName(dto.getName());
+        admin.setEmail(dto.getEmail());
+        admin.setPassword(dto.getPassword());
+        admin.setSecondaryPassword(dto.getSecondaryPassword());
+        admin.setHomeTenantId(dto.getHomeTenantId());
+        admin.setReadOnly(dto.getReadOnly() != null ? dto.getReadOnly() : false);
+        admin.setRoleCode(dto.getRole() != null ? normalizeStaffRoleCode(dto.getRole()) : null);
+        return admin;
+    }
+
+    private AdminDTO buildResult(Admin admin, AdminTenantAccess primaryAccess) {
+        AdminDTO result = new AdminDTO();
+        result.setAdmin(admin);
+        result.setAdminTenantAccess(primaryAccess);
+        return result;
+    }
+
+    private Admin loadExistingAdmin(AdminDTO dto) {
+        int userId = resolveUserId(dto);
+        Admin existing = AssertUtils.requireFound(adminDao.findAdminById(userId), "User not found!");
+
+        AssertUtils.requireFound(adminDao.findAdminByUserIdAndTenantId(userId, dto.getScopeTenantId()), "User not found!");
+        return existing;
+    }
+
+    private Integer resolveUserId(AdminDTO dto) {
+        if (dto.getId() != null && dto.getId() > 0) {
+            return dto.getId();
+        }
+        if (dto.getAdmin() != null && dto.getAdmin().getId() != null && dto.getAdmin().getId() > 0) {
+            return dto.getAdmin().getId();
+        }
+        return null;
+    }
+
+    private Integer resolveScopeTenantId(AdminDTO dto) {
+        if (dto.getScopeTenantId() != null && dto.getScopeTenantId() > 0) {
+            return dto.getScopeTenantId();
+        }
+        SessionUser session = SecurityUtils.currentUser();
+        return session != null ? session.tenant_id : null;
+    }
+
+    private Integer resolveRoleId(String role) {
+        return resolveRole(role).getId();
+    }
+
+    private AdminRole resolveRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new BusinessException("Invalid role");
+        }
+        AdminRole staffRole = permissionDao.findStaffRoleByCode(normalizeStaffRoleCode(role));
+        if (staffRole == null || staffRole.getId() == null) {
+            throw new BusinessException("Invalid role");
+        }
+        return staffRole;
+    }
+
+    // 拿操作者自己角色对应的 user_role 行，供层级校验用
+    private AdminRole resolveActorRole(SessionUser session) {
+        if (session == null) {
+            throw new BusinessException("Not logged in");
+        }
+        return resolveRole(session.role);
+    }
+
+    private AclModes resolveAclModes(
+            List<AdminDTO.AccountPermissionItem> accountItemsRaw,
+            List<AdminDTO.ProcessPermissionItem> processItemsRaw
+    ) {
+        return new AclModes(resolveAclMode(accountItemsRaw), resolveAclMode(processItemsRaw));
+    }
+
+    private AdminTenantAccess.AclMode resolveAclMode(List<?> itemsRaw) {
+        if (itemsRaw == null) {
+            return AdminTenantAccess.AclMode.ALL;
+        }
+        return itemsRaw.isEmpty() ? AdminTenantAccess.AclMode.NONE : AdminTenantAccess.AclMode.CUSTOM;
+    }
+
+    private void normalizeAdminFields(Admin admin) {
+        admin.setLoginId(admin.getLoginId().trim().toUpperCase(Locale.ROOT));
+        admin.setName(admin.getName().trim());
+        admin.setEmail(admin.getEmail().trim().toLowerCase(Locale.ROOT));
+    }
+
+    private void validateRequiredForCreate(Admin admin) {
+        if (admin.getRoleId() == null) {
+            throw new BusinessException("Invalid role");
+        }
+        if (admin.getLoginId() == null || admin.getLoginId().isBlank()) {
+            throw new BusinessException("Login Id is required");
+        }
+        if (admin.getName() == null || admin.getName().isBlank()) {
+            throw new BusinessException("Name is required");
+        }
+        if (admin.getEmail() == null || admin.getEmail().isBlank()) {
+            throw new BusinessException("Email is required");
+        }
+        if (admin.getPassword() == null || admin.getPassword().isBlank()) {
+            throw new BusinessException("Password is required");
+        }
+    }
+
+    private void assertNoDuplicateLoginId(String loginId, Integer homeTenantId) {
+        if (adminDao.findDuplicateLoginId(loginId, homeTenantId) != null) {
+            throw new BusinessException("Duplicate Login Id!");
+        }
+    }
+
+    private void assertNoDuplicateEmail(String email, Integer excludeId) {
+        Admin duplicate = excludeId == null
+                ? adminDao.findDuplicateEmail(email)
+                : adminDao.findDuplicateEmailExcludingId(email, excludeId);
+        if (duplicate != null) {
+            throw new BusinessException("Duplicate Email!");
+        }
+    }
+
+    private void encodePasswords(Admin admin) {
+        admin.setPassword(passwordEncoder.encode(admin.getPassword()));
+        if (admin.getSecondaryPassword() == null || admin.getSecondaryPassword().isBlank()) {
+            admin.setSecondaryPassword(null);
+        } else {
+            admin.setSecondaryPassword(passwordEncoder.encode(admin.getSecondaryPassword()));
+        }
+    }
+
+    private static String normalizeStaffRoleCode(String role) {
+        return role.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private record AclModes(AdminTenantAccess.AclMode account, AdminTenantAccess.AclMode process) {
+    }
+
+    @Override
+    @Audited(module = "ADMIN", action = AuditLog.Action.UPDATE, entityIdExpr = "#userId", sourceTable = "user")
+    public AdminDTO updateStatusById(Integer userId, Integer scopeTenantId) {
+        SessionUser session = AccessControlUtils.requireLoggedIn();
+
+        AssertUtils.requirePositive(userId, "userId");
+        AccessControlUtils.requireValidTenantId(scopeTenantId);
+        assertNotTenantOwner(userId, scopeTenantId);
+        if (session.user_id != null && session.user_id.equals(userId)) {
+            throw new BusinessException("You cannot toggle your own status");
+        }
+
+        AdminDTO scoped = adminDao.findAdminByUserIdAndTenantId(userId, scopeTenantId);
+        if (scoped == null || scoped.getAdmin() == null) {
+            throw new BusinessException("User not found!");
+        }
+
+        AdminRole actorRole = resolveActorRole(session);
+        AdminRole targetRole = resolveRole(scoped.getAdmin().getRoleCode());
+        AccessControlUtils.assertCanManageAdminTarget(
+                session, actorRole.getHierarchyLevel(), false, targetRole.getHierarchyLevel(), false);
+
+        Admin admin = scoped.getAdmin();
+        Admin.UserStatus current = admin.getStatus() != null ? admin.getStatus() : Admin.UserStatus.ACTIVE;
+        Admin.UserStatus newStatus = current == Admin.UserStatus.ACTIVE
+                ? Admin.UserStatus.INACTIVE
+                : Admin.UserStatus.ACTIVE;
+        AuditContext.captureBefore(userId, java.util.Map.of("status", current));
+
+        try {
+            adminDao.updateStatusById(userId, newStatus);
+        } catch (Exception e) {
+            throw new BusinessException("Update Admin Status Failed!");
+        }
+        AuditContext.captureAfter(userId, java.util.Map.of("status", newStatus));
+
+        return AssertUtils.requireFound(adminDao.findAdminByUserIdAndTenantId(userId, scopeTenantId), "User not found!");
+    }
+
+    @Override
+    @Transactional
+    @Audited(module = "ADMIN", action = AuditLog.Action.DELETE, entityIdExpr = "#userId", sourceTable = "user")
+    public void deleteAdminByIdAndStatus(Integer userId, Integer scopeTenantId) {
+        SessionUser session = AccessControlUtils.requireLoggedIn();
+
+        AssertUtils.requirePositive(userId, "userId");
+        AccessControlUtils.requireValidTenantId(scopeTenantId);
+        assertNotTenantOwner(userId, scopeTenantId);
+        if (session.user_id != null && session.user_id.equals(userId)) {
+            throw new BusinessException("You cannot delete your own account");
+        }
+
+        AdminDTO scoped = adminDao.findAdminByUserIdAndTenantId(userId, scopeTenantId);
+        if (scoped == null || scoped.getAdmin() == null) {
+            throw new BusinessException("User not found!");
+        }
+        if (scoped.getAdmin().getStatus() == Admin.UserStatus.ACTIVE) {
+            throw new BusinessException("User is not inactive, cannot be deleted!");
+        }
+
+        AdminRole actorRole = resolveActorRole(session);
+        AdminRole targetRole = resolveRole(scoped.getAdmin().getRoleCode());
+        AccessControlUtils.assertCanManageAdminTarget(
+                session, actorRole.getHierarchyLevel(), false, targetRole.getHierarchyLevel(), false);
+        AuditContext.captureBefore(userId, AuditSnapshots.admin(
+                scoped.getAdmin(), adminDao.findAdminTenantIdsByUserId(userId), resolveEffectiveSidebarPermissionCodes(scoped.getAdmin())));
+
+        try {
+            adminDao.deleteTenantAccessByUserIdAndTenantId(userId, scopeTenantId);
+        } catch (Exception e) {
+            throw new BusinessException("Delete Admin Tenant Access failed!");
+        }
+
+        try {
+            adminDao.deleteAdminByIdAndStatus(userId, Admin.UserStatus.INACTIVE);
+        } catch (Exception e) {
+            throw new BusinessException("Delete Admin failed!");
+        }
+    }
+}

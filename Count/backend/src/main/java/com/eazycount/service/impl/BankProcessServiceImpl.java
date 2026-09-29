@@ -1,0 +1,523 @@
+package com.eazycount.service.impl;
+
+import com.eazycount.audit.AuditContext;
+import com.eazycount.audit.AuditLabels;
+import com.eazycount.audit.AuditSnapshots;
+import com.eazycount.audit.AuditSummaryDefaults;
+import com.eazycount.audit.Audited;
+import com.eazycount.common.BusinessException;
+import com.eazycount.dao.BankCountryOptionDao;
+import com.eazycount.dao.BankProcessDao;
+import com.eazycount.dao.TransactionDao;
+import com.eazycount.dto.BankProcessDTO;
+import com.eazycount.dto.MaintenancePaymentDTO;
+import com.eazycount.dto.TransactionSubmitDTO;
+import com.eazycount.entity.AuditLog;
+import com.eazycount.entity.BankCountry;
+import com.eazycount.entity.BankOption;
+import com.eazycount.entity.BankProcess;
+import com.eazycount.entity.BankProcessShare;
+import com.eazycount.entity.Transaction;
+import com.eazycount.security.SessionUser;
+import com.eazycount.service.BankProcessService;
+import com.eazycount.service.MaintenanceService;
+import com.eazycount.service.TransactionSubmitService;
+import com.eazycount.util.AccessControlUtils;
+import com.eazycount.util.AssertUtils;
+import com.eazycount.websocket.RealtimeDomain;
+import com.eazycount.websocket.RealtimeEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+@Service
+public class BankProcessServiceImpl implements BankProcessService {
+
+    private static final Set<BankProcess.Status> EDIT_LOCKED_STATUS = Set.of(
+            BankProcess.Status.OFFICIAL,
+            BankProcess.Status.E_INVOICE,
+            BankProcess.Status.BLOCK);
+
+    @Autowired
+    private BankProcessDao bankProcessDao;
+
+    @Autowired
+    private BankCountryOptionDao bankCountryOptionDao;
+
+    @Autowired
+    private TransactionDao transactionDao;
+
+    @Autowired
+    private TransactionSubmitService transactionSubmitService;
+
+    @Autowired
+    private MaintenanceService maintenanceService;
+
+    @Autowired
+    private RealtimeEventPublisher realtimeEventPublisher;
+
+    @Override
+    public List<BankProcessDTO> findAllBankProcess(Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireValidTenantId(tenantId);
+        List<BankProcessDTO> list = bankProcessDao.findAllBankProcess(tenantId);
+        if (list == null || list.isEmpty()) {
+            return list;
+        }
+        // Ensure root status string is always present for SPA normalize.
+        for (BankProcessDTO dto : list) {
+            if (dto == null) {
+                continue;
+            }
+            if (dto.getStatus() == null || dto.getStatus().isBlank()) {
+                BankProcess bp = dto.getBankProcess();
+                if (bp != null && bp.getStatus() != null) {
+                    dto.setStatus(bp.getStatus().name());
+                }
+            }
+        }
+        return list;
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.CREATE, entityIdExpr = "#result.id", sourceTable = "bank_process")
+    @Transactional
+    public BankProcessDTO insertBankProcess(BankProcessDTO bankProcessDTO) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+
+        BankProcess bankProcess = insertNewBankProcess(bankProcessDTO, sessionUser);
+        AuditContext.captureAfter(bankProcess.getId(), AuditSnapshots.bankProcess(bankProcess));
+        AuditContext.captureSummary(bankProcess.getId(), AuditLabels.create("合同", contractIdentity(bankProcess)));
+        List<BankProcessShare> shares = insertProfitSharing(bankProcess.getId(), bankProcessDTO.getShares());
+
+        BigDecimal bankBalance = normalizeBankBalanceAmount(bankProcessDTO.getBankBalance());
+        if (bankBalance != null) {
+            createBankBalanceContra(bankProcess, bankBalance);
+        }
+
+        bankProcessDTO.setId(bankProcess.getId());
+        bankProcessDTO.setCardOwner(bankProcess.getCardOwner());
+        bankProcessDTO.setCardOwnerType(bankProcess.getCardOwnerType());
+        bankProcessDTO.setFrequency(bankProcess.getFrequency().name());
+        bankProcessDTO.setShares(shares);
+        return bankProcessDTO;
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.UPDATE, entityIdExpr = "#bankProcessDTO.id", sourceTable = "bank_process")
+    @Transactional
+    public BankProcessDTO updateBankProcessDetails(BankProcessDTO bankProcessDTO) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (bankProcessDTO == null) {
+            throw new BusinessException("Invalid request");
+        }
+        if (bankProcessDTO.getId() == null) {
+            throw new BusinessException("Invalid bank process ID");
+        }
+        AccessControlUtils.requireValidTenantId(bankProcessDTO.getTenantId());
+
+        BankProcessUpdate updateResult = updateBankProcess(bankProcessDTO, sessionUser);
+        BankProcess updated = updateResult.after();
+        String diff = AuditSummaryDefaults.diffFieldNames(
+                AuditSnapshots.bankProcess(updateResult.before()), AuditSnapshots.bankProcess(updated));
+        AuditContext.captureSummary(updated.getId(),
+                AuditLabels.updateWithDiff("合同", contractIdentity(updated), diff));
+        deleteBankProcessShareBatch(updated.getId());
+        List<BankProcessShare> shares = insertProfitSharing(updated.getId(), bankProcessDTO.getShares());
+
+        // Bank Balance: only ever create when this process doesn't already have one linked — once
+        // locked, the frontend field is read-only, but re-validate here too rather than trust it blindly.
+        BigDecimal bankBalance = normalizeBankBalanceAmount(bankProcessDTO.getBankBalance());
+        if (bankBalance != null && transactionDao.findLinkedBankBalanceTransaction(updated.getTenantId(), updated.getId()) == null) {
+            createBankBalanceContra(updated, bankBalance);
+        }
+
+        bankProcessDTO.setId(updated.getId());
+        bankProcessDTO.setCountryId(updated.getCountryId());
+        bankProcessDTO.setBankOptionId(updated.getBankOptionId());
+        bankProcessDTO.setCardOwner(updated.getCardOwner());
+        bankProcessDTO.setCardOwnerType(updated.getCardOwnerType());
+        bankProcessDTO.setFrequency(updated.getFrequency().name());
+        bankProcessDTO.setShares(shares);
+        return bankProcessDTO;
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.DELETE, entityIdExpr = "#id", sourceTable = "bank_process")
+    @Transactional
+    public void deleteBankProcess(Integer id, Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null || id <= 0) {
+            throw new BusinessException("Invalid Bank Process ID!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        BankProcess existing = AssertUtils.requireFound(
+                bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId), "Bank process not found!");
+        if (existing.getStatus() == null || existing.getStatus() != BankProcess.Status.INACTIVE) {
+            throw new BusinessException("Bank process is not inactive, cannot be deleted!");
+        }
+        AuditContext.captureBefore(id, AuditSnapshots.bankProcess(existing));
+
+        try {
+            deleteBankProcessShareBatch(id);
+            bankProcessDao.deleteBankProcess(id, tenantId);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException("Failed to delete bank process!");
+        }
+        realtimeEventPublisher.publish(tenantId, RealtimeDomain.MAINTENANCE, "bankprocess_delete");
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.UPDATE, entityIdExpr = "#id", sourceTable = "bank_process")
+    @Transactional
+    public BankProcess updateBankProcessStatus(Integer id, Integer tenantId, BankProcess.Status status) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null) {
+            throw new BusinessException("Invalid Bank Process ID!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+        if (status == null) {
+            throw new BusinessException("Status is required!");
+        }
+        if (status == BankProcess.Status.WAITING) {
+            throw new BusinessException("Invalid status!");
+        }
+
+        BankProcess existing = AssertUtils.requireFound(
+                bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId), "Bank process not found!");
+        AuditContext.captureBefore(id, AuditSnapshots.bankProcess(existing));
+
+        try {
+            bankProcessDao.updateStatus(id, tenantId, status);
+        } catch (Exception e) {
+            throw new BusinessException("Update bank process status failed. Please try again!");
+        }
+
+        existing.setStatus(status);
+        existing.setUpdatedBy(sessionUser.login_id);
+        AuditContext.captureAfter(id, AuditSnapshots.bankProcess(existing));
+        AuditContext.captureSummary(id, AuditLabels.updateStatus("合同", contractIdentity(existing)));
+        return existing;
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.UPDATE, entityIdExpr = "#id", sourceTable = "bank_process")
+    @Transactional
+    public void updateBankProcessRemark(Integer id, Integer tenantId, String remark) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null || id <= 0) {
+            throw new BusinessException("Invalid Bank Process ID!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        BankProcess existing = AssertUtils.requireFound(
+                bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId), "Bank process not found!");
+        assertEditable(existing);
+        AuditContext.captureBefore(id, AuditSnapshots.bankProcess(existing));
+
+        try {
+            bankProcessDao.updateRemark(id, tenantId, remark, sessionUser.login_id);
+        } catch (Exception e) {
+            throw new BusinessException("Update bank process remark failed. Please try again!");
+        }
+
+        AuditContext.captureAfter(id, AuditSnapshots.bankProcess(bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId)));
+        AuditContext.captureSummary(id, AuditLabels.updateWithDiff("合同", contractIdentity(existing), "\"remark\""));
+    }
+
+    @Override
+    @Audited(module = "BANK_PROCESS", action = AuditLog.Action.DELETE, entityIdExpr = "#id", sourceTable = "bank_process")
+    @Transactional
+    public void deleteBankBalance(Integer id, Integer tenantId) {
+        SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
+        AccessControlUtils.requireWritable(sessionUser);
+        if (id == null || id <= 0) {
+            throw new BusinessException("Invalid Bank Process ID!");
+        }
+        AccessControlUtils.requireValidTenantId(tenantId);
+
+        BankProcess existing = AssertUtils.requireFound(
+                bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId), "Bank process not found!");
+        assertEditable(existing);
+
+        Transaction linked = AssertUtils.requireFound(
+                transactionDao.findLinkedBankBalanceTransaction(tenantId, id), "No Bank Balance to delete!");
+        AuditContext.captureBefore(id, AuditSnapshots.bankBalance(linked));
+
+        // Reuse the existing Payment Maintenance delete flow (archives to transactions_deleted, then
+        // hard-deletes) — CONTRA is already one of its supported types, so this keeps Bank Balance
+        // deletion consistent with how every other manual transaction is deleted in this app.
+        MaintenancePaymentDTO deleteRequest = new MaintenancePaymentDTO();
+        deleteRequest.setTenantId(tenantId);
+        deleteRequest.setTransactionIds(List.of(linked.getId()));
+        maintenanceService.deletePaymentMaintenanceRows(deleteRequest);
+    }
+
+    /* Bank Balance: builds and submits the one-off CONTRA settling Customer(-amount)/Supplier(+amount),
+     * reusing TransactionSubmitService so balance updates, currency handling, and audit fields stay
+     * identical to a manually-created Contra on the Transaction Payment page. */
+    private void createBankBalanceContra(BankProcess bankProcess, BigDecimal amount) {
+        if (bankProcess.getSupplierAccountId() == null || bankProcess.getCustomerAccountId() == null) {
+            throw new BusinessException("Bank Balance requires both Supplier and Customer accounts to be set!");
+        }
+        BankCountry country = bankCountryOptionDao.findCountryById(
+                bankProcess.getTenantId(), bankProcess.getCountryId());
+        if (country == null || country.getCode() == null || country.getCode().isBlank()) {
+            throw new BusinessException("Bank process currency not found!");
+        }
+
+        TransactionSubmitDTO request = new TransactionSubmitDTO();
+        request.setTenantId(bankProcess.getTenantId());
+        request.setTransactionType(Transaction.TransactionType.CONTRA.name());
+        request.setToAccountId(bankProcess.getCustomerAccountId());
+        request.setFromAccountId(bankProcess.getSupplierAccountId());
+        request.setCurrencyCode(country.getCode());
+        request.setAmount(amount);
+        request.setBankProcessId(bankProcess.getId());
+        transactionSubmitService.submit(request);
+    }
+
+    /* null/blank/0 → no Bank Balance to create (unchanged behavior); negative is rejected outright
+     * rather than silently ignored, since it almost certainly means the user mistyped the amount. */
+    private static BigDecimal normalizeBankBalanceAmount(BigDecimal raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("Bank Balance cannot be negative!");
+        }
+        if (raw.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        return raw;
+    }
+
+    private BankProcess insertNewBankProcess(BankProcessDTO bankProcessDTO, SessionUser sessionUser) {
+        AccessControlUtils.requireValidTenantId(bankProcessDTO != null ? bankProcessDTO.getTenantId() : null);
+        if (bankProcessDTO.getCountryId() == null) {
+            throw new BusinessException("Country ID is required!");
+        }
+        if (bankProcessDTO.getBankOptionId() == null) {
+            throw new BusinessException("Bank option ID is required!");
+        }
+
+        String cardOwner = bankProcessDTO.getCardOwner() != null
+                ? bankProcessDTO.getCardOwner().trim() : "";
+        if (cardOwner.isEmpty()) {
+            throw new BusinessException("Card owner is required!");
+        }
+        String cardOwnerType = bankProcessDTO.getCardOwnerType() != null
+                ? bankProcessDTO.getCardOwnerType().trim() : "";
+        if (cardOwnerType.isEmpty()) {
+            throw new BusinessException("Card owner type is required!");
+        }
+
+        BankProcess.Frequency frequency = parseFrequency(bankProcessDTO.getFrequency());
+
+        AssertUtils.requireFound(bankCountryOptionDao.findCountryById(
+                bankProcessDTO.getTenantId(), bankProcessDTO.getCountryId()), "Country not found!");
+
+        AssertUtils.requireFound(bankCountryOptionDao.findBankOptionById(
+                bankProcessDTO.getTenantId(),
+                bankProcessDTO.getCountryId(),
+                bankProcessDTO.getBankOptionId()), "Bank option not found!");
+
+        BankProcess bankProcess = new BankProcess();
+        bankProcess.setTenantId(bankProcessDTO.getTenantId());
+        bankProcess.setCountryId(bankProcessDTO.getCountryId());
+        bankProcess.setBankOptionId(bankProcessDTO.getBankOptionId());
+        bankProcess.setCardOwner(cardOwner);
+        bankProcess.setCardOwnerType(cardOwnerType);
+        bankProcess.setDayStart(bankProcessDTO.getDayStart());
+        bankProcess.setDayEnd(bankProcessDTO.getDayEnd());
+        bankProcess.setDayEndMonthlyCapEnabled(resolveDayEndMonthlyCapEnabled(frequency, bankProcessDTO.getDayEndMonthlyCapEnabled()));
+        bankProcess.setExpiredAtCreation(resolveExpiredAtCreation(frequency, bankProcessDTO.getDayEnd()));
+        bankProcess.setFrequency(frequency);
+        bankProcess.setSupplierAccountId(bankProcessDTO.getSupplierAccountId());
+        bankProcess.setSupplierPrice(bankProcessDTO.getSupplierPrice());
+        bankProcess.setCustomerAccountId(bankProcessDTO.getCustomerAccountId());
+        bankProcess.setCustomerPrice(bankProcessDTO.getCustomerPrice());
+        bankProcess.setCompanyAccountId(bankProcessDTO.getCompanyAccountId());
+        bankProcess.setCompanyPrice(bankProcessDTO.getCompanyPrice());
+        bankProcess.setContract(bankProcessDTO.getContract());
+        bankProcess.setInsurancePrice(bankProcessDTO.getInsurancePrice());
+        bankProcess.setSop(bankProcessDTO.getSop());
+        bankProcess.setRemark(bankProcessDTO.getRemark());
+        bankProcess.setStatus(BankProcess.Status.ACTIVE);
+        bankProcess.setCreatedBy(sessionUser.login_id);
+        bankProcess.setUpdatedAt(null);
+
+        try {
+            bankProcessDao.insertNewBankProcess(bankProcess);
+        } catch (Exception e) {
+            throw new BusinessException("Insert bank process failed. Please try again!");
+        }
+        if (bankProcess.getId() == null) {
+            throw new BusinessException("Insert bank process failed. Please try again!");
+        }
+        return bankProcess;
+    }
+
+    /* OFFICIAL / E_INVOICE / BLOCK are locked from edits; only the status control can move them out. */
+    private static void assertEditable(BankProcess existing) {
+        if (existing.getStatus() != null && EDIT_LOCKED_STATUS.contains(existing.getStatus())) {
+            throw new BusinessException("Bank process is " + existing.getStatus()
+                    + " and cannot be edited. Change its status first.");
+        }
+    }
+
+    private record BankProcessUpdate(BankProcess before, BankProcess after) {
+    }
+
+    private BankProcessUpdate updateBankProcess(BankProcessDTO bankProcessDTO, SessionUser sessionUser) {
+        BankProcess existing = AssertUtils.requireFound(
+                bankProcessDao.findBKProcessByIdAndTenantId(bankProcessDTO.getId(), bankProcessDTO.getTenantId()),
+                "Bank process not found!");
+        assertEditable(existing);
+        AuditContext.captureBefore(existing.getId(), AuditSnapshots.bankProcess(existing));
+
+        BankProcess.Frequency frequency = parseFrequency(bankProcessDTO.getFrequency());
+
+        BankProcess bankProcess = new BankProcess();
+        bankProcess.setId(existing.getId());
+        bankProcess.setTenantId(existing.getTenantId());
+        bankProcess.setCountryId(existing.getCountryId());
+        bankProcess.setBankOptionId(existing.getBankOptionId());
+        bankProcess.setCardOwner(existing.getCardOwner());
+        bankProcess.setCardOwnerType(existing.getCardOwnerType());
+        bankProcess.setDayStart(bankProcessDTO.getDayStart());
+        bankProcess.setDayEnd(bankProcessDTO.getDayEnd());
+        bankProcess.setDayEndMonthlyCapEnabled(resolveDayEndMonthlyCapEnabled(frequency, bankProcessDTO.getDayEndMonthlyCapEnabled()));
+        bankProcess.setFrequency(frequency);
+        bankProcess.setSupplierAccountId(bankProcessDTO.getSupplierAccountId());
+        bankProcess.setSupplierPrice(bankProcessDTO.getSupplierPrice());
+        bankProcess.setCustomerAccountId(bankProcessDTO.getCustomerAccountId());
+        bankProcess.setCustomerPrice(bankProcessDTO.getCustomerPrice());
+        bankProcess.setCompanyAccountId(bankProcessDTO.getCompanyAccountId());
+        bankProcess.setCompanyPrice(bankProcessDTO.getCompanyPrice());
+        bankProcess.setContract(bankProcessDTO.getContract());
+        bankProcess.setInsurancePrice(bankProcessDTO.getInsurancePrice());
+        bankProcess.setSop(bankProcessDTO.getSop());
+        bankProcess.setRemark(bankProcessDTO.getRemark());
+        bankProcess.setUpdatedBy(sessionUser.login_id);
+
+        try {
+            bankProcessDao.updateBankProcess(bankProcess);
+        } catch (Exception e) {
+            throw new BusinessException("Update bank process failed. Please try again!");
+        }
+        BankProcess after = bankProcessDao.findBKProcessByIdAndTenantId(bankProcess.getId(), bankProcess.getTenantId());
+        AuditContext.captureAfter(bankProcess.getId(), AuditSnapshots.bankProcess(after));
+        return new BankProcessUpdate(existing, after);
+    }
+
+    /** "{card_owner} ({country code} - {bank option name})" — this 合同's identifier for its audit summary. */
+    private String contractIdentity(BankProcess bp) {
+        BankCountry country = bankCountryOptionDao.findCountryById(bp.getTenantId(), bp.getCountryId());
+        BankOption option = bankCountryOptionDao.findBankOptionById(bp.getTenantId(), bp.getCountryId(), bp.getBankOptionId());
+        String countryCode = country != null && country.getCode() != null ? country.getCode() : "?";
+        String optionName = option != null && option.getName() != null ? option.getName() : "?";
+        return bp.getCardOwner() + " (" + countryCode + " - " + optionName + ")";
+    }
+
+    private static BankProcess.Frequency parseFrequency(String raw) {
+        try {
+            String freq = raw != null ? raw.trim().toUpperCase() : "";
+            return BankProcess.Frequency.valueOf(freq);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid frequency!");
+        }
+    }
+
+    /* Only 1st-of-every-month may enable last-month DAY_END_TAIL; otherwise always false. */
+    private static boolean resolveDayEndMonthlyCapEnabled(BankProcess.Frequency frequency, Boolean raw) {
+        return frequency == BankProcess.Frequency.FIRST_OF_EVERY_MONTH && Boolean.TRUE.equals(raw);
+    }
+
+    /*
+     * Marked once at creation time only (never recomputed on edit): dayEnd's month is already
+     * before the creation month, i.e. the contract is fully expired the moment it's created.
+     * Only meaningful for FIRST_OF_EVERY_MONTH / MONTHLY, the two frequencies that otherwise
+     * extend billing past dayEnd while ACTIVE.
+     */
+    private static boolean resolveExpiredAtCreation(BankProcess.Frequency frequency, LocalDate dayEnd) {
+        if (frequency != BankProcess.Frequency.FIRST_OF_EVERY_MONTH
+                && frequency != BankProcess.Frequency.MONTHLY) {
+            return false;
+        }
+        if (dayEnd == null) {
+            return false;
+        }
+        return YearMonth.from(dayEnd).isBefore(YearMonth.from(LocalDate.now()));
+    }
+
+    private List<BankProcessShare> insertProfitSharing(Integer bankProcessId, List<BankProcessShare> shares) {
+        if (bankProcessId == null) {
+            throw new BusinessException("Bank process ID is required!");
+        }
+        if (shares == null || shares.isEmpty()) {
+            return List.of();
+        }
+
+        List<BankProcessShare> toInsert = new ArrayList<>();
+        Set<Integer> seenAccounts = new LinkedHashSet<>();
+        int sortOrder = 0;
+
+        for (BankProcessShare share : shares) {
+            if (share == null) {
+                continue;
+            }
+            Integer accountId = share.getAccountId();
+            if (accountId == null || accountId <= 0 || !seenAccounts.add(accountId)) {
+                continue;
+            }
+            BigDecimal amount = share.getAmount() != null ? share.getAmount() : BigDecimal.ZERO;
+
+            BankProcessShare row = new BankProcessShare();
+            row.setBankProcessId(bankProcessId);
+            row.setAccountId(accountId);
+            row.setAmount(amount);
+            row.setSortOrder(share.getSortOrder() != null ? share.getSortOrder() : sortOrder);
+            toInsert.add(row);
+            sortOrder++;
+        }
+
+        if (toInsert.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            bankProcessDao.insertNewBankProcessShareBatch(toInsert);
+        } catch (Exception e) {
+            throw new BusinessException("Insert bank process share failed. Please try again!");
+        }
+        return toInsert;
+    }
+
+    private void deleteBankProcessShareBatch(Integer bankProcessId) {
+        if (bankProcessId == null || bankProcessId <= 0) {
+            throw new BusinessException("Bank process ID is required!");
+        }
+        try {
+            bankProcessDao.deleteBankProcessShareBatch(bankProcessId);
+        } catch (Exception e) {
+            throw new BusinessException("Delete bank process share failed. Please try again!");
+        }
+    }
+}

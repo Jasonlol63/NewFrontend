@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eazycount.dao.ProcessDao">
+
+    <resultMap id="ProcessListMap" type="com.eazycount.dto.ProcessDTO">
+        <id property="id" column="processId"/>
+        <result property="currencyCode" column="processCurrencyCode"/>
+
+        <association property="process" javaType="com.eazycount.entity.Process">
+            <id property="id" column="processId"/>
+            <result property="tenantId" column="processTenantId"/>
+            <result property="category" column="processCategory"/>
+            <result property="code" column="processCode"/>
+            <result property="copiedFromProcessId" column="processCopiedFromProcessId"/>
+            <result property="enableSaveDraft" column="processEnableSaveDraft"/>
+            <result property="currencyId" column="processCurrencyId"/>
+            <result property="removeWord" column="processRemoveWord"/>
+            <result property="replaceWordFrom" column="processReplaceWordFrom"/>
+            <result property="replaceWordTo" column="processReplaceWordTo"/>
+            <result property="remark" column="processRemark"/>
+            <result property="status" column="processStatus"/>
+            <result property="createdBy" column="processCreatedBy"/>
+            <result property="updatedBy" column="processUpdatedBy"/>
+            <result property="createdAt" column="processCreatedAt"/>
+            <result property="updatedAt" column="processUpdatedAt"/>
+        </association>
+
+        <collection property="processDescriptions"
+                    column="processId"
+                    ofType="com.eazycount.entity.ProcessDescription"
+                    select="findDescriptionsByProcessId"/>
+
+        <collection property="processDays"
+                    column="processId"
+                    ofType="com.eazycount.entity.ProcessDay"
+                    select="findDaysByProcessId"/>
+    </resultMap>
+
+    <resultMap id="ProcessEntityMap" type="com.eazycount.entity.Process">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="category" column="category"/>
+        <result property="code" column="code"/>
+        <result property="copiedFromProcessId" column="copied_from_process_id"/>
+        <result property="enableSaveDraft" column="enable_save_draft"/>
+        <result property="currencyId" column="currency_id"/>
+        <result property="removeWord" column="remove_word"/>
+        <result property="replaceWordFrom" column="replace_word_from"/>
+        <result property="replaceWordTo" column="replace_word_to"/>
+        <result property="remark" column="remark"/>
+        <result property="status" column="status"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- List Process Details Use -->
+    <select id="findProcessByTenantId" resultMap="ProcessListMap">
+        SELECT
+            p.id                AS processId,
+            p.tenant_id         AS processTenantId,
+            p.category          AS processCategory,
+            p.code              AS processCode,
+            p.copied_from_process_id AS processCopiedFromProcessId,
+            p.enable_save_draft AS processEnableSaveDraft,
+            p.currency_id       AS processCurrencyId,
+            c.code              AS processCurrencyCode,
+            p.remove_word       AS processRemoveWord,
+            p.replace_word_from AS processReplaceWordFrom,
+            p.replace_word_to   AS processReplaceWordTo,
+            p.remark            AS processRemark,
+            p.status            AS processStatus,
+            p.created_by        AS processCreatedBy,
+            p.updated_by        AS processUpdatedBy,
+            p.created_at        AS processCreatedAt,
+            p.updated_at        AS processUpdatedAt
+        FROM process p
+                 LEFT JOIN currency c ON c.id = p.currency_id
+        WHERE p.tenant_id = #{tenantId}
+        ORDER BY p.code ASC
+    </select>
+
+    <select id="findDescriptionsByProcessId" resultType="com.eazycount.entity.ProcessDescription">
+        SELECT
+            d.id         AS id,
+            d.tenant_id  AS tenantId,
+            d.name       AS name,
+            d.created_at AS createdAt
+        FROM process_description_link pdl
+                 INNER JOIN process_description d ON d.id = pdl.description_id
+        WHERE pdl.process_id = #{value}
+        ORDER BY d.name ASC
+    </select>
+
+    <select id="findDaysByProcessId" resultType="com.eazycount.entity.ProcessDay">
+        SELECT
+            pd.id          AS id,
+            pd.process_id  AS processId,
+            pd.day_of_week AS dayOfWeek
+        FROM process_day pd
+        WHERE pd.process_id = #{value}
+        ORDER BY pd.day_of_week ASC
+    </select>
+    
+    <select id="findProcessById" resultMap="ProcessEntityMap">
+        SELECT
+            id,
+            tenant_id,
+            category,
+            code,
+            copied_from_process_id,
+            enable_save_draft,
+            currency_id,
+            remove_word,
+            replace_word_from,
+            replace_word_to,
+            remark,
+            status,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        FROM process
+        WHERE id = #{id}
+    </select>
+
+    <select id="findProcessByIdAndTenantId" resultMap="ProcessEntityMap">
+        SELECT
+            id,
+            tenant_id,
+            category,
+            code,
+            copied_from_process_id,
+            enable_save_draft,
+            currency_id,
+            remove_word,
+            replace_word_from,
+            replace_word_to,
+            remark,
+            status,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        FROM process
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </select>
+
+    <!-- code may repeat within a tenant - deliberately no LIMIT 1; callers must check size() and
+         treat >1 as ambiguous (no description available here to disambiguate by). -->
+    <select id="findProcessesCodeByTenantId" resultMap="ProcessEntityMap">
+        SELECT
+            id,
+            tenant_id,
+            category,
+            code,
+            copied_from_process_id,
+            enable_save_draft,
+            currency_id,
+            remove_word,
+            replace_word_from,
+            replace_word_to,
+            remark,
+            status,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        FROM process
+        WHERE tenant_id = #{tenantId}
+          AND category = #{category}
+          AND code = #{code}
+    </select>
+
+    <!-- code may repeat within a tenant; this narrows to which of the given descriptionIds are
+         already linked to some OTHER process sharing the same tenant/category/code. -->
+    <select id="findConflictingDescriptionIds" resultType="java.lang.Integer">
+        SELECT DISTINCT l.description_id
+        FROM process_description_link l
+        INNER JOIN process p ON p.id = l.process_id
+        WHERE p.tenant_id = #{tenantId}
+          AND p.category = #{category}
+          AND p.code = #{code}
+        <if test="excludeProcessId != null">
+            AND p.id != #{excludeProcessId}
+        </if>
+        AND l.description_id IN
+        <foreach collection="descriptionIds" item="descriptionId" open="(" separator="," close=")">
+            #{descriptionId}
+        </foreach>
+    </select>
+
+    <!-- Insert Process Use -->
+    <insert id="insertNewProcess" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO process (tenant_id, category, code, copied_from_process_id, enable_save_draft, currency_id, remove_word, replace_word_from, replace_word_to, remark, status, created_by, created_at)
+        VALUES (#{tenantId}, #{category}, #{code}, #{copiedFromProcessId}, #{enableSaveDraft}, #{currencyId}, #{removeWord}, #{replaceWordFrom}, #{replaceWordTo}, #{remark}, #{status}, #{createdBy}, NOW())
+    </insert>
+
+    <insert id="insertProcessDescriptionLinkBatch">
+        INSERT INTO process_description_link (process_id, description_id, created_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.processId}, #{item.descriptionId}, NOW())
+        </foreach>
+    </insert>
+
+    <insert id="insertProcessDayBatch">
+        INSERT INTO process_day (process_id, day_of_week)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.processId}, #{item.dayOfWeek})
+        </foreach>
+    </insert>
+
+    <!-- Copy From: deep-copy source process's description links / days / formulas onto the new process -->
+    <insert id="copyProcessDescriptionLinks">
+        INSERT INTO process_description_link (process_id, description_id, created_at)
+        SELECT #{newProcessId}, description_id, NOW()
+        FROM process_description_link
+        WHERE process_id = #{sourceProcessId}
+    </insert>
+
+    <insert id="copyProcessDays">
+        INSERT INTO process_day (process_id, day_of_week)
+        SELECT #{newProcessId}, day_of_week
+        FROM process_day
+        WHERE process_id = #{sourceProcessId}
+    </insert>
+
+    <!-- Copy From new-formula fan-out: direct downstream processes copy-from'd off this one. -->
+    <select id="findChildProcessIds" resultType="java.lang.Integer">
+        SELECT id
+        FROM process
+        WHERE copied_from_process_id = #{processId}
+          AND tenant_id = #{tenantId}
+    </select>
+
+    <!-- Update Process Use -->
+    <update id="updateProcessDetails">
+        UPDATE process
+        SET currency_id = #{currencyId},
+            enable_save_draft = #{enableSaveDraft},
+            remove_word = #{removeWord},
+            replace_word_from = #{replaceWordFrom},
+            replace_word_to = #{replaceWordTo},
+            remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <!-- Delete Process Use -->
+    <delete id="deleteProcessById">
+        DELETE FROM process
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </delete>
+
+    <!-- Delete ProcessDescription Link and ProcessDay -->
+    <delete id="deleteProcessDescriptionLinkByProcessId">
+        DELETE FROM process_description_link
+        WHERE process_id = #{processId}
+    </delete>
+
+    <delete id="deleteProcessDayByProcessId">
+        DELETE FROM process_day
+        WHERE process_id = #{processId}
+    </delete>
+
+    <update id="updateProcessStatus">
+        UPDATE process
+        SET status = #{status}
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </update>
+
+</mapper>

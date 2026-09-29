@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eazycount.dao.BankProcessDao">
+
+    <resultMap id="BankProcessMap" type="com.eazycount.entity.BankProcess">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="countryId" column="country_id"/>
+        <result property="bankOptionId" column="bank_option_id"/>
+        <result property="cardOwner" column="card_owner"/>
+        <result property="cardOwnerType" column="card_owner_type"/>
+        <result property="dayStart" column="day_start"/>
+        <result property="dayEnd" column="day_end"/>
+        <result property="dayEndMonthlyCapEnabled" column="day_end_monthly_cap_enabled"/>
+        <result property="expiredAtCreation" column="expired_at_creation"/>
+        <result property="dueGenerationFloor" column="due_generation_floor"/>
+        <result property="frequency" column="frequency"/>
+        <result property="supplierAccountId" column="supplier_account_id"/>
+        <result property="supplierPrice" column="supplier_price"/>
+        <result property="customerAccountId" column="customer_account_id"/>
+        <result property="customerPrice" column="customer_price"/>
+        <result property="companyAccountId" column="company_account_id"/>
+        <result property="companyPrice" column="company_price"/>
+        <result property="contract" column="contract"/>
+        <result property="insurancePrice" column="insurance_price"/>
+        <result property="sop" column="sop"/>
+        <result property="remark" column="remark"/>
+        <result property="status" column="status" javaType="com.eazycount.entity.BankProcess$Status" jdbcType="VARCHAR"/>
+        <result property="resendScheduleDayStart" column="resend_schedule_day_start"/>
+        <result property="resendScheduleDayEnd" column="resend_schedule_day_end"/>
+        <result property="resendScheduleFrequency" column="resend_schedule_frequency"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="BankProcessListMap" type="com.eazycount.dto.BankProcessDTO">
+        <id property="id" column="bp_id"/>
+        <result property="countryCode" column="country_code"/>
+        <result property="bankName" column="bank_name"/>
+        <result property="supplierAccountCode" column="supplier_account_code"/>
+        <result property="supplierAccountName" column="supplier_account_name"/>
+        <result property="customerAccountCode" column="customer_account_code"/>
+        <result property="customerAccountName" column="customer_account_name"/>
+        <result property="companyAccountCode" column="company_account_code"/>
+        <result property="companyAccountName" column="company_account_name"/>
+        <!-- Root String status: reliable for list JSON / frontend (avoid nested enum null → UI ACTIVE). -->
+        <result property="status" column="bp_status"/>
+        <result property="frequency" column="bp_frequency"/>
+        <!-- Bank Balance: linked Contra transaction (see transactions.bank_process_id), if any. -->
+        <result property="bankBalance" column="bank_balance"/>
+        <result property="bankBalanceTransactionId" column="bank_balance_transaction_id"/>
+
+        <association property="bankProcess" javaType="com.eazycount.entity.BankProcess">
+            <id property="id" column="bp_id"/>
+            <result property="tenantId" column="bp_tenant_id"/>
+            <result property="countryId" column="bp_country_id"/>
+            <result property="bankOptionId" column="bp_bank_option_id"/>
+            <result property="cardOwner" column="bp_card_owner"/>
+            <result property="cardOwnerType" column="bp_card_owner_type"/>
+            <result property="dayStart" column="bp_day_start"/>
+            <result property="dayEnd" column="bp_day_end"/>
+            <result property="dayEndMonthlyCapEnabled" column="bp_day_end_monthly_cap_enabled"/>
+            <result property="expiredAtCreation" column="bp_expired_at_creation"/>
+            <result property="dueGenerationFloor" column="bp_due_generation_floor"/>
+            <result property="frequency" column="bp_frequency"/>
+            <result property="supplierAccountId" column="bp_supplier_account_id"/>
+            <result property="supplierPrice" column="bp_supplier_price"/>
+            <result property="customerAccountId" column="bp_customer_account_id"/>
+            <result property="customerPrice" column="bp_customer_price"/>
+            <result property="companyAccountId" column="bp_company_account_id"/>
+            <result property="companyPrice" column="bp_company_price"/>
+            <result property="contract" column="bp_contract"/>
+            <result property="insurancePrice" column="bp_insurance_price"/>
+            <result property="sop" column="bp_sop"/>
+            <result property="remark" column="bp_remark"/>
+            <result property="status" column="bp_status" javaType="com.eazycount.entity.BankProcess$Status" jdbcType="VARCHAR"/>
+            <result property="resendScheduleDayStart" column="bp_resend_schedule_day_start"/>
+            <result property="resendScheduleDayEnd" column="bp_resend_schedule_day_end"/>
+            <result property="resendScheduleFrequency" column="bp_resend_schedule_frequency"/>
+            <result property="createdBy" column="bp_created_by"/>
+            <result property="updatedBy" column="bp_updated_by"/>
+            <result property="createdAt" column="bp_created_at"/>
+            <result property="updatedAt" column="bp_updated_at"/>
+        </association>
+
+        <!-- Nested select so Edit can refill profit sharing from list (no get API). -->
+        <collection property="shares"
+                    column="{bankProcessId=bp_id}"
+                    ofType="com.eazycount.entity.BankProcessShare"
+                    select="findSharesByBankProcessId"/>
+    </resultMap>
+
+    <resultMap id="BankProcessShareMap" type="com.eazycount.entity.BankProcessShare">
+        <id property="id" column="id"/>
+        <result property="bankProcessId" column="bank_process_id"/>
+        <result property="accountId" column="account_id"/>
+        <result property="amount" column="amount"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+
+    <select id="findAllBankProcess" resultMap="BankProcessListMap">
+        SELECT
+            bp.id                   AS bp_id,
+            bp.tenant_id            AS bp_tenant_id,
+            bp.country_id           AS bp_country_id,
+            bp.bank_option_id       AS bp_bank_option_id,
+            bp.card_owner           AS bp_card_owner,
+            bp.card_owner_type      AS bp_card_owner_type,
+            bp.day_start            AS bp_day_start,
+            bp.day_end              AS bp_day_end,
+            bp.day_end_monthly_cap_enabled AS bp_day_end_monthly_cap_enabled,
+            bp.expired_at_creation  AS bp_expired_at_creation,
+            bp.due_generation_floor AS bp_due_generation_floor,
+            bp.frequency            AS bp_frequency,
+            bp.supplier_account_id  AS bp_supplier_account_id,
+            bp.supplier_price       AS bp_supplier_price,
+            bp.customer_account_id  AS bp_customer_account_id,
+            bp.customer_price       AS bp_customer_price,
+            bp.company_account_id   AS bp_company_account_id,
+            bp.company_price        AS bp_company_price,
+            bp.contract             AS bp_contract,
+            bp.insurance_price      AS bp_insurance_price,
+            bp.sop                  AS bp_sop,
+            bp.remark               AS bp_remark,
+            bp.status               AS bp_status,
+            bp.resend_schedule_day_start AS bp_resend_schedule_day_start,
+            bp.resend_schedule_day_end AS bp_resend_schedule_day_end,
+            bp.resend_schedule_frequency AS bp_resend_schedule_frequency,
+            bp.created_by           AS bp_created_by,
+            bp.updated_by           AS bp_updated_by,
+            bp.created_at           AS bp_created_at,
+            bp.updated_at           AS bp_updated_at,
+            bc.code                 AS country_code,
+            bo.name                 AS bank_name,
+            sa.account_id           AS supplier_account_code,
+            sa.name                 AS supplier_account_name,
+            ca.account_id           AS customer_account_code,
+            ca.name                 AS customer_account_name,
+            coa.account_id          AS company_account_code,
+            coa.name                AS company_account_name,
+            bbt.amount              AS bank_balance,
+            bbt.id                  AS bank_balance_transaction_id
+        FROM bank_process bp
+                 LEFT JOIN bank_country bc ON bc.id = bp.country_id
+                 LEFT JOIN bank_option bo ON bo.id = bp.bank_option_id
+                 LEFT JOIN account sa ON sa.id = bp.supplier_account_id
+                 LEFT JOIN account ca ON ca.id = bp.customer_account_id
+                 LEFT JOIN account coa ON coa.id = bp.company_account_id
+                 <!-- At most one linked Contra should ever exist per process (enforced in service layer,
+                      not by a DB constraint); this correlated join defends the list query against
+                      row-multiplication if that invariant is ever violated, always picking the newest. -->
+                 LEFT JOIN transactions bbt ON bbt.id = (
+                     SELECT t2.id FROM transactions t2
+                     WHERE t2.bank_process_id = bp.id AND t2.transaction_type = 'CONTRA'
+                     ORDER BY t2.id DESC LIMIT 1
+                 )
+        WHERE bp.tenant_id = #{tenantId}
+        ORDER BY bp.day_start DESC, bp.id DESC
+    </select>
+
+    <select id="findBKProcessByIdAndTenantId" resultMap="BankProcessMap">
+        SELECT
+            id,
+            tenant_id,
+            country_id,
+            bank_option_id,
+            card_owner,
+            card_owner_type,
+            day_start,
+            day_end,
+            day_end_monthly_cap_enabled,
+            expired_at_creation,
+            due_generation_floor,
+            frequency,
+            supplier_account_id,
+            supplier_price,
+            customer_account_id,
+            customer_price,
+            company_account_id,
+            company_price,
+            contract,
+            insurance_price,
+            sop,
+            remark,
+            status,
+            resend_schedule_day_start,
+            resend_schedule_day_end,
+            resend_schedule_frequency,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        FROM bank_process
+        WHERE id = #{id} AND tenant_id = #{tenantId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertNewBankProcess" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO bank_process (
+            tenant_id,
+            country_id,
+            bank_option_id,
+            card_owner,
+            card_owner_type,
+            day_start,
+            day_end,
+            day_end_monthly_cap_enabled,
+            expired_at_creation,
+            frequency,
+            supplier_account_id,
+            supplier_price,
+            customer_account_id,
+            customer_price,
+            company_account_id,
+            company_price,
+            contract,
+            insurance_price,
+            sop,
+            remark,
+            status,
+            created_by,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{countryId},
+            #{bankOptionId},
+            #{cardOwner},
+            #{cardOwnerType},
+            #{dayStart},
+            #{dayEnd},
+            #{dayEndMonthlyCapEnabled},
+            #{expiredAtCreation},
+            #{frequency},
+            #{supplierAccountId},
+            #{supplierPrice},
+            #{customerAccountId},
+            #{customerPrice},
+            #{companyAccountId},
+            #{companyPrice},
+            #{contract},
+            #{insurancePrice},
+            #{sop},
+            #{remark},
+            #{status},
+            #{createdBy},
+            NOW()
+        )
+    </insert>
+
+    <update id="updateBankProcess">
+        UPDATE bank_process
+        SET day_start = #{dayStart},
+            day_end = #{dayEnd},
+            day_end_monthly_cap_enabled = #{dayEndMonthlyCapEnabled},
+            frequency = #{frequency},
+            supplier_account_id = #{supplierAccountId},
+            customer_account_id = #{customerAccountId},
+            company_account_id = #{companyAccountId},
+            supplier_price = #{supplierPrice},
+            customer_price = #{customerPrice},
+            company_price = #{companyPrice},
+            contract = #{contract},
+            insurance_price = #{insurancePrice},
+            sop = #{sop},
+            remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW()
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteBankProcess">
+        DELETE FROM bank_process
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </delete>
+
+    <update id="updateStatus">
+        UPDATE bank_process
+        SET status = #{status}
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </update>
+
+    <update id="updateRemark">
+        UPDATE bank_process
+        SET remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW()
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="findProcessShare" resultMap="BankProcessShareMap">
+        SELECT *
+        FROM bank_process_share
+        WHERE bank_process_id = #{bankProcessId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="findSharesByBankProcessId" resultMap="BankProcessShareMap">
+        SELECT
+            id,
+            bank_process_id,
+            account_id,
+            amount,
+            sort_order
+        FROM bank_process_share
+        WHERE bank_process_id = #{bankProcessId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <insert id="insertNewBankProcessShareBatch">
+        INSERT INTO bank_process_share (bank_process_id, account_id, amount, sort_order)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.bankProcessId}, #{item.accountId}, #{item.amount}, #{item.sortOrder})
+        </foreach>
+    </insert>
+
+    <delete id="deleteBankProcessShareBatch">
+        DELETE FROM bank_process_share
+        WHERE bank_process_id = #{bankProcessId}
+    </delete>
+
+</mapper>
