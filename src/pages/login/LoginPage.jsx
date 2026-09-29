@@ -4,6 +4,7 @@ import { ArrowRight, Building2, Eye, EyeOff, Lock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IconInput from "./components/IconInput.jsx";
 import RoleTabs from "./components/RoleTabs.jsx";
+import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 
 const ROLE_OPTIONS = [
@@ -60,6 +61,8 @@ export default function LoginPage() {
         <h1 className="m-0 mb-5 text-[21px] font-bold tracking-[-0.2px] text-[#14336b]">
           Accounting Management System
         </h1>
+
+        <MaintenanceNotice className="mb-[14px]" />
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />

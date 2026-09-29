@@ -45,6 +45,19 @@ body {
   margin: 0;
 }
 
+/* Brand + maintenance-notice tokens (not tied to shadcn's neutral palette) */
+@theme {
+  --color-brand-navy: #14336b;
+  --color-brand-blue: #2f6fef;
+  --color-notice-warn: #a45a04;
+  --color-notice-warn-dot: #f5a524;
+  --shadow-notice: 0 12px 24px -16px rgba(20, 70, 160, 0.5);
+}
+
+@utility bg-notice-gradient {
+  background-image: linear-gradient(100deg, #e4eeff 0%, #d3e6ff 50%, #c6ecff 100%);
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
