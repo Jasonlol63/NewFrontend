@@ -11,7 +11,7 @@ export default function RoleTabs({ options, value, onChange }) {
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "relative isolate cursor-pointer border-none bg-[#dbe7f7] py-[14px] text-sm font-bold transition-[color,transform] duration-[250ms] active:scale-[0.99]",
+              "relative isolate cursor-pointer border-none bg-[#dbe7f7] py-[clamp(10px,1.8dvh,14px)] text-sm font-bold transition-[color,transform] duration-[250ms] active:scale-[0.99]",
               active ? "text-white" : "text-[#6f93c9]"
             )}
           >

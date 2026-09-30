@@ -95,9 +95,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center pb-20 bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
-      <div className="w-[400px] py-[30px] text-center">
-        <div className="mx-auto mb-[14px] h-[76px] w-[76px] rotate-[-45deg]">
+    <div className="flex min-h-dvh items-center justify-center px-4 pb-[6dvh] bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
+      <div className="w-full max-w-[400px] py-fluid-md text-center">
+        <div className="mx-auto mb-fluid-sm size-auth-logo rotate-[-45deg]">
           <img
             src={logoSrc}
             alt="Count logo"
@@ -105,18 +105,18 @@ export default function LoginPage() {
           />
         </div>
 
-        <h1 className="m-0 mb-5 text-[21px] font-bold tracking-[-0.2px] text-[#14336b]">
+        <h1 className="m-0 mb-fluid-md text-[clamp(18px,3dvh,21px)] font-bold tracking-[-0.2px] text-[#14336b]">
           Accounting Management System
         </h1>
 
-        {SHOW_MAINTENANCE_NOTICE && <MaintenanceNotice className="mb-[14px]" />}
+        {SHOW_MAINTENANCE_NOTICE && <MaintenanceNotice className="mb-fluid-sm" />}
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />
 
           <form
             onSubmit={onSubmit}
-            className="flex flex-col gap-3 px-[26px] pb-[26px] pt-6 text-left"
+            className="flex flex-col gap-[clamp(8px,1.5dvh,12px)] px-[26px] py-fluid-md text-left"
           >
             <IconInput
               icon={Building2}
@@ -153,7 +153,7 @@ export default function LoginPage() {
               }
             />
 
-            <div className="mb-3 mt-0.5 flex items-center justify-between text-xs">
+            <div className="mb-fluid-xs mt-0.5 flex items-center justify-between text-xs">
               <label className="flex cursor-pointer items-center gap-[7px] text-[#4a5568]">
                 <input
                   type="checkbox"
@@ -181,13 +181,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[42px] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
+              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
             >
               Login
               <ArrowRight size={15} />
             </button>
 
-            <div className="mt-3 flex justify-center">
+            <div className="mt-fluid-xs flex justify-center">
               <PillSwitch options={LANG_OPTIONS} value={lang} onChange={setLang} />
             </div>
           </form>

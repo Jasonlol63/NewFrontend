@@ -52,7 +52,7 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        "relative flex h-screen w-[260px] min-w-[260px] flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff]",
+        "relative flex h-full w-[260px] min-w-[260px] flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff]",
         "shadow-[6px_0_24px_-8px_rgba(4,15,40,0.55)]",
         "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_18%)]"
       )}

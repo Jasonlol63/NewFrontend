@@ -70,8 +70,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#dbe9fb] bg-[url('/images/count_bg.png')] bg-cover bg-center bg-no-repeat">
-      <div className="w-[400px] py-[30px]">
+    <div className="flex min-h-dvh items-center justify-center px-4 bg-[#dbe9fb] bg-[url('/images/count_bg.png')] bg-cover bg-center bg-no-repeat">
+      <div className="w-full max-w-[400px] py-fluid-md">
         <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] px-8 pb-8 pt-[26px] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <button
             type="button"

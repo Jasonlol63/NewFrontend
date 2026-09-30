@@ -5,6 +5,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Short viewports: 1366x768 laptops and 1920 screens at 125%+ Windows scaling
+   leave ~600-730px of browser height. Use `short:` to tighten layouts there. */
+@custom-variant short (@media (max-height: 720px));
+
 :root {
   color-scheme: light;
   --background: oklch(1 0 0);
@@ -43,6 +47,18 @@
 
 body {
   margin: 0;
+}
+
+/* Fluid spacing: shrinks with viewport height so pages fit one screen instead
+   of scrolling (p-fluid-md, gap-fluid-sm, mb-fluid-xs, ...). The max matches
+   the original fixed design; the min is the tightest we allow. */
+@theme {
+  --spacing-fluid-2xs: clamp(2px, 0.6dvh, 6px);
+  --spacing-fluid-xs: clamp(4px, 1.2dvh, 12px);
+  --spacing-fluid-sm: clamp(8px, 1.6dvh, 14px);
+  --spacing-fluid-md: clamp(14px, 2.8dvh, 24px);
+  --spacing-fluid-lg: clamp(16px, 3.6dvh, 32px);
+  --spacing-auth-logo: clamp(48px, calc(12dvh - 24px), 76px);
 }
 
 /* Brand + maintenance-notice tokens (not tied to shadcn's neutral palette) */

@@ -108,7 +108,7 @@ export default function DashboardPage() {
   const pageError = directoryError || error;
 
   return (
-    <div className="flex flex-col gap-3 p-4 xl:h-screen xl:min-h-[780px]">
+    <div className="flex flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)] xl:h-full xl:min-h-[520px]">
       <DashboardFilterPanel
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
@@ -132,13 +132,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <section className={cn("grid flex-none grid-cols-1 gap-3", showEarnings ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3")}>
+      <section className={cn("grid flex-none grid-cols-1 gap-[clamp(8px,1.5dvh,12px)]", showEarnings ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3")}>
         {cards.map((card) => (
           <KpiCard key={card.label} {...card} compareLabel={compareLabel} loading={loading} />
         ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[1.6fr_1fr]">
+      <section className="grid grid-cols-1 gap-[clamp(8px,1.5dvh,12px)] xl:min-h-0 xl:flex-1 xl:grid-cols-[1.6fr_1fr]">
         <TrendChartCard trend={trend} dateFrom={dateRange.from} dateTo={dateRange.to} loading={loading} />
         <CurrencyBreakdownCard breakdown={breakdown} currency={currency} loading={loading} />
       </section>

@@ -25,7 +25,7 @@ function CurrencyDonut({ rows, activeCode }) {
     : [];
 
   return (
-    <div className="relative size-[150px] flex-none">
+    <div className="relative size-[150px] short:size-[112px] flex-none">
       <svg viewBox="0 0 120 120" className="size-full -rotate-90">
         <circle cx="60" cy="60" r={RADIUS} fill="none" stroke="#f1f5f9" strokeWidth="11" />
         {slices.map((s) => (
@@ -76,7 +76,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
         loading && "opacity-60"
       )}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-4 short:mb-2 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 text-[11px] font-bold tracking-wider text-[#374151] uppercase">
             Net Profit · {currency || "—"}

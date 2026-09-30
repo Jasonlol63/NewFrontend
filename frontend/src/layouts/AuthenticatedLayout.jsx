@@ -5,9 +5,9 @@ export default function AuthenticatedLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.png')] bg-cover bg-center bg-no-repeat bg-fixed">
+    <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.png')] bg-cover bg-center bg-no-repeat bg-fixed">
       <Sidebar onLogout={() => navigate("/login")} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
     </div>

@@ -12,7 +12,7 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
     <div
       style={{ "--kpi-tint": tint }}
       className={cn(
-        "relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border border-slate-200/90 bg-[linear-gradient(135deg,var(--kpi-tint)_0%,#ffffff_62%)] px-4 py-4 shadow-dash-card transition-opacity",
+        "relative flex flex-col gap-2.5 short:gap-1.5 overflow-hidden rounded-2xl border border-slate-200/90 bg-[linear-gradient(135deg,var(--kpi-tint)_0%,#ffffff_62%)] px-4 py-4 short:py-3 shadow-dash-card transition-opacity",
         loading && "opacity-60"
       )}
     >
@@ -32,7 +32,7 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
       </div>
 
       <div className="relative flex flex-wrap items-center gap-2.5">
-        <span className="text-[28px] leading-none font-bold tracking-tight text-dash-ink tabular-nums">
+        <span className="text-[28px] short:text-[24px] leading-none font-bold tracking-tight text-dash-ink tabular-nums">
           {hasValue ? formatMoney(value) : "—"}
         </span>
         {showDelta && (
