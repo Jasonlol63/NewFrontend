@@ -13,6 +13,11 @@ const SERIES = [
 
 const AXIS_TICK = { fontSize: 10.5, fill: "#94a3b8" };
 
+// Lines and fills draw in left to right when data first arrives, and glide to the new shape when
+// a filter changes. Skipped for people who ask their system for reduced motion.
+const ANIMATE = typeof window === "undefined" || !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const DRAW_MS = 1200;
+
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   return (
@@ -61,7 +66,13 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
   const formatDay = (iso) => (multiMonth ? formatDisplayDate(iso).slice(0, 5) : String(Number(iso.slice(8, 10))));
 
   return (
-    <div className="flex min-h-[360px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card">
+    // Whole card fades while loading (same as the KPI and currency cards), so the glass background shows through.
+    <div
+      className={cn(
+        "flex min-h-[360px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity",
+        loading && "opacity-60"
+      )}
+    >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-base font-bold text-dash-ink">Trend Chart</h3>
         <div className="flex flex-wrap gap-4">
@@ -85,7 +96,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
         </span>
       </div>
 
-      <div className={cn("relative min-h-0 flex-1 transition-opacity", loading && "opacity-50")}>
+      <div className="relative min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={rows} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
             <defs>
@@ -129,7 +140,9 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
                   fill={`url(#trend-fill-${s.key})`}
                   dot={false}
                   activeDot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
-                  isAnimationActive={false}
+                  isAnimationActive={ANIMATE}
+                  animationDuration={DRAW_MS}
+                  animationEasing="ease-out"
                 />
               ))}
           </AreaChart>

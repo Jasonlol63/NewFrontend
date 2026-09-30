@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSavedOrder, useSavedState } from "@/hooks/useSavedState";
 import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
 import KpiCard from "./components/KpiCard.jsx";
 import TrendChartCard from "./components/TrendChartCard.jsx";
@@ -23,25 +24,46 @@ function defaultCompany(directory, group) {
   return canViewGroupItself(directory, group) ? null : ALL;
 }
 
-export default function DashboardPage() {
-  const { directory, error: directoryError } = useTenantDirectory();
-  const [dateRange, setDateRange] = useState(currentMonthRange);
-  // null until the user picks something; until then the defaults below are used.
-  const [selection, setSelection] = useState(null);
-  const [pickedCurrency, setPickedCurrency] = useState("");
+// The saved Group / Company are only used while they still exist for this login; otherwise the
+// defaults apply, so a removed company or a revoked permission never leaves an empty selection.
+function resolveSelection(directory, saved) {
+  if (!directory) return { group: ALL, company: null };
+  const savedGroupOk = saved?.group === ALL || directory.groups.some((g) => g.code === saved?.group);
+  const group = savedGroupOk ? saved.group : (directory.groups[0]?.code ?? ALL);
 
-  const group = selection?.group ?? directory?.groups[0]?.code ?? ALL;
-  const company = selection ? selection.company : directory ? defaultCompany(directory, group) : null;
+  const c = saved?.company;
+  const savedCompanyOk =
+    savedGroupOk &&
+    (c === ALL
+      ? true
+      : c === null
+        ? canViewGroupItself(directory, group)
+        : companiesInGroup(directory, group).some((x) => x.code === c));
+  return { group, company: savedCompanyOk ? c : defaultCompany(directory, group) };
+}
+
+export default function DashboardPage() {
+  const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
+  const [dateRange, setDateRange] = useState(currentMonthRange);
+  // Group / Company / Currency the user picked last; saved in the browser so a refresh keeps them.
+  const [saved, setSaved, savedReady] = useSavedState("dashboard.filters");
+  // Order the user dragged the currency chips into; saved the same way.
+  const [currencyOrder, setCurrencyOrder] = useSavedOrder("dashboard.currencyOrder");
+
+  // Hold everything back until the saved choice has been read, so the defaults never flash
+  // (or fire requests) before the restored selection takes over.
+  const directory = savedReady ? loadedDirectory : null;
+  const { group, company } = useMemo(() => resolveSelection(directory, saved), [directory, saved]);
 
   const scope = useMemo(() => resolveScope(directory, group, company), [directory, group, company]);
   const currencyCodes = useCurrencyOptions(scope?.tenantIds);
-  const currency = currencyCodes.includes(pickedCurrency)
-    ? pickedCurrency
+  const currency = currencyCodes.includes(saved?.currency)
+    ? saved.currency
     : currencyCodes.includes("MYR")
       ? "MYR"
       : (currencyCodes[0] ?? "");
 
-  const { kpi, trend, breakdown, loading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
+  const { kpi, trend, breakdown, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
 
   const allowNoCompany = canViewGroupItself(directory, group);
   const groupOptions = useMemo(
@@ -55,11 +77,21 @@ export default function DashboardPage() {
     ],
     [directory, group]
   );
-  const currencyOptions = useMemo(() => currencyCodes.map((code) => ({ value: code, label: code })), [currencyCodes]);
+  const currencyOptions = useMemo(() => {
+    // Dragged order first; currencies that were never dragged keep their default order after it.
+    const ordered = [
+      ...currencyOrder.filter((code) => currencyCodes.includes(code)),
+      ...currencyCodes.filter((code) => !currencyOrder.includes(code)),
+    ];
+    return ordered.map((code) => ({ value: code, label: code }));
+  }, [currencyCodes, currencyOrder]);
 
-  const handleGroupChange = (next) =>
-    setSelection({ group: next, company: canViewGroupItself(directory, next) ? null : ALL });
-  const handleCompanyChange = (next) => setSelection({ group, company: next });
+  // The saved currency is only replaced when the user picks one: if a company lacks it, the page
+  // shows a fallback but keeps the preference for when they switch back.
+  const save = (next) => setSaved({ group, company, currency: saved?.currency ?? currency, ...next });
+  const handleGroupChange = (next) => save({ group: next, company: defaultCompany(directory, next) });
+  const handleCompanyChange = (next) => save({ company: next });
+  const handleCurrencyChange = (next) => save({ currency: next });
 
   const compareLabel = isFullMonth(kpi?.previousDateFrom, kpi?.previousDateTo)
     ? "than last month"
@@ -89,7 +121,9 @@ export default function DashboardPage() {
         allowNoCompany={allowNoCompany}
         currencyOptions={currencyOptions}
         currency={currency}
-        onCurrencyChange={setPickedCurrency}
+        onCurrencyChange={handleCurrencyChange}
+        onCurrencyReorder={setCurrencyOrder}
+        loading={initialLoading}
       />
 
       {pageError && (

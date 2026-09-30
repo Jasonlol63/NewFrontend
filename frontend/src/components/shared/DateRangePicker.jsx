@@ -42,9 +42,11 @@ function monthGrid(year, month) {
 // ===== Popup size: tweak these to resize the whole picker =====
 // (Tailwind needs full class names written out, so edit the values in place.)
 const SIZE = {
+  // The popup is always exactly as wide as this box; the calendar takes whatever the presets leave.
+  trigger: "w-[330px]",                         // width of the date box AND of the popup
   presetColumn: "w-[92px] p-1",                 // left preset list width + padding
   presetItem: "px-2 py-1.5 text-[12px]",        // each preset row
-  calendar: "w-[236px] p-2.5",                  // right calendar width + padding
+  calendar: "p-2.5",                            // right calendar padding
   header: "mb-2",                               // gap under the < Sep 2026 > row
   headerButton: "px-2 py-[calc(var(--spacing)*1.2)] text-[12px]",      // "Sep" / "2026" buttons
   navButton: "size-6",                          // < > arrows
@@ -120,7 +122,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-[240px] cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white text-[13px] font-semibold text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+          className={cn("inline-flex max-w-full cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white text-[13px] font-semibold text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]", SIZE.trigger)}
         >
           <span className="flex w-9 flex-none items-center justify-center bg-[#3b82f6] text-white">
             <CalendarDays className="size-3.5" strokeWidth={2.2} />
@@ -138,7 +140,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
         <Popover.Content
           align={align}
           sideOffset={6}
-          className="z-50 flex overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className="z-50 flex w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
         >
           {/* presets */}
           <div className={cn("flex flex-none flex-col border-r border-dash-line bg-[#f4f8fe]", SIZE.presetColumn)}>
@@ -159,7 +161,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
           </div>
 
           {/* calendar */}
-          <div className={SIZE.calendar}>
+          <div className={cn("min-w-0 flex-1", SIZE.calendar)}>
             <div className={cn("flex items-center justify-between", SIZE.header)}>
               <button
                 type="button"

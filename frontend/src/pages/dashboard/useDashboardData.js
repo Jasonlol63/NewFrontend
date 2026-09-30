@@ -195,6 +195,8 @@ export function useDashboardData(scope, dateFrom, dateTo, currency) {
     return () => controller.abort();
   }, [requestKey, scope, dateFrom, dateTo, currency]);
 
-  if (!requestKey) return { ...EMPTY, loading: false };
-  return { ...result, loading: result.key !== requestKey };
+  if (!requestKey) return { ...EMPTY, loading: false, initialLoading: false };
+  // initialLoading: the very first load of this page visit (no result has arrived yet), as opposed
+  // to `loading`, which is also true every time a filter change triggers a re-fetch.
+  return { ...result, loading: result.key !== requestKey, initialLoading: result.key === "" };
 }
