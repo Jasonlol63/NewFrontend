@@ -98,11 +98,11 @@ export default function DashboardPage() {
     : "than previous period";
   const showEarnings = Boolean(kpi?.showEarnings);
   const cards = [
-    { label: "Profit", icon: DollarSign, iconClassName: "text-series-profit", value: kpi?.profit, previous: kpi?.previousProfit },
-    { label: "Expenses", icon: TrendingDown, iconClassName: "text-series-expenses", value: kpi?.expenses, previous: kpi?.previousExpenses },
-    { label: "Net Profit", icon: ChartLine, iconClassName: "text-series-net", value: kpi?.netProfit, previous: kpi?.previousNetProfit },
+    { label: "Profit", icon: DollarSign, color: "#2563eb", tint: "#e8f1ff", value: kpi?.profit, previous: kpi?.previousProfit },
+    { label: "Expenses", icon: TrendingDown, color: "#ef4444", tint: "#ffdfdf", value: kpi?.expenses, previous: kpi?.previousExpenses },
+    { label: "Net Profit", icon: ChartLine, color: "#10b981", tint: "#d6f7e7", value: kpi?.netProfit, previous: kpi?.previousNetProfit },
     ...(showEarnings
-      ? [{ label: "Earnings", icon: Wallet, iconClassName: "text-series-earnings", value: kpi?.earnings, previous: kpi?.previousEarnings }]
+      ? [{ label: "Earnings", icon: Wallet, color: "#d97706", tint: "#fff3da", value: kpi?.earnings, previous: kpi?.previousEarnings }]
       : []),
   ];
   const pageError = directoryError || error;

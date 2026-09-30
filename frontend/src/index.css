@@ -217,6 +217,12 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+  /* recharts: no browser focus frame around the chart when it is clicked */
+  .recharts-wrapper,
+  .recharts-wrapper *:focus,
+  .recharts-surface:focus {
+    outline: none;
+  }
   body {
     @apply bg-background text-foreground;
   }

@@ -2,24 +2,36 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatSignedMoney, periodDelta } from "../dashboardFormat";
 
-export default function KpiCard({ label, icon: Icon, iconClassName, value, previous, compareLabel, loading }) {
+// color: the metric's own colour (icon + watermark); tint: the soft wash the card fades in from.
+export default function KpiCard({ label, icon: Icon, color, tint, value, previous, compareLabel, loading }) {
   const hasValue = value != null;
   const delta = periodDelta(value, previous);
   const showDelta = hasValue && previous != null;
 
   return (
     <div
+      style={{ "--kpi-tint": tint }}
       className={cn(
-        "flex flex-col gap-2.5 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-dash-card transition-opacity",
+        "relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border border-slate-200/90 bg-[linear-gradient(135deg,var(--kpi-tint)_0%,#ffffff_62%)] px-4 py-4 shadow-dash-card transition-opacity",
         loading && "opacity-60"
       )}
     >
-      <div className="flex items-center gap-2">
-        <Icon className={cn("size-[18px]", iconClassName)} strokeWidth={2.2} />
+      {/* big faint icon in the corner */}
+      <Icon
+        aria-hidden="true"
+        strokeWidth={1.6}
+        style={{ color }}
+        className="pointer-events-none absolute -right-2 -bottom-3.5 size-24 opacity-[0.05]"
+      />
+
+      <div className="relative flex items-center gap-2.5">
+        <span className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.08)]">
+          <Icon className="size-[18px]" strokeWidth={2.2} style={{ color }} />
+        </span>
         <span className="text-sm font-bold text-dash-ink">{label}</span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="relative flex flex-wrap items-center gap-2.5">
         <span className="text-[28px] leading-none font-bold tracking-tight text-dash-ink tabular-nums">
           {hasValue ? formatMoney(value) : "—"}
         </span>
@@ -36,7 +48,7 @@ export default function KpiCard({ label, icon: Icon, iconClassName, value, previ
         )}
       </div>
 
-      <div className="min-h-[18px] text-[12.5px]">
+      <div className="relative min-h-[18px] text-[12.5px]">
         {showDelta && (
           <>
             <b className={cn("font-bold", delta.up ? "text-dash-up" : "text-dash-down")}>

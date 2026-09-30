@@ -98,7 +98,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
 
       <div className="relative min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={rows} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
+          <AreaChart data={rows} accessibilityLayer={false} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
             <defs>
               {series.map((s) => (
                 <linearGradient key={s.key} id={`trend-fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
