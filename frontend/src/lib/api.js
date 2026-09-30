@@ -14,3 +14,13 @@ export async function postForm(url, params) {
   }
   return body;
 }
+
+export async function getJson(url, params, { signal } = {}) {
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  const res = await fetch(`${url}${query}`, { credentials: "include", signal });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
+    throw new Error(body?.message || "Network error, please try again");
+  }
+  return body;
+}
