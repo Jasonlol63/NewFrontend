@@ -1,46 +1,31 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  Bell,
-  Home,
-  Shield,
-  User,
-  Users,
-  CheckCircle2,
-  BarChart2,
-  CreditCard,
-  FileText,
-  Wrench,
-  ChevronRight,
-  ChevronDown,
-  Clock,
-  LogOut,
-} from "lucide-react";
+import { Bell, ChevronRight, ChevronDown, Clock, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ACTIVE_ITEM_CLASS,
+  DEFAULT_PROFILE,
+  IDLE_ITEM_CLASS,
+  MENU_ITEMS,
+  SIDEBAR_BG_STYLE,
+} from "./sidebarConfig";
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
   { value: "zh", label: "中" },
 ];
 
-const MENU_ITEMS = [
-  { index: 1, label: "Home", icon: Home, path: "/dashboard" },
-  { index: 2, label: "Admin", icon: Shield, path: "/admin" },
-  { index: 3, label: "Account", icon: User, path: "/account" },
-  { index: 4, label: "Ownership", icon: Users, path: "/ownership" },
-  { index: 5, label: "Process", icon: CheckCircle2, path: "/process" },
-  { index: 6, label: "Data Capture", icon: BarChart2, path: "/data-capture" },
-  { index: 7, label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
-  { index: 8, label: "Report", icon: FileText, path: "/report", hasSubmenu: true },
-  { index: 9, label: "Maintenance", icon: Wrench, path: "/maintenance", hasSubmenu: true },
-];
-
+// Full sidebar. Width follows the viewport (240px on a 1366 laptop, 260px on
+// 1920) and spacing tightens on short screens via `short:`. Also rendered as
+// the drawer behind the icon rail below 1200px (onNavigate closes it).
 export default function Sidebar({
-  userName = "BOSS",
-  userRole = "Owner",
-  avatarSrc = "/images/avatar1.png",
-  expiryLabel = "Exp: 3m 15d left",
+  userName = DEFAULT_PROFILE.userName,
+  userRole = DEFAULT_PROFILE.userRole,
+  avatarSrc = DEFAULT_PROFILE.avatarSrc,
+  expiryLabel = DEFAULT_PROFILE.expiryLabel,
   onLogout,
+  onNavigate,
+  className,
 }) {
   const [lang, setLang] = useState("en");
   const activeLang = LANG_OPTIONS.find((opt) => opt.value === lang) ?? LANG_OPTIONS[0];
@@ -52,20 +37,15 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        "relative flex h-full w-[260px] min-w-[260px] flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff]",
+        "relative flex h-full w-[clamp(240px,17.5vw,260px)] flex-none flex-col overflow-hidden px-3.5 pb-4 pt-[18px] text-[#eaf1ff] short:pb-3 short:pt-3",
         "shadow-[6px_0_24px_-8px_rgba(4,15,40,0.55)]",
-        "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_18%)]"
+        "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_18%)]",
+        className
       )}
-      style={{
-        backgroundImage:
-          "radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,0.3) 0%, rgba(70,140,255,0) 45%), linear-gradient(160deg, rgba(18,48,100,0.45) 0%, rgba(12,36,82,0.4) 38%, rgba(8,26,61,0.35) 70%, rgba(6,18,37,0.35) 100%), url('/images/count-sidebar-bg-2-crop.png')",
-        backgroundSize: "cover, cover, cover",
-        backgroundPosition: "center, center, bottom",
-        backgroundRepeat: "no-repeat, no-repeat, no-repeat",
-      }}
+      style={SIDEBAR_BG_STYLE}
     >
       {/* Brand row: glowing icon + EAZYCOUNT + EN dropdown + bell */}
-      <div className="z-10 mb-3.5 flex items-center gap-1.5">
+      <div className="z-10 mb-3.5 flex items-center gap-1.5 short:mb-2.5">
         <div
           className="flex h-8 w-8 flex-none items-center justify-center rounded-[11px] border border-white/25 p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_10px_-4px_rgba(0,10,40,0.5)] backdrop-blur-[10px]"
           style={{ backgroundImage: "linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))" }}
@@ -95,12 +75,12 @@ export default function Sidebar({
         </button>
       </div>
 
-      <div className="z-10 mx-1 mb-4 h-px bg-[linear-gradient(90deg,transparent_0%,rgba(103,232,249,0.7)_50%,transparent_100%)] shadow-[0_0_8px_1px_rgba(56,189,248,0.5)]" />
+      <div className="z-10 mx-1 mb-4 h-px bg-[linear-gradient(90deg,transparent_0%,rgba(103,232,249,0.7)_50%,transparent_100%)] shadow-[0_0_8px_1px_rgba(56,189,248,0.5)] short:mb-3" />
 
       {/* Profile card */}
-      <div className="z-10 mb-[22px] flex items-center gap-3 rounded-2xl border border-[rgba(90,160,255,0.3)] bg-[rgba(23,45,95,0.55)] px-3.5 py-3.5">
+      <div className="z-10 mb-[clamp(12px,2.6dvh,22px)] flex items-center gap-3 rounded-2xl border border-[rgba(90,160,255,0.3)] bg-[rgba(23,45,95,0.55)] px-3.5 py-3.5 short:gap-2.5 short:px-3 short:py-2.5">
         <div
-          className="relative h-[50px] w-[50px] flex-none rounded-full p-[2px] shadow-[0_0_10px_1px_rgba(56,189,248,0.5)]"
+          className="relative size-[50px] flex-none rounded-full p-[2px] shadow-[0_0_10px_1px_rgba(56,189,248,0.5)] short:size-10"
           style={{ backgroundImage: "conic-gradient(from 180deg, #38bdf8, #0a3fc9, #38bdf8)" }}
         >
           <img
@@ -108,50 +88,53 @@ export default function Sidebar({
             alt={`${userName} avatar`}
             className="h-full w-full rounded-full border-2 border-[#0c2452] object-cover"
           />
-          <span className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full border-2 border-[#12305f] bg-[#31d67a]" />
+          <span className="absolute bottom-0 right-0 h-[13px] w-[13px] rounded-full border-2 border-[#12305f] bg-[#31d67a] short:size-[11px]" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[15px] font-extrabold leading-[1.25] text-white">{userName}</div>
-          <div className="mt-[3px] text-[11.5px] font-medium text-[#9db8e8]">{userRole}</div>
+          <div className="truncate text-[15px] font-extrabold leading-[1.25] text-white short:text-[14px]">{userName}</div>
+          <div className="mt-[3px] text-[11.5px] font-medium text-[#9db8e8] short:mt-0.5">{userRole}</div>
         </div>
         <ChevronRight size={18} className="flex-none stroke-[#7c93c4]" />
       </div>
 
-      {/* Menu */}
-      <nav className="z-10 flex flex-1 flex-col gap-1 overflow-y-auto">
+      {/* Menu: only this list scrolls when the screen is too short */}
+      <nav className="scrollbar-sidebar z-10 -mr-1.5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1.5 short:gap-0.5">
         {MENU_ITEMS.map(({ index, label, icon: Icon, path, hasSubmenu }) => (
           <NavLink
             key={path}
             to={path}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-[11px] rounded-xl px-3 py-2.5 text-[13.5px] font-semibold no-underline cursor-pointer",
-                isActive
-                  ? "text-white bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] shadow-[0_8px_18px_-6px_rgba(20,90,220,0.75),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-2px_6px_rgba(0,0,0,0.12)]"
-                  : "text-[#b7c9ea] hover:bg-white/5 hover:text-[#e6edfb]"
+                "flex flex-none items-center gap-[11px] rounded-xl px-3 py-2.5 text-[13.5px] font-semibold no-underline cursor-pointer short:py-[7px] short:text-[13px]",
+                isActive ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS
               )
             }
           >
             <Icon size={17} className="flex-none stroke-current" />
-            {index}. {label}
-            {hasSubmenu && <ChevronRight size={14} className="ml-auto opacity-70" />}
+            <span className="min-w-0 truncate">
+              {index}. {label}
+            </span>
+            {hasSubmenu && <ChevronRight size={14} className="ml-auto flex-none opacity-70" />}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="z-10 mt-3.5 flex flex-col gap-2.5">
-        <div className="flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(114,168,255,0.35)] bg-[rgba(79,141,255,0.16)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[#bcd3ff]">
-          <Clock size={13} className="stroke-[#bcd3ff]" />
-          {expiryLabel}
+      {/* Footer: stacked normally, one row on short screens */}
+      <div className="z-10 mt-3.5 flex flex-col gap-2.5 short:mt-2.5 short:flex-row short:items-stretch short:gap-2">
+        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[rgba(114,168,255,0.35)] bg-[rgba(79,141,255,0.16)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[#bcd3ff] short:flex-1">
+          <Clock size={13} className="flex-none stroke-[#bcd3ff]" />
+          <span className="truncate">{expiryLabel}</span>
         </div>
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center justify-center gap-2 rounded-xl border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] py-2 text-[13.5px] font-bold text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)] cursor-pointer"
+          aria-label="Logout"
+          title="Logout"
+          className="flex items-center justify-center gap-2 rounded-xl border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] py-2 text-[13.5px] font-bold text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)] cursor-pointer short:px-3"
         >
           <LogOut size={15} className="stroke-white" />
-          Logout
+          <span className="short:sr-only">Logout</span>
         </button>
       </div>
     </aside>

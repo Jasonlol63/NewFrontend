@@ -72,7 +72,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
   return (
     <div
       className={cn(
-        "flex h-[460px] min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity xl:h-auto",
+        "flex h-[460px] min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity lg:h-auto",
         loading && "opacity-60"
       )}
     >

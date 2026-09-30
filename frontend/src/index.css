@@ -61,6 +61,17 @@ body {
   --spacing-auth-logo: clamp(48px, calc(12dvh - 24px), 76px);
 }
 
+/* Below `nav` (1200px) the full sidebar collapses to an icon rail + drawer.
+   Use `nav:` / `max-nav:` for anything that depends on that switch. */
+@theme {
+  --breakpoint-nav: 1200px;
+}
+
+@utility scrollbar-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(183, 201, 234, 0.3) transparent;
+}
+
 /* Brand + maintenance-notice tokens (not tied to shadcn's neutral palette) */
 @theme {
   --color-brand-navy: #14336b;

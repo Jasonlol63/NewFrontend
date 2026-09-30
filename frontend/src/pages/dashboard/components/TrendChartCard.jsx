@@ -69,7 +69,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
     // Whole card fades while loading (same as the KPI and currency cards), so the glass background shows through.
     <div
       className={cn(
-        "flex min-h-[360px] xl:min-h-[240px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity",
+        "flex min-h-[360px] lg:min-h-[240px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity",
         loading && "opacity-60"
       )}
     >
