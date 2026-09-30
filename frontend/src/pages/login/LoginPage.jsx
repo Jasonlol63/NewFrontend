@@ -41,6 +41,9 @@ const LANG_OPTIONS = [
 // the cut lands on a frame that already looks identical to the static logo
 const LOGO_ANIMATION_MS = 2500;
 
+// Announcement banner is hidden for now; flip to true to bring it back.
+const SHOW_MAINTENANCE_NOTICE = false;
+
 export default function LoginPage() {
   const [role, setRole] = useState("admin");
   const [lang, setLang] = useState("en");
@@ -106,7 +109,7 @@ export default function LoginPage() {
           Accounting Management System
         </h1>
 
-        <MaintenanceNotice className="mb-[14px]" />
+        {SHOW_MAINTENANCE_NOTICE && <MaintenanceNotice className="mb-[14px]" />}
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />
