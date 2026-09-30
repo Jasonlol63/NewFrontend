@@ -24,3 +24,18 @@ export async function getJson(url, params, { signal } = {}) {
   }
   return body;
 }
+
+export async function postJson(url, data, { signal } = {}) {
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    signal,
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
+    throw new Error(body?.message || "Network error, please try again");
+  }
+  return body;
+}

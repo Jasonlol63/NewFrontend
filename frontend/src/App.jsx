@@ -4,6 +4,8 @@ import SecondaryPasswordPage from "./pages/login/SecondaryPasswordPage.jsx";
 import ResetPasswordPage from "./pages/login/ResetPasswordPage.jsx";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout.jsx";
 import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
+import AdminPage from "./pages/admin/AdminPage.jsx";
+import AccountPage from "./pages/account/AccountPage.jsx";
 
 export default function App() {
   return (
@@ -16,6 +18,8 @@ export default function App() {
 
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/account" element={<AccountPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
