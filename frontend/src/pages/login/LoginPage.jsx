@@ -123,7 +123,7 @@ export default function LoginPage() {
               placeholder="Company / Group ID"
               required
               value={companyId}
-              onChange={(e) => setCompanyId(e.target.value)}
+              onChange={(e) => setCompanyId(e.target.value.toUpperCase())}
             />
 
             <IconInput
@@ -131,7 +131,7 @@ export default function LoginPage() {
               placeholder="Username"
               required
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.toUpperCase())}
             />
 
             <IconInput
