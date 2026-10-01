@@ -1,10 +1,41 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Smallest body row height; useListView works out how many fit and stretches them to fill the body.
 export const ROW_HEIGHT = 38;
 
 const td = "border-b border-[#eef2f7] py-0 pr-3";
+
+/**
+ * Delete-selection checkbox, same look as the Add User select-all box.
+ * checked: true | false | "mixed". onHeader: white-on-blue variant for the gradient header.
+ */
+function SelectBox({ checked, onChange, onHeader, label }) {
+  const on = checked === true || checked === "mixed";
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(checked !== true)}
+      className={cn(
+        "flex size-[18px] cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] p-0 align-middle outline-none transition-[background-color,border-color,box-shadow] active:scale-[0.92] motion-reduce:transition-none",
+        onHeader
+          ? on
+            ? "border-white bg-white text-[#0f61ff] shadow-[0_3px_8px_-3px_rgba(6,40,120,0.5)]"
+            : "border-white/85 bg-white/20 hover:bg-white/30"
+          : on
+            ? "border-transparent bg-brand-sweep text-white shadow-[0_3px_8px_-3px_rgba(20,90,220,0.6)]"
+            : "border-[#c3d3ea] bg-white hover:border-[#7fb2ff]",
+        onHeader ? "focus-visible:ring-[3px] focus-visible:ring-white/55" : "focus-visible:ring-[3px] focus-visible:ring-[#3b82f6]/35"
+      )}
+    >
+      {checked === true && <Check className="size-2.5" strokeWidth={4} />}
+      {checked === "mixed" && <Minus className="size-2.5" strokeWidth={4} />}
+    </button>
+  );
+}
 
 function SortIcon({ active, dir }) {
   return (
@@ -73,7 +104,8 @@ export default function DataTable({
   canSelect,
 }) {
   const selectable = rows.filter(canSelect);
-  const allSelected = selectable.length > 0 && selectable.every((r) => selected.has(r.id));
+  const selectedCount = selectable.filter((r) => selected.has(r.id)).length;
+  const headChecked = selectedCount === 0 ? false : selectedCount === selectable.length ? true : "mixed";
   // The delete-selection column only shows when this page has rows that can be deleted (inactive).
   const showSelect = selectable.length > 0;
   // Without it, the last data column takes over the right-edge padding.
@@ -123,12 +155,11 @@ export default function DataTable({
               })}
               {showSelect && (
                 <th className="w-[44px] py-2.5 pr-4">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all inactive rows on this page"
-                    checked={allSelected}
-                    onChange={(e) => setMany(selectable, e.target.checked)}
-                    className="size-4 cursor-pointer accent-white"
+                  <SelectBox
+                    onHeader
+                    label="Select all inactive rows on this page"
+                    checked={headChecked}
+                    onChange={(checked) => setMany(selectable, checked)}
                   />
                 </th>
               )}
@@ -158,13 +189,7 @@ export default function DataTable({
                     {showSelect && (
                       <td className={cn(td, "pr-4")}>
                         {canSelect(row) && (
-                          <input
-                            type="checkbox"
-                            aria-label="Select row"
-                            checked={isSelected}
-                            onChange={(e) => setMany([row], e.target.checked)}
-                            className="size-4 cursor-pointer accent-[#2563eb]"
-                          />
+                          <SelectBox label="Select row" checked={isSelected} onChange={(checked) => setMany([row], checked)} />
                         )}
                       </td>
                     )}
