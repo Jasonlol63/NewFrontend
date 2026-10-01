@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { UserPlus } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import ListToolbar, { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -9,6 +9,7 @@ import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ROLE_BADGE, filterUsers, normalizeUserRow, roleLabel, rowCapabilities, sortUsers } from "./userListRules";
+import AddUserModal from "./AddUserModal.jsx";
 
 const canSelect = (u) => u.caps.canDelete;
 // The owner row and a staff row can share an id (different tables).
@@ -16,6 +17,8 @@ const rowKey = (u) => `${u.isOwnerShadow ? "owner" : "user"}-${u.id}`;
 
 export default function AdminPage() {
   const viewer = useCurrentUser();
+  const [addOpen, setAddOpen] = useState(false);
+  const closeAdd = useCallback(() => setAddOpen(false), []);
   const scope = useListScope("admin.scope", { onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/userlist", scope.tenantId, {
     normalize: normalizeUserRow,
@@ -74,7 +77,7 @@ export default function AdminPage() {
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={UserPlus} disabled title="Add User form is not built yet">
+          <PrimaryButton icon={UserPlus} onClick={() => setAddOpen(true)}>
             Add User
           </PrimaryButton>
         }
@@ -102,6 +105,9 @@ export default function AdminPage() {
       />
 
       {actions.dialogs}
+
+      {/* UI only for now: Save just closes the modal until the create-user API is wired up. */}
+      {addOpen && <AddUserModal onClose={closeAdd} onSave={closeAdd} />}
     </div>
   );
 }

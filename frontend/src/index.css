@@ -9,6 +9,12 @@
    leave ~600-730px of browser height. Use `short:` to tighten layouts there. */
 @custom-variant short (@media (max-height: 720px));
 
+/* Height tiers for the full-area modals (Add User): 1536x730 / 1366x768 are "compact",
+   1280x560 / 1366x610 are "tiny", 1920x1080 is "tall". */
+@custom-variant modal-compact (@media (max-height: 760px));
+@custom-variant modal-tiny (@media (max-height: 600px));
+@custom-variant modal-tall (@media (min-height: 970px));
+
 :root {
   color-scheme: light;
   --background: oklch(1 0 0);
@@ -142,6 +148,11 @@ body {
   --color-series-earnings: #f59e0b;
   --shadow-dash-card: 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow-dash-filter: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+/* Login button / active sidebar item gradient, reused by the modal's primary controls */
+@utility bg-brand-sweep {
+  background-image: linear-gradient(100deg, #0a3fc9 0%, #2f8dff 55%, #3fc4ff 100%);
 }
 
 @utility bg-seg-active {

@@ -74,6 +74,10 @@ export default function DataTable({
 }) {
   const selectable = rows.filter(canSelect);
   const allSelected = selectable.length > 0 && selectable.every((r) => selected.has(r.id));
+  // The delete-selection column only shows when this page has rows that can be deleted (inactive).
+  const showSelect = selectable.length > 0;
+  // Without it, the last data column takes over the right-edge padding.
+  const edge = (c) => !showSelect && c === columns.length - 1 && "pr-4";
 
   const setMany = (list, checked) => {
     const next = new Set(selected);
@@ -105,6 +109,7 @@ export default function DataTable({
                     className={cn(
                       "py-2.5 pr-3 whitespace-nowrap",
                       i === 0 && "pl-4",
+                      edge(i),
                       col.className,
                       sortable && "cursor-pointer select-none"
                     )}
@@ -116,16 +121,17 @@ export default function DataTable({
                   </th>
                 );
               })}
-              <th className="w-[44px] py-2.5 pr-4">
-                <input
-                  type="checkbox"
-                  aria-label="Select all inactive rows on this page"
-                  checked={allSelected}
-                  disabled={!selectable.length}
-                  onChange={(e) => setMany(selectable, e.target.checked)}
-                  className="size-4 cursor-pointer accent-white disabled:cursor-default disabled:opacity-50"
-                />
-              </th>
+              {showSelect && (
+                <th className="w-[44px] py-2.5 pr-4">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all inactive rows on this page"
+                    checked={allSelected}
+                    onChange={(e) => setMany(selectable, e.target.checked)}
+                    className="size-4 cursor-pointer accent-white"
+                  />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -145,27 +151,29 @@ export default function DataTable({
                     )}
                   >
                     {columns.map((col, c) => (
-                      <td key={col.key} className={cn(td, c === 0 && "pl-4", col.className, col.cellClassName)}>
+                      <td key={col.key} className={cn(td, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
                         {col.render(row, offset + i + 1)}
                       </td>
                     ))}
-                    <td className={cn(td, "pr-4")}>
-                      {canSelect(row) && (
-                        <input
-                          type="checkbox"
-                          aria-label="Select row"
-                          checked={isSelected}
-                          onChange={(e) => setMany([row], e.target.checked)}
-                          className="size-4 cursor-pointer accent-[#2563eb]"
-                        />
-                      )}
-                    </td>
+                    {showSelect && (
+                      <td className={cn(td, "pr-4")}>
+                        {canSelect(row) && (
+                          <input
+                            type="checkbox"
+                            aria-label="Select row"
+                            checked={isSelected}
+                            onChange={(e) => setMany([row], e.target.checked)}
+                            className="size-4 cursor-pointer accent-[#2563eb]"
+                          />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan={columns.length + 1} className="py-10 text-center text-dash-faint">
+                <td colSpan={columns.length + (showSelect ? 1 : 0)} className="py-10 text-center text-dash-faint">
                   {loading ? "Loading…" : `No ${noun} found`}
                 </td>
               </tr>
