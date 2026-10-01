@@ -77,7 +77,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
           aria-modal="true"
           aria-labelledby="user-form-title"
           className={cn(
-            "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-modal-bg",
+            "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-modal-bg backdrop-blur-[22px] backdrop-saturate-[1.15]",
             "[--gap:clamp(8px,1.5dvh,14px)] [--pad:clamp(10px,2dvh,18px)]",
             "@min-[900px]/main:@max-[1099px]/main:[--gap:8px] @min-[900px]/main:@max-[1099px]/main:[--pad:10px]",
             "modal-compact:[--gap:8px] modal-compact:[--pad:10px] modal-tiny:m-2 modal-tiny:[--gap:6px] modal-tiny:[--pad:8px]",
@@ -147,7 +147,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
 
 function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card", "@max-[899px]/main:col-span-full")}>
+    <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", "@max-[899px]/main:col-span-full")}>
       <div
         className={cn(
           "flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",
@@ -314,7 +314,7 @@ function RoleSelect({ value, onChange }) {
           position="popper"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-input shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)]"
+          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl"
         >
           <Select.Viewport className="flex flex-col gap-0.5 p-[5px]">
             {ROLE_OPTIONS.map((r) => (
@@ -364,7 +364,7 @@ function SoftButton({ className, children, ...props }) {
     <button
       type="button"
       className={cn(
-        "inline-flex flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-[#cfe0fb] bg-[#eaf2ff] text-[13px] font-bold text-brand-navy hover:bg-[#dce9ff]",
+        "inline-flex flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 text-[13px] font-bold text-brand-navy hover:bg-white/75",
         className
       )}
       {...props}

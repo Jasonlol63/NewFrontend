@@ -66,7 +66,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
   );
 
   return (
-    <section className="@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card">
+    <section className="@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card">
       <div
         className={cn(
           "relative flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",
@@ -135,7 +135,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         </div>
 
         {searching && (
-          <div className="absolute inset-0 z-10 flex items-center gap-1.5 rounded-t-2xl bg-modal-card px-3">
+          <div className="absolute inset-0 z-10 flex items-center gap-1.5 rounded-t-2xl bg-modal-float px-3 backdrop-blur-md">
             <div className="min-w-0 flex-1">{searchInput({ ref: searchRef, placeholder: `Search ${title.toLowerCase()}` })}</div>
             <button
               type="button"
