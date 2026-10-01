@@ -46,6 +46,33 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         return announcementDao.findMaintenanceInLogin();
     }
 
+    /* 未读按“登录账号”计算，与公司无关；IT 账号没有 DB user_id，不参与未读提醒。*/
+    @Override
+    public int countUnreadAnnouncements() {
+        final SessionUser current = AccessControlUtils.requireLoggedIn();
+        if (!hasReadStateIdentity(current)) {
+            return 0;
+        }
+        return announcementDao.countUnreadAnnouncements(readStateUserType(current), current.user_id);
+    }
+
+    @Override
+    public void markAnnouncementsRead() {
+        final SessionUser current = AccessControlUtils.requireLoggedIn();
+        if (!hasReadStateIdentity(current)) {
+            return;
+        }
+        announcementDao.markAnnouncementsRead(readStateUserType(current), current.user_id);
+    }
+
+    private static boolean hasReadStateIdentity(SessionUser current) {
+        return current.user_id != null && !"it".equals(readStateUserType(current));
+    }
+
+    private static String readStateUserType(SessionUser current) {
+        return current.user_type == null ? "" : current.user_type.trim().toLowerCase();
+    }
+
     @Override
     @Transactional
     @Audited(module = "ANNOUNCEMENT", action = AuditLog.Action.CREATE, entityIdExpr = "#maintenance.id", sourceTable = "maintenance_marquee")

@@ -96,4 +96,26 @@
         where id = #{id}
     </delete>
 
+    <select id="countUnreadAnnouncements" resultType="int">
+        select count(*)
+        from announcements a
+        where a.company_code = 'C168'
+          and a.status = 'ACTIVE'
+          and a.created_at > coalesce(
+              (select rs.last_read_at
+               from announcement_read_state rs
+               where rs.user_type = #{userType} and rs.user_id = #{userId}),
+              case #{userType}
+                  when 'user'   then (select u.created_at from `user` u where u.id = #{userId})
+                  when 'owner'  then (select o.created_at from `owner` o where o.id = #{userId})
+                  when 'member' then (select ac.created_at from `account` ac where ac.id = #{userId})
+              end)
+    </select>
+
+    <insert id="markAnnouncementsRead">
+        insert into announcement_read_state(user_type, user_id, last_read_at)
+        values(#{userType}, #{userId}, NOW())
+        on duplicate key update last_read_at = NOW()
+    </insert>
+
 </mapper>

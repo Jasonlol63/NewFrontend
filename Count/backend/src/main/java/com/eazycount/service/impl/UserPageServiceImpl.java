@@ -53,7 +53,7 @@ public class UserPageServiceImpl implements UserPageService {
         scoped.setAccountId(targetAccountId);
         scoped.setTenantId(session.tenant_id);
 
-        return transactionHistoryService.historyList(scoped);
+        return transactionHistoryService.historyList(scoped, true);
     }
 
     @Override

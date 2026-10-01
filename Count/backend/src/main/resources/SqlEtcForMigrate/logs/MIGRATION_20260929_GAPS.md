@@ -290,6 +290,55 @@ backup 创建时(约 9/21),旧库 `transactions` 自然增长的上限是 **4093
 | created_by / approved_by | 6690 / 6780 | 全部是去掉 `login_id` 后缀(`BEE_1`→`BEE` 等),去后缀再比较 **0 条不同** |
 | bank_process_posted_id | 23 | 台账 id 不同(backup 的孤儿台账 id 与旧库 id 冲突),台账键(租户+合约+日期+类型)**全部一致** |
 
+### 13.3 验收后发现的遗漏:`user.read_only` 照搬旧库,79 个账号被锁成只读(已修复)
+
+**现象**:ADMIN / ACCOUNTANT / CUSTOMER_SERVICE / MANAGER / SUPERVISOR 这 5 类角色的账号 `read_only` 全是 1。这几个角色前端**没有只读开关**,而 `AccessControlUtils.requireWritable` 会挡掉 `read_only=1` 账号的所有写操作——等于被锁死,界面上没有任何地方能把开关关掉。
+
+**根因**:旧库 `user`.`read_only` 这一列的默认值就是 **1**("身份域迁移把这一列原样搬了过来"——`migrate_data_identity_tenant_from_legacy.sql` 的 user INSERT 里直接选 `x.read_only`)。旧系统里这个字段没人用,所以 79 个从未被人工设置过的账号全部带着 1 进了新库。新库 `sql/schema.sql` 里这个列的默认值早已是 0(`migrate_admin_read_only_default_false.sql` 改的就是新库默认值),但**"列默认值"只管新插入的行,管不到从旧库搬过来的数据**——重新迁移时这个回填步骤要单独跑。
+
+**对照数据**(旧库 `c168_net_legacy_20260929` 逐角色点数):
+
+| 角色 | 旧库 read_only=1 | 迁移后 count_real | 修复后 |
+|---|---|---|---|
+| ADMIN | 39(另有 4 个 0,其中 3 个是不迁的 IT 账号) | 39 | 0 |
+| SUPERVISOR | 13 | 13 | 0 |
+| MANAGER | 12 | 12 | 0 |
+| CUSTOMER_SERVICE | 9 | 9 | 0 |
+| ACCOUNTANT | 6 | 6 | 0 |
+| **小计** | **79** | **79** | **0** |
+| PARTNERSHIP | 5(另有 4 个 0) | 5 | 5(保留) |
+| AUDIT | 4(另有 1 个 0) | 4 | 4(保留) |
+
+**处理规则**:非 PARTNERSHIP/AUDIT 的账号 `read_only` 回填为 0;PARTNERSHIP / AUDIT 保留旧库原值——这两个角色前端有只读开关,值(4 可写/5 只读、1 可写/4 只读)是人为设置的业务开关,不是旧默认值留下的痕迹。列默认值在新 schema 里本来就是 0,不需要改。
+
+**脚本**:沿用现成的 `backend/src/main/resources/sql/migrate_admin_read_only_default_false.sql`(幂等,可重复执行)。注意它开头写死了 `USE testcount;`,对 count_real 执行时目标库要换成 count_real。
+
+**复核**:执行后非 PARTNERSHIP/AUDIT 仍为只读的账号 = 0;PARTNERSHIP/AUDIT 的分布与旧库逐条一致;列默认值 = 0。
+
+**教训**:以后重新从旧库迁移(全量或 delta),身份域跑完必须**再跑一次这个脚本**——迁移脚本本身仍然是照搬旧值,不跑就又会锁住这 79 个账号。
+
+**备份**:`count_real_backup` 已在修复之后**整体刷新为 `count_real` 的 1:1 副本**(2026-09-29 整库重建,`mysqldump --single-transaction | mysql`):54 张表逐表 `CHECKSUM TABLE` 全部一致,5 个视图、3 个触发器、`AUTO_INCREMENT`(如 `transactions`=133674)一并带过来。当天共刷了两次——第一次在 read_only 修复后(差异仅 `user` 一张表:79 行 `read_only` + 手动打开的 JK),第二次在 §13.4 的 formula 回填后(差异为 `data_capture_formula` 一张表,外加 JK 在维护页保存公式产生的 5 条 `audit_log`,before/after 值相同、只是点了保存)。
+
+> 顺带查出来一件事:刷新前的 `count_real_backup` **并不是本文档开头描述的"9/21 旧库快照"**,而是 9/29 重迁之后的一份 `count_real` 拷贝——证据是它带着 `user_snapshot_20260929094858` 这张 9/29 09:48 建的表(9/22 那份 dump 里没有),且 54 张表行数与 `count_real` 完全一致。**§5/§6/§9/§13 的"与实际 backup 对比"结论需要在这一点上复核**:如果那些核对是在 backup 被换成 9/29 拷贝之后才跑的,就要改用 `db-backups/count_real_backup_20260922_091735.sql`(9/22 老 dump,51 张表,未被改动)重做。注意 db-backups 里那份 .sql 与现在的 `count_real_backup` 不是同一代,不是同一份东西。
+
+**仍然成立的老规矩**:以后重新从旧库迁移后,两件事都要跟着重跑一遍——`migrate_admin_read_only_default_false.sql`(本条的 read_only)和 `fixes/fix_data_capture_formula_restore_formula_body.sql`(`data_capture_formula.formula` 被写成了旧快照而不是 `$n` 本体,13,504/13,636 行,详见该脚本头部说明)——因为迁移脚本本身都是照搬旧值。
+
+### 13.4 验收后发现的遗漏:`data_capture_formula.formula` 搬成了旧快照,丢掉 `$n` 引用(已修复)
+
+**现象**:公式维护页(以及采集录入页的预填/显示)Formula 列是 `118.99*(0.155)` 这种**冻死的数字**——同一个 process(如 PSYMYRALLBET)下所有行都是同一个数;旧版显示的是 `$12 * (0.155)` 这种引用形式。
+
+**根因**:§7 的 `data_capture_formula` 迁移把 `formula` 映射成了旧库 `data_capture_templates.formula_display`(旧系统每次录入后重写的**解析快照**),而真正该搬的 `formula_operators`(公式本体,如 `$12`)在新设计里被删列了(TABLE_MIGRATION.md §3.8:"`formula` 成为计算与展示唯一来源")。核对结果:13,636 行**每一行**的 `formula` 都与旧库 `formula_display` 逐字节相同,0 例外。
+
+**为什么目标是"本体"而不是旧显示文本**:新前端自己拼显示——`createFormulaDisplayFromExpression(本体, sourcePercent, enableSourcePercent)`(`shared/formula/buildFormulaDisplay.js`)负责追加 `*(source%)`,`expandDollarFormulaOperators`(`datacapturesummary/formula/summaryTemplateSourceData.js`)负责把 `$n` 展开成采集表当前单元格的值;新模型里 Formula 与 Source 是**两列独立存储/显示**,新系统自己保存时写的也是本体(`resolveFormulaForSave.js`:"includes row \*0.90, excludes \*(source)")。所以 `formula` 里不该带 `*(百分比)`。
+
+**影响面**:13,636 行中 **13,504 行需要回填**(13,459 行含 `$n`、14 行含 `[idProduct,col]`、31 行是纯数字本体却被拼了百分比);其余 132 行本来就是本体。0 行被新系统编辑过(`created_by`/`updated_by` 全空),覆盖没有碰掉任何人工修改。
+
+**脚本与执行**:`fixes/fix_data_capture_formula_restore_formula_body.sql`,2026-09-29 执行,回填 13,504 行。复核:`formula` 与旧库 `formula_operators` 仍不一致的行 = 0;引用分布 `$n` 13,509 行 / `[...]` 53 行(39 行两者都有,合计 **13,523 行带引用**)、无引用 113 行;PSYMYRALLBET 等样本逐字节一致;`data_capture_line`(90,299)/`transactions`(125,527)/`user` 均未受影响。`updated_at` 因原地更新被刷成执行时间,`updated_by` 保持 NULL(审计页不会归属于任何用户)。
+
+**遗留观察(不是缺口)**:单列 `X:Y:n` 的 bare `$n` 行里,5,857 行中 5,312 行(91%)的 `$n` = 源列 n+1(新系统的 display column 口径),165 行 = n,其余指向同采集行的别的列。这是旧库数据本身口径不统一,按"跟旧版走"原样恢复,前端两种都能解析(map 命中用 map,否则按 idProduct+下标回退)。
+
+**教训**:同 §13.3——以后重新从旧库迁移,身份域跑 `migrate_admin_read_only_default_false.sql`,采集域跑这个脚本。
+
 ## 14. 迁移状态总结
 
 所有域已完成:身份/租户、tenant_feature_module、Currency、Ownership/Domain 剩余部分、account_link、Bank Process 核心域、Process、Data Capture、细粒度 ACL、Transactions/RATE、Bank Process Accounting Due 台账 + 文案、`tenant_auto_renew_transaction`(无数据)。
@@ -298,5 +347,7 @@ backup 创建时(约 9/21),旧库 `transactions` 自然增长的上限是 **4093
 - `data_capture_description`(GAME 多选描述桥表)依然没有可靠来源,与 backup 一样保持空表
 - BIKE RESCUE(469)3 条补单文案丢日期区间,是 `buildPostDescription` 的代码空档,按要求保持现状
 - 新系统里做过、但旧库没有的手动操作(如上面 2915/2917 的删除),重建后不会自动带回;目前核对只发现这一处
+- 重新从旧库迁移后,身份域收尾必须补跑 `migrate_admin_read_only_default_false.sql`(对 count_real 执行),否则 79 个非 PARTNERSHIP/AUDIT 账号会再次被锁成只读(见 §13.3)
+- 重新从旧库迁移后,采集域还要补跑 `fixes/fix_data_capture_formula_restore_formula_body.sql`,否则 13,504 条公式会再次被写成旧快照、丢掉 `$n` 引用(见 §13.4)
 
 这几个域迁完后会在本文档继续补充对应章节,或者另开一份文档,到时候跟你确认。

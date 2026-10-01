@@ -24,6 +24,7 @@ import com.eazycount.util.TransactionMoneyFormat;
 import com.eazycount.websocket.RealtimeDomain;
 import com.eazycount.websocket.RealtimeEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,6 +82,10 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
 
     @Autowired
     private RealtimeEventPublisher realtimeEventPublisher;
+
+    /** TEMP: false keeps SKIPPED rows through Refresh (post-migration cleanup). */
+    @Value("${app.accounting-due.restore-skipped-enabled:true}")
+    private boolean restoreSkippedEnabled;
 
     @Override
     @Transactional
@@ -166,7 +171,7 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
             return new ArrayList<>();
         }
 
-        if (restoreSkipped) {
+        if (restoreSkipped && restoreSkippedEnabled) {
             AccessControlUtils.requireWritable(sessionUser);
             accountingDueDao.deleteSkippedInRange(tenantId, fromDate, toDate);
             realtimeEventPublisher.publish(tenantId, RealtimeDomain.LEDGER, "restore");

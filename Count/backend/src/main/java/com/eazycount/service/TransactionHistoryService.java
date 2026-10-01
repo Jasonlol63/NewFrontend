@@ -7,6 +7,15 @@ public interface TransactionHistoryService {
 
     /**
      * Payment History list for one account: Bank Process (Win/Loss) + Domain Payment (Cr/Dr).
+     * Admin view — full descriptions.
      */
-    TransactionHistoryResult historyList(TransactionHistoryRequest request);
+    default TransactionHistoryResult historyList(TransactionHistoryRequest request) {
+        return historyList(request, false);
+    }
+
+    /**
+     * @param memberView true only for the Member page: manual PAYMENT / CLAIM descriptions are shown as
+     *                   "PAYMENT SETTLEMENT" / "CLAIM SETTLEMENT" (no counterparty account). Set server-side, never from the client.
+     */
+    TransactionHistoryResult historyList(TransactionHistoryRequest request, boolean memberView);
 }
