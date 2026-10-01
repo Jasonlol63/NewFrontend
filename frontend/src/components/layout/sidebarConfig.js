@@ -25,8 +25,10 @@ export const MENU_ITEMS = [
 ];
 
 export const SIDEBAR_BG_STYLE = {
+  // Dominant color of the background image, shown until it has loaded.
+  backgroundColor: "#08285f",
   backgroundImage:
-    "radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,0.3) 0%, rgba(70,140,255,0) 45%), linear-gradient(160deg, rgba(18,48,100,0.45) 0%, rgba(12,36,82,0.4) 38%, rgba(8,26,61,0.35) 70%, rgba(6,18,37,0.35) 100%), url('/images/count-sidebar-bg-2-crop.png')",
+    "radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,0.3) 0%, rgba(70,140,255,0) 45%), linear-gradient(160deg, rgba(18,48,100,0.45) 0%, rgba(12,36,82,0.4) 38%, rgba(8,26,61,0.35) 70%, rgba(6,18,37,0.35) 100%), url('/images/count-sidebar-bg.webp')",
   backgroundSize: "cover, cover, cover",
   backgroundPosition: "center, center, bottom",
   backgroundRepeat: "no-repeat, no-repeat, no-repeat",
@@ -40,6 +42,6 @@ export const IDLE_ITEM_CLASS = "text-[#b7c9ea] hover:bg-white/5 hover:text-[#e6e
 export const DEFAULT_PROFILE = {
   userName: "BOSS",
   userRole: "Owner",
-  avatarSrc: "/images/avatar1.png",
+  avatarSrc: "/images/avatar1.webp",
   expiryLabel: "Exp: 3m 15d left",
 };

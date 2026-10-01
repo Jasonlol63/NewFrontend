@@ -21,7 +21,7 @@ export default function AuthenticatedLayout() {
   }, [drawerOpen]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.png')] bg-cover bg-center bg-no-repeat bg-fixed">
+    <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="hidden h-full nav:flex">
         <Sidebar onLogout={onLogout} />
       </div>

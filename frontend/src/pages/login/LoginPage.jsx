@@ -8,6 +8,7 @@ import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { postForm } from "@/lib/api";
+import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
 import { markLogin } from "@/hooks/useSavedState";
 
 const ROLE_OPTIONS = [
@@ -58,14 +59,13 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [logoSrc, setLogoSrc] = useState(
-    "/images/count_logo_puzzle_animation.gif"
+    "/images/count_logo_puzzle_animation.webp"
   );
 
   useEffect(() => {
-    const preload = new Image();
-    preload.src = "/images/count_logo.png";
+    preloadImages(["/images/count_logo.webp", ...APP_SHELL_IMAGES]);
     const timer = setTimeout(() => {
-      setLogoSrc("/images/count_logo.png");
+      setLogoSrc("/images/count_logo.webp");
     }, LOGO_ANIMATION_MS);
     return () => clearTimeout(timer);
   }, []);

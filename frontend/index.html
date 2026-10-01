@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>count-web</title>
+    <script>
+      // Start the page background download before the JS bundle runs, so it
+      // doesn't flash its fallback color. Login-flow routes use count_bg.
+      (function () {
+        var authFlow = /^\/(login|secondary-password|reset-password)?\/?$/.test(location.pathname);
+        var link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.href = authFlow ? "/images/count_bg.webp" : "/images/Count-Inside-Bg.webp";
+        link.setAttribute("fetchpriority", "high");
+        document.head.appendChild(link);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

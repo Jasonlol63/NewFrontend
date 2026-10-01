@@ -50,7 +50,7 @@ export default function Sidebar({
           className="flex h-8 w-8 flex-none items-center justify-center rounded-[11px] border border-white/25 p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_10px_-4px_rgba(0,10,40,0.5)] backdrop-blur-[10px]"
           style={{ backgroundImage: "linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))" }}
         >
-          <img src="/images/Logo-2.png" alt="" className="h-full w-full object-contain" />
+          <img src="/images/Logo-2.webp" alt="" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold tracking-[0.2px] text-white">
           EAZYCOUNT
