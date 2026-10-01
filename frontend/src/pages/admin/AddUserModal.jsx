@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, Eye, EyeOff, UserPlus } from "lucide-react";
+import { Select } from "radix-ui";
 import { cn } from "@/lib/utils";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
 import AccessListCard, { Count } from "./AccessListCard.jsx";
@@ -31,13 +32,15 @@ export default function AddUserModal({ onClose, onSave }) {
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
+      // An open Role dropdown handles (and prevents) its own Escape; only close the modal otherwise.
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const setRole = (role) => setForm((f) => ({ ...f, role }));
   const togglePerm = (key) =>
     setPerms((prev) => {
       const next = new Set(prev);
@@ -102,6 +105,7 @@ export default function AddUserModal({ onClose, onSave }) {
             <UserInfoCard
               form={form}
               setField={setField}
+              setRole={setRole}
               showPassword={showPassword}
               onTogglePassword={() => setShowPassword((v) => !v)}
               readOnly={readOnly}
@@ -132,7 +136,7 @@ export default function AddUserModal({ onClose, onSave }) {
   );
 }
 
-function UserInfoCard({ form, setField, showPassword, onTogglePassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
+function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#dbe7fb] bg-white", "@max-[899px]/main:col-span-full")}>
       <div
@@ -158,8 +162,12 @@ function UserInfoCard({ form, setField, showPassword, onTogglePassword, readOnly
         )}
       >
         <div className="grid flex-none grid-cols-2 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[560px]/info:grid-cols-3">
-          <Field label="Login ID" className="col-span-2 @min-[560px]/info:col-span-1">
+          {/* Login ID | Name share a row so Role gets a full row: long roles ("Customer Service") never clip. */}
+          <Field label="Login ID">
             <TextInput value={form.loginId} onChange={setField("loginId")} autoComplete="off" />
+          </Field>
+          <Field label="Name">
+            <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
           </Field>
           <Field label="Password" className="col-span-2 @min-[560px]/info:col-span-1">
             <div className="relative">
@@ -180,27 +188,8 @@ function UserInfoCard({ form, setField, showPassword, onTogglePassword, readOnly
               </button>
             </div>
           </Field>
-          <Field label="Name">
-            <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
-          </Field>
-          <Field label="Role">
-            <div className="relative">
-              <select
-                value={form.role}
-                onChange={setField("role")}
-                className={cn(inputClass, "cursor-pointer appearance-none pr-8", !form.role && "text-dash-faint")}
-              >
-                <option value="" disabled>
-                  Select Role
-                </option>
-                {ROLE_OPTIONS.map((r) => (
-                  <option key={r.value} value={r.value} className="text-[#111827]">
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dash-faint" strokeWidth={2} />
-            </div>
+          <Field label="Role" className="col-span-2 @min-[560px]/info:col-span-1">
+            <RoleSelect value={form.role} onChange={setRole} />
           </Field>
           <Field label="Email" className="col-span-2">
             <TextInput type="email" inputMode="email" value={form.email} onChange={setField("email")} autoComplete="off" />
@@ -281,6 +270,65 @@ function PermissionItem({ perm, on, onToggle }) {
       </span>
       <span className="min-w-0 leading-[1.2]">{perm.label}</span>
     </button>
+  );
+}
+
+/**
+ * Role picker styled like the rest of the modal (a native <select> list can't be styled).
+ * The list is exactly as wide as the trigger, opens below it (above when there's no room)
+ * and scrolls inside itself if the screen is too short.
+ */
+function RoleSelect({ value, onChange }) {
+  const label = ROLE_OPTIONS.find((r) => r.value === value)?.label;
+  return (
+    <Select.Root value={value} onValueChange={onChange}>
+      <Select.Trigger
+        title={label}
+        className={cn(
+          inputClass,
+          "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
+          "data-[state=open]:border-[#3b82f6] data-[state=open]:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] data-placeholder:text-dash-faint"
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate">
+          <Select.Value placeholder="Select Role" />
+        </span>
+        <Select.Icon asChild>
+          <ChevronDown
+            className="size-3.5 flex-none text-dash-faint transition-transform group-data-[state=open]:rotate-180 group-data-[state=open]:text-[#3b82f6] motion-reduce:transition-none"
+            strokeWidth={2.4}
+          />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Content
+          position="popper"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-[#dbe7fb] bg-white shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)]"
+        >
+          <Select.Viewport className="flex flex-col gap-0.5 p-[5px]">
+            {ROLE_OPTIONS.map((r) => (
+              <Select.Item
+                key={r.value}
+                value={r.value}
+                className={cn(
+                  "flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-[9px] border border-transparent py-1.5 pl-2.5 pr-2 text-[13px] font-semibold text-[#374151] outline-none",
+                  "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7 modal-tiny:text-[12.5px]",
+                  "data-highlighted:bg-[#eef4ff]",
+                  "data-[state=checked]:border-[#7fb2ff] data-[state=checked]:bg-row-stripe data-[state=checked]:font-bold data-[state=checked]:text-brand-navy"
+                )}
+              >
+                <Select.ItemText>{r.label}</Select.ItemText>
+                <Select.ItemIndicator className="ml-auto flex size-4 flex-none items-center justify-center rounded-full bg-brand-sweep text-white shadow-[0_3px_8px_-3px_rgba(20,90,220,0.6)]">
+                  <Check className="size-2.5" strokeWidth={4} />
+                </Select.ItemIndicator>
+              </Select.Item>
+            ))}
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>
   );
 }
 
