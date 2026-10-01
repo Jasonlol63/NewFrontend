@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
@@ -26,6 +27,7 @@ export default function SecondaryPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
+  const inputRef = useRef(null);
 
   // Only reachable right after a successful login that needs this step.
   const verifyUrl = VERIFY_URLS[state?.userType];
@@ -81,6 +83,8 @@ export default function SecondaryPasswordPage() {
                 <Lock size={16} />
               </span>
               <input
+                ref={inputRef}
+                autoFocus
                 type={showPassword ? "text" : "password"}
                 inputMode="numeric"
                 maxLength={6}
@@ -91,7 +95,16 @@ export default function SecondaryPasswordPage() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
+                // Keep the cursor in the password box, so typing can carry on after toggling.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  // Switching the input type moves the caret to the start; put it back at the end.
+                  flushSync(() => setShowPassword((v) => !v));
+                  const input = inputRef.current;
+                  if (!input) return;
+                  input.focus();
+                  input.setSelectionRange(input.value.length, input.value.length);
+                }}
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 className="absolute right-[18px] top-1/2 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[#4f8ef0]"
               >
@@ -116,6 +129,11 @@ export default function SecondaryPasswordPage() {
         type="error"
         title={errorTitle}
         confirmText={CONFIRM_TEXT[state.lang] ?? CONFIRM_TEXT.en}
+        // Back to the (cleared) password box instead of the Verify button, ready to retype.
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
       />
     </div>
   );
