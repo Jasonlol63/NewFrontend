@@ -11,8 +11,8 @@ const TONES = {
 const BURST_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
 // Stroke paths use pathLength=1 so the same dash animation draws any shape.
-const drawFirst = "[stroke-dasharray:1] [stroke-dashoffset:1] animate-status-draw motion-reduce:animate-none motion-reduce:[stroke-dashoffset:0]";
-const drawLate = "[stroke-dasharray:1] [stroke-dashoffset:1] animate-status-draw-late motion-reduce:animate-none motion-reduce:[stroke-dashoffset:0]";
+export const drawFirst = "[stroke-dasharray:1] [stroke-dashoffset:1] animate-status-draw motion-reduce:animate-none motion-reduce:[stroke-dashoffset:0]";
+export const drawLate ="[stroke-dasharray:1] [stroke-dashoffset:1] animate-status-draw-late motion-reduce:animate-none motion-reduce:[stroke-dashoffset:0]";
 
 function Glyph({ type }) {
   const svgProps = {
