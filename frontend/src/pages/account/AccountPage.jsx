@@ -19,12 +19,20 @@ function AlertPill({ on }) {
   return (
     <span
       title={NOT_BUILT}
+      // Rounded rectangle (rounded-md) to line up with the Role / Status badges.
       className={cn(
-        "relative inline-flex h-[20px] w-[42px] items-center rounded-full text-[9px] font-extrabold text-white",
-        on ? "justify-start bg-[#22c55e] pl-[6px]" : "justify-end bg-[#ef4444] pr-[6px]"
+        "relative inline-flex h-[22px] w-[46px] items-center rounded-md text-[9.5px] font-bold tracking-[0.3px] text-white",
+        on
+          ? "justify-start bg-alert-on pl-2 shadow-[0_4px_10px_-4px_rgba(5,150,105,0.6),inset_0_0_0_1px_rgba(4,120,87,0.25)]"
+          : "justify-end bg-alert-off pr-[7px] shadow-[0_4px_10px_-4px_rgba(229,62,62,0.6),inset_0_0_0_1px_rgba(185,28,28,0.25)]"
       )}
     >
-      <span className={cn("absolute top-[3px] size-[14px] rounded-full bg-white shadow", on ? "right-[3px]" : "left-[3px]")} />
+      <span
+        className={cn(
+          "absolute top-[3px] size-4 rounded-[4px] bg-[linear-gradient(180deg,#fff_0%,#f1f5f9_100%)]",
+          on ? "right-[3px] shadow-[0_1px_3px_rgba(6,78,59,0.4)]" : "left-[3px] shadow-[0_1px_3px_rgba(127,29,29,0.4)]"
+        )}
+      />
       {on ? "ON" : "OFF"}
     </span>
   );
@@ -33,7 +41,6 @@ function AlertPill({ on }) {
 export default function AccountPage() {
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
-  // /api/account only takes a Company tenant, so there is no "Group itself" view here.
   const scope = useListScope("account.scope", { onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/account", scope.tenantId, {
     normalize: normalizeAccountRow,

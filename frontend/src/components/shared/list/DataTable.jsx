@@ -140,8 +140,8 @@ export default function DataTable({
                       "transition-colors",
                       // A full page ends on the footer line, so the last row drops its own bottom border.
                       pageFull && i === rows.length - 1 && "[&>td]:border-b-0",
-                      // Hover drops the stripe gradient for a flat tint a step deeper than the stripe.
-                      isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white" : "bg-row-stripe", "hover:bg-none hover:bg-[#cce4ff]")
+                      // Hover swaps in the stripe gradient one step deeper, on blue and white rows alike.
+                      isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white" : "bg-row-stripe", "hover:bg-row-hover")
                     )}
                   >
                     {columns.map((col, c) => (
