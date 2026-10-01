@@ -77,7 +77,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
           aria-modal="true"
           aria-labelledby="user-form-title"
           className={cn(
-            "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-white",
+            "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-modal-bg",
             "[--gap:clamp(8px,1.5dvh,14px)] [--pad:clamp(10px,2dvh,18px)]",
             "@min-[900px]/main:@max-[1099px]/main:[--gap:8px] @min-[900px]/main:@max-[1099px]/main:[--pad:10px]",
             "modal-compact:[--gap:8px] modal-compact:[--pad:10px] modal-tiny:m-2 modal-tiny:[--gap:6px] modal-tiny:[--pad:8px]",
@@ -126,7 +126,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
             <AccessListCard title="Process" items={MOCK_PROCESSES} selected={processes} onChange={setProcesses} />
           </div>
 
-          <footer className="flex flex-none items-center justify-end gap-2 border-t border-[#dbe7fb] px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
+          <footer className="flex flex-none items-center justify-end gap-2 border-t border-modal-line px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
             <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
               Cancel
             </SoftButton>
@@ -147,10 +147,10 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
 
 function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#dbe7fb] bg-white", "@max-[899px]/main:col-span-full")}>
+    <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card", "@max-[899px]/main:col-span-full")}>
       <div
         className={cn(
-          "flex flex-none items-center gap-2 border-b border-[#eef2f7] px-3.5 pb-2.5 pt-3",
+          "flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",
           "@min-[900px]/main:@max-[1099px]/main:px-2.5 @min-[900px]/main:@max-[1099px]/main:pb-2 @min-[900px]/main:@max-[1099px]/main:pt-[9px]",
           "modal-compact:px-3 modal-compact:pb-1.5 modal-compact:pt-[7px] modal-tiny:px-2.5 modal-tiny:pb-[5px] modal-tiny:pt-1.5"
         )}
@@ -205,7 +205,7 @@ function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword,
           </Field>
         </div>
 
-        <div className="my-3 h-px flex-none bg-[#eef2f7] modal-compact:mb-2 modal-compact:mt-2.5 modal-tiny:mb-1.5 modal-tiny:mt-2" />
+        <div className="my-3 h-px flex-none bg-modal-divider modal-compact:mb-2 modal-compact:mt-2.5 modal-tiny:mb-1.5 modal-tiny:mt-2" />
 
         <div className="mb-2 flex flex-none flex-wrap items-center justify-between gap-2 modal-compact:mb-1.5 modal-tiny:mb-1">
           <div className="flex items-baseline gap-[5px] text-[13px] font-extrabold text-brand-navy">
@@ -265,7 +265,7 @@ function PermissionItem({ perm, on, onToggle }) {
         "modal-tiny:min-h-7 modal-tiny:px-1.5 modal-tiny:py-0.5",
         // Narrow info column (1024 / 1200 screens): smaller still, and it must win over the height tiers.
         "@max-[250px]/info:gap-[5px]! @max-[250px]/info:px-[5px]! @max-[250px]/info:text-[11px]!",
-        on ? "border-[#7fb2ff] bg-row-stripe text-brand-navy" : "border-dash-line bg-white text-[#374151] hover:border-[#93c5fd]"
+        on ? "border-[#7fb2ff] bg-row-stripe text-brand-navy" : "border-modal-off-line bg-modal-off text-[#374151] hover:border-[#93c5fd]"
       )}
     >
       <span
@@ -314,7 +314,7 @@ function RoleSelect({ value, onChange }) {
           position="popper"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-[#dbe7fb] bg-white shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)]"
+          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-input shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)]"
         >
           <Select.Viewport className="flex flex-col gap-0.5 p-[5px]">
             {ROLE_OPTIONS.map((r) => (
@@ -342,7 +342,7 @@ function RoleSelect({ value, onChange }) {
 }
 
 const inputClass =
-  "h-9 w-full rounded-[10px] border border-dash-line bg-white px-3 text-[13.5px] text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] @min-[900px]/main:@max-[1099px]/main:h-8 @min-[900px]/main:@max-[1099px]/main:text-[13px] modal-compact:h-[30px] modal-tiny:h-7 modal-tiny:text-[12.5px]";
+  "h-9 w-full rounded-[10px] border border-modal-input-line bg-modal-input px-3 text-[13.5px] text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] @min-[900px]/main:@max-[1099px]/main:h-8 @min-[900px]/main:@max-[1099px]/main:text-[13px] modal-compact:h-[30px] modal-tiny:h-7 modal-tiny:text-[12.5px]";
 
 function TextInput({ className, ...props }) {
   return <input className={cn(inputClass, className)} {...props} />;

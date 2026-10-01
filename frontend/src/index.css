@@ -87,6 +87,19 @@ body {
   --shadow-notice: 0 12px 24px -16px rgba(20, 70, 160, 0.5);
 }
 
+/* Add / Edit User modal surfaces: soft blue-grey instead of pure white (easier on the eyes).
+   Only the backgrounds; the blue Account / Process tiles keep their own colours. */
+@theme {
+  --color-modal-bg: #e9eef5;
+  --color-modal-card: #f3f6fa;
+  --color-modal-line: #d5dfec;
+  --color-modal-divider: #e2e8f1;
+  --color-modal-input: #f9fbfd;
+  --color-modal-input-line: #d3dce8;
+  --color-modal-off: #f6f8fb;
+  --color-modal-off-line: #d9e1ec;
+}
+
 /* Status dialog animations: pop in once, ripple + burst on entry, then only a soft glow */
 @theme {
   --animate-dialog-overlay: dialog-fade 0.2s ease-out;

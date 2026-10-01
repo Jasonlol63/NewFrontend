@@ -54,7 +54,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
   };
 
   const searchInput = (props) => (
-    <label className="flex h-8 min-w-0 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-2.5 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+    <label className="flex h-8 min-w-0 items-center gap-2 rounded-[10px] border border-modal-input-line bg-modal-input px-2.5 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
       <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
       <input
         value={query}
@@ -66,10 +66,10 @@ export default function AccessListCard({ title, items, selected, onChange }) {
   );
 
   return (
-    <section className="@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#dbe7fb] bg-white">
+    <section className="@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card">
       <div
         className={cn(
-          "relative flex flex-none items-center gap-2 border-b border-[#eef2f7] px-3.5 pb-2.5 pt-3",
+          "relative flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",
           "@min-[900px]/main:@max-[1099px]/main:px-2.5 @min-[900px]/main:@max-[1099px]/main:pb-2 @min-[900px]/main:@max-[1099px]/main:pt-[9px]",
           "modal-compact:px-3 modal-compact:pb-1.5 modal-compact:pt-[7px] modal-tiny:px-2.5 modal-tiny:pb-[5px] modal-tiny:pt-1.5",
           "@max-[380px]/card:gap-1.5 @max-[340px]/card:gap-[5px] @max-[340px]/card:px-2.5"
@@ -84,7 +84,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
             "flex size-[18px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] p-0 transition-colors @max-[340px]/card:size-4 @max-[340px]/card:rounded-[4px]",
             allMatched || someMatched
               ? "border-transparent bg-brand-sweep text-white shadow-[0_3px_8px_-3px_rgba(20,90,220,0.6)]"
-              : "border-[#c3d3ea] bg-white hover:border-[#7fb2ff]"
+              : "border-[#c3d3ea] bg-modal-input hover:border-[#7fb2ff]"
           )}
         >
           {allMatched && <Check className="size-2.5" strokeWidth={4} />}
@@ -135,7 +135,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         </div>
 
         {searching && (
-          <div className="absolute inset-0 z-10 flex items-center gap-1.5 rounded-t-2xl bg-white px-3">
+          <div className="absolute inset-0 z-10 flex items-center gap-1.5 rounded-t-2xl bg-modal-card px-3">
             <div className="min-w-0 flex-1">{searchInput({ ref: searchRef, placeholder: `Search ${title.toLowerCase()}` })}</div>
             <button
               type="button"
