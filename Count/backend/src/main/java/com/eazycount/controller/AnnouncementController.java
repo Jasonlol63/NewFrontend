@@ -49,6 +49,25 @@ public class AnnouncementController {
     }
 
 
+    @GetMapping("/unreadCount")
+    public ResponseEntity<Map<String, Object>> getUnreadCount(){
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "OK",
+                "data", Map.of("unreadCount", announcementService.countUnreadAnnouncements()))
+        );
+    }
+
+    @PostMapping("/markRead")
+    public ResponseEntity<Map<String, Object>> markRead(){
+        announcementService.markAnnouncementsRead();
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "OK");
+        body.put("data", null);
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/getMaintenanceInLogin")
     public ResponseEntity<Map<String, Object>> getMaintenanceInLogin(){
         final List<Maintenance> maintenance = announcementService.findMaintenanceInLogin();

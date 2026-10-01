@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { UserPlus } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import ListToolbar, { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -9,6 +9,7 @@ import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ROLE_BADGE, filterUsers, normalizeUserRow, roleLabel, rowCapabilities, sortUsers } from "./userListRules";
+import UserFormModal from "./UserFormModal.jsx";
 
 const canSelect = (u) => u.caps.canDelete;
 // The owner row and a staff row can share an id (different tables).
@@ -16,7 +17,10 @@ const rowKey = (u) => `${u.isOwnerShadow ? "owner" : "user"}-${u.id}`;
 
 export default function AdminPage() {
   const viewer = useCurrentUser();
-  const scope = useListScope("admin.scope", { allowGroupItself: true, onChange: () => view.reset() });
+  // null = closed, { mode: "add" } or { mode: "edit", user } = open
+  const [userForm, setUserForm] = useState(null);
+  const closeUserForm = useCallback(() => setUserForm(null), []);
+  const scope = useListScope("admin.scope", { onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/userlist", scope.tenantId, {
     normalize: normalizeUserRow,
     rowKey,
@@ -63,7 +67,11 @@ export default function AdminPage() {
       sortable: false,
       className: "text-center",
       render: (u) => (
-        <IconAction disabled title={u.caps.canEdit ? "Edit form is not built yet" : "No permission to edit"} />
+        <IconAction
+          disabled={!u.caps.canEdit}
+          title={u.caps.canEdit ? "Edit user" : "No permission to edit"}
+          onClick={() => setUserForm({ mode: "edit", user: u })}
+        />
       ),
     },
   ];
@@ -74,7 +82,7 @@ export default function AdminPage() {
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={UserPlus} disabled title="Add User form is not built yet">
+          <PrimaryButton icon={UserPlus} onClick={() => setUserForm({ mode: "add" })}>
             Add User
           </PrimaryButton>
         }
@@ -102,6 +110,9 @@ export default function AdminPage() {
       />
 
       {actions.dialogs}
+
+      {/* Add User and Edit User share one modal. UI only for now: Save just closes it until the API is wired up. */}
+      {userForm && <UserFormModal mode={userForm.mode} user={userForm.user} onClose={closeUserForm} onSave={closeUserForm} />}
     </div>
   );
 }

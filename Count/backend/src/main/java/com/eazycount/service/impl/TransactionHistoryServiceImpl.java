@@ -48,7 +48,7 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
     private UserDao userDao;
 
     @Override
-    public TransactionHistoryResult historyList(TransactionHistoryRequest request) {
+    public TransactionHistoryResult historyList(TransactionHistoryRequest request, boolean memberView) {
         SessionUser session = AccessControlUtils.requireLoggedIn();
         AccessControlUtils.requireValidTenantId(request != null ? request.getTenantId() : null);
         AssertUtils.requirePositive(request != null ? request.getAccountId() : null, "accountId");
@@ -72,7 +72,31 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         HistorySlice domain = buildDomainPaymentHistorySlice(
                 tenantId, accountId, dateFrom, dateTo, currencyCodes, accountCode);
 
-        return mergeHistorySlices(account, dateFrom, dateTo, winLoss, domain);
+        TransactionHistoryResult result = mergeHistorySlices(account, dateFrom, dateTo, winLoss, domain);
+        if (memberView) {
+            applyMemberSettlementDescriptions(result.getHistory());
+        }
+        return result;
+    }
+
+    /* Member page only: manual PAYMENT / CLAIM show "PAYMENT SETTLEMENT" / "CLAIM SETTLEMENT" instead of TO/FROM <account>. */
+    static void applyMemberSettlementDescriptions(List<TransactionHistoryResult.Row> rows) {
+        if (rows == null) {
+            return;
+        }
+        for (TransactionHistoryResult.Row row : rows) {
+            if (row == null) {
+                continue;
+            }
+            String product = NormalizeUtils.trimToEmpty(row.getProduct()).toUpperCase(Locale.ROOT);
+            if (!"PAYMENT".equals(product) && !"CLAIM".equals(product) && !"CONTRA".equals(product)) {
+                continue;
+            }
+            String description = NormalizeUtils.trimToEmpty(row.getDescription()).toUpperCase(Locale.ROOT);
+            if (description.startsWith(product + " TO ") || description.startsWith(product + " FROM ")) {
+                row.setDescription(product + " SETTLEMENT");
+            }
+        }
     }
 
     // ── Win/Loss: Bank Process + Data Capture + manual Adjustment/Profit/Rate-middleman ─────────
@@ -323,7 +347,9 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
             row.setProduct("RATE");
         } else if (isDataCapture) {
             String idProduct = NormalizeUtils.trimToEmpty(line.getIdProduct());
-            row.setProduct(!idProduct.isEmpty() ? idProduct : "DATA CAPTURE");
+            row.setProduct(!idProduct.isEmpty()
+                    ? withDescriptionSuffix(idProduct, line.getIdProductDescription())
+                    : "DATA CAPTURE");
         } else if (!isBank) {
             row.setProduct(resolveDomainHistoryProduct(line));
         }
@@ -381,6 +407,17 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
             return false;
         }
         return "PROFIT".equalsIgnoreCase(line.getTransactionType().trim());
+    }
+
+    /* Data Capture History ID Product: "ID (description)", same rule as Summary's Id Product cell — never doubled. */
+    static String withDescriptionSuffix(String idProduct, String description) {
+        String base = NormalizeUtils.trimToEmpty(idProduct);
+        String desc = NormalizeUtils.trimToEmpty(description);
+        if (base.isEmpty() || desc.isEmpty()) {
+            return base;
+        }
+        String suffix = desc.startsWith("(") && desc.endsWith(")") ? desc : "(" + desc + ")";
+        return base.toUpperCase(Locale.ROOT).endsWith(suffix.toUpperCase(Locale.ROOT)) ? base : base + " " + suffix;
     }
 
     /* Domain History ID Product: PAYMENT / COMMISSION / PROFIT / CLAIM / CLEAR / CONTRA. */

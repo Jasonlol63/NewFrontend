@@ -29,6 +29,9 @@ public class MaintenanceFormulaDTO {
     private Integer formulaVariant;
     private BigDecimal subOrder;
     private String account;
+    // Read-only join columns so callers (Summary) can build the "code [name]" display client-side.
+    private String accountName;
+    private String accountRole;
     private String currency;
     private String description;
     private String sourceColumns;

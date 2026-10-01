@@ -597,6 +597,8 @@
             f.sub_order AS subOrder,
             f.account_id AS accountId,
             a.account_id AS account,
+            a.name AS accountName,
+            a.role AS accountRole,
             UPPER(c.code) AS currency,
             f.description AS description,
             f.source_columns AS sourceColumns,

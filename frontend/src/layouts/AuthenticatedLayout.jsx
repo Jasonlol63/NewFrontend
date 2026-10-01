@@ -21,7 +21,7 @@ export default function AuthenticatedLayout() {
   }, [drawerOpen]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.png')] bg-cover bg-center bg-no-repeat bg-fixed">
+    <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="hidden h-full nav:flex">
         <Sidebar onLogout={onLogout} />
       </div>
@@ -29,9 +29,14 @@ export default function AuthenticatedLayout() {
         <SidebarRail onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
       </div>
 
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
+      {/* Pages render full-area modals into #main-overlay (see MainOverlay) so they cover the
+          content area but never the sidebar. */}
+      <div className="relative min-w-0 flex-1">
+        <main className="h-full overflow-y-auto">
+          <Outlet />
+        </main>
+        <div id="main-overlay" />
+      </div>
 
       {/* Drawer: full sidebar floating over the page */}
       <div
@@ -52,7 +57,7 @@ export default function AuthenticatedLayout() {
             drawerOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <Sidebar className="w-[260px]" onLogout={onLogout} onNavigate={closeDrawer} />
+          <Sidebar className="w-[236px]" onLogout={onLogout} onNavigate={closeDrawer} />
         </div>
       </div>
     </div>

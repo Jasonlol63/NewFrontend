@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { getJson, postForm } from "@/lib/api";
+import { loadSessionUser } from "@/hooks/useSavedState";
 
 export const ALL = "ALL";
+// Companies that belong to no Group. They have no chip of their own: deselecting the active
+// Group switches to them.
+export const INDEPENDENT = "__independent__";
 
 // ---------------------------------------------------------------------------
 // Accessible tenants -> Group / Company directory
 // ---------------------------------------------------------------------------
 
-function buildDirectory(rows) {
+// loginTenant: code of the Company / Group the user logged in with, picked when nothing is saved.
+function buildDirectory(rows, loginTenant) {
   const groups = new Map();
   const companies = [];
   for (const row of rows) {
@@ -25,7 +30,7 @@ function buildDirectory(rows) {
     }
   }
   const byCode = (a, b) => a.code.localeCompare(b.code, undefined, { numeric: true });
-  return { groups: [...groups.values()].sort(byCode), companies: companies.sort(byCode) };
+  return { groups: [...groups.values()].sort(byCode), companies: companies.sort(byCode), loginTenant: loginTenant || null };
 }
 
 export function useTenantDirectory() {
@@ -33,8 +38,8 @@ export function useTenantDirectory() {
 
   useEffect(() => {
     const controller = new AbortController();
-    getJson("/auth/tenant-accessible", { all: 1 }, { signal: controller.signal })
-      .then((body) => setState({ directory: buildDirectory(body.data || []), error: "" }))
+    Promise.all([getJson("/auth/tenant-accessible", { all: 1 }, { signal: controller.signal }), loadSessionUser()])
+      .then(([body, user]) => setState({ directory: buildDirectory(body.data || [], user?.tenant_code), error: "" }))
       .catch((err) => {
         if (err.name !== "AbortError") setState({ directory: null, error: err.message });
       });
@@ -47,12 +52,32 @@ export function useTenantDirectory() {
 export function companiesInGroup(directory, groupCode) {
   if (!directory) return [];
   if (groupCode === ALL) return directory.companies;
+  if (groupCode === INDEPENDENT) return directory.companies.filter((c) => !c.groupCode);
   return directory.companies.filter((c) => c.groupCode === groupCode);
+}
+
+export function hasIndependentCompanies(directory) {
+  return Boolean(directory?.companies.some((c) => !c.groupCode));
+}
+
+// The Group / Company the user logged in with, as a filter selection; null if it isn't listed.
+// For a Group login only the group is set, the page picks its default company.
+export function loginSelection(directory) {
+  const code = directory?.loginTenant;
+  if (!code) return null;
+  const company = directory.companies.find((c) => c.code === code);
+  if (company) return { group: company.groupCode ?? INDEPENDENT, company: company.code };
+  return directory.groups.some((g) => g.code === code) ? { group: code } : null;
+}
+
+// First Group this login can open (owned, or granted Group access); null when there is none.
+export function firstOpenableGroup(directory) {
+  return directory?.groups.find((g) => g.tenantId)?.code ?? null;
 }
 
 // Whether "no company selected" (= the Group's own view) is a valid choice for this group.
 export function canViewGroupItself(directory, groupCode) {
-  if (!directory) return false;
+  if (!directory || groupCode === INDEPENDENT) return false;
   if (groupCode === ALL) return directory.groups.some((g) => g.tenantId);
   return Boolean(directory.groups.find((g) => g.code === groupCode)?.tenantId);
 }

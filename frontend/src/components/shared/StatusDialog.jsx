@@ -85,6 +85,7 @@ export default function StatusDialog({
   onConfirm,
   cancelText,
   onCancel,
+  onCloseAutoFocus,
 }) {
   const close = () => onOpenChange?.(false);
 
@@ -93,6 +94,7 @@ export default function StatusDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 animate-dialog-overlay bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px] motion-reduce:animate-none" />
         <Dialog.Content
+          onCloseAutoFocus={onCloseAutoFocus}
           style={TONES[type] ?? TONES.error}
           {...(description ? {} : { "aria-describedby": undefined })}
           className="fixed left-1/2 top-1/2 z-50 w-[min(360px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 animate-dialog-in rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] px-[26px] pb-6 pt-[30px] text-center shadow-[0_40px_80px_-24px_rgba(20,51,107,0.5),0_12px_28px_-12px_rgba(20,70,160,0.3),inset_0_1px_0_#fff] outline-none motion-reduce:animate-none"

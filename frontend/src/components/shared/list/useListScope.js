@@ -1,60 +1,58 @@
 import { useMemo } from "react";
-import { useSavedState } from "@/hooks/useSavedState";
-import { useTenantDirectory } from "@/pages/dashboard/useDashboardData";
-
-// Companies that belong to no Group are listed under this pseudo-group.
-const INDEPENDENT = "__independent__";
-
-function companiesOf(directory, group) {
-  if (!directory) return [];
-  return directory.companies.filter((c) => (group === INDEPENDENT ? !c.groupCode : c.groupCode === group));
-}
+import { currentLoginStamp, useSavedState } from "@/hooks/useSavedState";
+import {
+  companiesInGroup as companiesOf,
+  firstOpenableGroup,
+  hasIndependentCompanies,
+  INDEPENDENT,
+  loginSelection,
+  useTenantDirectory,
+} from "@/pages/dashboard/useDashboardData";
 
 function groupTenantId(directory, group) {
   return directory?.groups.find((g) => g.code === group)?.tenantId ?? null;
 }
 
-// company null = the Group's own data, only offered when allowGroupItself and the Group can be opened.
-function canUseGroupItself(directory, group, allowGroupItself) {
-  return allowGroupItself && Boolean(groupTenantId(directory, group));
+// company null = the Group's own data, only offered when the Group can be opened.
+function canUseGroupItself(directory, group) {
+  return Boolean(groupTenantId(directory, group));
 }
 
-function defaultCompany(directory, group, allowGroupItself) {
+function defaultCompany(directory, group) {
   const first = companiesOf(directory, group)[0]?.code;
   if (first) return first;
-  return canUseGroupItself(directory, group, allowGroupItself) ? null : undefined;
+  return canUseGroupItself(directory, group) ? null : undefined;
 }
 
-// The saved Group / Company are used only while they still exist for this login.
-function resolveSelection(directory, saved, allowGroupItself) {
+// A fresh login starts from the Company / Group logged in with; within the same login the saved
+// Group / Company win. Either is used only while it still exists for this login.
+function resolveSelection(directory, saved) {
   if (!directory) return { group: null, company: undefined };
+  const pick = saved && (saved.loginStamp ?? null) === currentLoginStamp() ? saved : loginSelection(directory);
   const groupCodes = [
     ...directory.groups.map((g) => g.code),
-    ...(directory.companies.some((c) => !c.groupCode) ? [INDEPENDENT] : []),
+    ...(hasIndependentCompanies(directory) ? [INDEPENDENT] : []),
   ];
-  const group = groupCodes.includes(saved?.group) ? saved.group : (groupCodes[0] ?? null);
-  const c = saved?.group === group ? saved.company : undefined;
+  const group = groupCodes.includes(pick?.group) ? pick.group : (groupCodes[0] ?? null);
+  const c = pick?.group === group ? pick.company : undefined;
   const companyOk =
-    c === null
-      ? canUseGroupItself(directory, group, allowGroupItself)
-      : companiesOf(directory, group).some((x) => x.code === c);
-  return { group, company: companyOk ? c : defaultCompany(directory, group, allowGroupItself) };
+    c === null ? canUseGroupItself(directory, group) : companiesOf(directory, group).some((x) => x.code === c);
+  return { group, company: companyOk ? c : defaultCompany(directory, group) };
 }
 
 /**
- * Group / Company pickers of a list page and the tenant they point at, remembered per user.
- *  - allowGroupItself: clicking the active company again shows the Group's own data (Admin users).
- *    Pages whose API only takes a Company tenant (Accounts) leave it off.
- *  - onChange runs after every pick, e.g. to reset paging and the selection.
+ * Group / Company pickers of a list page (Admin users, Accounts) and the tenant they point at,
+ * remembered per user. Clicking the active chip again switches:
+ *  - active Group -> the independent companies (companies in no Group), when there are any;
+ *  - active company in a Group -> the Group's own data;
+ *  - active independent company -> the first Group this login can open, on its own data.
+ * onChange runs after every pick, e.g. to reset paging and the selection.
  */
-export function useListScope(storageKey, { allowGroupItself = false, onChange } = {}) {
+export function useListScope(storageKey, { onChange } = {}) {
   const { directory: loadedDirectory, error } = useTenantDirectory();
   const [saved, setSaved, savedReady] = useSavedState(storageKey);
   const directory = savedReady ? loadedDirectory : null;
-  const { group, company } = useMemo(
-    () => resolveSelection(directory, saved, allowGroupItself),
-    [directory, saved, allowGroupItself]
-  );
+  const { group, company } = useMemo(() => resolveSelection(directory, saved), [directory, saved]);
 
   const tenantId = company
     ? (companiesOf(directory, group).find((c) => c.code === company)?.tenantId ?? null)
@@ -62,20 +60,29 @@ export function useListScope(storageKey, { allowGroupItself = false, onChange } 
       ? groupTenantId(directory, group)
       : null;
 
-  const groupOptions = useMemo(() => {
-    if (!directory) return [];
-    const list = directory.groups.map((g) => ({ value: g.code, label: g.code }));
-    if (directory.companies.some((c) => !c.groupCode)) list.push({ value: INDEPENDENT, label: "Independent" });
-    return list;
-  }, [directory]);
+  const hasIndependent = hasIndependentCompanies(directory);
+  const switchGroup = group === INDEPENDENT ? firstOpenableGroup(directory) : null;
+  const groupOptions = useMemo(
+    () => (directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code })),
+    [directory]
+  );
   const companyOptions = useMemo(
     () => companiesOf(directory, group).map((c) => ({ value: c.code, label: c.code })),
     [directory, group]
   );
 
   const save = (next) => {
-    setSaved({ group, company, ...next });
+    setSaved({ group, company, loginStamp: currentLoginStamp(), ...next });
     onChange?.();
+  };
+  const pickGroup = (picked) => {
+    const next = picked ?? INDEPENDENT;
+    save({ group: next, company: defaultCompany(directory, next) });
+  };
+  const pickCompany = (next) => {
+    // The Group opens on its own data; the user picks a company from there.
+    if (next === null && group === INDEPENDENT) save({ group: switchGroup, company: null });
+    else save({ company: next });
   };
 
   return {
@@ -83,10 +90,13 @@ export function useListScope(storageKey, { allowGroupItself = false, onChange } 
     group,
     company: company ?? null,
     groupOptions,
+    // One Group with independent companies still needs its chip, to switch between the two.
+    showGroups: groupOptions.length > 1 || (groupOptions.length > 0 && hasIndependent),
+    allowNoGroup: group !== INDEPENDENT && hasIndependent,
     companyOptions,
-    allowNoCompany: canUseGroupItself(directory, group, allowGroupItself),
-    onGroupChange: (next) => save({ group: next, company: defaultCompany(directory, next, allowGroupItself) }),
-    onCompanyChange: (next) => save({ company: next }),
+    allowNoCompany: group === INDEPENDENT ? Boolean(switchGroup) : canUseGroupItself(directory, group),
+    onGroupChange: pickGroup,
+    onCompanyChange: pickCompany,
     loading: !directory && !error,
     error,
   };

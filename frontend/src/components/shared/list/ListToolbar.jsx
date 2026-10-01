@@ -112,23 +112,27 @@ export default function ListToolbar({
       </div>
 
       <div className="flex flex-col gap-2 px-4 py-2.5 short:gap-1.5 short:py-2">
-        {scope.groupOptions.length > 1 && (
+        {scope.showGroups && (
           <FilterRow label="Group ID:">
-            <SegmentGroup options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} />
+            <SegmentGroup
+              options={scope.groupOptions}
+              value={scope.group}
+              onChange={scope.onGroupChange}
+              allowDeselect={scope.allowNoGroup}
+            />
           </FilterRow>
         )}
-        <FilterRow label="Company:">
-          {scope.companyOptions.length ? (
+        {/* A Group with no companies has nothing to pick, so the Company row is hidden. */}
+        {scope.companyOptions.length > 0 && (
+          <FilterRow label="Company:">
             <SegmentGroup
               options={scope.companyOptions}
               value={scope.company}
               onChange={scope.onCompanyChange}
               allowDeselect={scope.allowNoCompany}
             />
-          ) : (
-            <span className="text-xs font-medium text-dash-faint">No company available</span>
-          )}
-        </FilterRow>
+          </FilterRow>
+        )}
       </div>
     </section>
   );

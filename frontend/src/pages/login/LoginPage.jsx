@@ -8,6 +8,8 @@ import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { postForm } from "@/lib/api";
+import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
+import { markLogin } from "@/hooks/useSavedState";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -57,14 +59,13 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [logoSrc, setLogoSrc] = useState(
-    "/images/count_logo_puzzle_animation.gif"
+    "/images/count_logo_puzzle_animation.webp"
   );
 
   useEffect(() => {
-    const preload = new Image();
-    preload.src = "/images/count_logo.png";
+    preloadImages(["/images/count_logo.webp", ...APP_SHELL_IMAGES]);
     const timer = setTimeout(() => {
-      setLogoSrc("/images/count_logo.png");
+      setLogoSrc("/images/count_logo.webp");
     }, LOGO_ANIMATION_MS);
     return () => clearTimeout(timer);
   }, []);
@@ -80,6 +81,7 @@ export default function LoginPage() {
         login_role: role,
         [role === "member" ? "account_id" : "login_id"]: username.trim(),
       });
+      markLogin();
       const secondaryFor = SECONDARY_REDIRECTS[res.redirect];
       if (secondaryFor) {
         navigate("/secondary-password", { state: { userType: secondaryFor, lang } });

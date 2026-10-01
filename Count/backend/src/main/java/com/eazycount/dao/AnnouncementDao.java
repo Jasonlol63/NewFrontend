@@ -3,6 +3,7 @@ package com.eazycount.dao;
 
 import com.eazycount.entity.Announcements;
 import com.eazycount.entity.Maintenance;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -30,5 +31,10 @@ public interface AnnouncementDao {
     void updateMaintenance(Maintenance maintenance);
 
     void deleteMaintenance(Maintenance maintenance);
+
+    /* Execute Mark Read Function in Announcement */
+    int countUnreadAnnouncements(@Param("userType") String userType, @Param("userId") Integer userId);
+
+    void markAnnouncementsRead(@Param("userType") String userType, @Param("userId") Integer userId);
 
 }

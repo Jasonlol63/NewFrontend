@@ -1,17 +1,44 @@
 import { useEffect, useState } from "react";
 import { getJson } from "@/lib/api";
 
-// The logged-in user's id, fetched once per page load, so each account on a shared browser
-// keeps its own saved values. Resolves to null if it can't be fetched (nothing gets saved then).
-let userKeyRequest = null;
-function loadUserKey() {
-  userKeyRequest ??= getJson("/auth/current-user")
-    .then((body) => `${body.data?.user_type ?? "user"}:${body.data?.user_id ?? "unknown"}`)
+// The logged-in session (/auth/current-user), fetched once per login. Resolves to null if it
+// can't be fetched.
+let sessionRequest = null;
+export function loadSessionUser() {
+  sessionRequest ??= getJson("/auth/current-user")
+    .then((body) => body.data ?? null)
     .catch(() => {
-      userKeyRequest = null;
+      sessionRequest = null;
       return null;
     });
-  return userKeyRequest;
+  return sessionRequest;
+}
+
+const LOGIN_STAMP_KEY = "loginStamp";
+
+// Called after a successful login: forgets the previous session and stamps this login, so
+// pages can tell a fresh login (start from the login tenant) from a refresh (keep the last pick).
+export function markLogin() {
+  sessionRequest = null;
+  try {
+    localStorage.setItem(LOGIN_STAMP_KEY, String(Date.now()));
+  } catch {
+    // storage blocked: saved filters just carry over between logins
+  }
+}
+
+export function currentLoginStamp() {
+  try {
+    return localStorage.getItem(LOGIN_STAMP_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// The logged-in user's id, so each account on a shared browser keeps its own saved values.
+// Resolves to null if it can't be fetched (nothing gets saved then).
+function loadUserKey() {
+  return loadSessionUser().then((user) => (user ? `${user.user_type ?? "user"}:${user.user_id ?? "unknown"}` : null));
 }
 
 function readValue(storageKey) {

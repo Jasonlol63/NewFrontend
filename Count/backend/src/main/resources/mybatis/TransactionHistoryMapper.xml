@@ -211,13 +211,13 @@
       go through the Bank Process posting flow, so cardOwner is NULL. bankProcessLine is still set TRUE
       so History renders them in the Win/Loss column like Bank Process lines (see toHistoryRow()).
 
-      remark: prefer the line's own remark (DataCaptureSummaryServiceImpl.resolveLineRemark — MAIN/SUB
-      description text, when the submitter filled it in for that specific line) and fall back to the
-      capture header's free-text remark (data_captures.remark, e.g. a period label like "2026 FEBRUARY"
-      typed once for the whole batch) when the line has none. Old PHP history_api.php read straight off
-      data_capture_details joined to its data_captures header, so every line under a batch showed the
-      header's note — t.remark alone (which only ever holds the per-line text) dropped that for any
-      batch where the submitter used the header note instead of per-line notes, which is the common case.
+      remark: for a data capture line, always the capture header's free-text remark (data_captures.remark,
+      e.g. a period label like "2026 FEBRUARY" typed once for the whole batch). Old PHP history_api.php
+      read straight off data_capture_details joined to its data_captures header, so every line under a
+      batch showed the header's note. t.remark on these transactions only duplicates the line's Summary
+      description (DataCaptureSummaryServiceImpl.resolveLineRemark), which History already shows as
+      "ID Product (description)" (idProductDescription) — so it is NOT used here. t.remark is only the
+      fallback for a WIN/LOSE transaction with no data_capture_line.
     -->
     <select id="findDataCaptureHistoryLines" resultType="com.eazycount.dto.TransactionHistoryLineRow">
         SELECT
@@ -227,7 +227,8 @@
             CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END AS signedAmount,
             t.transaction_date AS transactionDate,
             t.description AS description,
-            COALESCE(NULLIF(TRIM(t.remark), ''), dc.remark) AS remark,
+            CASE WHEN dcl.id IS NOT NULL THEN NULLIF(TRIM(dc.remark), '')
+                 ELSE NULLIF(TRIM(t.remark), '') END AS remark,
             t.created_by AS createdBy,
             t.created_at AS createdAt,
             UPPER(c.code) AS currencyCode,
@@ -235,6 +236,7 @@
             TRUE AS bankProcessLine,
             TRUE AS dataCaptureLine,
             dcl.id_product AS idProduct,
+            COALESCE(NULLIF(TRIM(dcl.description_sub), ''), NULLIF(TRIM(dcl.description_main), '')) AS idProductDescription,
             dcl.rate_expression AS rateExpression
         FROM transactions t
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id

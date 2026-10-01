@@ -25,6 +25,8 @@ public class TransactionHistoryLineRow {
     private Boolean dataCaptureLine;
     /* data_capture_line.id_product for dataCaptureLine rows — the Id Product created in Summary. */
     private String idProduct;
+    /* Summary description of the line (description_sub, else description_main) — shown as "ID (description)". */
+    private String idProductDescription;
     private Integer toAccountId;
     private Integer fromAccountId;
     private String toAccountCode;

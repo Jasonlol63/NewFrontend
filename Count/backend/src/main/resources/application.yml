@@ -91,3 +91,7 @@ app:
     # (e.g. NPR) — v2's /rates (base+quotes, array-of-rows response) aggregates multiple
     # providers and does. ExchangeRateSyncJob is written against this v2 request/response shape.
     frankfurter-url: https://api.frankfurter.dev/v2/rates
+  accounting-due:
+    # TEMP (post-migration cleanup): false → Refresh no longer deletes SKIPPED rows, so dues
+    # removed via Delete stay gone. Flip back to true once due generation is stable.
+    restore-skipped-enabled: false

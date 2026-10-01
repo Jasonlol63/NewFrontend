@@ -25,4 +25,10 @@ public interface AnnouncementService {
     void updateMaintenance(Maintenance maintenance);
 
     void deleteMaintenance(Maintenance maintenance);
+
+    // Unread announcement count for the logged-in account (0 for IT operators).
+    int countUnreadAnnouncements();
+
+    // Marks all current announcements as read for the logged-in account (no-op for IT operators).
+    void markAnnouncementsRead();
 }
