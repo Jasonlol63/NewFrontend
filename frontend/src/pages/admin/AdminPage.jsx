@@ -16,7 +16,7 @@ const rowKey = (u) => `${u.isOwnerShadow ? "owner" : "user"}-${u.id}`;
 
 export default function AdminPage() {
   const viewer = useCurrentUser();
-  const scope = useListScope("admin.scope", { allowGroupItself: true, onChange: () => view.reset() });
+  const scope = useListScope("admin.scope", { onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/userlist", scope.tenantId, {
     normalize: normalizeUserRow,
     rowKey,

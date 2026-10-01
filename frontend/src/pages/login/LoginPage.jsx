@@ -8,6 +8,7 @@ import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { postForm } from "@/lib/api";
+import { markLogin } from "@/hooks/useSavedState";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -80,6 +81,7 @@ export default function LoginPage() {
         login_role: role,
         [role === "member" ? "account_id" : "login_id"]: username.trim(),
       });
+      markLogin();
       const secondaryFor = SECONDARY_REDIRECTS[res.redirect];
       if (secondaryFor) {
         navigate("/secondary-password", { state: { userType: secondaryFor, lang } });

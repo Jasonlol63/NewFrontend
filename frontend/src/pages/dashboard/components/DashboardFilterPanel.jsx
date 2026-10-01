@@ -17,6 +17,8 @@ export default function DashboardFilterPanel({
   groupOptions,
   group,
   onGroupChange,
+  allowNoGroup,
+  showCompany,
   companyOptions,
   company,
   onCompanyChange,
@@ -40,17 +42,19 @@ export default function DashboardFilterPanel({
         </FilterRow>
         {groupOptions.length > 1 && (
           <FilterRow label="Group ID:">
-            <SegmentGroup options={groupOptions} value={group} onChange={onGroupChange} />
+            <SegmentGroup options={groupOptions} value={group} onChange={onGroupChange} allowDeselect={allowNoGroup} />
           </FilterRow>
         )}
-        <FilterRow label="Company:">
-          <SegmentGroup
-            options={companyOptions}
-            value={company}
-            onChange={onCompanyChange}
-            allowDeselect={allowNoCompany}
-          />
-        </FilterRow>
+        {showCompany && (
+          <FilterRow label="Company:">
+            <SegmentGroup
+              options={companyOptions}
+              value={company}
+              onChange={onCompanyChange}
+              allowDeselect={allowNoCompany}
+            />
+          </FilterRow>
+        )}
         <FilterRow label="Currency:">
           {currencyOptions.length ? (
             <SegmentGroup

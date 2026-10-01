@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSavedOrder, useSavedState } from "@/hooks/useSavedState";
+import { currentLoginStamp, useSavedOrder, useSavedState } from "@/hooks/useSavedState";
 import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
 import KpiCard from "./components/KpiCard.jsx";
 import TrendChartCard from "./components/TrendChartCard.jsx";
@@ -11,6 +11,10 @@ import {
   ALL,
   canViewGroupItself,
   companiesInGroup,
+  firstOpenableGroup,
+  hasIndependentCompanies,
+  INDEPENDENT,
+  loginSelection,
   resolveScope,
   useCurrencyOptions,
   useDashboardData,
@@ -24,14 +28,20 @@ function defaultCompany(directory, group) {
   return canViewGroupItself(directory, group) ? null : ALL;
 }
 
-// The saved Group / Company are only used while they still exist for this login; otherwise the
-// defaults apply, so a removed company or a revoked permission never leaves an empty selection.
+// A fresh login starts from the Company / Group logged in with; within the same login the saved
+// Group / Company win (so a refresh keeps them). Either is only used while it still exists for this
+// login; otherwise the defaults apply, so a removed company or a revoked permission never leaves
+// an empty selection.
 function resolveSelection(directory, saved) {
   if (!directory) return { group: ALL, company: null };
-  const savedGroupOk = saved?.group === ALL || directory.groups.some((g) => g.code === saved?.group);
-  const group = savedGroupOk ? saved.group : (directory.groups[0]?.code ?? ALL);
+  const pick = saved && (saved.loginStamp ?? null) === currentLoginStamp() ? saved : loginSelection(directory);
+  const savedGroupOk =
+    pick?.group === ALL ||
+    (pick?.group === INDEPENDENT && hasIndependentCompanies(directory)) ||
+    directory.groups.some((g) => g.code === pick?.group);
+  const group = savedGroupOk ? pick.group : (directory.groups[0]?.code ?? ALL);
 
-  const c = saved?.company;
+  const c = pick?.company;
   const savedCompanyOk =
     savedGroupOk &&
     (c === ALL
@@ -65,17 +75,22 @@ export default function DashboardPage() {
 
   const { kpi, trend, breakdown, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
 
-  const allowNoCompany = canViewGroupItself(directory, group);
+  // Independent companies: clicking the active company again switches to the first Group, when
+  // this login can open one.
+  const switchGroup = group === INDEPENDENT ? firstOpenableGroup(directory) : null;
+  const allowNoCompany = group === INDEPENDENT ? Boolean(switchGroup) : canViewGroupItself(directory, group);
   const groupOptions = useMemo(
     () => [{ value: ALL, label: "All" }, ...(directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code }))],
     [directory]
   );
+  // Clicking the active Group again switches to the independent companies, when there are any.
+  const allowNoGroup = group !== ALL && group !== INDEPENDENT && hasIndependentCompanies(directory);
+  const groupCompanies = useMemo(() => companiesInGroup(directory, group), [directory, group]);
+  // A Group with no companies has nothing to pick, so the Company row is hidden.
+  const showCompany = groupCompanies.length > 0;
   const companyOptions = useMemo(
-    () => [
-      { value: ALL, label: "All" },
-      ...companiesInGroup(directory, group).map((c) => ({ value: c.code, label: c.code })),
-    ],
-    [directory, group]
+    () => [{ value: ALL, label: "All" }, ...groupCompanies.map((c) => ({ value: c.code, label: c.code }))],
+    [groupCompanies]
   );
   const currencyOptions = useMemo(() => {
     // Dragged order first; currencies that were never dragged keep their default order after it.
@@ -88,9 +103,20 @@ export default function DashboardPage() {
 
   // The saved currency is only replaced when the user picks one: if a company lacks it, the page
   // shows a fallback but keeps the preference for when they switch back.
-  const save = (next) => setSaved({ group, company, currency: saved?.currency ?? currency, ...next });
-  const handleGroupChange = (next) => save({ group: next, company: defaultCompany(directory, next) });
-  const handleCompanyChange = (next) => save({ company: next });
+  const save = (next) =>
+    setSaved({ group, company, currency: saved?.currency ?? currency, loginStamp: currentLoginStamp(), ...next });
+  const handleGroupChange = (picked) => {
+    const next = picked ?? INDEPENDENT;
+    save({ group: next, company: defaultCompany(directory, next) });
+  };
+  const handleCompanyChange = (next) => {
+    if (next === null && group === INDEPENDENT) {
+      // The Group opens on its own data; the user picks a company from there. "All" doesn't switch.
+      if (company !== ALL) save({ group: switchGroup, company: null });
+      return;
+    }
+    save({ company: next });
+  };
   const handleCurrencyChange = (next) => save({ currency: next });
 
   const compareLabel = isFullMonth(kpi?.previousDateFrom, kpi?.previousDateTo)
@@ -115,6 +141,8 @@ export default function DashboardPage() {
         groupOptions={groupOptions}
         group={group}
         onGroupChange={handleGroupChange}
+        allowNoGroup={allowNoGroup}
+        showCompany={showCompany}
         companyOptions={companyOptions}
         company={company}
         onCompanyChange={handleCompanyChange}
