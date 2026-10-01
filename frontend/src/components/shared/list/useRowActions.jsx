@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 
 /**
@@ -39,23 +40,13 @@ export function useRowActions({ toggleStatus, deleteRows, noun = "item", label =
     onDeleted?.();
   };
 
-  const count = toDelete?.length ?? 0;
   const dialogs = (
     <>
-      <StatusDialog
+      <DeleteDialog
         open={Boolean(toDelete)}
         onOpenChange={(open) => !open && setToDelete(null)}
-        type="warning"
-        title={`Delete ${count} ${noun}${count === 1 ? "" : "s"}?`}
-        description={
-          toDelete && (
-            <>
-              <b>{toDelete.map(label).join(", ")}</b> will be deleted. This can't be undone.
-            </>
-          )
-        }
-        cancelText="Cancel"
-        confirmText="Delete"
+        names={toDelete?.map(label) ?? []}
+        noun={noun}
         onConfirm={confirmDelete}
       />
       <StatusDialog
