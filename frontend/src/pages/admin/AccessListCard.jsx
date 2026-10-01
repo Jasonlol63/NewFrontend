@@ -208,10 +208,10 @@ function AccessItem({ item, on, onToggle }) {
   );
 }
 
-// Small grey "12/76" next to a title (shared with the Permissions heading).
+// Small blue "12/76" next to a title (shared with the Permissions heading).
 export function Count({ value, total }) {
   return (
-    <span className={cn("whitespace-nowrap text-[11px] font-semibold tabular-nums", value ? "text-[#94a3b8]" : "text-[#cbd5e1]")}>
+    <span className={cn("whitespace-nowrap text-[11px] font-semibold tabular-nums", value ? "text-[#0d60ff]" : "text-[#9cb7ec]")}>
       {value}/{total}
     </span>
   );
