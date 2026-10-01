@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, Eye, EyeOff, UserPlus } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, Eye, EyeOff, UserPen, UserPlus } from "lucide-react";
 import { Select } from "radix-ui";
 import { cn } from "@/lib/utils";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
@@ -16,13 +16,22 @@ import { MOCK_ACCOUNTS, MOCK_PROCESSES } from "./addUserMockData";
 const EMPTY_FORM = { loginId: "", password: "", name: "", role: "", email: "" };
 
 /**
- * Add User: fills the content area (the sidebar stays visible), Admin page blurred behind.
- * Mount it only while open so every opening starts from an empty form.
+ * Add User / Edit User: the same modal, only the title (and header icon) changes.
+ * Fills the content area (the sidebar stays visible), Admin page blurred behind.
+ * Mount it only while open so every opening starts from its initial values.
+ * mode: "add" | "edit"; user: the list row being edited (edit mode).
  * UI only for now: accounts / processes are placeholder rows and Save just hands the draft
  * back through onSave.
  */
-export default function AddUserModal({ onClose, onSave }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
+  const isEdit = mode === "edit";
+  const title = isEdit ? "Edit User" : "Add User";
+  const HeaderIcon = isEdit ? UserPen : UserPlus;
+  const [form, setForm] = useState(() =>
+    isEdit && user
+      ? { ...EMPTY_FORM, loginId: user.loginId ?? "", name: user.name ?? "", email: user.email ?? "", role: user.role ?? "" }
+      : EMPTY_FORM
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [perms, setPerms] = useState(() => new Set());
@@ -66,7 +75,7 @@ export default function AddUserModal({ onClose, onSave }) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="add-user-title"
+          aria-labelledby="user-form-title"
           className={cn(
             "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-white",
             "[--gap:clamp(8px,1.5dvh,14px)] [--pad:clamp(10px,2dvh,18px)]",
@@ -78,13 +87,13 @@ export default function AddUserModal({ onClose, onSave }) {
           <header className="flex flex-none items-center justify-between gap-3 px-[calc(var(--pad)+6px)] pt-(--pad)">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex size-10 flex-none items-center justify-center rounded-xl bg-brand-sweep text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] modal-compact:size-8 modal-compact:rounded-[10px] modal-tiny:size-7 modal-tiny:rounded-lg">
-                <UserPlus className="size-5 modal-tiny:size-4" strokeWidth={2.2} />
+                <HeaderIcon className="size-5 modal-tiny:size-4" strokeWidth={2.2} />
               </div>
               <h1
-                id="add-user-title"
+                id="user-form-title"
                 className="m-0 whitespace-nowrap text-[clamp(20px,2.6dvh,26px)] font-extrabold leading-[1.1] tracking-[-0.3px] text-brand-navy modal-compact:text-[20px] modal-tiny:text-[18px]"
               >
-                Add User
+                {title}
               </h1>
             </div>
             <SoftButton onClick={onClose} className="h-9 px-4 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
