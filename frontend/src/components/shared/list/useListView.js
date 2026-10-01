@@ -3,21 +3,26 @@ import { ROW_HEIGHT } from "./DataTable.jsx";
 
 const NO_CHIPS = { showAll: false, showActive: false, showInactive: false };
 
-// How many rows fit in the table body without scrolling (re-measured when it resizes).
+// How many rows fit in the table body without scrolling, and how tall each one is so a full page
+// ends exactly at the bottom: the space left over after whole ROW_HEIGHT rows is shared out
+// between them (re-measured when the body resizes).
 function useFitRows(ref) {
-  const [count, setCount] = useState(10);
+  const [fit, setFit] = useState({ count: 10, rowHeight: ROW_HEIGHT });
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
     const measure = () => {
-      const head = el.querySelector("thead")?.offsetHeight ?? 40;
-      setCount(Math.max(3, Math.floor((el.clientHeight - head) / ROW_HEIGHT)));
+      const head = el.querySelector("thead")?.getBoundingClientRect().height ?? 40;
+      const space = el.clientHeight - head;
+      const count = Math.max(3, Math.floor(space / ROW_HEIGHT));
+      const rowHeight = Math.max(ROW_HEIGHT, space / count);
+      setFit((f) => (f.count === count && f.rowHeight === rowHeight ? f : { count, rowHeight }));
     };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
   }, [ref]);
-  return count;
+  return fit;
 }
 
 /**
@@ -34,7 +39,7 @@ export function useListView(rows, { filter, sort: sortRowsBy, canSelect }) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
   const bodyRef = useRef(null);
-  const pageSize = useFitRows(bodyRef);
+  const { count: pageSize, rowHeight } = useFitRows(bodyRef);
 
   const visible = useMemo(
     () => sortRowsBy(filter(rows, { search, ...chips }), sort.key, sort.dir),
@@ -73,6 +78,9 @@ export function useListView(rows, { filter, sort: sortRowsBy, canSelect }) {
       offset,
       total: visible.length,
       paged,
+      // Paged rows stretch to fill the body; "Show All" scrolls at the plain height.
+      rowHeight: paged ? rowHeight : ROW_HEIGHT,
+      pageFull: paged && pageRows.length === pageSize,
       page: currentPage,
       pageCount,
       onPageChange: setPage,

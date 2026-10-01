@@ -153,6 +153,11 @@ body {
   background-image: linear-gradient(180deg, #60c1fe 0%, #0f61ff 100%);
 }
 
+/* Blue rows of the striped list tables (alternate with white) */
+@utility bg-row-stripe {
+  background-image: linear-gradient(90deg, #d6ebff 0%, #f0f8ff 100%);
+}
+
 @utility bg-notice-gradient {
   background-image: linear-gradient(100deg, #e4eeff 0%, #d3e6ff 50%, #c6ecff 100%);
 }

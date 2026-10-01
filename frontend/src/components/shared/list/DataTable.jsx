@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Every body row is exactly this tall, so useListView can work out how many rows fit on screen.
+// Smallest body row height; useListView works out how many fit and stretches them to fill the body.
 export const ROW_HEIGHT = 38;
 
 const td = "border-b border-[#eef2f7] py-0 pr-3";
@@ -61,6 +61,8 @@ export default function DataTable({
   offset,
   total,
   paged,
+  rowHeight = ROW_HEIGHT,
+  pageFull,
   page,
   pageCount,
   onPageChange,
@@ -133,10 +135,13 @@ export default function DataTable({
                 return (
                   <tr
                     key={rowKey(row)}
-                    style={{ height: ROW_HEIGHT }}
+                    style={{ height: rowHeight }}
                     className={cn(
-                      "transition-colors hover:bg-[#e8f1ff]",
-                      isSelected ? "bg-[#dbeafe]" : i % 2 ? "bg-white" : "bg-[#f3f8ff]"
+                      "transition-colors",
+                      // A full page ends on the footer line, so the last row drops its own bottom border.
+                      pageFull && i === rows.length - 1 && "[&>td]:border-b-0",
+                      // Hover drops the stripe gradient for a flat tint a step deeper than the stripe.
+                      isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white" : "bg-row-stripe", "hover:bg-none hover:bg-[#cce4ff]")
                     )}
                   >
                     {columns.map((col, c) => (

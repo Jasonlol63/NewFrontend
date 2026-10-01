@@ -1,4 +1,5 @@
-import { SquarePen } from "lucide-react";
+import { Tooltip } from "radix-ui";
+import { Clock, SquarePen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BADGE, formatDateTime } from "./listFormat";
 
@@ -30,13 +31,33 @@ export function StatusBadge({ status, onToggle, pending, disabledTitle }) {
   );
 }
 
-// Date only; the time shows on hover.
+// Date only; the time shows in a small card on hover.
 export function DateText({ value }) {
   const { date, time } = formatDateTime(value);
+  const text = <span className="tabular-nums whitespace-nowrap">{date}</span>;
+  if (!time) return text;
   return (
-    <span className="tabular-nums whitespace-nowrap" title={time || undefined}>
-      {date}
-    </span>
+    <Tooltip.Provider delayDuration={150}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>{text}</Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            side="top"
+            sideOffset={6}
+            className="z-50 flex items-center gap-1.5 rounded-[10px] border border-[#bcd9fb] bg-white px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-navy shadow-[0_8px_20px_-6px_rgba(20,70,160,0.35)] animate-in fade-in-0 zoom-in-95"
+          >
+            <Clock className="size-3.5 text-brand-blue" strokeWidth={2.2} />
+            {time}
+            {/* Open path: only the two slanted edges get the border colour; nudged up 1px to cover the card border. */}
+            <Tooltip.Arrow asChild width={12} height={6}>
+              <svg viewBox="0 0 12 6" className="-translate-y-px">
+                <path d="M0 0 L6 6 L12 0" fill="#fff" stroke="#bcd9fb" />
+              </svg>
+            </Tooltip.Arrow>
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
   );
 }
 
