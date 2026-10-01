@@ -28,7 +28,7 @@ Target desktop viewports (CSS px, i.e. after browser chrome and Windows scaling)
 6. **Overflowing data scrolls inside its own container** (tables: `overflow-x-auto` / `overflow-y-auto`
    on the card body), never the whole page.
 7. **Sidebar has two modes**, switched at the `nav` breakpoint (1200px, `nav:` / `max-nav:`):
-   ≥1200 full `Sidebar` (width `clamp(240px,17.5vw,260px)`); <1200 icon-only `SidebarRail` + the full
+   ≥1200 full `Sidebar` (width `clamp(220px,15.5vw,236px)`); <1200 icon-only `SidebarRail` + the full
    sidebar as a floating drawer. Menu items live once in `components/layout/sidebarConfig.js`;
    submenus are built only in the full `Sidebar` (the rail opens the drawer for them).
    Page layouts that switch to multi-column should key off available width (`lg:` = 1024+), since
