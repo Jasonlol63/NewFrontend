@@ -174,17 +174,9 @@
   .done { height: 28px; padding: 0 16px; border: none; border-radius: 8px; background: var(--sweep); color: #fff; font-size: calc(12.5px * var(--k)); font-weight: 700; cursor: pointer; box-shadow: var(--sel-shadow); }
 
   /* ---- Currency ---- */
-  .card.cur { container-type: inline-size; }
   .cur-tools { display: flex; gap: 8px; align-items: center; }
-  .cur-tools .in { flex: 1; text-transform: uppercase; }
-  .cur-tools .in::placeholder { text-transform: none; color: var(--faint); }
-  /* Narrow Currency card (it shares the row with Account Information + Payment Alert): the code box gets its own line
-     so the placeholder is never cut, and Create / Delete split the line under it. */
-  @container (max-width: 470px) {
-    .cur-tools { flex-wrap: wrap; }
-    .cur-tools .in { flex: 1 0 100%; }
-    .cur-tools .btn { flex: 1; justify-content: center; }
-  }
+  /* Code box + Create + Delete always on one row; the box only needs room for a short code, so it doesn't stretch across the card. */
+  .cur-tools .in { flex: 1 1 auto; width: auto; min-width: 72px; max-width: 220px; text-transform: uppercase; }
   .btn { height: var(--in); display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: 10px; font-size: calc(12.5px * var(--k)); font-weight: 700; cursor: pointer; white-space: nowrap; flex: none; }
   .btn.blue { border: none; background: var(--sweep); color: #fff; box-shadow: var(--btn-shadow); }
   .btn.del { border: 1px solid #fecaca; background: rgba(255,255,255,.7); color: #dc2626; }
@@ -462,7 +454,7 @@
   function currency() {
     const tiles = S.curs.map((c) => `<div class="ctile ${S.curOn.has(c) ? "on" : ""}" data-act="cur" data-v="${c}">${c}<span class="k">${S.curOn.has(c) ? CHECK : ""}</span>${X}</div>`).join("");
     return `<section class="card cur"><div class="card-h"><span class="bar"></span><h2>Currency</h2><span class="r"><span class="count">${S.curOn.size} selected</span></span></div><div class="card-b">
-      <div class="cur-tools"><input class="in" id="newCur" placeholder="New currency code, e.g. EUR" />
+      <div class="cur-tools"><input class="in" id="newCur" aria-label="New currency code" />
         <button class="btn blue" data-act="create">${PLUS}Create</button>
         <button class="btn del ${S.del ? "on" : ""}" data-act="del">${TRASH}${S.del ? "Done" : "Delete"}</button></div>
       <div class="ctiles ${S.del ? "deleting" : ""}">${tiles}</div>
