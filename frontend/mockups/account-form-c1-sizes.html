@@ -348,6 +348,19 @@
   .side .mdays b { height: calc(var(--mday) - 2px); }
   .side-r { display: flex; flex-direction: column; gap: calc(min(var(--fg), 8px) - 2px); }
   .side-r .sline { margin-top: 0; }
+  /* Shorter Start Date / Amount boxes here, and fixed line heights so other system fonts (Segoe UI etc.) can't add height. */
+  .side-r .in { height: calc(var(--in) - 4px); }
+  .side-r .f .l, .side .mgrid-h { line-height: 15px; }
+  .side-r .sline { line-height: 16px; }
+  /* Very short screens (1280 x 560): a bit more room so other fonts never tip it into scrolling. */
+  @media (max-height: 600px) {
+    .side-r .in { height: calc(var(--in) - 5px); }
+    .side-r { gap: 4px; }
+    .side .mgrid-wrap { padding: 4px 8px 6px; }
+    .side .mgrid-h { margin-bottom: 3px; }
+    .side .mdays b { height: calc(var(--mday) - 3px); }
+    .side-r .sline { padding-top: 1px; padding-bottom: 1px; }
+  }
   /* Custom popup (option B) */
   .cu-pop { padding: 10px 12px 12px; }
   .cu-pop .cu-h { font-size: calc(12px * var(--k)); font-weight: 700; color: #475569; margin-bottom: 6px; }
