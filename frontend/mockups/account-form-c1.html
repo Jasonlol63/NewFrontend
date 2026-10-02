@@ -409,9 +409,9 @@
 
   // URL hash lets the size preview open a given state: #embed, #edit, #custom, #company, #date, #delete
   const H = location.hash + " " + (window.name || "");
-  const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "inline";   // inline: the 1-31 grid sits in the card (no popup)
+  const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "auto";   // auto: the 1-31 grid sits in the card; on short screens Custom opens the inline picker instead
   const S = {
-    pa: "compact", cuOpen: SV0 === "popup" && H.includes("custom") && !H.includes("date"), picking: SV0 === "picker" && H.includes("custom") && !H.includes("date"), tight: false, short: false, sv: SV0, swap: true,
+    pa: "compact", cuOpen: SV0 === "popup" && H.includes("custom") && !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") && H.includes("custom") && !H.includes("date"), tight: false, short: false, sv: SV0, swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
@@ -476,6 +476,7 @@
   }
 
   /* ---- Payment Alert ---- */
+  const PICKER = () => S.sv === "picker" || S.sv === "auto";   // variants that use the inline picker
   const popMode = () => S.pa === "popup" || (S.pa === "compact" && S.sv === "popup");
   const isCustom = () => S.pcustom || (typeof S.pv === "number" && !PRESETS.includes(S.pv));
   const label = (v) => v === "monthly" ? `Monthly, on the ${ord(pDate(S.start).getDate())}` : v === 1 ? "Every day" : v === 7 ? "Every week" : v % 7 === 0 ? `Every ${v / 7} weeks` : `Every ${v} days`;
@@ -531,15 +532,15 @@
     }).join("")}</div>`;
   function alertCompact(custom, start) {
     if (custom && S.tight && S.sv === "stepper") return alertStepper();
-    if (custom && S.tight && S.sv === "picker" && S.picking) return alertPicker();
+    if (custom && S.tight && PICKER() && S.picking) return alertPicker();
     const dates = nextDates(S.pv, 4).map((d) => `<span class="${d.adj ? "adj" : ""}">${d.t}</span>`).join("");
-    const grid = custom && !popMode() && !(S.tight && S.sv === "picker") ? `<div class="mgrid-wrap${S.sv === "inline" ? " inl" : ""}"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
+    const grid = custom && !popMode() && !(S.tight && PICKER()) ? `<div class="mgrid-wrap${S.sv === "inline" || S.sv === "auto" ? " inl" : ""}"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
     return `<div class="trow"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div>${grid}
       <div class="grid2" style="margin-top:var(--fg)">
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
         <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
       </div>
-      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span>${custom && S.tight && S.sv === "picker" ? '<button type="button" class="chg" data-act="repick">Change</button>' : ""}</div>`;
+      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span>${custom && S.tight && PICKER() ? '<button type="button" class="chg" data-act="repick">Change</button>' : ""}</div>`;
   }
   // Short screens, "picker": picking Custom swaps the card body for a full-width day picker (a few big rows
   // of cells); choosing a day (or pressing Custom again) goes back to Start Date / Amount / summary.
@@ -625,10 +626,13 @@
       S.alertOn = S.pcustom = true;
       mount();
       const b = document.querySelector(".card.alert .card-b");
-      S.short = !!b && b.scrollHeight > b.clientHeight + 1;
+      // Short = the stacked grid overflows, or fits with less than 8px to spare (other fonts could tip it over).
+      const spare = b ? b.getBoundingClientRect().bottom - parseFloat(getComputedStyle(b).paddingBottom) - Math.max(...[...b.children].map((e) => e.getBoundingClientRect().bottom)) : 99;
+      S.short = !!b && (b.scrollHeight > b.clientHeight + 1 || (getComputedStyle(b).overflowY !== "visible" && spare < 8));
       S.alertOn = saved.on; S.pcustom = saved.pc;
     }
-    S.tight = S.sv === "picker" || (S.short && S.sv === "stepper");   // the picker is used on every screen size
+    // picker: on every screen size. auto: only where the stacked grid would make Payment Alert scroll. stepper: same, with its own control.
+    S.tight = S.sv === "picker" || (S.short && (S.sv === "stepper" || S.sv === "auto"));
     S.picking = savedPicking && S.tight;
     mount();
     if (w) S.pop = false;
@@ -637,7 +641,7 @@
     if (S.dpOpen && S.alertOn) document.body.insertAdjacentHTML("beforeend", datePop());
     if (S.cuOpen && S.alertOn && popMode()) document.body.insertAdjacentHTML("beforeend", customPop());
     placePopups();
-    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><i style="width:8px;display:inline-block"></i>${[["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
+    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><i style="width:8px;display:inline-block"></i>${[["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
@@ -673,7 +677,7 @@
     switch (act) {
       case "mode": S.mode = v; S.curOn = new Set(v === "edit" ? ["MYR","SGD","USD"] : ["MYR"]); S.coOn = new Set(v === "edit" ? ["C168","GP"] : ["C168"]); break;
       case "alert": S.alertOn = !S.alertOn; break;
-      case "pick": if (v === "custom") { S.picking = S.sv === "picker" && !(isCustom() && S.picking); S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; } else { S.picking = false; S.pv = v === "monthly" ? "monthly" : +v; S.pcustom = false; } break;
+      case "pick": if (v === "custom") { S.picking = PICKER() && !(isCustom() && S.picking); S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; } else { S.picking = false; S.pv = v === "monthly" ? "monthly" : +v; S.pcustom = false; } break;
       case "pday": S.pv = +v; S.pcustom = true; S.cuOpen = false; S.picking = false; break;
       case "repick": S.picking = true; break;
       case "cpop": S.cuOpen = !S.cuOpen; S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; break;
