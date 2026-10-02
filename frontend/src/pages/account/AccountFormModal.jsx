@@ -7,7 +7,6 @@ import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx
 import { CheckListTools, CheckRows } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
-import MultiSelectField from "@/components/shared/form-modal/MultiSelectField.jsx";
 import {
   Field,
   PasswordInput,
@@ -26,8 +25,8 @@ import {
 
 // Layout, from the content area width (@container/main = screen minus sidebar):
 //   >= 1210px (1440+ screens): 3 columns, Account Information + Payment Alert | Currency | Company box
-//   900-1209px: 2 columns (the left one, holding two cards, is wider), Company is a dropdown field inside Account Information
-//   < 900px (portrait tablets): one column (Account Information, Payment Alert, Currency), scrolling
+//   900-1209px: 2 columns (the left one, holding two cards, is wider), Company is a small box under Currency
+//   < 900px (portrait tablets): one column (Account Information, Payment Alert, Currency, Company), scrolling
 // Height tiers: modal-compact <= 760, modal-short <= 700, modal-snug <= 640, modal-tiny <= 600 (see index.css).
 // Class names are written out in full so Tailwind can see them.
 
@@ -90,11 +89,12 @@ export default function AccountFormModal({ mode = "add", account, companyCode, c
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <AccountInfoCard form={form} setField={setField} setForm={setForm} isEdit={isEdit} companyItems={companyItems} companies={companies} setCompanies={setCompanies} />
+        <AccountInfoCard form={form} setField={setField} setForm={setForm} isEdit={isEdit} />
         <PaymentAlertCard alert={alert} setAlert={setAlert} />
       </div>
-      <div className="flex min-h-0 min-w-0 flex-col @max-[899px]/main:contents">
+      <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
         <CurrencyCard currencies={currencies} setCurrencies={setCurrencies} picked={pickedCurrencies} setPicked={setPickedCurrencies} />
+        <CompanyChipsBox items={companyItems} selected={companies} onChange={setCompanies} />
       </div>
       <div className="hidden min-h-0 min-w-0 flex-col @min-[1210px]/main:flex">
         <CompanyCard items={companyItems} selected={companies} onChange={setCompanies} />
@@ -108,10 +108,10 @@ const stackCard = "@max-[899px]/main:flex-none @max-[899px]/main:overflow-visibl
 const stackBody = "@max-[899px]/main:overflow-visible";
 
 // Never shrinks, so no field hides behind a scroll; Payment Alert under it takes what is left.
-function AccountInfoCard({ form, setField, setForm, isEdit, companyItems, companies, setCompanies }) {
+function AccountInfoCard({ form, setField, setForm, isEdit }) {
   return (
     <FormCard title="Account Information" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
-      {/* 3 per row (ID | Name | Role, Password | Remark, Company); 2 per row once Company has its own box. */}
+      {/* 3 per row (ID | Name | Role, Password | Remark); 2 per row on 1440+ screens. */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[1210px]/main:grid-cols-2">
         <Field label="Account ID">
           <TextInput value={form.accountId} onChange={setField("accountId")} autoComplete="off" className="uppercase" />
@@ -128,10 +128,6 @@ function AccountInfoCard({ form, setField, setForm, isEdit, companyItems, compan
         </Field>
         <Field label="Remark" optional className="col-span-2 @min-[1210px]/main:col-span-full">
           <TextInput value={form.remark} onChange={setField("remark")} />
-        </Field>
-        {/* Below 1440 Company is a dropdown on its own row; the chips stay on one line (+N for the rest). */}
-        <Field label="Company" as="div" className="col-span-full @min-[1210px]/main:hidden">
-          <MultiSelectField items={companyItems} selected={companies} onChange={setCompanies} placeholder="Choose companies" searchPlaceholder="Search company" />
         </Field>
       </div>
     </FormCard>
@@ -189,7 +185,7 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
         </button>
       </div>
 
-      <div className="mt-2.5 grid max-w-[700px] grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 modal-compact:mt-2 modal-compact:gap-1.5">
+      <div className="mt-2.5 grid max-w-[700px] grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 @max-[1209px]/main:grid-cols-[repeat(auto-fill,minmax(72px,1fr))] @max-[1209px]/main:gap-1.5 modal-compact:mt-2 modal-compact:gap-1.5">
         {currencies.map((c) => {
           const on = picked.has(c);
           const removable = deleting && !on;
@@ -203,9 +199,11 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
               title={removable ? `Delete ${c}` : undefined}
               className={cn(
                 "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
+                // Below 1440 the tiles are plain (no tick circle): selected = blue, about 5 per row.
+                "@max-[1209px]/main:h-[34px] @max-[1209px]/main:justify-center @max-[1209px]/main:px-1 @max-[1209px]/main:modal-compact:h-8 @max-[1209px]/main:modal-tiny:h-[30px]",
                 "disabled:cursor-not-allowed disabled:opacity-45",
                 on
-                  ? "border-[#7fb2ff] bg-row-stripe text-brand-navy"
+                  ? "border-[#7fb2ff] bg-row-stripe text-brand-navy @max-[1209px]/main:shadow-[inset_0_0_0_1px_#7fb2ff]"
                   : removable
                     ? "border-[#fecaca] bg-white text-[#b91c1c]"
                     : "border-modal-off-line bg-white/60 text-[#374151] hover:border-[#93c5fd]"
@@ -217,7 +215,7 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
               ) : (
                 <span
                   className={cn(
-                    "absolute right-[11px] top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full",
+                    "absolute right-[11px] top-1/2 flex size-4 @max-[1209px]/main:hidden -translate-y-1/2 items-center justify-center rounded-full",
                     on ? "bg-brand-sweep text-white" : "border-[1.5px] border-[#cbd5e1]"
                   )}
                 >
@@ -247,7 +245,7 @@ function PaymentAlertCard({ alert, setAlert }) {
       title="Payment Alert"
       right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? "On" : "Off"} className="font-bold" />}
       className={cn("min-h-[140px] flex-1 @max-[899px]/main:order-2", stackCard)}
-      bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5", stackBody)}
+      bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5 @min-[900px]/main:modal-cozy:flex @min-[900px]/main:modal-cozy:flex-col", stackBody)}
     >
       {!alert.on ? (
         <div className="grid h-full min-h-20 place-items-center rounded-xl border border-dashed border-modal-off-line p-2.5 text-center text-[12.5px] text-[#8a96a8]">
@@ -323,9 +321,16 @@ function AlertTypeBar({ custom, type, onPick }) {
 // row as the card is wide (the spare width is spread between them), so a narrow card has more rows, never smaller cells.
 function DayGrid({ value, onPick }) {
   return (
-    <div className="mt-1.5 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1 modal-roomy:mt-2 modal-roomy:px-3 modal-roomy:pb-3 modal-roomy:pt-2.5">
+    <div className="mt-1.5 flex flex-col @min-[900px]/main:modal-cozy:min-h-0 @min-[900px]/main:modal-cozy:flex-1 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1 modal-roomy:mt-2 modal-roomy:px-3 modal-roomy:pb-3 modal-roomy:pt-2.5">
       <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2 modal-roomy:text-[13px]">Remind every … days</div>
-      <div className="grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1 modal-short:gap-[3px] modal-roomy:grid-cols-[repeat(auto-fill,48px)] modal-roomy:gap-1.5">
+      <div
+        className={cn(
+          "grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1 modal-short:gap-[3px] modal-roomy:grid-cols-[repeat(auto-fill,48px)] modal-roomy:gap-1.5",
+          // Below 880px high the grid fills the room left in the card: 11 per row (8 on narrow cards), cells stretch.
+          "@min-[900px]/main:modal-cozy:my-auto @min-[900px]/main:modal-cozy:max-h-[164px] @min-[900px]/main:modal-cozy:min-h-[98px] @min-[900px]/main:modal-cozy:flex-1 @min-[900px]/main:modal-cozy:grid-cols-[repeat(11,minmax(0,1fr))] @min-[900px]/main:modal-cozy:auto-rows-fr @min-[900px]/main:modal-cozy:gap-1!",
+          "@min-[1210px]/main:@max-[1330px]/main:modal-cozy:max-h-[220px] @min-[1210px]/main:@max-[1330px]/main:modal-cozy:min-h-[132px] @min-[1210px]/main:@max-[1330px]/main:modal-cozy:grid-cols-[repeat(8,minmax(0,1fr))]"
+        )}
+      >
         {Array.from({ length: 31 }, (_, i) => {
           const n = i + 1;
           const on = value === n;
@@ -336,7 +341,7 @@ function DayGrid({ value, onPick }) {
               onClick={() => onPick(n)}
               aria-pressed={on}
               className={cn(
-                "size-[30px] cursor-pointer rounded-[7px] border text-[12.5px] transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px] modal-roomy:text-[14.5px]",
+                "size-[30px] cursor-pointer @min-[900px]/main:modal-cozy:size-auto rounded-[7px] border text-[12.5px] transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px] modal-roomy:text-[14.5px]",
                 on
                   ? "border-[#3b82f6] bg-row-stripe font-extrabold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
                   : "border-modal-off-line bg-modal-off font-semibold text-[#475569] hover:border-[#93c5fd] hover:bg-white/85"
@@ -382,5 +387,38 @@ function CompanyCard({ items, selected, onChange }) {
         <CheckRows items={shown} selected={selected} onToggle={(v) => onChange(toggleIn(selected, v))} boxed className="gap-1" />
       </div>
     </FormCard>
+  );
+}
+
+// Below 1440: a small Company box under Currency, every company a toggle chip (all visible, wraps; scrolls if there are very many).
+function CompanyChipsBox({ items, selected, onChange }) {
+  return (
+    <section className="flex flex-none items-start gap-2.5 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card @min-[1210px]/main:hidden @max-[899px]/main:order-4 modal-compact:px-3 modal-compact:py-[9px]">
+      <span className="flex-none whitespace-nowrap pt-[5px] text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">
+        Company <i className="not-italic text-[#ef4444]">*</i>
+      </span>
+      <div className="flex max-h-[94px] @max-[899px]/main:max-h-none min-w-0 flex-1 flex-wrap gap-[5px] overflow-y-auto [scrollbar-width:thin]">
+        {items.map((it) => {
+          const on = selected.has(it.value);
+          return (
+            <button
+              key={it.value}
+              type="button"
+              onClick={() => onChange(toggleIn(selected, it.value))}
+              aria-pressed={on}
+              title={it.label}
+              className={cn(
+                "inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 text-[12px] font-extrabold transition-colors",
+                on
+                  ? "border-[#7fb2ff] bg-row-stripe text-brand-navy shadow-[inset_0_0_0_1px_#7fb2ff]"
+                  : "border-modal-off-line bg-modal-off text-[#374151] hover:border-[#93c5fd] hover:bg-white/85"
+              )}
+            >
+              {it.value}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
