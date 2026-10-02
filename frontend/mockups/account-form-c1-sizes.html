@@ -176,10 +176,12 @@
   .switch.on .track::after { left: 17px; }
 
   /* ---- Company field ---- */
-  .multi { min-height: var(--in); height: auto; flex-wrap: wrap; padding: 3px 64px 3px 5px; gap: 4px; cursor: pointer; position: relative; }
+  .multi { min-height: var(--in); height: auto; flex-wrap: nowrap; overflow: hidden; padding: 3px 64px 3px 5px; gap: 4px; cursor: pointer; position: relative; }
   .multi:hover { border-color: #93c5fd; }
   .multi.open { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
   .tok { height: calc(var(--in) - 10px); display: inline-flex; align-items: center; gap: 6px; padding: 0 5px 0 10px; border-radius: 7px; background: var(--stripe); border: 1px solid #7fb2ff; font-size: calc(12px * var(--k)); font-weight: 800; color: var(--navy); }
+  .tok { flex: none; }
+  .tok.more { padding: 0 9px; background: #fff; color: #1d4ed8; border-color: #bfd8ff; }
   .tok .rm { width: 16px; height: 16px; border-radius: 5px; display: grid; place-items: center; color: #64748b; }
   .tok .rm:hover { background: rgba(255,255,255,.9); color: var(--red); }
   .multi .ph { color: var(--faint); padding-left: 6px; font-size: calc(13.5px * var(--k)); }
@@ -377,15 +379,17 @@
   .mgrid-wrap.dir .mgrid-h { margin-bottom: 4px; line-height: 15px; }
   .mgrid-wrap.dir .mdays { grid-template-columns: repeat(auto-fill, 30px); justify-content: space-between; gap: 4px; }
   .mgrid-wrap.dir .mdays b { width: 30px; height: 30px; border-radius: 7px; font-size: 12.5px; }
-  /* Short laptops (<= 700px high) with Company as a dropdown (below 1440): make room for all 31 days without a popup.
-     1) Company moves into row 2 of Account Information (Password | Remark | Company), one row less;
-        only the first company chip is shown there, the count says how many are picked.
-     2) the day cells stay 30 x 30 but sit 3px apart, so 31 days fit in 2 rows (1-16, 17-31) instead of 3. */
+  /* Short laptops (<= 700px high) with Company as a dropdown (below 1440): Company keeps its own full-width row, and
+     Payment Alert makes room for all 31 days (no popup) by
+     1) putting Start Date | Amount | Alert Type in one row (each with its label on top), and
+     2) keeping the day cells 30 x 30 but 3px apart, so 31 days take 2 rows (1-16, 17-31) instead of 3. */
   @media (max-height: 700px) {
-    .body:not(.cbox):not(.wide) .info .remark { grid-column: auto; }
-    .body:not(.cbox):not(.wide) .info .f.cdd.full { grid-column: auto; }
-    .body:not(.cbox):not(.wide) .info .multi { flex-wrap: nowrap; overflow: hidden; }
-    .body:not(.cbox):not(.wide) .info .multi .tok:nth-child(n+2) { display: none; }
+    .body:not(.cbox):not(.wide) .dgrp { display: grid; grid-template-columns: 146px 144px minmax(0, 1fr); column-gap: 12px; align-items: start; }
+    .body:not(.cbox):not(.wide) .dgrp .grid2 { display: contents; }
+    .body:not(.cbox):not(.wide) .dgrp .trow.rev { display: block; margin-top: 0; min-width: 0; }
+    .body:not(.cbox):not(.wide) .dgrp .trow .l { display: block; margin: 0 0 4px 2px; font-size: var(--lbl); }
+    .body:not(.cbox):not(.wide) .dgrp .trow .pseg { height: var(--in); }
+    .body:not(.cbox):not(.wide) .dgrp .trow .pseg b { height: calc(var(--in) - 8px); }
     .mgrid-wrap.dir .mdays { gap: 3px; }
   }
   /* order: Start Date / Amount, then Alert Type, then the day grid */
@@ -623,11 +627,11 @@
     if (custom &amp;&amp; S.tight &amp;&amp; PICKER() &amp;&amp; S.picking) return alertPicker();
     const dates = nextDates(S.pv, 4).map((d) => `<span class="${d.adj ? "adj" : ""}">${d.t}</span>`).join("");
     const grid = custom &amp;&amp; !popMode() &amp;&amp; !(S.tight &amp;&amp; PICKER()) ? `<div class="mgrid-wrap${S.sv === "direct" ? " dir" : S.sv === "inline" || S.sv === "auto" ? " inl" : ""}"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
-    if (S.sv === "direct") return `<div class="grid2">
+    if (S.sv === "direct") return `<div class="dgrp"><div class="grid2">
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
         <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
       </div>
-      <div class="trow rev"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div>${grid}`;
+      <div class="trow rev"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div></div>${grid}`;
     return `<div class="trow"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div>${grid}
       <div class="grid2" style="margin-top:var(--fg)">
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
@@ -739,7 +743,7 @@
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
-  addEventListener("resize", render);
+  addEventListener("resize", () => render());
   // A popup belongs to its field: if the card under it scrolls, close it instead of leaving it floating.
   document.addEventListener("scroll", (e) => {
     if (e.target.closest &amp;&amp; e.target.closest(".portal")) return;
@@ -799,6 +803,36 @@
     }
     render();
   });
+  // Company field (dropdown mode): one line. Chips that do not fit become a "+N" chip (hover shows which); the count on the right
+  // always says how many are picked, so the row never grows however many companies are ticked.
+  function fitChips() {
+    document.querySelectorAll("#coField").forEach((m) => {
+      m.querySelectorAll(".tok.more").forEach((e) => e.remove());
+      const toks = [...m.querySelectorAll(".tok")];
+      toks.forEach((t) => { t.style.display = ""; });
+      if (!toks.length) return;
+      const cs = getComputedStyle(m), gap = parseFloat(cs.columnGap) || 4;
+      const avail = m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const moreW = 40;
+      let used = 0, shown = 0;
+      for (let i = 0; i < toks.length; i++) {
+        const next = used + (i ? gap : 0) + toks[i].offsetWidth;
+        if (next + (i < toks.length - 1 ? gap + moreW : 0) > avail) break;
+        used = next; shown = i + 1;
+      }
+      if (shown === toks.length) return;
+      shown = Math.max(shown, 1);
+      const rest = toks.slice(shown);
+      rest.forEach((t) => { t.style.display = "none"; });
+      const more = document.createElement("span");
+      more.className = "tok more";
+      more.textContent = "+" + rest.length;
+      more.title = rest.map((t) => t.firstChild.textContent.trim()).join(", ");
+      toks[shown - 1].after(more);
+    });
+  }
+  const renderBase = render;
+  render = function () { renderBase(); fitChips(); };
   render();
 </script>
 </body>
@@ -809,7 +843,7 @@
   const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (dropdown option only)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
   let size = 0, state = "custom", sv = "direct", cb = "off";
-const CBS = [["off", "Company dropdown below 1440 (compact on short laptops)"], ["on", "Company box on every size (4 boxes)"]];
+const CBS = [["off", "Company dropdown below 1440 (own row, chips fit with +N)"], ["on", "Company box on every size (4 boxes)"]];
 const SVS = [["direct", "Direct on every size (fields first, bigger cells when tall)"], ["auto", "Grid on large screens, picker on small"], ["picker", "Picker on every size"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
