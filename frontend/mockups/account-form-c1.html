@@ -208,6 +208,18 @@
   /* Small Company box (below 1440): the label and the dropdown only */
   .card.coslim { flex: none; padding: 10px var(--cp) 12px; }
   .card.coslim .f .l { margin-bottom: 4px; }
+  /* Company styles: "chips" (all companies as toggle chips, label on the left) and "tags" (picked tags + "+ Add", one line) */
+  .card.coslim.cs-row { flex-direction: row; gap: 10px; align-items: flex-start; padding: 9px var(--cp); }
+  .card.coslim.cs-row .l { flex: none; margin: 0; padding-top: 5px; font-size: var(--lbl); font-weight: 600; color: #374151; white-space: nowrap; }
+  .card.coslim.cs-row .l i { font-style: normal; color: var(--red); }
+  .cchips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 5px; max-height: 94px; overflow-y: auto; scrollbar-width: thin; }
+  .cchip { height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 8px; border: 1px solid var(--off-line); background: var(--off); font-size: calc(12px * var(--k)); font-weight: 800; color: #374151; cursor: pointer; }
+  .cchip:hover { border-color: #93c5fd; background: rgba(255,255,255,.85); }
+  .cchip.on { border-color: #7fb2ff; background: var(--stripe); color: var(--navy); box-shadow: inset 0 0 0 1px #7fb2ff; }
+  .tkwrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden; height: 28px; cursor: pointer; }
+  .tkwrap .ph { color: var(--faint); font-size: calc(12.5px * var(--k)); }
+  .addbtn { flex: none; height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid #93c5fd; background: #fff; color: #1d4ed8; font-size: calc(12px * var(--k)); font-weight: 800; cursor: pointer; }
+  .addbtn em { font-style: normal; font-size: 10.5px; font-weight: 700; color: #8a96a8; }
   /* Currency below 1440: no tick circle (the selected tile is blue), tiles centred, 5 per row, so 12-20 currencies fit */
   .body:not(.wide) .ctiles { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
   .body:not(.wide) .ctile { justify-content: center; height: max(30px, calc(var(--tile) - 6px)); padding: 0 6px; font-size: calc(12.5px * var(--k)); border-radius: 9px; }
@@ -487,7 +499,7 @@
   const H = location.hash + " " + (window.name || "");
   const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "direct";   // direct: the 1-31 grid always sits in the card, same cell size on every screen, no summary strip
   const S = {
-    pa: "compact", cuOpen: SV0 === "popup" && H.includes("custom") && !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") && H.includes("custom") && !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] === "on", swap: true,
+    pa: "compact", cuOpen: SV0 === "popup" && H.includes("custom") && !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") && H.includes("custom") && !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] === "on", cs: (H.match(/cs:(\w+)/) || [])[1] || "drop", swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
@@ -526,9 +538,17 @@
   }
   // Below 1440 (default): Company is a small box of its own, just the label and the dropdown, under Currency, so Currency keeps the room.
   const companySlim = () => {
-    const toks = COMPANIES.filter(([c]) => S.coOn.has(c)).map(([c]) => `<span class="tok">${c}<span class="rm" data-act="co" data-v="${c}">${XS}</span></span>`).join("") || '<span class="ph">Choose companies</span>';
+    const toks = COMPANIES.filter(([c]) => S.coOn.has(c)).map(([c]) => `<span class="tok">${c}<span class="rm" data-act="co" data-v="${c}">${XS}</span></span>`).join("");
+    // chips: every company is a toggle chip, label on the left, up to 2 rows (scrolls beyond), nothing to open
+    if (S.cs === "chips") return `<section class="card coslim cs-row"><span class="l">Company <i>*</i></span>
+      <div class="cchips">${COMPANIES.map(([c, n]) => `<b class="cchip ${S.coOn.has(c) ? "on" : ""}" data-act="co" data-v="${c}" title="${n}">${c}</b>`).join("")}</div></section>`;
+    // tags: the picked companies as tags in one line (+N for the rest) and a "+ Add" button that opens the list; the smallest
+    if (S.cs === "tags") return `<section class="card coslim cs-row" id="coField" data-act="pop"><span class="l">Company <i>*</i></span>
+      <div class="tkwrap" data-fit>${toks || '<span class="ph">None picked</span>'}</div>
+      <span class="addbtn" data-act="pop">+ Add<em>${S.coOn.size}/${COMPANIES.length}</em></span></section>`;
+    // drop (default): label above a dropdown field
     return `<section class="card coslim"><div class="f"><span class="l">Company <i>*</i></span>
-      <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField">${toks}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div></section>`;
+      <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField" data-fit>${toks || '<span class="ph">Choose companies</span>'}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div></section>`;
   };
   // Large screens only: Company as its own box with the list always visible (same rows as the dropdown).
   const companyCard = () => `<section class="card co"><div class="card-h"><span class="bar"></span><h2>Company <i style="font-style:normal;color:var(--red)">*</i></h2><span class="r"><span class="count">${S.coOn.size}/${COMPANIES.length} selected</span></span></div>
@@ -730,7 +750,7 @@
     if (S.dpOpen && S.alertOn) document.body.insertAdjacentHTML("beforeend", datePop());
     if (S.cuOpen && S.alertOn && popMode()) document.body.insertAdjacentHTML("beforeend", customPop());
     placePopups();
-    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><button data-act="cbox" class="${S.cbox ? "on" : ""}">Company: box on every size</button><i style="width:8px;display:inline-block"></i>${[["direct", "Custom: Direct"], ["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
+    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><button data-act="cbox" class="${S.cbox ? "on" : ""}">Company: box on every size</button>${[["drop", "Co: Dropdown"], ["chips", "Co: Chips"], ["tags", "Co: Tags"]].map(([k, l]) => `<button data-act="cs" data-v="${k}" class="${S.cs === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>${[["direct", "Custom: Direct"], ["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
@@ -773,6 +793,7 @@
       case "pa": S.pa = v; S.cuOpen = false; break;
       case "swap": S.swap = !S.swap; break;
       case "cbox": S.cbox = !S.cbox; break;
+      case "cs": S.cs = v; S.pop = false; break;
       case "sv": S.sv = v; break;
       case "dp": S.dpOpen = !S.dpOpen; { const d = pDate(S.start); S.dpY = d.getFullYear(); S.dpM = d.getMonth(); S.dpView = "day"; } break;
       case "dpset": S.start = v; S.dpOpen = false; break;
@@ -797,7 +818,7 @@
   // Company field (dropdown mode): one line. Chips that do not fit become a "+N" chip (hover shows which); the count on the right
   // always says how many are picked, so the row never grows however many companies are ticked.
   function fitChips() {
-    document.querySelectorAll("#coField").forEach((m) => {
+    document.querySelectorAll("[data-fit]").forEach((m) => {
       m.querySelectorAll(".tok.more").forEach((e) => e.remove());
       const toks = [...m.querySelectorAll(".tok")];
       toks.forEach((t) => { t.style.display = ""; });
