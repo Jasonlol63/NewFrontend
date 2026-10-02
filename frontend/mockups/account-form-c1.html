@@ -175,8 +175,8 @@
 
   /* ---- Currency ---- */
   .cur-tools { display: flex; gap: 8px; align-items: center; }
-  /* Code box + Create + Delete always on one row; the box only needs room for a short code, so it doesn't stretch across the card. */
-  .cur-tools .in { flex: 1 1 auto; width: auto; min-width: 72px; max-width: 220px; text-transform: uppercase; }
+  /* Code box + Create + Delete always on one row that fills the card: the box takes whatever the two buttons leave. */
+  .cur-tools .in { flex: 1; min-width: 72px; text-transform: uppercase; }
   .btn { height: var(--in); display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: 10px; font-size: calc(12.5px * var(--k)); font-weight: 700; cursor: pointer; white-space: nowrap; flex: none; }
   .btn.blue { border: none; background: var(--sweep); color: #fff; box-shadow: var(--btn-shadow); }
   .btn.del { border: 1px solid #fecaca; background: rgba(255,255,255,.7); color: #dc2626; }
