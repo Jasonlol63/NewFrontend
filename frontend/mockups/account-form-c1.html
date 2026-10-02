@@ -205,6 +205,15 @@
   .co-tools { display: flex; align-items: center; gap: 6px; flex: none; padding: 10px var(--cp); border-bottom: 1px solid var(--divider); }
   .co-tools .mini-search { background: var(--input); border-color: var(--input-line); }
   .card.co .opts { padding: 8px; }
+  /* Small Company box (below 1440): the label and the dropdown only */
+  .card.coslim { flex: none; padding: 10px var(--cp) 12px; }
+  .card.coslim .f .l { margin-bottom: 4px; }
+  /* Currency below 1440: no tick circle (the selected tile is blue), tiles centred, 5 per row, so 12-20 currencies fit */
+  .body:not(.wide) .ctiles { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+  .body:not(.wide) .ctile { justify-content: center; height: max(30px, calc(var(--tile) - 6px)); padding: 0 6px; font-size: calc(12.5px * var(--k)); border-radius: 9px; }
+  .body:not(.wide) .ctile .k { display: none; }
+  .body:not(.wide) .ctile .x { right: 7px; }
+  .body:not(.wide) .ctile.on { box-shadow: inset 0 0 0 1px #7fb2ff; }
   /* 2 columns, 4 boxes (below 1440): half and half. Currency takes its content height, Company takes the rest and its list scrolls inside */
   .body.swap.cbox:not(.wide) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .body.cbox .card.cur { flex: 0 0 auto; min-height: 0; }
@@ -315,7 +324,7 @@
     .body.cbox .card.co .opt b { width: 72px; flex: none; }
     .body.cbox .card.co .opt .nm { display: block; }
     .body.cbox .card.co .opt .tag { width: auto; height: auto; padding: 2px 6px; border-radius: 5px; background: #dbeafe; font-size: max(10px, calc(10px * var(--k))); letter-spacing: .4px; }
-    .card.info { order: 1; } .card.alert { order: 2; } .card.cur { order: 3; } .card.co { order: 4; flex: none; } .card.co .opts { overflow: visible; }
+    .card.info { order: 1; } .card.alert { order: 2; } .card.cur { order: 3; } .card.coslim { order: 4; } .card.co { order: 4; flex: none; } .card.co .opts { overflow: visible; }
   }
   /* ---- Smaller Payment Alert (options A / B) ---- */
   /* One thin segmented bar instead of four big buttons. */
@@ -505,7 +514,6 @@
   /* ---- Account Information ---- */
   function info() {
     const e = edit();
-    const toks = COMPANIES.filter(([c]) => S.coOn.has(c)).map(([c]) => `<span class="tok">${c}<span class="rm" data-act="co" data-v="${c}">${XS}</span></span>`).join("") || '<span class="ph">Choose companies</span>';
     return `<section class="card info"><div class="card-h"><span class="bar"></span><h2>Account Information</h2></div><div class="card-b">
       <div class="grid2">
         <div class="f"><span class="l">Account ID <i>*</i></span><div class="in">${e ? "BKA1" : ""}</div></div>
@@ -514,10 +522,14 @@
         <div class="f"><span class="l">Password ${e ? "<em>(opt.)</em>" : "<i>*</i>"}</span><div class="in ${e ? "ph" : ""}"><span class="grow">${e ? "Keep current" : ""}</span>${EYE}</div></div>
         <div class="f full remark"><span class="l">Remark <em>(opt.)</em></span><div class="in">${e ? "Main settlement account" : ""}</div>
           </div>
-        ${cboxOn() ? "" : `<div class="f full cdd"><span class="l">Company <i>*</i></span>
-          <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField">${toks}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div>`}
       </div></div></section>`;
   }
+  // Below 1440 (default): Company is a small box of its own, just the label and the dropdown, under Currency, so Currency keeps the room.
+  const companySlim = () => {
+    const toks = COMPANIES.filter(([c]) => S.coOn.has(c)).map(([c]) => `<span class="tok">${c}<span class="rm" data-act="co" data-v="${c}">${XS}</span></span>`).join("") || '<span class="ph">Choose companies</span>';
+    return `<section class="card coslim"><div class="f"><span class="l">Company <i>*</i></span>
+      <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField">${toks}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div></section>`;
+  };
   // Large screens only: Company as its own box with the list always visible (same rows as the dropdown).
   const companyCard = () => `<section class="card co"><div class="card-h"><span class="bar"></span><h2>Company <i style="font-style:normal;color:var(--red)">*</i></h2><span class="r"><span class="count">${S.coOn.size}/${COMPANIES.length} selected</span></span></div>
       <div class="co-tools"><label class="mini-search">${SEARCH}<input data-search placeholder="Search company" value="${S.coQ}"></label>
@@ -689,10 +701,12 @@
     // If Payment Alert would have to scroll, this is a short screen (S.short): "stepper" then swaps Custom for its own control.
     // "picker" and "popup" work the same on every screen size.
     const mount = () => {
-      const cb = !w && S.cbox;   // 2 columns with 4 boxes: [Account Information + Payment Alert] | [Currency + Company]
-      $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "") + (cb ? " cbox" : "");
+      const cb = !w && S.cbox;    // option: Company as a full box under Currency (4 boxes)
+      const slim = !w && !S.cbox; // default below 1440: a small Company box under Currency
+      $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "") + (cb ? " cbox" : "") + (slim ? " slim" : "");
+      const company = cb ? companyCard() : slim ? companySlim() : "";
       const left = S.swap ? info() + alert() : info() + currency();
-      const right = S.swap ? currency() + (cb ? companyCard() : "") : alert() + (cb ? companyCard() : "");
+      const right = S.swap ? currency() + company : alert() + company;
       $("body").innerHTML = `<div class="col">${left}</div><div class="col">${right}</div>${w ? `<div class="col">${companyCard()}</div>` : ""}`;
     };
     const saved = { on: S.alertOn, pc: S.pcustom }, savedPicking = S.picking;
