@@ -6,6 +6,7 @@ import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { CheckListTools, CheckRows } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
+import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import {
   Field,
@@ -137,6 +138,7 @@ function AccountInfoCard({ form, setField, setForm, isEdit }) {
 function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
   const [code, setCode] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [toDelete, setToDelete] = useState(null); // currency code awaiting confirmation
 
   const create = () => {
     const c = code.trim().toUpperCase();
@@ -145,10 +147,14 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
     setPicked((s) => new Set(s).add(c));
     setCode("");
   };
-  // Delete mode: an unticked currency is removed; ticked ones are locked.
+  // Delete mode: clicking an unticked currency asks to confirm (same dialog as the list pages); ticked ones are locked.
   const clickTile = (c) => {
     if (!deleting) setPicked((s) => toggleIn(s, c));
-    else if (!picked.has(c)) setCurrencies((list) => list.filter((x) => x !== c));
+    else if (!picked.has(c)) setToDelete(c);
+  };
+  const confirmDelete = () => {
+    setCurrencies((list) => list.filter((x) => x !== toDelete));
+    setToDelete(null);
   };
 
   return (
@@ -227,6 +233,14 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
         })}
       </div>
       {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">Click × to delete an unticked currency. Ticked currencies can&apos;t be deleted.</p>}
+
+      <DeleteDialog
+        open={toDelete !== null}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        names={toDelete ? [toDelete] : []}
+        noun="currency"
+        onConfirm={confirmDelete}
+      />
     </FormCard>
   );
 }

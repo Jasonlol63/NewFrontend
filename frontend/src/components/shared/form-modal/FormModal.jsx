@@ -18,9 +18,20 @@ import { SoftButton, primaryButtonClass } from "./fields.jsx";
  * bodyClassName: the body's own layout (grid columns, scrolling...); it already has the padding
  *   and gap (--pad / --gap) and fills the space between header and footer.
  * footerStart: shown on the left of the footer (e.g. a validation message).
+ * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
  * Mount it only while open so every opening starts from its initial values.
  */
-export default function FormModal({ icon: Icon, title, onClose, onSave, saveLabel = "Save", footerStart, bodyClassName, children }) {
+export default function FormModal({
+  icon: Icon,
+  title,
+  onClose,
+  onSave,
+  saveLabel = "Save",
+  saveDisabled = false,
+  footerStart,
+  bodyClassName,
+  children,
+}) {
   const titleId = useId();
 
   useEffect(() => {
@@ -32,8 +43,8 @@ export default function FormModal({ icon: Icon, title, onClose, onSave, saveLabe
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  return (
-    <MainOverlay>
+  const shell = (
+    <>
       <div className="@container/main absolute inset-0 z-30 flex animate-dialog-overlay motion-reduce:animate-none">
         <div aria-hidden="true" onClick={onClose} className="absolute inset-0 bg-[rgba(214,230,252,0.72)] backdrop-blur-[12px]" />
 
@@ -77,9 +88,11 @@ export default function FormModal({ icon: Icon, title, onClose, onSave, saveLabe
             <button
               type="button"
               onClick={onSave}
+              disabled={saveDisabled}
               className={cn(
                 primaryButtonClass,
-                "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1"
+                "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1",
+                "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
               )}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
@@ -88,6 +101,8 @@ export default function FormModal({ icon: Icon, title, onClose, onSave, saveLabe
           </footer>
         </div>
       </div>
-    </MainOverlay>
+    </>
   );
+
+  return <MainOverlay>{shell}</MainOverlay>;
 }

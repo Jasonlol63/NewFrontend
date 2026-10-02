@@ -11,6 +11,8 @@ import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ROLE_BADGE, ROLE_BADGE_NONE, filterAccounts, normalizeAccountRow, sortAccounts } from "./accountRules";
 import AccountFormModal from "./AccountFormModal.jsx";
+import CurrencySettingModal from "./CurrencySettingModal.jsx";
+import { MOCK_ACCOUNTS } from "./currencySettingRules";
 
 const NOT_BUILT = "Not available yet";
 
@@ -49,6 +51,8 @@ export default function AccountPage() {
   // null = closed, { mode: "add" } or { mode: "edit", account } = open
   const [accountForm, setAccountForm] = useState(null);
   const closeAccountForm = useCallback(() => setAccountForm(null), []);
+  const [currencySetting, setCurrencySetting] = useState(false);
+  const closeCurrencySetting = useCallback(() => setCurrencySetting(false), []);
   // Payment alert switched on this page (account id -> on/off), until the update API is wired up.
   const [alertOverrides, setAlertOverrides] = useState({});
   const alertOn = (a) => alertOverrides[a.id] ?? a.paymentAlert;
@@ -136,7 +140,7 @@ export default function AccountPage() {
         }
         actions={
           <>
-            <SecondaryButton icon={Coins} disabled title={NOT_BUILT}>
+            <SecondaryButton icon={Coins} onClick={() => setCurrencySetting(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
               Currency Setting
             </SecondaryButton>
             <DeleteButton count={view.selectedRows.length} onClick={() => actions.requestDelete(view.selectedRows)} />
@@ -159,6 +163,11 @@ export default function AccountPage() {
       <DataTable columns={columns} noun="accounts" loading={loading} {...view.table} />
 
       {actions.dialogs}
+
+      {/* Currency Setting fills the content area (sidebar stays visible). UI only for now: the holdings are placeholders and Save just closes it. */}
+      {currencySetting && (
+        <CurrencySettingModal accounts={rows.length ? rows : MOCK_ACCOUNTS} onClose={closeCurrencySetting} onSave={closeCurrencySetting} />
+      )}
 
       {/* Add Account and Edit Account share one modal. UI only for now: Save just closes it until the API is wired up. */}
       {accountForm && (
