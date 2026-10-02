@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Popover } from "radix-ui";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MONTHS, WEEKDAYS, monthGrid } from "@/lib/calendar";
 import { addDays, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date";
 
 // Weeks start on Sunday, matching the calendar grid.
@@ -22,21 +23,10 @@ const PRESETS = [
   { label: "Last Year", range: (t) => [new Date(t.getFullYear() - 1, 0, 1), new Date(t.getFullYear() - 1, 11, 31)] },
 ];
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 function presetRange(preset) {
   const today = new Date();
   const [from, to] = preset.range(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
   return { from: toIsoDate(from), to: toIsoDate(to) };
-}
-
-function monthGrid(year, month) {
-  const first = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = Math.ceil((first.getDay() + daysInMonth) / 7) * 7;
-  const start = addDays(first, -first.getDay());
-  return Array.from({ length: cells }, (_, i) => addDays(start, i));
 }
 
 // ===== Popup size: tweak these to resize the whole picker =====

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Coins, Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DataTable from "@/components/shared/list/DataTable.jsx";
@@ -10,18 +10,23 @@ import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ROLE_BADGE, ROLE_BADGE_NONE, filterAccounts, normalizeAccountRow, sortAccounts } from "./accountRules";
+import AccountFormModal from "./AccountFormModal.jsx";
 
 const NOT_BUILT = "Not available yet";
 
-// Payment alert on / off. Shown only for now: switching it goes through the full account update
-// (with the account's linked currencies), which comes with the Edit Account form.
-function AlertPill({ on }) {
+// Payment alert on / off. Clicking it only switches it on this page for now (design preview):
+// saving goes through the full account update (with the account's linked currencies), not wired up yet.
+function AlertPill({ on, onToggle, disabled }) {
   return (
-    <span
-      title={NOT_BUILT}
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      aria-pressed={on}
+      title={disabled ? "Read-only login" : "Click to switch"}
       // Rounded rectangle (rounded-md) to line up with the Role / Status badges.
       className={cn(
-        "relative inline-flex h-[22px] w-[46px] items-center rounded-md text-[9.5px] font-bold tracking-[0.3px] text-white",
+        "relative inline-flex h-[22px] w-[46px] items-center rounded-md border-none text-[9.5px] font-bold tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
         on
           ? "justify-start bg-alert-on pl-2 shadow-[0_4px_10px_-4px_rgba(5,150,105,0.6),inset_0_0_0_1px_rgba(4,120,87,0.25)]"
           : "justify-end bg-alert-off pr-[7px] shadow-[0_4px_10px_-4px_rgba(229,62,62,0.6),inset_0_0_0_1px_rgba(185,28,28,0.25)]"
@@ -34,13 +39,19 @@ function AlertPill({ on }) {
         )}
       />
       {on ? "ON" : "OFF"}
-    </span>
+    </button>
   );
 }
 
 export default function AccountPage() {
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
+  // null = closed, { mode: "add" } or { mode: "edit", account } = open
+  const [accountForm, setAccountForm] = useState(null);
+  const closeAccountForm = useCallback(() => setAccountForm(null), []);
+  // Payment alert switched on this page (account id -> on/off), until the update API is wired up.
+  const [alertOverrides, setAlertOverrides] = useState({});
+  const alertOn = (a) => alertOverrides[a.id] ?? a.paymentAlert;
   const scope = useListScope("account.scope", { onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/account", scope.tenantId, {
     normalize: normalizeAccountRow,
@@ -62,7 +73,17 @@ export default function AccountPage() {
     { key: "accountId", label: "Account", cellClassName: "font-semibold whitespace-nowrap", render: (a) => a.accountId },
     { key: "name", label: "Name", cellClassName: "whitespace-nowrap", render: (a) => a.name },
     { key: "role", label: "Role", render: (a) => <Badge className={ROLE_BADGE[a.role] ?? ROLE_BADGE_NONE}>{a.role}</Badge> },
-    { key: "alert", label: "Alert", render: (a) => <AlertPill on={a.paymentAlert} /> },
+    {
+      key: "alert",
+      label: "Alert",
+      render: (a) => (
+        <AlertPill
+          on={alertOn(a)}
+          disabled={readOnly}
+          onToggle={() => setAlertOverrides((o) => ({ ...o, [a.id]: !alertOn(a) }))}
+        />
+      ),
+    },
     {
       key: "status",
       label: "Status",
@@ -89,9 +110,14 @@ export default function AccountPage() {
       sortable: false,
       className: "text-center",
       cellClassName: "whitespace-nowrap",
-      render: () => (
+      render: (a) => (
         <>
-          <IconAction disabled title={NOT_BUILT} aria-label="Edit account" />
+          <IconAction
+            onClick={() => setAccountForm({ mode: "edit", account: { ...a, paymentAlert: alertOn(a) } })}
+            disabled={readOnly}
+            title={readOnly ? "Read-only login" : "Edit account"}
+            aria-label="Edit account"
+          />
           <IconAction icon={Plus} disabled title={NOT_BUILT} aria-label="Link account" />
         </>
       ),
@@ -104,7 +130,7 @@ export default function AccountPage() {
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={UserPlus} disabled title={NOT_BUILT}>
+          <PrimaryButton icon={UserPlus} onClick={() => setAccountForm({ mode: "add" })} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
             Add Account
           </PrimaryButton>
         }
@@ -133,6 +159,18 @@ export default function AccountPage() {
       <DataTable columns={columns} noun="accounts" loading={loading} {...view.table} />
 
       {actions.dialogs}
+
+      {/* Add Account and Edit Account share one modal. UI only for now: Save just closes it until the API is wired up. */}
+      {accountForm && (
+        <AccountFormModal
+          mode={accountForm.mode}
+          account={accountForm.account}
+          companyCode={scope.company}
+          companyOptions={scope.companyOptions}
+          onClose={closeAccountForm}
+          onSave={closeAccountForm}
+        />
+      )}
     </div>
   );
 }
