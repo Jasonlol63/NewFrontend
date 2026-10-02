@@ -372,6 +372,12 @@
   .qchips b:hover { border-color: #93c5fd; background: rgba(255,255,255,.85); }
   .qchips b.on { border-color: #3b82f6; background: var(--stripe); color: #0d4fd6; font-weight: 800; box-shadow: inset 0 0 0 1px #3b82f6; }
   @media (max-height: 640px) { .stepbox { margin-top: 4px; padding: 3px 10px; } .stepbox + .grid2 { margin-top: 5px !important; } .stepbox ~ .sline { margin-top: 4px; } }
+  /* "direct": the day grid always sits in the card; the same cell size on every screen (30 x 30), as many per row as fit */
+  .mgrid-wrap.dir { margin-top: 5px; padding: 6px 8px 8px; }
+  .mgrid-wrap.dir .mgrid-h { margin-bottom: 4px; line-height: 15px; }
+  .mgrid-wrap.dir .mdays { grid-template-columns: repeat(auto-fill, 30px); justify-content: space-between; gap: 4px; }
+  .mgrid-wrap.dir .mdays b { width: 30px; height: 30px; border-radius: 7px; font-size: 12.5px; }
+  @media (max-height: 640px) { .mgrid-wrap.dir { margin-top: 3px; padding: 4px 8px 5px; } .mgrid-wrap.dir .mgrid-h { margin-bottom: 3px; } .mgrid-wrap.dir ~ .grid2 { margin-top: 5px !important; } }
   /* "inline": the day grid always sits in the card, with big cells that fill each row (42px high on tall screens) */
   .mgrid-wrap.inl { padding: 8px 10px 10px; }
   .mgrid-wrap.inl .mdays { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
@@ -468,7 +474,7 @@
 
   // URL hash lets the size preview open a given state: #embed, #edit, #custom, #company, #date, #delete
   const H = location.hash + " " + (window.name || "");
-  const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "auto";   // auto: the 1-31 grid sits in the card; on short screens Custom opens the inline picker instead
+  const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "direct";   // direct: the 1-31 grid always sits in the card, same cell size on every screen, no summary strip
   const S = {
     pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] !== "off", swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
@@ -595,13 +601,13 @@
     if (custom &amp;&amp; S.tight &amp;&amp; S.sv === "stepper") return alertStepper();
     if (custom &amp;&amp; S.tight &amp;&amp; PICKER() &amp;&amp; S.picking) return alertPicker();
     const dates = nextDates(S.pv, 4).map((d) => `<span class="${d.adj ? "adj" : ""}">${d.t}</span>`).join("");
-    const grid = custom &amp;&amp; !popMode() &amp;&amp; !(S.tight &amp;&amp; PICKER()) ? `<div class="mgrid-wrap${S.sv === "inline" || S.sv === "auto" ? " inl" : ""}"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
+    const grid = custom &amp;&amp; !popMode() &amp;&amp; !(S.tight &amp;&amp; PICKER()) ? `<div class="mgrid-wrap${S.sv === "direct" ? " dir" : S.sv === "inline" || S.sv === "auto" ? " inl" : ""}"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
     return `<div class="trow"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div>${grid}
       <div class="grid2" style="margin-top:var(--fg)">
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
         <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
       </div>
-      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span>${custom &amp;&amp; S.tight &amp;&amp; PICKER() ? '<button type="button" class="chg" data-act="repick">Change</button>' : ""}</div>`;
+      ${S.sv === "direct" ? "" : `<div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span>${custom &amp;&amp; S.tight &amp;&amp; PICKER() ? '<button type="button" class="chg" data-act="repick">Change</button>' : ""}</div>`}`;
   }
   // Short screens, "picker": picking Custom swaps the card body for a full-width day picker (a few big rows
   // of cells); choosing a day (or pressing Custom again) goes back to Start Date / Amount / summary.
@@ -703,7 +709,7 @@
     if (S.dpOpen &amp;&amp; S.alertOn) document.body.insertAdjacentHTML("beforeend", datePop());
     if (S.cuOpen &amp;&amp; S.alertOn &amp;&amp; popMode()) document.body.insertAdjacentHTML("beforeend", customPop());
     placePopups();
-    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><button data-act="cbox" class="${S.cbox ? "on" : ""}">Company: box on every size</button><i style="width:8px;display:inline-block"></i>${[["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
+    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><button data-act="cbox" class="${S.cbox ? "on" : ""}">Company: box on every size</button><i style="width:8px;display:inline-block"></i>${[["direct", "Custom: Direct"], ["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
@@ -776,9 +782,9 @@
   const SIZES = [[1280, 560, "1366 laptop (small)"], [1366, 610, "1366 laptop"], [1536, 730, "1920 @125%"], [1440, 760, "Common monitor"], [1600, 800, "Common monitor"], [1920, 950, "Large"], [1180, 820, "Tablet landscape"], [1024, 768, "Tablet landscape"], [820, 1180, "Tablet portrait"], [768, 1024, "Tablet portrait"]];
   const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (dropdown option only)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
-  let size = 0, state = "custom", sv = "auto", cb = "on";
+  let size = 0, state = "custom", sv = "direct", cb = "on";
 const CBS = [["on", "Company box on every size (4 boxes)"], ["off", "Company dropdown below 1440"]];
-const SVS = [["auto", "Grid on large screens, picker on small"], ["picker", "Picker on every size"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
+const SVS = [["direct", "Direct on every size (same cells, no strip)"], ["auto", "Grid on large screens, picker on small"], ["picker", "Picker on every size"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
     document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Custom days:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Company:' + CBS.map(([k, l]) => `<button data-cb="${k}" class="${k === cb ? "on" : ""}">${l}</button>`).join("");
