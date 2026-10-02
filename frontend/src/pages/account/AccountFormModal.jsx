@@ -277,7 +277,7 @@ function PaymentAlertCard({ alert, setAlert }) {
               </Field>
             </div>
 
-            <div className="mt-2.5 flex items-center gap-2.5 modal-compact:mt-2 modal-snug:mt-[5px] @max-[1209px]/main:modal-short:mt-0 @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-short:min-w-0">
+            <div className="mt-2.5 flex items-center gap-2.5 modal-compact:mt-2 modal-snug:mt-[5px] @max-[1209px]/main:modal-short:mt-0! @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-short:min-w-0">
               <span className="flex-none whitespace-nowrap text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px] @max-[1209px]/main:modal-short:mb-0.5 @max-[1209px]/main:modal-short:ml-0.5 @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-tiny:mb-px">
                 Alert Type <i className="not-italic text-[#ef4444]">*</i>
               </span>
