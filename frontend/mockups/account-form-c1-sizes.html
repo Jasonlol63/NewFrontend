@@ -73,6 +73,7 @@
     --title: 26px;
     --hicon: 40px;
     --btn: 38px;
+    --pk: 36px;         /* day cell of the inline picker */
     --tap: 36px;        /* big tap targets (stepper buttons, quick chips) */
     --mday: 27px;       /* custom day cell (compact grid): height / min width */
     --mday-w: 40px;
@@ -81,14 +82,14 @@
   }
   @media (max-height: 760px), (max-width: 1100px) {
     :root { --m: 10px; --pad: 12px; --gap: 10px; --cp: 12px; --ch: 42px; --in: 32px; --fg: 9px; --lbl: 12px;
-      --pick: 36px; --day: 27px; --tile: 36px; --title: 21px; --hicon: 32px; --btn: 32px; --k: .96; --mday: 26px; --mday-w: 38px; --bell: 21px; --tap: 34px; }
+      --pick: 36px; --day: 27px; --tile: 36px; --title: 21px; --hicon: 32px; --btn: 32px; --k: .96; --mday: 26px; --mday-w: 38px; --bell: 21px; --tap: 34px; --pk: 34px; }
   }
   @media (max-height: 640px) {
     :root { --fg: 8px; --day: 25px; --tile: 34px; --pick: 32px; --ch: 40px; --in: 30px; --mday: 24px; --mday-w: 36px; }
   }
   @media (max-height: 600px) {
     :root { --m: 8px; --pad: 10px; --gap: 8px; --cp: 10px; --ch: 38px; --in: 30px; --fg: 7px; --lbl: 11.5px;
-      --pick: 32px; --day: 24px; --tile: 32px; --title: 19px; --hicon: 28px; --btn: 30px; --k: .92; --mday: 23px; --mday-w: 34px; --bell: 19px; --tap: 32px; }
+      --pick: 32px; --day: 24px; --tile: 32px; --title: 19px; --hicon: 28px; --btn: 30px; --k: .92; --mday: 23px; --mday-w: 34px; --bell: 19px; --tap: 32px; --pk: 28px; }
   }
 
   * { box-sizing: border-box; }
@@ -334,26 +335,6 @@
   .mdays b { height: var(--mday); display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--off-line); background: var(--off); font-size: calc(12.5px * var(--k)); font-weight: 600; color: #475569; cursor: pointer; }
   .mdays b:hover { border-color: #93c5fd; background: rgba(255,255,255,.85); }
   .mdays b.on { border-color: #3b82f6; background: var(--stripe); color: #0d4fd6; font-weight: 800; box-shadow: inset 0 0 0 1px #3b82f6; }
-  /* Short screens: Custom grid | Start Date, Amount, summary side by side */
-  .side { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 10px; margin-top: 4px; align-items: start; }
-  .side .mgrid-wrap { margin-top: 0; padding: 5px 8px 7px; }
-  .side .mdays { grid-template-columns: repeat(auto-fill, minmax(26px, 1fr)); gap: 3px; }
-  .side .mdays b { height: calc(var(--mday) - 2px); }
-  .side-r { display: flex; flex-direction: column; gap: calc(min(var(--fg), 8px) - 2px); }
-  .side-r .sline { margin-top: 0; }
-  /* Shorter Start Date / Amount boxes here, and fixed line heights so other system fonts (Segoe UI etc.) can't add height. */
-  .side-r .in { height: calc(var(--in) - 4px); }
-  .side-r .f .l, .side .mgrid-h { line-height: 15px; }
-  .side-r .sline { line-height: 16px; }
-  /* Very short screens (1280 x 560): a bit more room so other fonts never tip it into scrolling. */
-  @media (max-height: 600px) {
-    .side-r .in { height: calc(var(--in) - 5px); }
-    .side-r { gap: 4px; }
-    .side .mgrid-wrap { padding: 4px 8px 6px; }
-    .side .mgrid-h { margin-bottom: 3px; }
-    .side .mdays b { height: calc(var(--mday) - 3px); }
-    .side-r .sline { padding-top: 1px; padding-bottom: 1px; }
-  }
   /* Short screens, "stepper" */
   .stepbox { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 5px; padding: 4px 10px; }
   .stepbox .mgrid-h { margin: 0; white-space: nowrap; }
@@ -367,22 +348,22 @@
   .qchips b:hover { border-color: #93c5fd; background: rgba(255,255,255,.85); }
   .qchips b.on { border-color: #3b82f6; background: var(--stripe); color: #0d4fd6; font-weight: 800; box-shadow: inset 0 0 0 1px #3b82f6; }
   @media (max-height: 640px) { .stepbox { margin-top: 4px; padding: 3px 10px; } .stepbox + .grid2 { margin-top: 5px !important; } .stepbox ~ .sline { margin-top: 4px; } }
-  /* "column": Account Information + Currency share the left column, so Currency is a little tighter and Account Information never shrinks */
-  .body.colmode .card.info { flex: none; }
-  .body.colmode .ctiles { gap: 6px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
-  .body.colmode .ctile { height: max(32px, calc(var(--tile) - 4px)); }
-  .body.colmode .del-hint { margin-top: 4px; line-height: 14px; }
-  @media (max-height: 600px) { .body.colmode .card.cur .card-b { padding-bottom: 5px; } .body.colmode .ctiles { margin-top: 6px; } .body.colmode .del-hint { margin-top: 3px; font-size: 11px; } }
-  /* Short screens, "column": Payment Alert gets the tall column, so the 1-31 grid keeps big cells */
-  .card.alert.tall .mgrid-wrap { padding: 10px 12px 12px; }
-  .card.alert.tall .mgrid-h { margin-bottom: 8px; }
-  .card.alert.tall .mdays { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
-  .card.alert.tall .mdays b { height: var(--tap); border-radius: 9px; font-size: calc(13.5px * var(--k)); }
+  /* Short screens, "picker": Custom swaps the card body for a full-width day picker (no scroll, big cells) */
+  .pickbox { margin-top: 4px; padding: 5px 8px 7px; }
+  .pickbox .pk-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; line-height: 15px; }
+  .pickbox .pk-h .mgrid-h { margin: 0; }
+  .pickbox .pk-sel { font-size: calc(12px * var(--k)); font-weight: 800; color: #0d4fd6; white-space: nowrap; }
+  .pickbox .mdays { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 5px; }
+  @media (max-height: 600px) { .pickbox { padding: 4px 8px 5px; } .pickbox .mdays { gap: 4px; } .pickbox .pk-h { margin-bottom: 3px; } }
+  .pickbox .mdays b { height: var(--pk); border-radius: 8px; font-size: calc(13.5px * var(--k)); }
+  .sline .chg { margin-left: auto; flex: none; height: 20px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 99px; border: 1px solid #93c5fd; background: #fff; color: #1d4ed8; font-size: calc(11.5px * var(--k)); font-weight: 800; cursor: pointer; }
+  .sline .chg:hover { background: #eaf3ff; }
   /* Custom popup (option B) */
-  .cu-pop { padding: 10px 12px 12px; }
+  .cu-pop { padding: 12px 14px 14px; }
   .cu-pop .cu-h { font-size: calc(12px * var(--k)); font-weight: 700; color: #475569; margin-bottom: 6px; }
   .cu-pop .mdays { grid-template-columns: repeat(7, 1fr); }
-  .cu-pop .mdays b { height: 30px; background: #f8fafc; border-color: #e5e7eb; }
+  .cu-pop .mdays { gap: 6px; }
+  .cu-pop .mdays b { height: calc(var(--tap) + 2px); font-size: calc(13.5px * var(--k)); border-radius: 8px; background: #f8fafc; border-color: #e5e7eb; }
   /* One-line summary: no box, small date chips. */
   /* Reminder summary: a light blue strip led by a solid blue bell badge, so it reads as "this is when you'll be reminded". */
   .card.alert { container-type: inline-size; }
@@ -457,8 +438,9 @@
 
   // URL hash lets the size preview open a given state: #embed, #edit, #custom, #company, #date, #delete
   const H = location.hash + " " + (window.name || "");
+  const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "popup";
   const S = {
-    pa: "compact", cuOpen: false, tight: false, short: false, sv: (H.match(/sv:(\w+)/) || [])[1] || "column", swap: true,
+    pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: SV0 === "picker" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
@@ -523,7 +505,7 @@
   }
 
   /* ---- Payment Alert ---- */
-  const popMode = () => S.pa === "popup";
+  const popMode = () => S.pa === "popup" || (S.pa === "compact" &amp;&amp; S.sv === "popup");
   const isCustom = () => S.pcustom || (typeof S.pv === "number" &amp;&amp; !PRESETS.includes(S.pv));
   const label = (v) => v === "monthly" ? `Monthly, on the ${ord(pDate(S.start).getDate())}` : v === 1 ? "Every day" : v === 7 ? "Every week" : v % 7 === 0 ? `Every ${v / 7} weeks` : `Every ${v} days`;
   function nextDates(v, n = 5) {
@@ -562,12 +544,12 @@
         <div class="summary"><div class="top">${BELL}${label(S.pv)}, from ${fmt(start)} ${start.getFullYear()}</div>
           <div class="pdates">${dates}<span style="background:none;color:#8a96a8">…</span></div></div></div>`;
     }
-    return `<section class="card alert${S.short &amp;&amp; S.sv === "column" ? " tall" : ""}"><div class="card-h"><span class="bar"></span><h2>Payment Alert</h2><span class="r">${sw}</span></div><div class="card-b">${body}</div></section>`;
+    return `<section class="card alert"><div class="card-h"><span class="bar"></span><h2>Payment Alert</h2><span class="r">${sw}</span></div><div class="card-b">${body}</div></section>`;
   }
   /* ---- Smaller Payment Alert options ----
      A "compact": one thin segmented bar, a small 7-column day grid (no week labels), a one-line summary.
      B "popup":   the same, but the day grid opens in a popup under Custom, so the card never grows. */
-  const segBar = (custom) => `<div class="pseg">${PICKS.map(([pv, t]) => {
+  const segBar = (custom) => `<div class="pseg">${(popMode() ? [PICKS[3], ...PICKS.slice(0, 3)] : PICKS).map(([pv, t]) => {
       const on = pv === "custom" ? custom : (!custom &amp;&amp; S.pv === pv);
             const caret = pv === "custom" &amp;&amp; popMode() ? CHEV13 : "";
       return `<b data-act="${pv === "custom" &amp;&amp; popMode() ? "cpop" : "pick"}" data-v="${pv}" class="${on ? "on" : ""}" ${pv === "custom" ? 'id="cuField"' : ""}>${t}${caret}</b>`;
@@ -577,27 +559,22 @@
       return `<b data-act="pday" data-v="${n}" class="${S.pv === n ? "on" : ""}">${n}</b>`;
     }).join("")}</div>`;
   function alertCompact(custom, start) {
-    if (custom &amp;&amp; S.tight) return S.sv === "side" ? alertSide() : alertStepper();
+    if (custom &amp;&amp; S.tight &amp;&amp; S.sv === "stepper") return alertStepper();
+    if (custom &amp;&amp; S.tight &amp;&amp; S.sv === "picker" &amp;&amp; S.picking) return alertPicker();
     const dates = nextDates(S.pv, 4).map((d) => `<span class="${d.adj ? "adj" : ""}">${d.t}</span>`).join("");
-    const grid = custom &amp;&amp; !popMode() ? `<div class="mgrid-wrap"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
+    const grid = custom &amp;&amp; !popMode() &amp;&amp; !(S.tight &amp;&amp; S.sv === "picker") ? `<div class="mgrid-wrap"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>` : "";
     return `<div class="trow"><span class="l">Alert Type <i>*</i></span>${segBar(custom)}</div>${grid}
       <div class="grid2" style="margin-top:var(--fg)">
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
         <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
       </div>
-      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span></div>`;
+      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span>${custom &amp;&amp; S.tight &amp;&amp; S.sv === "picker" ? '<button type="button" class="chg" data-act="repick">Change</button>' : ""}</div>`;
   }
-  // Short screens (the stacked Custom grid would make Payment Alert scroll): day grid on the left,
-  // Start Date / Amount / summary stacked on the right. The grid takes as many columns as fit (9 at 1366, 6 at 1600).
-  function alertSide() {
-    const dates = nextDates(S.pv, 2).map((d) => `<span class="${d.adj ? "adj" : ""}">${d.t}</span>`).join("");
+  // Short screens, "picker": picking Custom swaps the card body for a full-width day picker (a few big rows
+  // of cells); choosing a day (or pressing Custom again) goes back to Start Date / Amount / summary.
+  function alertPicker() {
     return `<div class="trow"><span class="l">Alert Type <i>*</i></span>${segBar(true)}</div>
-      <div class="side"><div class="mgrid-wrap"><div class="mgrid-h">Remind every … days</div>${miniGrid()}</div>
-        <div class="side-r">
-          <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
-          <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
-          <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span></div>
-        </div></div>`;
+      <div class="mgrid-wrap pickbox"><div class="pk-h"><span class="mgrid-h">Remind every … days</span><span class="pk-sel">${label(S.pv)}</span></div>${miniGrid()}</div>`;
   }
   // Short screens, "stepper": one row of big controls instead of 31 small cells. [-] 30 [+] days, plus quick picks.
   // The number can also be typed (1-31). Buttons and chips are --tap high (36px, 34 / 32 on shorter screens).
@@ -615,7 +592,7 @@
       </div>
       <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span></div>`;
   }
-  const customPop = () => `<div class="portal cu-pop" data-anchor="cuField" data-minw="292"><div class="cu-h">Remind every … days</div>${miniGrid()}</div>`;
+  const customPop = () => `<div class="portal cu-pop" data-anchor="cuField" data-minw="344"><div class="cu-h">Remind every … days</div>${miniGrid()}</div>`;
 
   function datePop() {
     const vy = S.dpY, vm = S.dpM, todayIso = iso(today());
@@ -663,26 +640,25 @@
     $("hicon").innerHTML = edit() ? ICON_EDIT : ICON_ADD;
     const w = wide();
     // The stacked Custom grid is tried first (with Custom forced on, so the layout never jumps when Custom is picked).
-    // If Payment Alert would have to scroll, this is a short screen: S.short = true.
-    //   "stepper" / "side": Custom shows a different control inside the same card (S.tight).
-    //   "column": Payment Alert moves to the tall column and Currency goes under Account Information.
+    // If Payment Alert would have to scroll, this is a short screen (S.short) and, for "stepper" / "picker",
+    // Custom shows its own control inside the same card (S.tight). "popup" works the same on every screen.
     const mount = () => {
-      const col = S.short &amp;&amp; S.sv === "column", swapped = S.swap &amp;&amp; !col;
-      $("body").className = "body" + (w ? " wide" : "") + (swapped ? " swap" : "") + (col ? " colmode" : "");
-      const left = swapped ? info() + alert() : info() + currency();
-      const right = swapped ? currency() : alert();
+      $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "");
+      const left = S.swap ? info() + alert() : info() + currency();
+      const right = S.swap ? currency() : alert();
       $("body").innerHTML = `<div class="col">${left}</div><div class="col">${right}</div>${w ? `<div class="col">${companyCard()}</div>` : ""}`;
     };
-    const saved = { on: S.alertOn, pc: S.pcustom };
-    S.short = S.tight = false;
-    if (S.pa === "compact" &amp;&amp; S.swap) {
+    const saved = { on: S.alertOn, pc: S.pcustom }, savedPicking = S.picking;
+    S.short = S.tight = S.picking = false;
+    if (S.pa === "compact" &amp;&amp; S.swap &amp;&amp; !popMode()) {
       S.alertOn = S.pcustom = true;
       mount();
       const b = document.querySelector(".card.alert .card-b");
       S.short = !!b &amp;&amp; b.scrollHeight > b.clientHeight + 1;
       S.alertOn = saved.on; S.pcustom = saved.pc;
     }
-    S.tight = S.short &amp;&amp; S.sv !== "column";
+    S.tight = S.short &amp;&amp; (S.sv === "stepper" || S.sv === "picker");
+    S.picking = savedPicking &amp;&amp; S.tight;
     mount();
     if (w) S.pop = false;
     document.querySelectorAll(".portal").forEach((p) => p.remove());
@@ -690,7 +666,7 @@
     if (S.dpOpen &amp;&amp; S.alertOn) document.body.insertAdjacentHTML("beforeend", datePop());
     if (S.cuOpen &amp;&amp; S.alertOn &amp;&amp; popMode()) document.body.insertAdjacentHTML("beforeend", customPop());
     placePopups();
-    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><i style="width:8px;display:inline-block"></i>${[["stepper", "Short: Stepper"], ["column", "Short: Column"], ["side", "Short: Side"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
+    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><i style="width:8px;display:inline-block"></i>${[["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
@@ -726,8 +702,9 @@
     switch (act) {
       case "mode": S.mode = v; S.curOn = new Set(v === "edit" ? ["MYR","SGD","USD"] : ["MYR"]); S.coOn = new Set(v === "edit" ? ["C168","GP"] : ["C168"]); break;
       case "alert": S.alertOn = !S.alertOn; break;
-      case "pick": if (v === "custom") { S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; } else { S.pv = v === "monthly" ? "monthly" : +v; S.pcustom = false; } break;
-      case "pday": S.pv = +v; S.pcustom = true; S.cuOpen = false; break;
+      case "pick": if (v === "custom") { S.picking = S.sv === "picker" &amp;&amp; !(isCustom() &amp;&amp; S.picking); S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; } else { S.picking = false; S.pv = v === "monthly" ? "monthly" : +v; S.pcustom = false; } break;
+      case "pday": S.pv = +v; S.pcustom = true; S.cuOpen = false; S.picking = false; break;
+      case "repick": S.picking = true; break;
       case "cpop": S.cuOpen = !S.cuOpen; S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; break;
       case "pa": S.pa = v; S.cuOpen = false; break;
       case "swap": S.swap = !S.swap; break;
@@ -761,11 +738,11 @@
   const SIZES = [[1280, 560, "1366 laptop (small)"], [1366, 610, "1366 laptop"], [1536, 730, "1920 @125%"], [1440, 760, "Common monitor"], [1600, 800, "Common monitor"], [1920, 950, "Large"], [1180, 820, "Tablet landscape"], [1024, 768, "Tablet landscape"], [820, 1180, "Tablet portrait"], [768, 1024, "Tablet portrait"]];
   const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (1280 / 1366)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
-  let size = 0, state = "custom", sv = "column";
-const SVS = [["column", "Column (big grid)"], ["stepper", "Stepper"], ["side", "Side (small grid)"]];
+  let size = 0, state = "custom", sv = "popup";
+const SVS = [["popup", "Popup · Custom first"], ["picker", "Inline picker"], ["stepper", "Stepper"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
-    document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Short screens:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("");
+    document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Custom days:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("");
     const [w, h] = SIZES[size];
     const grid = document.getElementById("grid");
     grid.innerHTML = `<div class="frame" data-w="${w}" data-h="${h}"><iframe name="embed ${state} sv:${sv}" width="${w}" height="${h}"></iframe></div>`;
