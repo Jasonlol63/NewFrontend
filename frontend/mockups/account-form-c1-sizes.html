@@ -85,7 +85,7 @@
       --pick: 36px; --day: 27px; --tile: 36px; --title: 21px; --hicon: 32px; --btn: 32px; --k: .96; --mday: 26px; --mday-w: 38px; --bell: 21px; --tap: 34px; --pk: 34px; }
   }
   @media (max-height: 640px) {
-    :root { --fg: 8px; --day: 25px; --tile: 34px; --pick: 32px; --ch: 40px; --in: 30px; --mday: 24px; --mday-w: 36px; }
+    :root { --fg: 8px; --day: 25px; --tile: 34px; --pick: 32px; --ch: 40px; --in: 30px; --mday: 24px; --mday-w: 36px; --pk: 32px; }
   }
   @media (max-height: 600px) {
     :root { --m: 8px; --pad: 10px; --gap: 8px; --cp: 10px; --ch: 38px; --in: 30px; --fg: 7px; --lbl: 11.5px;
@@ -354,10 +354,12 @@
   .pickbox .pk-h .mgrid-h { margin: 0; }
   .pickbox .pk-sel { font-size: calc(12px * var(--k)); font-weight: 800; color: #0d4fd6; white-space: nowrap; }
   .pickbox .mdays { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 5px; }
-  @media (max-height: 600px) { .pickbox { padding: 4px 8px 5px; } .pickbox .mdays { gap: 4px; } .pickbox .pk-h { margin-bottom: 3px; } }
+  @media (max-height: 640px) { .pickbox .mdays { gap: 4px; } }
+  @media (max-height: 600px) { .pickbox { padding: 4px 8px 5px; } .pickbox .pk-h { margin-bottom: 3px; } }
   .pickbox .mdays b { height: var(--pk); border-radius: 8px; font-size: calc(13.5px * var(--k)); }
   .sline .chg { margin-left: auto; flex: none; height: 20px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 99px; border: 1px solid #93c5fd; background: #fff; color: #1d4ed8; font-size: calc(11.5px * var(--k)); font-weight: 800; cursor: pointer; }
   .sline .chg:hover { background: #eaf3ff; }
+  @media (min-height: 880px) { :root { --pk: 42px; } .pickbox { padding: 8px 12px 12px; } .pickbox .mdays { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; } .pickbox .pk-h { margin-bottom: 8px; } }
   /* Custom popup (option B) */
   .cu-pop { padding: 12px 14px 14px; }
   .cu-pop .cu-h { font-size: calc(12px * var(--k)); font-weight: 700; color: #475569; margin-bottom: 6px; }
@@ -640,8 +642,8 @@
     $("hicon").innerHTML = edit() ? ICON_EDIT : ICON_ADD;
     const w = wide();
     // The stacked Custom grid is tried first (with Custom forced on, so the layout never jumps when Custom is picked).
-    // If Payment Alert would have to scroll, this is a short screen (S.short) and, for "stepper" / "picker",
-    // Custom shows its own control inside the same card (S.tight). "popup" works the same on every screen.
+    // If Payment Alert would have to scroll, this is a short screen (S.short): "stepper" then swaps Custom for its own control.
+    // "picker" and "popup" work the same on every screen size.
     const mount = () => {
       $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "");
       const left = S.swap ? info() + alert() : info() + currency();
@@ -657,7 +659,7 @@
       S.short = !!b &amp;&amp; b.scrollHeight > b.clientHeight + 1;
       S.alertOn = saved.on; S.pcustom = saved.pc;
     }
-    S.tight = S.short &amp;&amp; (S.sv === "stepper" || S.sv === "picker");
+    S.tight = S.sv === "picker" || (S.short &amp;&amp; S.sv === "stepper");   // the picker is used on every screen size
     S.picking = savedPicking &amp;&amp; S.tight;
     mount();
     if (w) S.pop = false;
@@ -738,8 +740,8 @@
   const SIZES = [[1280, 560, "1366 laptop (small)"], [1366, 610, "1366 laptop"], [1536, 730, "1920 @125%"], [1440, 760, "Common monitor"], [1600, 800, "Common monitor"], [1920, 950, "Large"], [1180, 820, "Tablet landscape"], [1024, 768, "Tablet landscape"], [820, 1180, "Tablet portrait"], [768, 1024, "Tablet portrait"]];
   const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (1280 / 1366)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
-  let size = 0, state = "custom", sv = "popup";
-const SVS = [["popup", "Popup · Custom first"], ["picker", "Inline picker"], ["stepper", "Stepper"]];
+  let size = 0, state = "custom", sv = "picker";
+const SVS = [["picker", "Inline picker (all sizes)"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
     document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Custom days:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("");
