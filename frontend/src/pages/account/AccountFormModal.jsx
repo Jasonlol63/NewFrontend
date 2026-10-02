@@ -265,17 +265,8 @@ function PaymentAlertCard({ alert, setAlert }) {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2.5">
-            <span className="flex-none whitespace-nowrap text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px]">
-              Alert Type <i className="not-italic text-[#ef4444]">*</i>
-            </span>
-            <AlertTypeBar custom={custom} type={alert.type} onPick={pick} />
-          </div>
-
-          {/* Custom: the 1-31 grid sits right here on every screen size, with the same cells everywhere. */}
-          {custom && <DayGrid value={alert.type} onPick={(n) => set({ type: n, custom: true })} />}
-
-          <div className={cn("grid grid-cols-2 gap-x-3.5", custom ? "mt-2.5 modal-compact:mt-2 modal-snug:mt-[5px]" : "mt-2.5 modal-compact:mt-2 modal-tiny:mt-1.5")}>
+          {/* Order: Start Date + Amount, then Alert Type, then (for Custom) the 1-31 grid under it, on every screen size. */}
+          <div className="grid grid-cols-2 gap-x-3.5">
             <Field label="Start Date">
               <DateField value={alert.startDate} onChange={(startDate) => set({ startDate })} />
             </Field>
@@ -289,6 +280,15 @@ function PaymentAlertCard({ alert, setAlert }) {
               />
             </Field>
           </div>
+
+          <div className="mt-2.5 flex items-center gap-2.5 modal-compact:mt-2 modal-snug:mt-[5px]">
+            <span className="flex-none whitespace-nowrap text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px]">
+              Alert Type <i className="not-italic text-[#ef4444]">*</i>
+            </span>
+            <AlertTypeBar custom={custom} type={alert.type} onPick={pick} />
+          </div>
+
+          {custom && <DayGrid value={alert.type} onPick={(n) => set({ type: n, custom: true })} />}
         </>
       )}
     </FormCard>
@@ -321,13 +321,13 @@ function AlertTypeBar({ custom, type, onPick }) {
   );
 }
 
-// 1-31 in a dashed box. Every cell is 30 x 30 on every screen; as many fit per row as the card is wide
-// (the spare width is spread between them), so a narrow card has more rows, never smaller cells.
+// 1-31 in a dashed box. Cells are 30 x 30; on tall screens (>= 880px high, modal-roomy) 48 x 44. As many fit per
+// row as the card is wide (the spare width is spread between them), so a narrow card has more rows, never smaller cells.
 function DayGrid({ value, onPick }) {
   return (
-    <div className="mt-1.5 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1">
-      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px]">Remind every … days</div>
-      <div className="grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1">
+    <div className="mt-1.5 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1 modal-roomy:mt-2 modal-roomy:px-3 modal-roomy:pb-3 modal-roomy:pt-2.5">
+      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2 modal-roomy:text-[13px]">Remind every … days</div>
+      <div className="grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1 modal-roomy:grid-cols-[repeat(auto-fill,48px)] modal-roomy:gap-1.5">
         {Array.from({ length: 31 }, (_, i) => {
           const n = i + 1;
           const on = value === n;
@@ -338,7 +338,7 @@ function DayGrid({ value, onPick }) {
               onClick={() => onPick(n)}
               aria-pressed={on}
               className={cn(
-                "size-[30px] cursor-pointer rounded-[7px] border text-[12.5px] transition-colors",
+                "size-[30px] cursor-pointer rounded-[7px] border text-[12.5px] transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px] modal-roomy:text-[14.5px]",
                 on
                   ? "border-[#3b82f6] bg-row-stripe font-extrabold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
                   : "border-modal-off-line bg-modal-off font-semibold text-[#475569] hover:border-[#93c5fd] hover:bg-white/85"

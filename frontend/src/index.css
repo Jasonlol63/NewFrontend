@@ -15,6 +15,7 @@
 @custom-variant modal-short (@media (max-height: 700px));
 @custom-variant modal-snug (@media (max-height: 640px));
 @custom-variant modal-tiny (@media (max-height: 600px));
+@custom-variant modal-roomy (@media (min-height: 880px));
 @custom-variant modal-tall (@media (min-height: 970px));
 
 :root {
