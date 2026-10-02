@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { Popover } from "radix-ui";
 import { cn } from "@/lib/utils";
@@ -8,15 +8,54 @@ import { inputClass, openFieldClass, primaryButtonClass } from "./fields.jsx";
 
 /**
  * Multi-select field: the picked values show as chips in the box (× removes one), the count on
- * the right. Clicking opens a popup with search, Select all / Clear, the tickable list and Done.
+ * the right. The chips stay on one line: the ones that don't fit collapse into a "+N" chip (its
+ * tooltip lists them), so the field never grows however many are picked.
+ * Clicking opens a popup with search, Select all / Clear, the tickable list and Done.
  * items: [{ value, label, hint?, tag? }]; selected: Set; onChange(nextSet).
  */
+const chipClass =
+  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 text-[12px] font-extrabold text-brand-navy modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+const moreChipClass =
+  "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 text-[12px] font-extrabold text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+
 export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [query, setQuery] = useState("");
   const shown = filterItems(items, query);
   const picked = items.filter((it) => selected.has(it.value));
+
+  // How many chips fit on the line: measured on an invisible copy of all of them (same fonts), re-measured
+  // when the field or the chips change size. null = not measured yet (all chips are rendered).
+  const fieldRef = useRef(null);
+  const measureRef = useRef(null);
+  const [fits, setFits] = useState(null);
+  useEffect(() => {
+    const field = fieldRef.current;
+    const copy = measureRef.current;
+    if (!field || !copy) return undefined;
+    const measure = () => {
+      const chips = [...copy.querySelectorAll("[data-chip]")];
+      const moreWidth = copy.querySelector("[data-more]")?.offsetWidth ?? 40;
+      const cs = getComputedStyle(field);
+      const room = field.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      let used = 0;
+      let count = 0;
+      for (let i = 0; i < chips.length; i++) {
+        const next = used + (i ? 4 : 0) + chips[i].offsetWidth;
+        if (next + (i < chips.length - 1 ? 4 + moreWidth : 0) > room) break;
+        used = next;
+        count = i + 1;
+      }
+      setFits(chips.length ? Math.max(count, 1) : 0);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(field);
+    observer.observe(copy);
+    return () => observer.disconnect();
+  }, []);
+  const shownChips = fits === null ? picked : picked.slice(0, fits);
+  const hiddenChips = picked.slice(shownChips.length);
 
   const handleOpenChange = (next) => {
     setOpen(next);
@@ -27,7 +66,10 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Anchor asChild>
         <div
-          ref={anchorRef}
+          ref={(node) => {
+            anchorRef.current = node;
+            fieldRef.current = node;
+          }}
           role="button"
           tabIndex={0}
           aria-haspopup="dialog"
@@ -41,7 +83,7 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
           }}
           className={cn(
             inputClass,
-            "relative flex h-auto min-h-9 cursor-pointer flex-wrap items-center gap-1 py-[3px] pl-[5px] pr-16 hover:border-[#93c5fd]",
+            "relative flex h-auto min-h-9 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden py-[3px] pl-[5px] pr-16 hover:border-[#93c5fd]",
             "@min-[900px]/main:@max-[1099px]/main:min-h-8 modal-compact:min-h-[30px] modal-tiny:min-h-7",
             open && openFieldClass
           )}
@@ -49,11 +91,8 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
           {picked.length === 0 ? (
             <span className="pl-1.5 text-dash-faint">{placeholder}</span>
           ) : (
-            picked.map((it) => (
-              <span
-                key={it.value}
-                className="inline-flex h-[26px] items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 text-[12px] font-extrabold text-brand-navy modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]"
-              >
+            shownChips.map((it) => (
+              <span key={it.value} className={chipClass}>
                 {it.label}
                 <button
                   type="button"
@@ -69,6 +108,23 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
               </span>
             ))
           )}
+          {hiddenChips.length > 0 && (
+            <span className={moreChipClass} title={hiddenChips.map((it) => it.label).join(", ")}>
+              +{hiddenChips.length}
+            </span>
+          )}
+          {/* Invisible copy of every chip (+ the "+N" chip), only there to measure how many fit. */}
+          <span ref={measureRef} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex gap-1 whitespace-nowrap">
+            {picked.map((it) => (
+              <span key={it.value} data-chip className={chipClass}>
+                {it.label}
+                <span className="size-4" />
+              </span>
+            ))}
+            <span data-more className={moreChipClass}>
+              +{picked.length}
+            </span>
+          </span>
           <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[11px] font-bold text-[#8a96a8]">
             {selected.size}/{items.length}
             <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180 text-[#3b82f6]")} strokeWidth={2.4} />

@@ -8,7 +8,8 @@ import { inputClass, openFieldClass } from "./fields.jsx";
 
 // Selected day / month / year: the modal's blue gradient (same as Save), not the Dashboard's lighter one.
 const activeClass = "bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]";
-const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-semibold transition-colors";
+// Short laptops (modal-short, <= 700px high) get a smaller calendar: 216 wide with 26px days instead of 260 wide with 28px days.
+const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-semibold transition-colors modal-short:py-1.5 modal-short:text-[11.5px]";
 
 /**
  * Single-date field: a plain input-style box (yyyy-mm-dd + calendar icon) that opens the
@@ -52,9 +53,9 @@ export default function DateField({ value, onChange, placeholder = "Select date"
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-2.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className="z-50 max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-2.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)] modal-short:min-w-[216px] modal-short:p-2"
         >
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between modal-short:mb-1">
             <NavButton onClick={() => step(-1)} label="Previous">
               <ChevronLeft className="size-4" strokeWidth={2.4} />
             </NavButton>
@@ -72,9 +73,9 @@ export default function DateField({ value, onChange, placeholder = "Select date"
           </div>
 
           {view === "day" && (
-            <div className="grid grid-cols-7 gap-y-1.5 text-center">
+            <div className="grid grid-cols-7 gap-y-1.5 text-center modal-short:gap-y-0.5">
               {WEEKDAYS.map((d) => (
-                <span key={d} className="pb-0.5 text-[10.5px] font-semibold text-dash-sub">
+                <span key={d} className="pb-0.5 text-[10.5px] font-semibold text-dash-sub modal-short:pb-0 modal-short:text-[10px]">
                   {d}
                 </span>
               ))}
@@ -91,7 +92,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
                         setOpen(false);
                       }}
                       className={cn(
-                        "flex size-7 cursor-pointer items-center justify-center rounded-lg border-none text-[12px] font-semibold tabular-nums transition-colors",
+                        "flex size-7 cursor-pointer items-center justify-center rounded-lg border-none text-[12px] font-semibold tabular-nums transition-colors modal-short:size-[26px] modal-short:text-[11.5px]",
                         selected
                           ? activeClass
                           : outside
@@ -110,7 +111,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
           )}
 
           {view === "month" && (
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5 modal-short:gap-1">
               {MONTHS.map((label, i) => (
                 <button
                   key={label}
@@ -128,7 +129,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
           )}
 
           {view === "year" && (
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5 modal-short:gap-1">
               {Array.from({ length: 12 }, (_, i) => Math.floor(year / 12) * 12 + i).map((y) => (
                 <button
                   key={y}
@@ -155,7 +156,7 @@ function NavButton({ label, children, ...props }) {
     <button
       type="button"
       aria-label={label}
-      className="flex size-6 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[#1e3a6e] hover:bg-slate-100"
+      className="flex size-6 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[#1e3a6e] hover:bg-slate-100 modal-short:size-[22px]"
       {...props}
     >
       {children}
@@ -169,7 +170,7 @@ function HeadButton({ active, divider, idleClass = "text-[#1e3a6e]", children, .
     <button
       type="button"
       className={cn(
-        "flex cursor-pointer items-center gap-1 border-0 px-2 py-[5px] text-[12px] font-bold transition-colors",
+        "flex cursor-pointer items-center gap-1 border-0 px-2 py-[5px] text-[12px] font-bold transition-colors modal-short:px-[7px] modal-short:py-[3px] modal-short:text-[11.5px]",
         divider && "border-l border-dash-line",
         active ? activeClass : cn("bg-white hover:bg-slate-50", idleClass)
       )}

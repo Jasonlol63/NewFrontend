@@ -41,11 +41,10 @@ function ListLink({ muted, className, ...props }) {
 }
 
 // boxed: rows on the glass card (Company box) get a light frame; in the white popup they stay flat.
-// tiles: a grid of small tiles with the label only (the hint is the tooltip, the tag a blue dot), for a narrow card.
-export function CheckRows({ items, selected, onToggle, boxed, tiles, className }) {
+export function CheckRows({ items, selected, onToggle, boxed, className }) {
   if (items.length === 0) return <div className="py-4 text-center text-[12px] text-dash-faint">No matches</div>;
   return (
-    <div className={cn(tiles ? "grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] content-start gap-[5px] modal-tiny:gap-1" : "flex flex-col gap-0.5", className)}>
+    <div className={cn("flex flex-col gap-0.5", className)}>
       {items.map((it) => {
         const on = selected.has(it.value);
         return (
@@ -54,13 +53,9 @@ export function CheckRows({ items, selected, onToggle, boxed, tiles, className }
             type="button"
             role="checkbox"
             aria-checked={on}
-            title={tiles ? [it.label, it.hint].filter(Boolean).join(" · ") : undefined}
             onClick={() => onToggle(it.value)}
             className={cn(
-              "flex w-full flex-none cursor-pointer items-center rounded-[9px] border text-left text-[13px] transition-colors",
-              tiles
-                ? "min-h-9 gap-2 px-2 modal-compact:min-h-8 modal-short:min-h-[30px] modal-tiny:min-h-7"
-                : "min-h-[34px] gap-2.5 px-2.5 modal-tiny:min-h-[30px]",
+              "flex min-h-[34px] w-full flex-none cursor-pointer items-center gap-2.5 rounded-[9px] border px-2.5 text-left text-[13px] transition-colors modal-tiny:min-h-[30px]",
               on
                 ? "border-[#bfd8ff] bg-row-stripe"
                 : boxed
@@ -76,18 +71,15 @@ export function CheckRows({ items, selected, onToggle, boxed, tiles, className }
             >
               {on && <Check className="size-2.5" strokeWidth={4} />}
             </span>
-            <span className={cn("min-w-0 flex-none font-extrabold", it.hint && !tiles ? "w-[72px] truncate" : "flex-1 truncate", on ? "text-brand-navy" : "text-[#374151]")}>
+            <span className={cn("min-w-0 flex-none font-extrabold", it.hint ? "w-[72px] truncate" : "flex-1 truncate", on ? "text-brand-navy" : "text-[#374151]")}>
               {it.label}
             </span>
-            {it.hint && !tiles && <span className="min-w-0 flex-1 truncate text-[#64748b]">{it.hint}</span>}
-            {it.tag &&
-              (tiles ? (
-                <span aria-label={it.tag} className="size-2 flex-none rounded-full bg-[#1d7bff]" />
-              ) : (
-                <span className="ml-auto flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">
-                  {it.tag}
-                </span>
-              ))}
+            {it.hint && <span className="min-w-0 flex-1 truncate text-[#64748b]">{it.hint}</span>}
+            {it.tag && (
+              <span className="ml-auto flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">
+                {it.tag}
+              </span>
+            )}
           </button>
         );
       })}
