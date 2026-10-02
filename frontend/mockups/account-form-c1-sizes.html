@@ -238,6 +238,19 @@
   .co-tools { display: flex; align-items: center; gap: 6px; flex: none; padding: 10px var(--cp); border-bottom: 1px solid var(--divider); }
   .co-tools .mini-search { background: var(--input); border-color: var(--input-line); }
   .card.co .opts { padding: 8px; }
+  /* 2 columns, 4 boxes (below 1440): Currency takes its content height, Company takes the rest and its list scrolls inside */
+  .body.cbox .card.cur { flex: 0 0 auto; min-height: 0; }
+  .body.cbox .card.co { flex: 1 1 0; min-height: 150px; }
+  /* ...so both are compact: 4 smaller currency tiles per row, company codes as tiles (the current company is the blue dot) */
+  .body.cbox .ctiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
+  .body.cbox .ctile { height: 32px; padding: 0 28px 0 10px; font-size: calc(12.5px * var(--k)); }
+  .body.cbox .ctile .k, .body.cbox .ctile .x { right: 8px; }
+  .body.cbox .card.co .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; align-content: start; padding: 8px; }
+  .body.cbox .card.co .opt { min-height: 30px; padding: 0 8px; gap: 7px; }
+  .body.cbox .card.co .opt b { width: auto; flex: 1; }
+  .body.cbox .card.co .opt .nm { display: none; }
+  .body.cbox .card.co .opt .tag { flex: none; width: 8px; height: 8px; padding: 0; border-radius: 99px; background: #1d7bff; font-size: 0; letter-spacing: 0; }
+  @media (max-height: 600px) { .body.cbox .ctile { height: 30px; } .body.cbox .ctiles { margin-top: 6px; } .body.cbox .co-tools { padding-top: 6px; padding-bottom: 6px; } .body.cbox .card.co .opts { padding: 6px; gap: 4px; } .body.cbox .card.co .opt { min-height: 28px; } }
   .card.co .opt { min-height: var(--in); background: rgba(255,255,255,.35); border-color: rgba(255,255,255,.55); }
   .card.co .opt:hover { background: rgba(255,255,255,.75); }
   .card.co .opt.on { background: var(--stripe); border-color: #bfd8ff; }
@@ -312,7 +325,8 @@
     .col { display: contents; }
     .card, .card.info, .card.cur, .card.alert { flex: none; min-height: 0; overflow: visible; }
     .card-b { overflow: visible; }
-    .card.info { order: 1; } .card.alert { order: 2; } .card.cur { order: 3; }
+    .body.cbox .card.cur, .body.cbox .card.co { flex: none; }
+    .card.info { order: 1; } .card.alert { order: 2; } .card.cur { order: 3; } .card.co { order: 4; flex: none; } .card.co .opts { overflow: visible; }
   }
   /* ---- Smaller Payment Alert (options A / B) ---- */
   /* One thin segmented bar instead of four big buttons. */
@@ -446,7 +460,7 @@
   const H = location.hash + " " + (window.name || "");
   const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "auto";   // auto: the 1-31 grid sits in the card; on short screens Custom opens the inline picker instead
   const S = {
-    pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, swap: true,
+    pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] !== "off", swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
@@ -459,6 +473,8 @@
   const edit = () => S.mode === "edit";
   const WIDE = 1440;   // >= 1440px wide: Company gets its own box (3 columns); below that it is a dropdown field
   const wide = () => innerWidth >= (window.WIDE_MIN || WIDE);
+  // Company as its own box: always on large screens; below 1440 only when S.cbox (default), otherwise a dropdown field in Account Information
+  const cboxOn = () => wide() || S.cbox;
 
   /* ---- date helpers ---- */
   const pDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -480,7 +496,7 @@
         <div class="f"><span class="l">Password ${e ? "<em>(opt.)</em>" : "<i>*</i>"}</span><div class="in ${e ? "ph" : ""}"><span class="grow">${e ? "Keep current" : ""}</span>${EYE}</div></div>
         <div class="f full remark"><span class="l">Remark <em>(opt.)</em></span><div class="in">${e ? "Main settlement account" : ""}</div>
           </div>
-        ${wide() ? "" : `<div class="f full"><span class="l">Company <i>*</i></span>
+        ${cboxOn() ? "" : `<div class="f full"><span class="l">Company <i>*</i></span>
           <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField">${toks}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div>`}
       </div></div></section>`;
   }
@@ -650,9 +666,10 @@
     // If Payment Alert would have to scroll, this is a short screen (S.short): "stepper" then swaps Custom for its own control.
     // "picker" and "popup" work the same on every screen size.
     const mount = () => {
-      $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "");
+      const cb = !w &amp;&amp; S.cbox;   // 2 columns with 4 boxes: [Account Information + Payment Alert] | [Currency + Company]
+      $("body").className = "body" + (w ? " wide" : "") + (S.swap ? " swap" : "") + (cb ? " cbox" : "");
       const left = S.swap ? info() + alert() : info() + currency();
-      const right = S.swap ? currency() : alert();
+      const right = S.swap ? currency() + (cb ? companyCard() : "") : alert() + (cb ? companyCard() : "");
       $("body").innerHTML = `<div class="col">${left}</div><div class="col">${right}</div>${w ? `<div class="col">${companyCard()}</div>` : ""}`;
     };
     const saved = { on: S.alertOn, pc: S.pcustom }, savedPicking = S.picking;
@@ -670,13 +687,13 @@
     S.tight = S.sv === "picker" || (S.short &amp;&amp; (S.sv === "stepper" || S.sv === "auto"));
     S.picking = savedPicking &amp;&amp; S.tight;
     mount();
-    if (w) S.pop = false;
+    if (cboxOn()) S.pop = false;
     document.querySelectorAll(".portal").forEach((p) => p.remove());
     if (S.pop) document.body.insertAdjacentHTML("beforeend", companyPop());
     if (S.dpOpen &amp;&amp; S.alertOn) document.body.insertAdjacentHTML("beforeend", datePop());
     if (S.cuOpen &amp;&amp; S.alertOn &amp;&amp; popMode()) document.body.insertAdjacentHTML("beforeend", customPop());
     placePopups();
-    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><i style="width:8px;display:inline-block"></i>${[["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
+    $("demo").innerHTML = [["current", "Current"], ["compact", "A · Compact"], ["popup", "B · Popup"]].map(([k, l]) => `<button data-act="pa" data-v="${k}" class="${S.pa === k ? "on" : ""}">${l}</button>`).join("") + `<i style="width:8px;display:inline-block"></i><button data-act="swap" class="${S.swap ? "on" : ""}">Swap: Alert under Info</button><button data-act="cbox" class="${S.cbox ? "on" : ""}">Company: box on every size</button><i style="width:8px;display:inline-block"></i>${[["auto", "Custom: Auto"], ["inline", "Custom: Inline"], ["popup", "Custom: Popup"], ["picker", "Custom: Picker"], ["stepper", "Custom: Stepper"]].map(([k, l]) => `<button data-act="sv" data-v="${k}" class="${S.sv === k ? "on" : ""}">${l}</button>`).join("")}<i style="width:8px;display:inline-block"></i>` + `<button data-act="mode" data-v="add" class="${S.mode === "add" ? "on" : ""}">Add</button><button data-act="mode" data-v="edit" class="${S.mode === "edit" ? "on" : ""}">Edit</button>`;
   }
 
   // Re-render on resize: the Company field/box breakpoint and the inline/popup Custom grid both depend on the size.
@@ -718,6 +735,7 @@
       case "cpop": S.cuOpen = !S.cuOpen; S.pcustom = true; if (typeof S.pv !== "number") S.pv = 30; break;
       case "pa": S.pa = v; S.cuOpen = false; break;
       case "swap": S.swap = !S.swap; break;
+      case "cbox": S.cbox = !S.cbox; break;
       case "sv": S.sv = v; break;
       case "dp": S.dpOpen = !S.dpOpen; { const d = pDate(S.start); S.dpY = d.getFullYear(); S.dpM = d.getMonth(); S.dpView = "day"; } break;
       case "dpset": S.start = v; S.dpOpen = false; break;
@@ -746,16 +764,17 @@
 </textarea>
 <script>
   const SIZES = [[1280, 560, "1366 laptop (small)"], [1366, 610, "1366 laptop"], [1536, 730, "1920 @125%"], [1440, 760, "Common monitor"], [1600, 800, "Common monitor"], [1920, 950, "Large"], [1180, 820, "Tablet landscape"], [1024, 768, "Tablet landscape"], [820, 1180, "Tablet portrait"], [768, 1024, "Tablet portrait"]];
-  const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (1280 / 1366)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
+  const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (dropdown option only)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
-  let size = 0, state = "custom", sv = "auto";
+  let size = 0, state = "custom", sv = "auto", cb = "on";
+const CBS = [["on", "Company box on every size (4 boxes)"], ["off", "Company dropdown below 1440"]];
 const SVS = [["auto", "Grid on large screens, picker on small"], ["picker", "Picker on every size"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
-    document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Custom days:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("");
+    document.getElementById("bar").innerHTML = "State:" + STATES.map(([k, l]) => `<button data-s="${k}" class="${k === state ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Custom days:' + SVS.map(([k, l]) => `<button data-sv="${k}" class="${k === sv ? "on" : ""}">${l}</button>`).join("") + '<span class="gap"></span>Company:' + CBS.map(([k, l]) => `<button data-cb="${k}" class="${k === cb ? "on" : ""}">${l}</button>`).join("");
     const [w, h] = SIZES[size];
     const grid = document.getElementById("grid");
-    grid.innerHTML = `<div class="frame" data-w="${w}" data-h="${h}"><iframe name="embed ${state} sv:${sv}" width="${w}" height="${h}"></iframe></div>`;
+    grid.innerHTML = `<div class="frame" data-w="${w}" data-h="${h}"><iframe name="embed ${state} sv:${sv} cbox:${cb}" width="${w}" height="${h}"></iframe></div>`;
     grid.querySelector("iframe").srcdoc = src;
     fit();
   }
@@ -772,7 +791,7 @@ const SVS = [["auto", "Grid on large screens, picker on small"], ["picker", "Pic
     fr.querySelector("iframe").style.transform = `scale(${s})`;
   }
   document.getElementById("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) { size = +b.dataset.i; build(); } });
-  document.getElementById("bar").addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (b) { state = b.dataset.s; build(); return; } const v = e.target.closest("[data-sv]"); if (v) { sv = v.dataset.sv; build(); } });
+  document.getElementById("bar").addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (b) { state = b.dataset.s; build(); return; } const v = e.target.closest("[data-sv]"); if (v) { sv = v.dataset.sv; build(); return; } const c = e.target.closest("[data-cb]"); if (c) { cb = c.dataset.cb; build(); } });
   addEventListener("resize", fit);
   build();
 </script>
