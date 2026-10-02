@@ -18,6 +18,7 @@ const EMPTY_FORM = { loginId: "", password: "", secondaryPassword: "", name: "",
 // The optional 2nd Password field is shown for every user of this company, and for the Owner
 // in any company (Edit User on the Owner row). Group views never show it otherwise.
 const SECOND_PASSWORD_COMPANY = "C168";
+const SECOND_PASSWORD_LENGTH = 6;
 
 /**
  * Add User / Edit User: the same modal, only the title (and header icon) changes.
@@ -56,6 +57,10 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setRole = (role) => setForm((f) => ({ ...f, role }));
+  // Same format as the login secondary password: digits only, at most 6 (extra input is dropped).
+  // No maxLength on the input: it would cut a pasted "12-34 56" before the non-digits are removed.
+  const setSecondaryPassword = (e) =>
+    setForm((f) => ({ ...f, secondaryPassword: e.target.value.replace(/\D/g, "").slice(0, SECOND_PASSWORD_LENGTH) }));
   const togglePerm = (key) =>
     setPerms((prev) => {
       const next = new Set(prev);
@@ -126,6 +131,7 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
               form={form}
               setField={setField}
               setRole={setRole}
+              setSecondaryPassword={setSecondaryPassword}
               showSecondPassword={showSecondPassword}
               readOnly={readOnly}
               onToggleReadOnly={() => setReadOnly((v) => !v)}
@@ -155,7 +161,7 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
   );
 }
 
-function UserInfoCard({ form, setField, setRole, showSecondPassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
+function UserInfoCard({ form, setField, setRole, setSecondaryPassword, showSecondPassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", "@max-[899px]/main:col-span-full")}>
       <div
@@ -194,7 +200,11 @@ function UserInfoCard({ form, setField, setRole, showSecondPassword, readOnly, o
           </Field>
           {showSecondPassword && (
             <Field label="2nd Password" optional>
-              <PasswordInput value={form.secondaryPassword} onChange={setField("secondaryPassword")} />
+              <PasswordInput
+                value={form.secondaryPassword}
+                onChange={setSecondaryPassword}
+                inputMode="numeric"
+              />
             </Field>
           )}
           <Field label="Role" className="col-span-2 @min-[560px]/info:col-span-1">
@@ -367,11 +377,18 @@ function Field({ label, optional, className, children }) {
 }
 
 // Password box with its own show / hide eye.
-function PasswordInput({ value, onChange }) {
+function PasswordInput({ value, onChange, ...props }) {
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
-      <TextInput type={visible ? "text" : "password"} value={value} onChange={onChange} autoComplete="new-password" className="pr-9" />
+      <TextInput
+        type={visible ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        autoComplete="new-password"
+        className="pr-9"
+        {...props}
+      />
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
