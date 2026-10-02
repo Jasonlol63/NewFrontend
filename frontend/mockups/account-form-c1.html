@@ -351,7 +351,7 @@
   // URL hash lets the size preview open a given state: #embed, #edit, #custom, #company, #date, #delete
   const H = location.hash + " " + (window.name || "");
   const S = {
-    pa: "compact", cuOpen: false, swap: true,
+    pa: "current", cuOpen: false, swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
