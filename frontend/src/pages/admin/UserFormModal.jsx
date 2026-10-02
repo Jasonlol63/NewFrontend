@@ -13,26 +13,32 @@ import { MOCK_ACCOUNTS, MOCK_PROCESSES } from "./addUserMockData";
 // Height tiers use the modal-compact / modal-tiny / modal-tall variants from index.css.
 // Class names are written out in full so Tailwind can see them.
 
-const EMPTY_FORM = { loginId: "", password: "", name: "", role: "", email: "" };
+const EMPTY_FORM = { loginId: "", password: "", secondaryPassword: "", name: "", role: "", email: "" };
+
+// The optional 2nd Password field is shown for every user of this company, and for the Owner
+// in any company (Edit User on the Owner row). Group views never show it otherwise.
+const SECOND_PASSWORD_COMPANY = "C168";
 
 /**
  * Add User / Edit User: the same modal, only the title (and header icon) changes.
  * Fills the content area (the sidebar stays visible), Admin page blurred behind.
  * Mount it only while open so every opening starts from its initial values.
  * mode: "add" | "edit"; user: the list row being edited (edit mode).
+ * companyCode: the company picked on the Admin page (null when a Group itself is picked).
  * UI only for now: accounts / processes are placeholder rows and Save just hands the draft
  * back through onSave.
  */
-export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
+export default function UserFormModal({ mode = "add", user, companyCode, onClose, onSave }) {
   const isEdit = mode === "edit";
   const title = isEdit ? "Edit User" : "Add User";
   const HeaderIcon = isEdit ? UserPen : UserPlus;
+  const showSecondPassword =
+    String(companyCode ?? "").toUpperCase() === SECOND_PASSWORD_COMPANY || (isEdit && user?.role === "owner");
   const [form, setForm] = useState(() =>
     isEdit && user
       ? { ...EMPTY_FORM, loginId: user.loginId ?? "", name: user.name ?? "", email: user.email ?? "", role: user.role ?? "" }
       : EMPTY_FORM
   );
-  const [showPassword, setShowPassword] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [perms, setPerms] = useState(() => new Set());
   // New users get every account and process by default; the admin unticks what they shouldn't see.
@@ -58,14 +64,19 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
       return next;
     });
 
-  const save = () =>
+  // The 2nd Password is optional: only sent when the field is shown and filled in
+  // (left blank in Edit User = keep the current one).
+  const save = () => {
+    const { secondaryPassword, ...rest } = form;
     onSave?.({
-      ...form,
+      ...rest,
+      ...(showSecondPassword && secondaryPassword ? { secondaryPassword } : {}),
       readOnly,
       permissions: [...perms],
       accountIds: [...accounts],
       processIds: [...processes],
     });
+  };
 
   return (
     <MainOverlay>
@@ -115,8 +126,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
               form={form}
               setField={setField}
               setRole={setRole}
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((v) => !v)}
+              showSecondPassword={showSecondPassword}
               readOnly={readOnly}
               onToggleReadOnly={() => setReadOnly((v) => !v)}
               perms={perms}
@@ -145,7 +155,7 @@ export default function UserFormModal({ mode = "add", user, onClose, onSave }) {
   );
 }
 
-function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
+function UserInfoCard({ form, setField, setRole, showSecondPassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", "@max-[899px]/main:col-span-full")}>
       <div
@@ -178,29 +188,19 @@ function UserInfoCard({ form, setField, setRole, showPassword, onTogglePassword,
           <Field label="Name">
             <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
           </Field>
-          <Field label="Password" className="col-span-2 @min-[560px]/info:col-span-1">
-            <div className="relative">
-              <TextInput
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={setField("password")}
-                autoComplete="new-password"
-                className="pr-9"
-              />
-              <button
-                type="button"
-                onClick={onTogglePassword}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-1.5 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-1 text-dash-faint hover:text-[#64748b]"
-              >
-                {showPassword ? <EyeOff className="size-4" strokeWidth={2} /> : <Eye className="size-4" strokeWidth={2} />}
-              </button>
-            </div>
+          {/* With the 2nd Password, Password | 2nd Password share a row (3 columns: it moves next to Role). */}
+          <Field label="Password" className={showSecondPassword ? undefined : "col-span-2 @min-[560px]/info:col-span-1"}>
+            <PasswordInput value={form.password} onChange={setField("password")} />
           </Field>
+          {showSecondPassword && (
+            <Field label="2nd Password" optional>
+              <PasswordInput value={form.secondaryPassword} onChange={setField("secondaryPassword")} />
+            </Field>
+          )}
           <Field label="Role" className="col-span-2 @min-[560px]/info:col-span-1">
             <RoleSelect value={form.role} onChange={setRole} />
           </Field>
-          <Field label="Email" className="col-span-2">
+          <Field label="Email" className={showSecondPassword ? "col-span-2 @min-[560px]/info:col-span-1" : "col-span-2"}>
             <TextInput type="email" inputMode="email" value={form.email} onChange={setField("email")} autoComplete="off" />
           </Field>
         </div>
@@ -348,14 +348,39 @@ function TextInput({ className, ...props }) {
   return <input className={cn(inputClass, className)} {...props} />;
 }
 
-function Field({ label, className, children }) {
+// optional: no red star, a small "(opt.)" instead. The 320px phone layout has no room for it
+// beside "2nd Password", so it's dropped there; the missing star still marks the field optional.
+function Field({ label, optional, className, children }) {
   return (
     <label className={cn("block min-w-0", className)}>
-      <span className="mb-1 ml-0.5 block text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]">
-        {label} <i className="not-italic text-[#ef4444]">*</i>
+      <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]">
+        {label}{" "}
+        {optional ? (
+          <span className="text-[10px] font-medium text-[#8a96a8] @max-[219px]/info:hidden">(opt.)</span>
+        ) : (
+          <i className="not-italic text-[#ef4444]">*</i>
+        )}
       </span>
       {children}
     </label>
+  );
+}
+
+// Password box with its own show / hide eye.
+function PasswordInput({ value, onChange }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <TextInput type={visible ? "text" : "password"} value={value} onChange={onChange} autoComplete="new-password" className="pr-9" />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        className="absolute right-1.5 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-1 text-dash-faint hover:text-[#64748b]"
+      >
+        {visible ? <EyeOff className="size-4" strokeWidth={2} /> : <Eye className="size-4" strokeWidth={2} />}
+      </button>
+    </div>
   );
 }
 

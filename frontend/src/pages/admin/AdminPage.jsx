@@ -112,7 +112,15 @@ export default function AdminPage() {
       {actions.dialogs}
 
       {/* Add User and Edit User share one modal. UI only for now: Save just closes it until the API is wired up. */}
-      {userForm && <UserFormModal mode={userForm.mode} user={userForm.user} onClose={closeUserForm} onSave={closeUserForm} />}
+      {userForm && (
+        <UserFormModal
+          mode={userForm.mode}
+          user={userForm.user}
+          companyCode={scope.company}
+          onClose={closeUserForm}
+          onSave={closeUserForm}
+        />
+      )}
     </div>
   );
 }
