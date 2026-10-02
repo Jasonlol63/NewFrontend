@@ -73,20 +73,21 @@
     --title: 26px;
     --hicon: 40px;
     --btn: 38px;
-    --mday: 28px;       /* custom day cell (compact grid): height / min width */
+    --mday: 27px;       /* custom day cell (compact grid): height / min width */
     --mday-w: 40px;
+    --bell: 22px;       /* bell badge in the reminder summary */
     --k: 1;             /* text scale: every font size in the modal is written as N px × --k (never under 10px) */
   }
   @media (max-height: 760px), (max-width: 1100px) {
     :root { --m: 10px; --pad: 12px; --gap: 10px; --cp: 12px; --ch: 42px; --in: 32px; --fg: 9px; --lbl: 12px;
-      --pick: 36px; --day: 27px; --tile: 36px; --title: 21px; --hicon: 32px; --btn: 32px; --k: .96; --mday: 26px; --mday-w: 38px; }
+      --pick: 36px; --day: 27px; --tile: 36px; --title: 21px; --hicon: 32px; --btn: 32px; --k: .96; --mday: 26px; --mday-w: 38px; --bell: 21px; }
   }
   @media (max-height: 640px) {
     :root { --fg: 8px; --day: 25px; --tile: 34px; --pick: 32px; --ch: 40px; --in: 30px; --mday: 24px; --mday-w: 36px; }
   }
   @media (max-height: 600px) {
     :root { --m: 8px; --pad: 10px; --gap: 8px; --cp: 10px; --ch: 38px; --in: 30px; --fg: 7px; --lbl: 11.5px;
-      --pick: 32px; --day: 24px; --tile: 32px; --title: 19px; --hicon: 28px; --btn: 30px; --k: .92; --mday: 23px; --mday-w: 34px; }
+      --pick: 32px; --day: 24px; --tile: 32px; --title: 19px; --hicon: 28px; --btn: 30px; --k: .92; --mday: 23px; --mday-w: 34px; --bell: 19px; }
   }
 
   * { box-sizing: border-box; }
@@ -327,8 +328,8 @@
   .pseg b.on { background: var(--sweep); color: #fff; box-shadow: var(--sel-shadow); }
   /* Small day grid: 31 numbers, 7 per row, fixed-size cells (they don't stretch with the card). */
   /* Custom day grid: boxed like a field group; the cells stretch to fill the row so the box has no ragged right edge. */
-  .mgrid-wrap { margin-top: 8px; padding: 8px 10px 10px; border-radius: 12px; border: 1px dashed var(--off-line); background: rgba(255,255,255,.3); }
-  .mgrid-h { margin: 0 0 6px 1px; font-size: calc(12px * var(--k)); font-weight: 700; color: #475569; }
+  .mgrid-wrap { margin-top: 6px; padding: 6px 8px 8px; border-radius: 12px; border: 1px dashed var(--off-line); background: rgba(255,255,255,.3); }
+  .mgrid-h { margin: 0 0 4px 1px; font-size: calc(12px * var(--k)); font-weight: 700; color: #475569; }
   /* "Alert Type *" on the same line as its bar (saves a row). */
   .trow { display: flex; align-items: center; gap: 10px; }
   .trow .l { flex: none; margin: 0; font-size: var(--lbl); font-weight: 600; color: #374151; white-space: nowrap; }
@@ -347,8 +348,16 @@
   .cu-pop .mdays b { height: 28px; background: #f8fafc; border-color: #e5e7eb; }
   .cu-pop .mdays b.on { background: var(--sweep); color: #fff; border-color: transparent; box-shadow: var(--sel-shadow); }
   /* One-line summary: no box, small date chips. */
-  .sline { margin-top: 5px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: calc(12px * var(--k)); color: #475569; }
-  .sline svg { color: #1d7bff; width: 14px; height: 14px; }
+  /* Reminder summary: a light blue strip led by a solid blue bell badge, so it reads as "this is when you'll be reminded". */
+  .card.alert { container-type: inline-size; }
+  .card.alert .card-b { padding-bottom: calc(var(--cp) - 4px); }
+  .sline { margin-top: min(var(--fg), 9px); padding: 2px 10px 2px 3px; border-radius: 10px; background: var(--stripe); border: 1px solid #bfd8ff;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: calc(12.5px * var(--k)); color: #475569; }
+  .sline .bell { flex: none; width: var(--bell); height: var(--bell); border-radius: 99px; display: grid; place-items: center;
+    background: var(--sweep); color: #fff; box-shadow: var(--sel-shadow); }
+  /* Narrow card: 3 upcoming dates instead of 4 so the strip stays on one line. */
+  @container (max-width: 440px) { .sline .dots span:nth-child(4) { display: none; } }
+  .sline .bell svg { width: calc(var(--bell) - 10px); height: calc(var(--bell) - 10px); }
   .sline b { color: var(--navy); font-weight: 700; }
   .sline .dots { display: inline-flex; flex-wrap: wrap; gap: 4px; }
   .sline .dots span { height: 18px; padding: 0 5px; border-radius: 6px; background: rgba(255,255,255,.7); border: 1px solid rgba(130,155,195,.25); font-size: max(10px, calc(10.5px * var(--k))); font-weight: 700; color: #334155; display: inline-flex; align-items: center; }
@@ -538,7 +547,7 @@
         <div class="f"><span class="l">Start Date <i>*</i></span><div class="in dp-in ${S.dpOpen ? "open" : ""}" data-act="dp" id="dpField"><span class="grow">${S.start}</span>${CAL}</div></div>
         <div class="f"><span class="l">Alert (Amount) <em>(opt.)</em></span><div class="in">-5,000.00</div></div>
       </div>
-      <div class="sline">${BELL}<b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span></div>`;
+      <div class="sline"><span class="bell">${BELL}</span><b>${label(S.pv)}</b><span class="dots">${dates}<i>…</i></span></div>`;
   }
   const customPop = () => `<div class="portal cu-pop" data-anchor="cuField" data-minw="250"><div class="cu-h">Remind every … days</div>${miniGrid()}</div>`;
 
