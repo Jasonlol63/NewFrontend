@@ -377,6 +377,17 @@
   .mgrid-wrap.dir .mgrid-h { margin-bottom: 4px; line-height: 15px; }
   .mgrid-wrap.dir .mdays { grid-template-columns: repeat(auto-fill, 30px); justify-content: space-between; gap: 4px; }
   .mgrid-wrap.dir .mdays b { width: 30px; height: 30px; border-radius: 7px; font-size: 12.5px; }
+  /* Short laptops (<= 700px high) with Company as a dropdown (below 1440): make room for all 31 days without a popup.
+     1) Company moves into row 2 of Account Information (Password | Remark | Company), one row less;
+        only the first company chip is shown there, the count says how many are picked.
+     2) the day cells stay 30 x 30 but sit 3px apart, so 31 days fit in 2 rows (1-16, 17-31) instead of 3. */
+  @media (max-height: 700px) {
+    .body:not(.cbox):not(.wide) .info .remark { grid-column: auto; }
+    .body:not(.cbox):not(.wide) .info .f.cdd.full { grid-column: auto; }
+    .body:not(.cbox):not(.wide) .info .multi { flex-wrap: nowrap; overflow: hidden; }
+    .body:not(.cbox):not(.wide) .info .multi .tok:nth-child(n+2) { display: none; }
+    .mgrid-wrap.dir .mdays { gap: 3px; }
+  }
   /* order: Start Date / Amount, then Alert Type, then the day grid */
   .trow.rev { margin-top: var(--fg); }
   @media (max-height: 640px) { .trow.rev { margin-top: 5px; } }
@@ -486,7 +497,7 @@
   const H = location.hash + " " + (window.name || "");
   const SV0 = (H.match(/sv:(\w+)/) || [])[1] || "direct";   // direct: the 1-31 grid always sits in the card, same cell size on every screen, no summary strip
   const S = {
-    pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] !== "off", swap: true,
+    pa: "compact", cuOpen: SV0 === "popup" &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), picking: (SV0 === "picker" || SV0 === "auto") &amp;&amp; H.includes("custom") &amp;&amp; !H.includes("date"), tight: false, short: false, sv: SV0, cbox: (H.match(/cbox:(\w+)/) || [])[1] === "on", swap: true,
     mode: H.includes("edit") ? "edit" : "add", alertOn: true,
     pv: H.includes("custom") ? 30 : 7, pcustom: H.includes("custom"), start: "2026-10-01",
     del: H.includes("delete"), coQ: "", pop: H.includes("company"), dpOpen: H.includes("date"), dpView: "day", dpY: 2026, dpM: 9,
@@ -522,7 +533,7 @@
         <div class="f"><span class="l">Password ${e ? "<em>(opt.)</em>" : "<i>*</i>"}</span><div class="in ${e ? "ph" : ""}"><span class="grow">${e ? "Keep current" : ""}</span>${EYE}</div></div>
         <div class="f full remark"><span class="l">Remark <em>(opt.)</em></span><div class="in">${e ? "Main settlement account" : ""}</div>
           </div>
-        ${cboxOn() ? "" : `<div class="f full"><span class="l">Company <i>*</i></span>
+        ${cboxOn() ? "" : `<div class="f full cdd"><span class="l">Company <i>*</i></span>
           <div class="in multi ${S.pop ? "open" : ""}" data-act="pop" id="coField">${toks}<span class="meta">${S.coOn.size}/${COMPANIES.length}${CHEV}</span></div></div>`}
       </div></div></section>`;
   }
@@ -797,8 +808,8 @@
   const SIZES = [[1280, 560, "1366 laptop (small)"], [1366, 610, "1366 laptop"], [1536, 730, "1920 @125%"], [1440, 760, "Common monitor"], [1600, 800, "Common monitor"], [1920, 950, "Large"], [1180, 820, "Tablet landscape"], [1024, 768, "Tablet landscape"], [820, 1180, "Tablet portrait"], [768, 1024, "Tablet portrait"]];
   const STATES = [["", "Add · Weekly"], ["custom", "Custom open (tallest)"], ["edit custom", "Edit · Custom"], ["company", "Company dropdown (dropdown option only)"], ["custom date", "Date picker"], ["delete", "Currency delete"]];
   const src = document.getElementById("src").value;
-  let size = 0, state = "custom", sv = "direct", cb = "on";
-const CBS = [["on", "Company box on every size (4 boxes)"], ["off", "Company dropdown below 1440"]];
+  let size = 0, state = "custom", sv = "direct", cb = "off";
+const CBS = [["off", "Company dropdown below 1440 (compact on short laptops)"], ["on", "Company box on every size (4 boxes)"]];
 const SVS = [["direct", "Direct on every size (fields first, bigger cells when tall)"], ["auto", "Grid on large screens, picker on small"], ["picker", "Picker on every size"], ["popup", "Popup · Custom first"], ["stepper", "Stepper (short screens)"]];
   function build() {
     document.getElementById("tabs").innerHTML = SIZES.map(([w, h, n], i) => `<button data-i="${i}" class="${i === size ? "on" : ""}"><b>${w} × ${h}</b><span>${n}</span></button>`).join("");
