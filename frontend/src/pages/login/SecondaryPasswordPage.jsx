@@ -35,6 +35,8 @@ export default function SecondaryPasswordPage() {
     return <Navigate to="/login" replace />;
   }
 
+  // Digits only, at most 6. Deliberately no maxLength on the input: it would cut a pasted
+  // "12-34 56" to its first 6 characters before the non-digits are removed.
   const onChangePassword = (e) => {
     setPassword(e.target.value.replace(/\D/g, "").slice(0, 6));
   };
@@ -87,7 +89,6 @@ export default function SecondaryPasswordPage() {
                 autoFocus
                 type={showPassword ? "text" : "password"}
                 inputMode="numeric"
-                maxLength={6}
                 placeholder="Enter 6-digit password"
                 value={password}
                 onChange={onChangePassword}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, Eye, EyeOff, UserPen, UserPlus } from "lucide-react";
 import { Select } from "radix-ui";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,9 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
       : EMPTY_FORM
   );
   const [readOnly, setReadOnly] = useState(false);
+  // Set by a Save attempt with a 2nd Password of 1-5 digits; the error shows until it's fixed.
+  const [triedSave, setTriedSave] = useState(false);
+  const secondPasswordRef = useRef(null);
   const [perms, setPerms] = useState(() => new Set());
   // New users get every account and process by default; the admin unticks what they shouldn't see.
   const [accounts, setAccounts] = useState(() => new Set(MOCK_ACCOUNTS.map((a) => a.id)));
@@ -69,9 +72,18 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
       return next;
     });
 
-  // The 2nd Password is optional: only sent when the field is shown and filled in
-  // (left blank in Edit User = keep the current one).
+  // The 2nd Password is optional, but once filled it must be all 6 digits (the login checks for 6).
+  const secondPasswordIncomplete =
+    showSecondPassword && form.secondaryPassword.length > 0 && form.secondaryPassword.length < SECOND_PASSWORD_LENGTH;
+  const secondPasswordError = triedSave && secondPasswordIncomplete;
+
+  // Only sent when the field is shown and filled in (left blank in Edit User = keep the current one).
   const save = () => {
+    if (secondPasswordIncomplete) {
+      setTriedSave(true);
+      secondPasswordRef.current?.focus();
+      return;
+    }
     const { secondaryPassword, ...rest } = form;
     onSave?.({
       ...rest,
@@ -133,6 +145,8 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
               setRole={setRole}
               setSecondaryPassword={setSecondaryPassword}
               showSecondPassword={showSecondPassword}
+              secondPasswordRef={secondPasswordRef}
+              secondPasswordError={secondPasswordError}
               readOnly={readOnly}
               onToggleReadOnly={() => setReadOnly((v) => !v)}
               perms={perms}
@@ -142,7 +156,12 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
             <AccessListCard title="Process" items={MOCK_PROCESSES} selected={processes} onChange={setProcesses} />
           </div>
 
-          <footer className="flex flex-none items-center justify-end gap-2 border-t border-modal-line px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
+          <footer className="flex flex-none flex-wrap items-center justify-end gap-2 border-t border-modal-line px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
+            {secondPasswordError && (
+              <p id="second-password-error" role="alert" className="m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight text-[#dc2626] @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]">
+                2nd Password must be 6 digits
+              </p>
+            )}
             <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
               Cancel
             </SoftButton>
@@ -161,7 +180,7 @@ export default function UserFormModal({ mode = "add", user, companyCode, onClose
   );
 }
 
-function UserInfoCard({ form, setField, setRole, setSecondaryPassword, showSecondPassword, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
+function UserInfoCard({ form, setField, setRole, setSecondaryPassword, showSecondPassword, secondPasswordRef, secondPasswordError, readOnly, onToggleReadOnly, perms, onTogglePerm }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", "@max-[899px]/main:col-span-full")}>
       <div
@@ -201,9 +220,13 @@ function UserInfoCard({ form, setField, setRole, setSecondaryPassword, showSecon
           {showSecondPassword && (
             <Field label="2nd Password" optional>
               <PasswordInput
+                ref={secondPasswordRef}
                 value={form.secondaryPassword}
                 onChange={setSecondaryPassword}
                 inputMode="numeric"
+                aria-invalid={secondPasswordError || undefined}
+                aria-describedby={secondPasswordError ? "second-password-error" : undefined}
+                className={secondPasswordError ? "border-[#ef4444] focus:border-[#ef4444] focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : undefined}
               />
             </Field>
           )}
@@ -377,7 +400,7 @@ function Field({ label, optional, className, children }) {
 }
 
 // Password box with its own show / hide eye.
-function PasswordInput({ value, onChange, ...props }) {
+function PasswordInput({ value, onChange, className, ...props }) {
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -386,7 +409,7 @@ function PasswordInput({ value, onChange, ...props }) {
         value={value}
         onChange={onChange}
         autoComplete="new-password"
-        className="pr-9"
+        className={cn("pr-9", className)}
         {...props}
       />
       <button
