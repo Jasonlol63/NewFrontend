@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bell, Check, Plus, Trash2, UserPen, UserPlus, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Plus, Trash2, UserPen, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toIsoDate } from "@/lib/date";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
@@ -7,7 +7,6 @@ import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx
 import { CheckListTools, CheckRows } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
-import MultiSelectField from "@/components/shared/form-modal/MultiSelectField.jsx";
 import {
   Field,
   PasswordInput,
@@ -21,16 +20,14 @@ import {
   MOCK_CURRENCIES,
   PRESET_DAYS,
   ROLE_OPTIONS,
-  alertLabel,
-  nextReminders,
   normalizeAlertAmount,
-  shortDate,
 } from "./accountFormOptions";
 
-// Layout, from the content area width (@container/main = screen minus sidebar):
-//   >= 1210px (1440+ screens): 3 columns, Account Information + Payment Alert | Currency | Company box
-//   900-1209px: 2 columns (the left one, holding two cards, is wider), Company is a dropdown field inside Account Information
-//   < 900px (portrait tablets): one column (Account Information, Payment Alert, Currency), scrolling
+// Layout, from the content area width (@container/main = screen minus sidebar). Four boxes at every size:
+//   >= 1210px (1440+ screens): 3 columns, Account Information + Payment Alert | Currency | Company
+//   900-1209px: 2 equal columns, Account Information + Payment Alert | Currency + Company (compact tiles)
+//   < 900px (portrait tablets): one column (Account Information, Payment Alert, Currency, Company), scrolling
+// Height tiers: modal-compact <= 760, modal-short <= 700, modal-snug <= 640, modal-tiny <= 600 (see index.css).
 // Class names are written out in full so Tailwind can see them.
 
 /**
@@ -86,20 +83,23 @@ export default function AccountFormModal({ mode = "add", account, companyCode, c
       onClose={onClose}
       onSave={save}
       bodyClassName={cn(
-        "grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]",
+        "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
         "@min-[1210px]/main:grid-cols-3",
         "@max-[899px]/main:flex @max-[899px]/main:flex-col @max-[899px]/main:overflow-y-auto @max-[899px]/main:[scrollbar-width:thin]"
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <AccountInfoCard form={form} setField={setField} setForm={setForm} isEdit={isEdit} companyItems={companyItems} companies={companies} setCompanies={setCompanies} />
+        <AccountInfoCard form={form} setField={setField} setForm={setForm} isEdit={isEdit} />
         <PaymentAlertCard alert={alert} setAlert={setAlert} />
       </div>
-      <div className="flex min-h-0 min-w-0 flex-col @max-[899px]/main:contents">
+      <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
         <CurrencyCard currencies={currencies} setCurrencies={setCurrencies} picked={pickedCurrencies} setPicked={setPickedCurrencies} />
+        {/* 900-1209px: Company is the second box of this column, as compact tiles. */}
+        <CompanyCard tiles items={companyItems} selected={companies} onChange={setCompanies} className="min-h-[150px] @max-[899px]/main:hidden @min-[1210px]/main:hidden" />
       </div>
-      <div className="hidden min-h-0 min-w-0 flex-col @min-[1210px]/main:flex">
-        <CompanyCard items={companyItems} selected={companies} onChange={setCompanies} />
+      {/* 1210px and up: Company has the third column (code + name rows); on portrait tablets it joins the one-column stack the same way. */}
+      <div className="hidden min-h-0 min-w-0 flex-col @min-[1210px]/main:flex @max-[899px]/main:contents">
+        <CompanyCard items={companyItems} selected={companies} onChange={setCompanies} className="@max-[899px]/main:order-4 @max-[899px]/main:flex-none" bodyClassName="@max-[899px]/main:overflow-visible" />
       </div>
     </FormModal>
   );
@@ -110,10 +110,10 @@ const stackCard = "@max-[899px]/main:flex-none @max-[899px]/main:overflow-visibl
 const stackBody = "@max-[899px]/main:overflow-visible";
 
 // Never shrinks, so no field hides behind a scroll; Payment Alert under it takes what is left.
-function AccountInfoCard({ form, setField, setForm, isEdit, companyItems, companies, setCompanies }) {
+function AccountInfoCard({ form, setField, setForm, isEdit }) {
   return (
     <FormCard title="Account Information" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
-      {/* 3 per row (ID | Name | Role, Password | Remark, Company); 2 per row once Company has its own box. */}
+      {/* 3 per row (ID | Name | Role, Password | Remark); 2 per row in the narrower 3-column layout. */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[1210px]/main:grid-cols-2">
         <Field label="Account ID">
           <TextInput value={form.accountId} onChange={setField("accountId")} autoComplete="off" className="uppercase" />
@@ -130,9 +130,6 @@ function AccountInfoCard({ form, setField, setForm, isEdit, companyItems, compan
         </Field>
         <Field label="Remark" optional className="col-span-2 @min-[1210px]/main:col-span-full">
           <TextInput value={form.remark} onChange={setField("remark")} />
-        </Field>
-        <Field label="Company" as="div" className="col-span-full @min-[1210px]/main:hidden">
-          <MultiSelectField items={companyItems} selected={companies} onChange={setCompanies} placeholder="Choose companies" searchPlaceholder="Search company" />
         </Field>
       </div>
     </FormCard>
@@ -160,7 +157,8 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
     <FormCard
       title="Currency"
       right={<CardCount>{picked.size} selected</CardCount>}
-      className={cn("flex-1 @max-[899px]/main:order-3", stackCard)}
+      // Fills its own column in the 3-column layout; in the 2-column one it takes its content height and Company takes the rest.
+      className={cn("flex-1 @min-[900px]/main:@max-[1209px]/main:flex-none @max-[899px]/main:order-3", stackCard)}
       bodyClassName={stackBody}
     >
       {/* Code box + Create + Delete always on one row that fills the card: the box takes what the buttons leave. */}
@@ -190,7 +188,13 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
         </button>
       </div>
 
-      <div className="mt-2.5 grid max-w-[700px] grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 modal-compact:mt-2 modal-compact:gap-1.5">
+      <div
+        className={cn(
+          "mt-2.5 grid max-w-[700px] grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 modal-compact:mt-2 modal-compact:gap-1.5",
+          // 2-column layout on short laptops: Currency and Company share the column, so the tiles are smaller (4 per row)
+          "@max-[1209px]/main:modal-short:mt-2 @max-[1209px]/main:modal-short:grid-cols-[repeat(auto-fill,minmax(84px,1fr))] @max-[1209px]/main:modal-short:gap-1.5 @max-[1209px]/main:modal-tiny:mt-1.5"
+        )}
+      >
         {currencies.map((c) => {
           const on = picked.has(c);
           const removable = deleting && !on;
@@ -204,6 +208,7 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
               title={removable ? `Delete ${c}` : undefined}
               className={cn(
                 "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
+                "@max-[1209px]/main:modal-short:h-8 @max-[1209px]/main:modal-short:pl-2.5 @max-[1209px]/main:modal-short:pr-7 @max-[1209px]/main:modal-short:text-[12.5px] @max-[1209px]/main:modal-tiny:h-[30px]",
                 "disabled:cursor-not-allowed disabled:opacity-45",
                 on
                   ? "border-[#7fb2ff] bg-row-stripe text-brand-navy"
@@ -214,11 +219,11 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
             >
               {c}
               {removable ? (
-                <X className="absolute right-3 top-1/2 size-3 -translate-y-1/2 text-[#ef4444]" strokeWidth={3.2} />
+                <X className="absolute right-3 top-1/2 size-3 -translate-y-1/2 text-[#ef4444] @max-[1209px]/main:modal-short:right-2" strokeWidth={3.2} />
               ) : (
                 <span
                   className={cn(
-                    "absolute right-[11px] top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full",
+                    "absolute right-[11px] top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full @max-[1209px]/main:modal-short:right-2",
                     on ? "bg-brand-sweep text-white" : "border-[1.5px] border-[#cbd5e1]"
                   )}
                 >
@@ -237,49 +242,11 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
 function PaymentAlertCard({ alert, setAlert }) {
   const set = (patch) => setAlert((a) => ({ ...a, ...patch }));
   const custom = alert.custom || (alert.type !== "monthly" && !PRESET_DAYS.includes(alert.type));
-  const pickDay = (n) => set({ type: n, custom: true });
 
   const pick = (value) => {
     if (value === "custom") set({ custom: true, type: alert.type === "monthly" ? 30 : alert.type });
     else set({ custom: false, type: value });
   };
-
-  // Custom: the day grid goes under Alert Type; when that would make the card scroll (short screens),
-  // the grid moves to the left and Start Date / Amount / summary stack on its right ("tight").
-  // Measured before paint for each window size / content: the stacked layout is rendered first, and
-  // tightKey records the state it overflowed in; any change (new key) starts stacked again.
-  const bodyRef = useRef(null);
-  const [resizes, setResizes] = useState(0);
-  const [tightKey, setTightKey] = useState(null);
-  const layoutKey = `${resizes}|${alert.on}|${custom}|${alert.type}`;
-  const side = alert.on && custom && tightKey === layoutKey;
-  useEffect(() => {
-    const onResize = () => setResizes((n) => n + 1);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!side && alert.on && custom && el && el.scrollHeight > el.clientHeight + 1) setTightKey(layoutKey);
-  }, [side, alert.on, custom, layoutKey]);
-
-  const startDate = (short) => (
-    <Field label="Start Date" labelClassName={short && sideLabelClass}>
-      <DateField value={alert.startDate} onChange={(startDate) => set({ startDate })} className={short && sideInputClass} />
-    </Field>
-  );
-  const amount = (short) => (
-    <Field label="Alert (Amount)" optional labelClassName={short && sideLabelClass}>
-      <TextInput
-        value={alert.amount}
-        onChange={(e) => set({ amount: e.target.value })}
-        onBlur={() => set({ amount: normalizeAlertAmount(alert.amount) })}
-        inputMode="decimal"
-        placeholder="e.g. -5,000.00"
-        className={short && sideInputClass}
-      />
-    </Field>
-  );
 
   return (
     <FormCard
@@ -287,7 +254,6 @@ function PaymentAlertCard({ alert, setAlert }) {
       right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? "On" : "Off"} className="font-bold" />}
       className={cn("min-h-[140px] flex-1 @max-[899px]/main:order-2", stackCard)}
       bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5", stackBody)}
-      bodyRef={bodyRef}
     >
       {!alert.on ? (
         <div className="grid h-full min-h-20 place-items-center rounded-xl border border-dashed border-modal-off-line p-2.5 text-center text-[12.5px] text-[#8a96a8]">
@@ -306,34 +272,28 @@ function PaymentAlertCard({ alert, setAlert }) {
             <AlertTypeBar custom={custom} type={alert.type} onPick={pick} />
           </div>
 
-          {side ? (
-            <div className="mt-1 grid grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-start gap-2.5">
-              <DayGrid value={alert.type} onPick={pickDay} side />
-              <div className="flex flex-col gap-1.5 modal-tiny:gap-1">
-                {startDate(true)}
-                {amount(true)}
-                <ReminderSummary type={alert.type} startDate={alert.startDate} count={2} className="mt-0 leading-4 modal-tiny:py-px" />
-              </div>
-            </div>
-          ) : (
-            <>
-              {custom && <DayGrid value={alert.type} onPick={pickDay} />}
-              <div className="mt-2.5 grid grid-cols-2 gap-x-3.5 modal-compact:mt-2 modal-tiny:mt-1.5">
-                {startDate(false)}
-                {amount(false)}
-              </div>
-              <ReminderSummary type={alert.type} startDate={alert.startDate} />
-            </>
-          )}
+          {/* Custom: the 1-31 grid sits right here on every screen size, with the same cells everywhere. */}
+          {custom && <DayGrid value={alert.type} onPick={(n) => set({ type: n, custom: true })} />}
+
+          <div className={cn("grid grid-cols-2 gap-x-3.5", custom ? "mt-2.5 modal-compact:mt-2 modal-snug:mt-[5px]" : "mt-2.5 modal-compact:mt-2 modal-tiny:mt-1.5")}>
+            <Field label="Start Date">
+              <DateField value={alert.startDate} onChange={(startDate) => set({ startDate })} />
+            </Field>
+            <Field label="Alert (Amount)" optional>
+              <TextInput
+                value={alert.amount}
+                onChange={(e) => set({ amount: e.target.value })}
+                onBlur={() => set({ amount: normalizeAlertAmount(alert.amount) })}
+                inputMode="decimal"
+                placeholder="e.g. -5,000.00"
+              />
+            </Field>
+          </div>
         </>
       )}
     </FormCard>
   );
 }
-
-// Side-by-side layout: fixed line heights and slightly shorter boxes, so it fits short screens in any font.
-const sideLabelClass = "leading-[15px]";
-const sideInputClass = "h-8 @min-[900px]/main:@max-[1099px]/main:h-7 modal-compact:h-[26px] modal-tiny:h-[25px]";
 
 // Weekly | 15 Days | Monthly | Custom as one thin segmented bar.
 function AlertTypeBar({ custom, type, onPick }) {
@@ -361,25 +321,13 @@ function AlertTypeBar({ custom, type, onPick }) {
   );
 }
 
-// 1-31 in a dashed box; the cells stretch to fill each row, as many per row as fit.
-// side: the narrower box of the side-by-side layout (smaller cells, tighter padding).
-function DayGrid({ value, onPick, side }) {
+// 1-31 in a dashed box. Every cell is 30 x 30 on every screen; as many fit per row as the card is wide
+// (the spare width is spread between them), so a narrow card has more rows, never smaller cells.
+function DayGrid({ value, onPick }) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-dashed border-modal-off-line bg-white/30",
-        side ? "px-2 pb-[7px] pt-[5px] modal-tiny:pb-1.5 modal-tiny:pt-1" : "mt-1.5 px-2 pb-2 pt-1.5"
-      )}
-    >
-      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-tiny:mb-[3px]">Remind every … days</div>
-      <div
-        className={cn(
-          "grid",
-          side
-            ? "grid-cols-[repeat(auto-fill,minmax(26px,1fr))] gap-[3px]"
-            : "grid-cols-[repeat(auto-fill,minmax(40px,1fr))] gap-1 modal-compact:grid-cols-[repeat(auto-fill,minmax(38px,1fr))] modal-tiny:grid-cols-[repeat(auto-fill,minmax(34px,1fr))]"
-        )}
-      >
+    <div className="mt-1.5 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1">
+      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px]">Remind every … days</div>
+      <div className="grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1">
         {Array.from({ length: 31 }, (_, i) => {
           const n = i + 1;
           const on = value === n;
@@ -390,8 +338,7 @@ function DayGrid({ value, onPick, side }) {
               onClick={() => onPick(n)}
               aria-pressed={on}
               className={cn(
-                "min-w-0 cursor-pointer rounded-md border text-[12.5px] transition-colors modal-tiny:text-[12px]",
-                side ? "h-[25px] modal-compact:h-6 modal-tiny:h-5" : "h-[27px] modal-compact:h-[26px] modal-tiny:h-[23px]",
+                "size-[30px] cursor-pointer rounded-[7px] border text-[12.5px] transition-colors",
                 on
                   ? "border-[#3b82f6] bg-row-stripe font-extrabold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
                   : "border-modal-off-line bg-modal-off font-semibold text-[#475569] hover:border-[#93c5fd] hover:bg-white/85"
@@ -406,44 +353,9 @@ function DayGrid({ value, onPick, side }) {
   );
 }
 
-// "Every week" + the next reminder dates (amber: moved to a shorter month's last day), led by a solid
-// blue bell badge. A narrow card shows one date fewer so the strip stays on one line.
-function ReminderSummary({ type, startDate, count = 4, className }) {
-  return (
-    <div className="@container">
-      <div
-        className={cn(
-          "mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-[10px] border border-[#bfd8ff] bg-row-stripe py-0.5 pl-[3px] pr-2.5 text-[12.5px] text-[#475569] modal-compact:mt-1.5 modal-tiny:mt-1 modal-tiny:text-[12px]",
-          className
-        )}
-      >
-        <span className="flex size-[22px] flex-none items-center justify-center rounded-full bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)] modal-compact:size-[21px] modal-tiny:size-[19px]">
-          <Bell className="size-3" strokeWidth={2.4} />
-        </span>
-        <b className="font-bold text-brand-navy">{alertLabel(type, startDate)}</b>
-        <span className="inline-flex flex-wrap items-center gap-1">
-          {nextReminders(type, startDate, count).map(({ date, adjusted }, i) => (
-            <span
-              key={date.getTime()}
-              title={adjusted ? "Last day of a shorter month" : undefined}
-              className={cn(
-                "inline-flex h-[18px] items-center rounded-md border border-[rgba(130,155,195,0.25)] px-[5px] text-[10.5px] font-bold",
-                adjusted ? "bg-[#fff7e6] text-[#92560a]" : "bg-white/70 text-[#334155]",
-                i === 3 && "@max-[420px]:hidden"
-              )}
-            >
-              {shortDate(date)}
-            </span>
-          ))}
-          <span className="text-[#8a96a8]">…</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// Wide screens only: Company as its own card, the list always visible.
-function CompanyCard({ items, selected, onChange }) {
+// Company as its own card. Default: code + name rows (3-column layout, portrait tablets). tiles: a grid of code
+// tiles for the half-width card of the 2-column layout (the full name is the tooltip).
+function CompanyCard({ items, selected, onChange, tiles, className, bodyClassName }) {
   const [query, setQuery] = useState("");
   const shown = filterItems(items, query);
   return (
@@ -458,7 +370,7 @@ function CompanyCard({ items, selected, onChange }) {
           {selected.size}/{items.length} selected
         </CardCount>
       }
-      className="flex-1"
+      className={cn("flex-1", className)}
       body={false}
     >
       <CheckListTools
@@ -467,10 +379,10 @@ function CompanyCard({ items, selected, onChange }) {
         placeholder="Search company"
         onSelectAll={() => onChange(new Set([...selected, ...shown.map((it) => it.value)]))}
         onClear={() => onChange(new Set())}
-        className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2"
+        className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2 modal-tiny:py-1.5"
       />
-      <div className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
-        <CheckRows items={shown} selected={selected} onToggle={(v) => onChange(toggleIn(selected, v))} boxed className="gap-1" />
+      <div className={cn("min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-tiny:p-1.5", bodyClassName)}>
+        <CheckRows items={shown} selected={selected} onToggle={(v) => onChange(toggleIn(selected, v))} boxed tiles={tiles} className={tiles ? undefined : "gap-1"} />
       </div>
     </FormCard>
   );

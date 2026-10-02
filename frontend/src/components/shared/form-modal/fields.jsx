@@ -20,16 +20,10 @@ export function TextInput({ className, ...props }) {
 // optional: no red star, a small "(opt.)" instead. The 320px phone layout has no room for it
 // beside a long label, so it's dropped there; the missing star still marks the field optional.
 // as="div" for controls that hold several buttons (a click on a <label> is forwarded to its first button).
-// labelClassName is added to the label line (e.g. a fixed line height in a tight layout).
-export function Field({ label, optional, as: Tag = "label", className, labelClassName, children }) {
+export function Field({ label, optional, as: Tag = "label", className, children }) {
   return (
     <Tag className={cn("block min-w-0", className)}>
-      <span
-        className={cn(
-          "mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]",
-          labelClassName
-        )}
-      >
+      <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]">
         {label}{" "}
         {optional ? (
           <span className="text-[10px] font-medium text-[#8a96a8] @max-[219px]/info:hidden">(opt.)</span>

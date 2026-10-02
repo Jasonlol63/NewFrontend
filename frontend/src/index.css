@@ -12,6 +12,8 @@
 /* Height tiers for the full-area modals (Add User): 1536x730 / 1366x768 are "compact",
    1280x560 / 1366x610 are "tiny", 1920x1080 is "tall". */
 @custom-variant modal-compact (@media (max-height: 760px));
+@custom-variant modal-short (@media (max-height: 700px));
+@custom-variant modal-snug (@media (max-height: 640px));
 @custom-variant modal-tiny (@media (max-height: 600px));
 @custom-variant modal-tall (@media (min-height: 970px));
 

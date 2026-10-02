@@ -5,9 +5,8 @@ import { cn } from "@/lib/utils";
  * right, and a body that scrolls on its own when the screen is too short.
  * bodyClassName replaces the default body padding / scrolling when the card needs its own
  * (e.g. a search row above a list); `body={false}` renders children straight under the header.
- * bodyRef: ref to the scrolling body (e.g. to check whether the content fits).
  */
-export default function FormCard({ title, right, className, bodyClassName, bodyRef, body = true, children }) {
+export default function FormCard({ title, right, className, bodyClassName, body = true, children }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", className)}>
       <div
@@ -25,7 +24,6 @@ export default function FormCard({ title, right, className, bodyClassName, bodyR
       </div>
       {body ? (
         <div
-          ref={bodyRef}
           className={cn(
             "min-h-0 flex-1 overflow-y-auto px-3.5 pb-3.5 pt-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]",
             "@min-[900px]/main:@max-[1099px]/main:p-2.5",
