@@ -203,18 +203,23 @@
   .co-tools { display: flex; align-items: center; gap: 6px; flex: none; padding: 10px var(--cp); border-bottom: 1px solid var(--divider); }
   .co-tools .mini-search { background: var(--input); border-color: var(--input-line); }
   .card.co .opts { padding: 8px; }
-  /* 2 columns, 4 boxes (below 1440): Currency takes its content height, Company takes the rest and its list scrolls inside */
+  /* 2 columns, 4 boxes (below 1440): half and half. Currency takes its content height, Company takes the rest and its list scrolls inside */
+  .body.swap.cbox:not(.wide) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .body.cbox .card.cur { flex: 0 0 auto; min-height: 0; }
   .body.cbox .card.co { flex: 1 1 0; min-height: 150px; }
-  /* ...so both are compact: 4 smaller currency tiles per row, company codes as tiles (the current company is the blue dot) */
-  .body.cbox .ctiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
-  .body.cbox .ctile { height: 32px; padding: 0 28px 0 10px; font-size: calc(12.5px * var(--k)); }
-  .body.cbox .ctile .k, .body.cbox .ctile .x { right: 8px; }
+  /* Company: code tiles (the full name is the tooltip); the current company is the blue dot */
   .body.cbox .card.co .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; align-content: start; padding: 8px; }
-  .body.cbox .card.co .opt { min-height: 30px; padding: 0 8px; gap: 7px; }
+  .body.cbox .card.co .opt { padding: 0 9px; gap: 8px; }
   .body.cbox .card.co .opt b { width: auto; flex: 1; }
   .body.cbox .card.co .opt .nm { display: none; }
   .body.cbox .card.co .opt .tag { flex: none; width: 8px; height: 8px; padding: 0; border-radius: 99px; background: #1d7bff; font-size: 0; letter-spacing: 0; }
+  /* Short laptops (viewport height <= 700): tighter, so Currency and Company both fit without scrolling */
+  @media (max-height: 700px) {
+    .body.cbox .ctiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
+    .body.cbox .ctile { height: 32px; padding: 0 28px 0 10px; font-size: calc(12.5px * var(--k)); }
+    .body.cbox .ctile .k, .body.cbox .ctile .x { right: 8px; }
+    .body.cbox .card.co .opt { min-height: 30px; padding: 0 8px; gap: 7px; }
+  }
   @media (max-height: 600px) { .body.cbox .ctile { height: 30px; } .body.cbox .ctiles { margin-top: 6px; } .body.cbox .co-tools { padding-top: 6px; padding-bottom: 6px; } .body.cbox .card.co .opts { padding: 6px; gap: 4px; } .body.cbox .card.co .opt { min-height: 28px; } }
   .card.co .opt { min-height: var(--in); background: rgba(255,255,255,.35); border-color: rgba(255,255,255,.55); }
   .card.co .opt:hover { background: rgba(255,255,255,.75); }
@@ -291,6 +296,11 @@
     .card, .card.info, .card.cur, .card.alert { flex: none; min-height: 0; overflow: visible; }
     .card-b { overflow: visible; }
     .body.cbox .card.cur, .body.cbox .card.co { flex: none; }
+    /* portrait tablets: Company is the usual list again (code, name, CURRENT), one row each */
+    .body.cbox .card.co .opts { display: flex; flex-direction: column; gap: 2px; }
+    .body.cbox .card.co .opt b { width: 72px; flex: none; }
+    .body.cbox .card.co .opt .nm { display: block; }
+    .body.cbox .card.co .opt .tag { width: auto; height: auto; padding: 2px 6px; border-radius: 5px; background: #dbeafe; font-size: max(10px, calc(10px * var(--k))); letter-spacing: .4px; }
     .card.info { order: 1; } .card.alert { order: 2; } .card.cur { order: 3; } .card.co { order: 4; flex: none; } .card.co .opts { overflow: visible; }
   }
   /* ---- Smaller Payment Alert (options A / B) ---- */
@@ -471,7 +481,7 @@
         <button type="button" class="lnk" data-act="coall">Select all</button><button type="button" class="lnk mute" data-act="coclear">Clear</button></div>
       <div class="opts" data-bind="opts">${coOpts()}</div></section>`;
   const coList = () => { const q = S.coQ.toLowerCase(); return COMPANIES.filter(([c, n]) => !q || `${c} ${n}`.toLowerCase().includes(q)); };
-  const coOpts = () => coList().map(([c, n]) => `<div class="opt ${S.coOn.has(c) ? "on" : ""}" data-act="co" data-v="${c}"><span class="box">${S.coOn.has(c) ? CHECK : ""}</span><b>${c}</b><span class="nm">${n}</span>${c === "C168" ? '<span class="tag">CURRENT</span>' : ""}</div>`).join("")
+  const coOpts = () => coList().map(([c, n]) => `<div class="opt ${S.coOn.has(c) ? "on" : ""}" data-act="co" data-v="${c}" title="${n}"><span class="box">${S.coOn.has(c) ? CHECK : ""}</span><b>${c}</b><span class="nm">${n}</span>${c === "C168" ? '<span class="tag">CURRENT</span>' : ""}</div>`).join("")
     || '<div class="opt-empty">No company found</div>';
   const companyPop = () => `<div class="portal pop" data-anchor="coField" data-minw="300" data-maxh="380">
       <div class="pop-h"><label class="mini-search">${SEARCH}<input data-search placeholder="Search" value="${S.coQ}"></label>
