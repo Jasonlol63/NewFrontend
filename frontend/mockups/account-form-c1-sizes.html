@@ -320,6 +320,18 @@
   .dp-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .dp-tile { border: none; padding: 8px 0; border-radius: 8px; background: #f8fafc; font-size: calc(12px * var(--k)); font-weight: 600; color: #1e3a6e; cursor: pointer; }
   .dp-tile:hover { background: #f1f5f9; }
+  /* Short laptops (<= 700px high, e.g. 1366 x 610, 1280 x 560): a smaller calendar (216 wide, 26px days, about 225 high instead of 260 x 275) */
+  @media (max-height: 700px) {
+    .dp-pop { padding: 7px 8px 8px; }
+    .dp-head { margin-bottom: 4px; }
+    .dp-nav { width: 22px; height: 22px; font-size: 16px; }
+    .dp-my button { padding: 3px 7px; font-size: 11.5px; }
+    .dp-days { row-gap: 2px; }
+    .dp-wd { padding-bottom: 0; font-size: 10px; }
+    .dp-day { width: 26px; height: 26px; border-radius: 7px; font-size: 11.5px; }
+    .dp-tiles { gap: 4px; }
+    .dp-tile { padding: 6px 0; font-size: 11.5px; }
+  }
 
   footer { flex: none; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line); padding: calc(var(--gap) - 4px) var(--pad) var(--pad); }
   .primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--btn); min-width: 112px; padding: 0 22px; border: none; border-radius: 10px;
@@ -678,7 +690,7 @@
       const p = Math.floor(vy / 12) * 12;
       body = `<div class="dp-tiles">${Array.from({ length: 12 }, (_, i) => p + i).map((y) => `<button type="button" class="dp-tile ${y === vy ? "on" : ""}" data-act="dpyear" data-v="${y}">${y}</button>`).join("")}</div>`;
     }
-    return `<div class="portal dp-pop" data-anchor="dpField" data-minw="260">
+    return `<div class="portal dp-pop" data-anchor="dpField" data-minw="${innerHeight <= 700 ? 216 : 260}">
       <div class="dp-head"><button type="button" class="dp-nav" data-act="dpstep" data-v="-1">‹</button>
         <div class="dp-my"><button type="button" class="${S.dpView === "month" ? "on" : "m"}" data-act="dpview" data-v="month">${MONTHS[vm]} ${CHEV13}</button><button type="button" class="${S.dpView === "year" ? "on" : ""}" data-act="dpview" data-v="year">${vy} ${CHEV13}</button></div>
         <button type="button" class="dp-nav" data-act="dpstep" data-v="1">›</button></div>${body}</div>`;
