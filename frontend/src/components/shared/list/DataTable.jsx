@@ -76,11 +76,20 @@ function Pager({ page, pageCount, onPageChange }) {
   );
 }
 
+const NO_SELECTION = new Set();
+const NO_SORT = { key: null, dir: 1 };
+const noop = () => {};
+const never = () => false;
+
 /**
  * List card: gradient header with sort arrows, striped fixed-height rows, a delete-selection
  * checkbox column, and a footer with the row count and pager.
  * columns: [{ key, label, sortable = true, className (header + cells), cellClassName, render(row, rowNumber) }]
- * Paging / sort / selection props come from useListView's `table`.
+ * Paging / sort / selection props come from useListView's `table`; a plain read-only list (the
+ * Reports) passes just rows and columns with `sortable: false`, plus:
+ *  - totalRow: [{ span = 1, className, content }] cells of a Total row under the last data row.
+ *  - emptyMessage: text of the empty state (default "No <noun> found").
+ *  - minWidth: Tailwind min-width class of the table; narrower than that it scrolls sideways inside the card.
  */
 export default function DataTable({
   columns,
@@ -89,19 +98,22 @@ export default function DataTable({
   loading,
   bodyRef,
   rows,
-  offset,
-  total,
-  paged,
+  offset = 0,
+  total = rows.length,
+  paged = false,
   rowHeight = ROW_HEIGHT,
   pageFull,
-  page,
-  pageCount,
-  onPageChange,
-  sort,
-  onSortChange,
-  selected,
-  onSelectedChange,
-  canSelect,
+  page = 1,
+  pageCount = 1,
+  onPageChange = noop,
+  sort = NO_SORT,
+  onSortChange = noop,
+  selected = NO_SELECTION,
+  onSelectedChange = noop,
+  canSelect = never,
+  totalRow,
+  emptyMessage,
+  minWidth = "min-w-[980px]",
 }) {
   const selectable = rows.filter(canSelect);
   const selectedCount = selectable.filter((r) => selected.has(r.id)).length;
@@ -130,7 +142,7 @@ export default function DataTable({
       )}
     >
       <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
-        <table className="w-full min-w-[980px] border-separate border-spacing-0 text-[13px]">
+        <table className={cn("w-full border-separate border-spacing-0 text-[13px]", minWidth)}>
           <thead className="sticky top-0 z-10">
             <tr className="bg-brand-head text-left text-[13px] font-bold text-white">
               {columns.map((col, i) => {
@@ -200,8 +212,21 @@ export default function DataTable({
             ) : (
               <tr>
                 <td colSpan={columns.length + (showSelect ? 1 : 0)} className="py-10 text-center text-dash-faint">
-                  {loading ? "Loading…" : `No ${noun} found`}
+                  {loading ? "Loading…" : (emptyMessage ?? `No ${noun} found`)}
                 </td>
+              </tr>
+            )}
+            {rows.length > 0 && totalRow && (
+              <tr className="bg-[linear-gradient(180deg,#dcecfd_0%,#c9def8_100%)] font-extrabold">
+                {totalRow.map((cell, i) => (
+                  <td
+                    key={i}
+                    colSpan={cell.span ?? 1}
+                    className={cn("h-10 border-t-2 border-[#8fbdf5] py-0 pr-3 whitespace-nowrap", i === 0 && "pl-4", cell.className)}
+                  >
+                    {cell.content}
+                  </td>
+                ))}
               </tr>
             )}
           </tbody>

@@ -6,8 +6,13 @@ import AuthenticatedLayout from "./layouts/AuthenticatedLayout.jsx";
 import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 import AccountPage from "./pages/account/AccountPage.jsx";
+import CustomerReportPage from "./pages/report/customer/CustomerReportPage.jsx";
+import DomainReportPage from "./pages/report/domain/DomainReportPage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
+
+// Submenu pages that have a real page; the rest still show the placeholder.
+const BUILT_PAGES = new Set(["/report/customer", "/report/domain"]);
 
 export default function App() {
   return (
@@ -22,7 +27,9 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/account" element={<AccountPage />} />
-          {SUBMENU_PAGES.map(({ path, group, label }) => (
+          <Route path="/report/customer" element={<CustomerReportPage />} />
+          <Route path="/report/domain" element={<DomainReportPage />} />
+          {SUBMENU_PAGES.filter(({ path }) => !BUILT_PAGES.has(path)).map(({ path, group, label }) => (
             <Route key={path} path={path} element={<ComingSoonPage group={group} title={label} />} />
           ))}
         </Route>

@@ -22,7 +22,8 @@
   - **刷新或直接打开子页面时，父项不会自动展开。** 但当前页面在某个父项下面时，收起的父项会带浅色底，表示当前位置。
   - `SidebarRail.jsx`：父项有 `children` 时当作有子菜单，点击仍然打开抽屉。路径在某个子项下面时，对应的父图标高亮。
   - `sidebarConfig.js` 还导出 `SUBMENU_PAGES`（所有子页面的清单），`App.jsx` 用它给 7 个子页面注册路由。
-  - 7 个子页面目前都是占位页 `src/pages/placeholder/ComingSoonPage.jsx`，只显示分组和页面名。
+  - **Report 的两个页面已经是真实页面（2026-10-04）：** `/report/customer` → `pages/report/customer/CustomerReportPage.jsx`，`/report/domain` → `pages/report/domain/DomainReportPage.jsx`，已接 `POST /api/report/customer-report/list` 和 `/api/report/domain-report/list`（后端早就有，没改）。`App.jsx` 的 `BUILT_PAGES` 里列出已做好的路径，其余 5 个 Maintenance 子页面仍是占位页 `src/pages/placeholder/ComingSoonPage.jsx`，只显示分组和页面名。
+  - Report 页面做法：筛选卡 `pages/report/shared/ReportFilterCard.jsx`（Group / Company 用 `useListScope`，日期用 `DateRangePicker`，下拉用 `components/shared/DropdownSelect.jsx`），结果表复用 `DataTable`（新增了可选的 `totalRow`、`emptyMessage`，不分页不排序），请求用 `shared/useReport.js`（把返回里 `totalRow:true` 那行拆成 Total）。
   - 所有人都能看到全部 7 个子项，**权限过滤还没做**。
 - 目前已注册的路由：`/dashboard`、`/admin`、`/account`，加上上面 7 个子页面。其余菜单（Ownership、Process、Data Capture、Transaction Payment）点进去还是空白页。
 

@@ -1,6 +1,7 @@
 import { Search, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
+import FilterRow from "@/components/shared/FilterRow.jsx";
 import FilterChip from "./FilterChip.jsx";
 
 const buttonBase =
@@ -59,15 +60,6 @@ export function DeleteButton({ count, ...props }) {
   );
 }
 
-function FilterRow({ label, children }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-[84px] flex-none text-[13px] font-bold text-[#1f2937]">{label}</span>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
 /**
  * Top card of a list page: main action, search, Show All / Active / Inactive chips and
  * right-hand actions on the first row; Group / Company pickers (from useListScope) below.
@@ -89,7 +81,7 @@ export default function ListToolbar({
         scope.loading && "opacity-60"
       )}
     >
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-dash-line px-4 py-2.5 short:py-2">
+      <div className="flex flex-wrap items-center gap-2.5 px-4 pt-2.5 short:pt-2">
         {primaryAction}
 
         <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
@@ -111,7 +103,7 @@ export default function ListToolbar({
         <div className="ml-auto flex flex-none items-center gap-2.5">{actions}</div>
       </div>
 
-      <div className="flex flex-col gap-2 px-4 py-2.5 short:gap-1.5 short:py-2">
+      <div className="flex flex-col gap-2 px-4 pt-2 pb-2.5 short:gap-1.5 short:pt-1.5 short:pb-2">
         {scope.showGroups && (
           <FilterRow label="Group ID:">
             <SegmentGroup
