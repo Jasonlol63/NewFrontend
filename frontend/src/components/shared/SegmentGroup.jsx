@@ -54,7 +54,8 @@ function SortableItem({ option, active, onSelect }) {
 // Joined row of chips (Dashboard Group / Company / Currency filters). With allowDeselect,
 // clicking the active chip again clears the selection (onChange(null)). With onReorder set,
 // chips can be dragged sideways; onReorder receives the option values in their new order.
-export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, className }) {
+// `leading` options (e.g. "All") sit in front of the chips, selectable but never dragged or reordered.
+export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, leading = [], className }) {
   // A chip must move 5px before a drag starts, so a plain click still just selects it.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const select = (opt) => onChange(opt.value === value && allowDeselect ? null : opt.value);
@@ -64,9 +65,22 @@ export default function SegmentGroup({ options, value, onChange, allowDeselect =
     className
   );
 
+  const leadingButtons = leading.map((opt) => (
+    <button
+      key={opt.value}
+      type="button"
+      disabled={opt.disabled}
+      onClick={() => select(opt)}
+      className={cn(itemClass, itemTone(opt.value === value), "cursor-pointer")}
+    >
+      {opt.label}
+    </button>
+  ));
+
   if (!onReorder) {
     return (
       <div className={wrapperClass}>
+        {leadingButtons}
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -98,6 +112,7 @@ export default function SegmentGroup({ options, value, onChange, allowDeselect =
     >
       <SortableContext items={values} strategy={horizontalListSortingStrategy}>
         <div className={wrapperClass}>
+          {leadingButtons}
           {options.map((opt) => (
             <SortableItem key={opt.value} option={opt} active={opt.value === value} onSelect={() => select(opt)} />
           ))}

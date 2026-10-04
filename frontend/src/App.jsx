@@ -10,11 +10,12 @@ import CustomerReportPage from "./pages/report/customer/CustomerReportPage.jsx";
 import DomainReportPage from "./pages/report/domain/DomainReportPage.jsx";
 import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenancePage.jsx";
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
+import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
 // Submenu pages that have a real page; the rest still show the placeholder.
-const BUILT_PAGES = new Set(["/report/customer", "/report/domain", "/maintenance/data-capture", "/maintenance/transaction"]);
+const BUILT_PAGES = new Set(["/report/customer", "/report/domain", "/maintenance/data-capture", "/maintenance/transaction", "/maintenance/payment"]);
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/report/domain" element={<DomainReportPage />} />
           <Route path="/maintenance/data-capture" element={<CaptureMaintenancePage />} />
           <Route path="/maintenance/transaction" element={<TransactionMaintenancePage />} />
+          <Route path="/maintenance/payment" element={<PaymentMaintenancePage />} />
           {SUBMENU_PAGES.filter(({ path }) => !BUILT_PAGES.has(path)).map(({ path, group, label }) => (
             <Route key={path} path={path} element={<ComingSoonPage group={group} title={label} />} />
           ))}

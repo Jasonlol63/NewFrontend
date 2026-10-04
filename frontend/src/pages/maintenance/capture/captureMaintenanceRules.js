@@ -1,13 +1,8 @@
 import { formatDisplayDate } from "@/lib/date";
+import { deletedByText } from "../shared/maintenanceFormat";
 
 export const CAPTURE_LIST_URL = "/api/maintenance/capture-maintenance/list";
 export const CAPTURE_DELETE_URL = "/api/maintenance/capture-maintenance/delete";
-
-// "2026-09-30T14:48:12" -> "30/09/2026 14:48"
-function formatDateTime(value) {
-  const text = String(value ?? "");
-  return text ? `${formatDisplayDate(text.slice(0, 10))} ${text.slice(11, 16)}`.trim() : "";
-}
 
 // One data_captures header of the list. Live and archived captures can share an id, so the row id
 // carries which one it is; `captureId` is what the delete request wants.
@@ -24,7 +19,7 @@ export function normalizeCaptureRow(raw) {
     currency: raw.currency ?? "",
     wlGroup: raw.wlGroup ?? "",
     createdBy: raw.createdBy ?? "",
-    deletedBy: raw.deletedBy ? `${raw.deletedBy} (${formatDateTime(raw.deletedAt)})` : "",
+    deletedBy: deletedByText(raw.deletedBy, raw.deletedAt),
   };
 }
 
