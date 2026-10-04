@@ -83,13 +83,20 @@ function Pager({ page, pageCount, onPageChange }) {
 const FIT_MIN = 40;
 
 // fitWidth tables: every column keeps its full text on one line. When that is wider than the card,
-// only the `fit` columns give up the difference (widest ones first, never below their header), so the
+// only the `fit` columns give up the difference (longest ones first, never below their header), so the
 // table fills the card without a sideways scrollbar and the cut-off text ends in "...".
 function fitColumns(body) {
   const table = body.querySelector("table");
   if (!table) return;
   const spans = [...table.querySelectorAll("[data-fit]")];
-  spans.forEach((s) => (s.style.maxWidth = ""));
+  for (const s of spans) {
+    s.style.maxWidth = "";
+    // Hover titles added below for cut-off text are redone on every pass.
+    if (s.dataset.auto) {
+      s.removeAttribute("title");
+      delete s.dataset.auto;
+    }
+  }
   if (!spans.length) return;
 
   table.style.width = "max-content";
@@ -115,9 +122,26 @@ function fitColumns(body) {
   const room = list.reduce((sum, c) => sum + Math.max(0, c.width - c.min), 0);
   if (!room) return;
   const take = Math.min(deficit, room);
+  // Water-filling: lower one cap level until the columns above it have given up `take` px in total,
+  // so the longest columns are cut first and short ones (Process, Account) stay whole.
+  const saved = (level) => list.reduce((sum, c) => sum + Math.max(0, c.width - Math.max(c.min, level)), 0);
+  let low = 0;
+  let high = Math.max(...list.map((c) => c.width));
+  for (let i = 0; i < 24; i++) {
+    const mid = (low + high) / 2;
+    if (saved(mid) > take) low = mid;
+    else high = mid;
+  }
   for (const c of list) {
-    const target = c.width - (take * Math.max(0, c.width - c.min)) / room;
-    c.spans.forEach((s) => (s.style.maxWidth = `${Math.floor(target)}px`));
+    const target = Math.min(c.width, Math.max(c.min, high));
+    if (target < c.width) c.spans.forEach((s) => (s.style.maxWidth = `${Math.floor(target)}px`));
+  }
+  // Cut-off text shows in full on hover (unless the column already supplies a title).
+  for (const s of spans) {
+    if (!s.title && s.scrollWidth > s.clientWidth + 1) {
+      s.title = s.textContent;
+      s.dataset.auto = "1";
+    }
   }
 }
 

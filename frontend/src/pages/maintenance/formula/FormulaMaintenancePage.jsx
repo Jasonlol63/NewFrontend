@@ -16,12 +16,12 @@ const dash = (v) => v || "-";
 // and the full text on hover) if the row is still wider than the card.
 const columns = [
   { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-  { key: "process", label: "Process", sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "account", label: "Account", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
+  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
   { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.currency) },
   { key: "source", label: "Source", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.source) },
-  { key: "product", label: "Product", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.product },
-  { key: "inputMethod", label: "Input Method", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
+  { key: "product", label: "Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
+  { key: "inputMethod", label: "Input Method", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
   { key: "formula", label: "Formula", sortable: false, fit: true, fullText: (r) => r.formula, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
   { key: "description", label: "Description", sortable: false, fit: true, fullText: (r) => r.description, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
   {

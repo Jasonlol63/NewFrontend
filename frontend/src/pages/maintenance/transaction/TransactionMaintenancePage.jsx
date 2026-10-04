@@ -14,9 +14,9 @@ const AMOUNT = "text-right tabular-nums";
 const columns = [
   { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
   { key: "createdAt", label: "Created At", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-  { key: "process", label: "Process", sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
   { key: "idProduct", label: "Id_Product", sortable: false, fit: true, fullText: (r) => r.idProduct, cellClassName: "whitespace-nowrap", render: (r) => r.idProduct },
-  { key: "account", label: "Account", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.account },
+  { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.account },
   { key: "description", label: "Description", sortable: false, fit: true, fullText: (r) => r.description, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
   { key: "remark", label: "Remark", sortable: false, fit: true, fullText: (r) => r.remark, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
   { key: "percent", label: "Percent", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.percent) },
@@ -24,7 +24,7 @@ const columns = [
   { key: "rate", label: "Rate", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.rate) },
   { key: "cr", label: "Cr", sortable: false, className: "pl-2 text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.cr },
   { key: "dr", label: "Dr", sortable: false, className: "text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.dr },
-  { key: "createdBy", label: "Submitter", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
+  { key: "createdBy", label: "Submitter", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
 ];
 
 export default function TransactionMaintenancePage() {

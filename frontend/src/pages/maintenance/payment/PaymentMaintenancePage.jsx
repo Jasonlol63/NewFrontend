@@ -32,12 +32,12 @@ const ALL_CURRENCIES = [{ value: "ALL", label: "All" }];
 const columns = [
   { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
   { key: "createdAt", label: "Created At", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-  { key: "toAccount", label: "Account(To)", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.toAccount },
-  { key: "fromAccount", label: "Account(From)", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.fromAccount) },
+  { key: "toAccount", label: "Account(To)", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.toAccount },
+  { key: "fromAccount", label: "Account(From)", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.fromAccount) },
   { key: "amount", label: "Amount", sortable: false, className: "pl-2 text-right", cellClassName: "text-right whitespace-nowrap tabular-nums", render: (r) => r.amount },
   { key: "description", label: "Description", sortable: false, fit: true, fullText: (r) => r.description, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
   { key: "remark", label: "Remark", sortable: false, fit: true, fullText: (r) => r.remark, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
-  { key: "createdBy", label: "Submitter", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.createdBy) },
+  { key: "createdBy", label: "Submitter", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.createdBy) },
   { key: "deletedBy", label: "Deleter", sortable: false, fit: true, fullText: (r) => r.deletedBy, cellClassName: "whitespace-nowrap", render: (r) => dash(r.deletedBy) },
 ];
 

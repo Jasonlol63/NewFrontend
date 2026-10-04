@@ -10,6 +10,18 @@ import { useMaintenanceFilters } from "../shared/useMaintenanceFilters";
 import { useMaintenanceList } from "../shared/useMaintenanceList";
 import { CAPTURE_DELETE_URL, CAPTURE_LIST_URL, filterCaptureRows, normalizeCaptureRow } from "./captureMaintenanceRules";
 
+// Every cell stays on one line; the text columns give way with "..." only when the row does not fit the card.
+const columns = [
+  { key: "no", label: "No.", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+  { key: "created", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
+  { key: "product", label: "Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
+  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
+  { key: "wlGroup", label: "W/L Group", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
+  { key: "createdBy", label: "Submitted By", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
+  { key: "deletedBy", label: "Deleted By", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.deletedBy || "-" },
+];
+
 export default function CaptureMaintenancePage() {
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
@@ -31,17 +43,6 @@ export default function CaptureMaintenancePage() {
     label: (r) => `${r.process} ${r.created}`,
     onDeleted: () => setSelected(new Set()),
   });
-
-  const columns = [
-    { key: "no", label: "No.", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "created", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-    { key: "product", label: "Product", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.product },
-    { key: "process", label: "Process", sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-    { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
-    { key: "wlGroup", label: "W/L Group", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
-    { key: "createdBy", label: "Submitted By", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
-    { key: "deletedBy", label: "Deleted By", sortable: false, cellClassName: "max-w-[240px] truncate", render: (r) => <span title={r.deletedBy || undefined}>{r.deletedBy || "-"}</span> },
-  ];
 
   const pageError = filters.error || captures.error;
 
@@ -69,7 +70,8 @@ export default function CaptureMaintenancePage() {
         canSelect={canSelect}
         lockedSelect={(r) => r.deleted}
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}
-        minWidth="min-w-[820px]"
+        fitWidth
+        minWidth="min-w-0"
         emptyMessage="No data found. Please adjust your search criteria and try again."
       />
 
