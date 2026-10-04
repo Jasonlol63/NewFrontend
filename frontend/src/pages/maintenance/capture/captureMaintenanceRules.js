@@ -3,17 +3,6 @@ import { formatDisplayDate } from "@/lib/date";
 export const CAPTURE_LIST_URL = "/api/maintenance/capture-maintenance/list";
 export const CAPTURE_DELETE_URL = "/api/maintenance/capture-maintenance/delete";
 
-export function buildCaptureRequest({ tenantId, dateFrom, dateTo, processId, isGroupOwn }) {
-  return {
-    tenantId,
-    dateFrom,
-    dateTo,
-    process: processId === "" ? null : String(processId),
-    // The maintenance API words the categories "games" / "bank".
-    category: isGroupOwn ? "bank" : "games",
-  };
-}
-
 // "2026-09-30T14:48:12" -> "30/09/2026 14:48"
 function formatDateTime(value) {
   const text = String(value ?? "");

@@ -1,10 +1,11 @@
+import { useEffect, useRef } from "react";
 import { Check, ChevronLeft, ChevronRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Smallest body row height; useListView works out how many fit and stretches them to fill the body.
 export const ROW_HEIGHT = 38;
 
-const td = "border-b border-[#eef2f7] py-0 pr-3";
+const td = "border-b border-[#eef2f7] py-0";
 
 /**
  * Delete-selection checkbox, same look as the Add User select-all box.
@@ -78,6 +79,61 @@ function Pager({ page, pageCount, onPageChange }) {
   );
 }
 
+// Narrowest a shrinking column gets besides its header label.
+const FIT_MIN = 40;
+
+// fitWidth tables: every column keeps its full text on one line. When that is wider than the card,
+// only the `fit` columns give up the difference (widest ones first, never below their header), so the
+// table fills the card without a sideways scrollbar and the cut-off text ends in "...".
+function fitColumns(body) {
+  const table = body.querySelector("table");
+  if (!table) return;
+  const spans = [...table.querySelectorAll("[data-fit]")];
+  spans.forEach((s) => (s.style.maxWidth = ""));
+  if (!spans.length) return;
+
+  table.style.width = "max-content";
+  const natural = table.offsetWidth;
+  const columns = new Map();
+  for (const span of spans) {
+    const key = span.dataset.fit;
+    const col = columns.get(key) ?? { spans: [], width: 0, min: FIT_MIN };
+    col.spans.push(span);
+    col.width = Math.max(col.width, span.scrollWidth);
+    columns.set(key, col);
+  }
+  table.querySelectorAll("[data-head]").forEach((label) => {
+    const col = columns.get(label.dataset.head);
+    if (col) col.min = Math.max(col.min, label.offsetWidth);
+  });
+  table.style.width = "";
+
+  // 2px of slack so rounding never brings the scrollbar back.
+  const deficit = natural - body.clientWidth + 2;
+  if (deficit <= 0) return;
+  const list = [...columns.values()];
+  const room = list.reduce((sum, c) => sum + Math.max(0, c.width - c.min), 0);
+  if (!room) return;
+  const take = Math.min(deficit, room);
+  for (const c of list) {
+    const target = c.width - (take * Math.max(0, c.width - c.min)) / room;
+    c.spans.forEach((s) => (s.style.maxWidth = `${Math.floor(target)}px`));
+  }
+}
+
+function useFitColumns(enabled, ref, rows) {
+  useEffect(() => {
+    const body = ref.current;
+    if (!enabled || !body) return undefined;
+    const run = () => fitColumns(body);
+    run();
+    const observer = new ResizeObserver(run);
+    observer.observe(body);
+    document.fonts?.ready.then(run);
+    return () => observer.disconnect();
+  }, [enabled, ref, rows]);
+}
+
 const NO_SELECTION = new Set();
 const NO_SORT = { key: null, dir: 1 };
 const noop = () => {};
@@ -92,6 +148,8 @@ const never = () => false;
  * Reports) passes just rows and columns with `sortable: false`, plus:
  *  - totalRow: [{ span = 1, className, content }] cells of a Total row under the last data row.
  *  - emptyMessage: text of the empty state (default "No <noun> found").
+ *  - fitWidth: no sideways scroll; columns marked `fit: true` (with optional fullText(row) for the hover title)
+ *    shrink with "..." only when the row does not fit the card. Pair with minWidth="min-w-0".
  *  - minWidth: Tailwind min-width class of the table; narrower than that it scrolls sideways inside the card.
  */
 export default function DataTable({
@@ -119,7 +177,11 @@ export default function DataTable({
   totalRow,
   emptyMessage,
   minWidth = "min-w-[980px]",
+  fitWidth = false,
 }) {
+  const localBodyRef = useRef(null);
+  const scrollRef = bodyRef ?? localBodyRef;
+  useFitColumns(fitWidth, scrollRef, rows);
   const selectable = rows.filter(canSelect);
   const selectedCount = selectable.filter((r) => selected.has(r.id)).length;
   const headChecked = selectedCount === 0 ? false : selectedCount === selectable.length ? true : "mixed";
@@ -127,6 +189,9 @@ export default function DataTable({
   const showSelect = selectable.length > 0;
   // Without it, the last data column takes over the right-edge padding.
   const edge = (c) => !showSelect && c === columns.length - 1 && "pr-4";
+
+  // fitWidth tables squeeze the column gaps (and the type a little) on narrower screens.
+  const pad = fitWidth ? "pr-2.5 max-[1100px]:pr-2" : "pr-3";
 
   const setMany = (list, checked) => {
     const next = new Set(selected);
@@ -146,10 +211,10 @@ export default function DataTable({
         loading && "opacity-60"
       )}
     >
-      <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
-        <table className={cn("w-full border-separate border-spacing-0 text-[13px]", minWidth)}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
+        <table className={cn("w-full border-separate border-spacing-0 text-[13px]", fitWidth && "max-[1100px]:text-[12px]", minWidth)}>
           <thead className="sticky top-0 z-10">
-            <tr className="bg-brand-head text-left text-[13px] font-bold text-white">
+            <tr className={cn("bg-brand-head text-left text-[13px] font-bold text-white", fitWidth && "max-[1100px]:text-[12px]")}>
               {columns.map((col, i) => {
                 const sortable = col.sortable !== false;
                 return (
@@ -157,14 +222,15 @@ export default function DataTable({
                     key={col.key}
                     onClick={sortable ? () => onSortChange(col.key) : undefined}
                     className={cn(
-                      "py-2.5 pr-3 whitespace-nowrap",
+                      "py-2.5 whitespace-nowrap",
+                      pad,
                       i === 0 && "pl-4",
                       edge(i),
                       col.className,
                       sortable && "cursor-pointer select-none"
                     )}
                   >
-                    <span className="inline-flex items-center">
+                    <span data-head={fitWidth && col.fit ? col.key : undefined} className="inline-flex items-center">
                       {col.label}
                       {sortable && <SortIcon active={sort.key === col.key} dir={sort.dir} />}
                     </span>
@@ -201,8 +267,14 @@ export default function DataTable({
                     )}
                   >
                     {columns.map((col, c) => (
-                      <td key={col.key} className={cn(td, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
-                        {col.render(row, offset + i + 1)}
+                      <td key={col.key} className={cn(td, pad, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
+                        {fitWidth && col.fit ? (
+                          <span data-fit={col.key} title={col.fullText?.(row)} className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                            {col.render(row, offset + i + 1)}
+                          </span>
+                        ) : (
+                          col.render(row, offset + i + 1)
+                        )}
                       </td>
                     ))}
                     {showSelect && (
