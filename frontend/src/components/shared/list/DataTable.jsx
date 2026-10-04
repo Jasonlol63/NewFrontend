@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Check, ChevronLeft, ChevronRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCellTip } from "./CellTip.jsx";
 
 // Smallest body row height; useListView works out how many fit and stretches them to fill the body.
 export const ROW_HEIGHT = 38;
@@ -89,14 +90,8 @@ function fitColumns(body) {
   const table = body.querySelector("table");
   if (!table) return;
   const spans = [...table.querySelectorAll("[data-fit]")];
-  for (const s of spans) {
-    s.style.maxWidth = "";
-    // Hover titles added below for cut-off text are redone on every pass.
-    if (s.dataset.auto) {
-      s.removeAttribute("title");
-      delete s.dataset.auto;
-    }
-  }
+  // A column with `fitMax` never grows past that many px, even when the card has room.
+  spans.forEach((s) => (s.style.maxWidth = s.dataset.fitMax ? `${s.dataset.fitMax}px` : ""));
   if (!spans.length) return;
 
   table.style.width = "max-content";
@@ -104,11 +99,13 @@ function fitColumns(body) {
   const columns = new Map();
   for (const span of spans) {
     const key = span.dataset.fit;
-    const col = columns.get(key) ?? { spans: [], width: 0, min: FIT_MIN };
+    const col = columns.get(key) ?? { spans: [], content: 0, max: Infinity, min: FIT_MIN };
     col.spans.push(span);
-    col.width = Math.max(col.width, span.scrollWidth);
+    col.content = Math.max(col.content, span.scrollWidth);
+    if (span.dataset.fitMax) col.max = Number(span.dataset.fitMax);
     columns.set(key, col);
   }
+  for (const col of columns.values()) col.width = Math.min(col.content, col.max);
   table.querySelectorAll("[data-head]").forEach((label) => {
     const col = columns.get(label.dataset.head);
     if (col) col.min = Math.max(col.min, label.offsetWidth);
@@ -134,14 +131,7 @@ function fitColumns(body) {
   }
   for (const c of list) {
     const target = Math.min(c.width, Math.max(c.min, high));
-    if (target < c.width) c.spans.forEach((s) => (s.style.maxWidth = `${Math.floor(target)}px`));
-  }
-  // Cut-off text shows in full on hover (unless the column already supplies a title).
-  for (const s of spans) {
-    if (!s.title && s.scrollWidth > s.clientWidth + 1) {
-      s.title = s.textContent;
-      s.dataset.auto = "1";
-    }
+    if (target < c.content) c.spans.forEach((s) => (s.style.maxWidth = `${Math.floor(target)}px`));
   }
 }
 
@@ -172,8 +162,8 @@ const never = () => false;
  * Reports) passes just rows and columns with `sortable: false`, plus:
  *  - totalRow: [{ span = 1, className, content }] cells of a Total row under the last data row.
  *  - emptyMessage: text of the empty state (default "No <noun> found").
- *  - fitWidth: no sideways scroll; columns marked `fit: true` (with optional fullText(row) for the hover title)
- *    shrink with "..." only when the row does not fit the card. Pair with minWidth="min-w-0".
+ *  - fitWidth: no sideways scroll; columns marked `fit: true` (`fitMax`: widest, in px, even with room to spare) shrink with "..." only when the row does not fit
+ *    the card, and a cut-off cell shows its full text in a hover card. Pair with minWidth="min-w-0".
  *  - minWidth: Tailwind min-width class of the table; narrower than that it scrolls sideways inside the card.
  */
 export default function DataTable({
@@ -206,6 +196,7 @@ export default function DataTable({
   const localBodyRef = useRef(null);
   const scrollRef = bodyRef ?? localBodyRef;
   useFitColumns(fitWidth, scrollRef, rows);
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth);
   const selectable = rows.filter(canSelect);
   const selectedCount = selectable.filter((r) => selected.has(r.id)).length;
   const headChecked = selectedCount === 0 ? false : selectedCount === selectable.length ? true : "mixed";
@@ -235,7 +226,7 @@ export default function DataTable({
         loading && "opacity-60"
       )}
     >
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
+      <div ref={scrollRef} onScroll={hideCellTip} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
         <table className={cn("w-full border-separate border-spacing-0 text-[13px]", fitWidth && "max-[1100px]:text-[12px]", minWidth)}>
           <thead className="sticky top-0 z-10">
             <tr className={cn("bg-brand-head text-left text-[13px] font-bold text-white", fitWidth && "max-[1100px]:text-[12px]")}>
@@ -273,7 +264,7 @@ export default function DataTable({
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody {...cellTipHandlers}>
             {rows.length ? (
               rows.map((row, i) => {
                 const isSelected = selected.has(row.id);
@@ -293,7 +284,7 @@ export default function DataTable({
                     {columns.map((col, c) => (
                       <td key={col.key} className={cn(td, pad, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
                         {fitWidth && col.fit ? (
-                          <span data-fit={col.key} title={col.fullText?.(row)} className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                          <span data-fit={col.key} data-fit-max={col.fitMax} className="block overflow-hidden text-ellipsis whitespace-nowrap">
                             {col.render(row, offset + i + 1)}
                           </span>
                         ) : (
@@ -342,6 +333,7 @@ export default function DataTable({
         <span>{summary}</span>
         {paged && pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} />}
       </div>
+      {cellTip}
     </section>
   );
 }

@@ -10,15 +10,15 @@ const dash = (v) => v || "-";
 const AMOUNT = "text-right tabular-nums";
 
 // Every cell stays on one line. Id_Product, Description and Remark are the columns that give way
-// (with "..." and the full text on hover) if the row is still wider than the card.
+// if the row is still wider than the card.
 const columns = [
   { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
   { key: "createdAt", label: "Created At", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
   { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "idProduct", label: "Id_Product", sortable: false, fit: true, fullText: (r) => r.idProduct, cellClassName: "whitespace-nowrap", render: (r) => r.idProduct },
+  { key: "idProduct", label: "Id_Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.idProduct },
   { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.account },
-  { key: "description", label: "Description", sortable: false, fit: true, fullText: (r) => r.description, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
-  { key: "remark", label: "Remark", sortable: false, fit: true, fullText: (r) => r.remark, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
+  { key: "description", label: "Description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "remark", label: "Remark", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
   { key: "percent", label: "Percent", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.percent) },
   { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
   { key: "rate", label: "Rate", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.rate) },

@@ -22,8 +22,8 @@ const columns = [
   { key: "source", label: "Source", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.source) },
   { key: "product", label: "Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
   { key: "inputMethod", label: "Input Method", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
-  { key: "formula", label: "Formula", sortable: false, fit: true, fullText: (r) => r.formula, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
-  { key: "description", label: "Description", sortable: false, fit: true, fullText: (r) => r.description, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "formula", label: "Formula", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
+  { key: "description", label: "Description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
   {
     key: "action",
     label: "Action",
@@ -31,7 +31,7 @@ const columns = [
     className: "text-center",
     cellClassName: "whitespace-nowrap text-center",
     // The edit window is not built yet, so the pencil stays disabled.
-    render: () => <IconAction disabled title="Not available yet" aria-label="Edit formula" />,
+    render: () => <IconAction disabled aria-label="Edit formula (not available yet)" />,
   },
 ];
 
