@@ -21,7 +21,8 @@ export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId,
  * onChange runs when Group / Company, Process or the dates change, e.g. to clear a row selection.
  */
 export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {}) {
-  const [processPick, setProcessPick] = useState("");
+  // null = nothing picked yet: the user chooses All Process or one process before any list loads.
+  const [processPick, setProcessPick] = useState(null);
   const [search, setSearch] = useState("");
   const [range, setRangeState] = useState(() => {
     const today = toIsoDate(new Date());
@@ -30,7 +31,7 @@ export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {
 
   const scope = useListScope(storageKey, {
     onChange: () => {
-      setProcessPick("");
+      setProcessPick(null);
       onChange?.();
     },
   });
@@ -40,12 +41,13 @@ export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {
 
   const { processes, error: processError } = useProcesses(tenantId);
   const processChoices = useMemo(() => processOptions(processes, isGroupOwn), [processes, isGroupOwn]);
-  // A Group has no "All Process": it starts on its first process.
-  const processId = processChoices.some((o) => o.value === processPick) ? processPick : (processChoices[0]?.value ?? "");
+  // A Group has no "All Process" option; a pick that no longer exists (other Group / Company) counts as none.
+  const processSelected = processChoices.some((o) => o.value === processPick);
+  const processId = processSelected ? processPick : null;
 
   const request = useMemo(
     () =>
-      tenantId && (processId !== "" || !isGroupOwn)
+      tenantId && processSelected
         ? buildMaintenanceRequest({
             tenantId,
             dateFrom: dated ? range.from : null,
@@ -54,7 +56,7 @@ export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {
             isGroupOwn,
           })
         : null,
-    [tenantId, dated, range, processId, isGroupOwn]
+    [tenantId, dated, range, processId, processSelected, isGroupOwn]
   );
 
   return {
@@ -62,6 +64,7 @@ export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {
     isGroupOwn,
     processChoices,
     processId,
+    processSelected,
     setProcessPick: (value) => {
       setProcessPick(value);
       onChange?.();

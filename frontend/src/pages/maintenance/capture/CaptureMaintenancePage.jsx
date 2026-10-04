@@ -72,7 +72,7 @@ export default function CaptureMaintenancePage() {
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage="No data found. Please adjust your search criteria and try again."
+        emptyMessage={filters.processSelected ? "No data found. Please adjust your search criteria and try again." : "Select a process to view the records."}
       />
 
       {actions.dialogs}
