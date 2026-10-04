@@ -94,7 +94,8 @@ export default function DropdownSelect({
                 }}
                 placeholder={searchPlaceholder}
                 autoComplete="off"
-                className="w-full bg-transparent text-[12.5px] outline-none placeholder:text-dash-faint"
+                // Typed letters show in capitals (the match ignores case anyway); the hint stays as written.
+                className="w-full bg-transparent text-[12.5px] uppercase outline-none placeholder:text-dash-faint placeholder:normal-case"
               />
             </label>
           )}

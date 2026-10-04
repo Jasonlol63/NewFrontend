@@ -42,7 +42,8 @@ export default function MaintenanceFilterCard({ filters, searchPlaceholder, acti
       <input
         value={filters.search}
         onChange={(e) => filters.setSearch(e.target.value)}
-        className="w-full bg-transparent outline-none placeholder:text-dash-faint"
+        // Typed letters show in capitals (the match ignores case anyway); the hint stays as written.
+        className="w-full bg-transparent uppercase outline-none placeholder:text-dash-faint placeholder:normal-case"
         placeholder={searchPlaceholder}
       />
     </label>
