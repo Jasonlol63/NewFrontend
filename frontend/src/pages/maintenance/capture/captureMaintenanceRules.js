@@ -28,6 +28,7 @@ export function normalizeCaptureRow(raw) {
     id: `${deleted ? "d" : "l"}${raw.id}`,
     captureId: raw.id,
     deleted,
+    createdAt: raw.dtsCreated ?? "",
     created: formatDisplayDate(String(raw.dtsCreated ?? "").slice(0, 10)),
     product: raw.product ?? "",
     process: raw.process ?? "",

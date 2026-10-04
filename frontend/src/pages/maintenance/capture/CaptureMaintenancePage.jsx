@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
+import { DateText } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useListScope } from "@/components/shared/list/useListScope";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
@@ -62,7 +63,7 @@ export default function CaptureMaintenancePage() {
 
   const columns = [
     { key: "no", label: "No.", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "created", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap tabular-nums", render: (r) => r.created },
+    { key: "created", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
     { key: "product", label: "Product", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.product },
     { key: "process", label: "Process", sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
     { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
