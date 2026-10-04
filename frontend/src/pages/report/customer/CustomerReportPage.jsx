@@ -7,6 +7,7 @@ import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
+import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import { useCurrencyOptions } from "@/pages/dashboard/useDashboardData";
@@ -47,7 +48,14 @@ export default function CustomerReportPage() {
   const accountId = accountChoices.some((o) => o.value === accountPick) ? accountPick : "";
 
   const currencyCodes = useCurrencyOptions(tenantId ? [tenantId] : []);
-  const currency = currencyCodes.includes(currencyPick) ? currencyPick : (currencyCodes[0] ?? null);
+  // Chips in the order the user dragged them into, shared with the Dashboard.
+  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(currencyCodes);
+  // Same default as the Dashboard: MYR when the company has it, else the first currency.
+  const currency = currencyCodes.includes(currencyPick)
+    ? currencyPick
+    : currencyCodes.includes("MYR")
+      ? "MYR"
+      : (currencyCodes[0] ?? null);
 
   const request = useMemo(
     () =>
@@ -75,9 +83,10 @@ export default function CustomerReportPage() {
           <FilterRow label="Currency:">
             {currencyCodes.length ? (
               <SegmentGroup
-                options={currencyCodes.map((code) => ({ value: code, label: code }))}
+                options={currencyOptions}
                 value={currency}
                 onChange={setCurrencyPick}
+                onReorder={setCurrencyOrder}
               />
             ) : (
               <span className="text-xs font-medium text-dash-faint">No currency available</span>

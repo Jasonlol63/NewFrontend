@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { currentLoginStamp, useSavedOrder, useSavedState } from "@/hooks/useSavedState";
+import { currentLoginStamp, useSavedState } from "@/hooks/useSavedState";
+import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
 import KpiCard from "./components/KpiCard.jsx";
 import TrendChartCard from "./components/TrendChartCard.jsx";
@@ -57,8 +58,6 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState(currentMonthRange);
   // Group / Company / Currency the user picked last; saved in the browser so a refresh keeps them.
   const [saved, setSaved, savedReady] = useSavedState("dashboard.filters");
-  // Order the user dragged the currency chips into; saved the same way.
-  const [currencyOrder, setCurrencyOrder] = useSavedOrder("dashboard.currencyOrder");
 
   // Hold everything back until the saved choice has been read, so the defaults never flash
   // (or fire requests) before the restored selection takes over.
@@ -92,14 +91,8 @@ export default function DashboardPage() {
     () => [{ value: ALL, label: "All" }, ...groupCompanies.map((c) => ({ value: c.code, label: c.code }))],
     [groupCompanies]
   );
-  const currencyOptions = useMemo(() => {
-    // Dragged order first; currencies that were never dragged keep their default order after it.
-    const ordered = [
-      ...currencyOrder.filter((code) => currencyCodes.includes(code)),
-      ...currencyCodes.filter((code) => !currencyOrder.includes(code)),
-    ];
-    return ordered.map((code) => ({ value: code, label: code }));
-  }, [currencyCodes, currencyOrder]);
+  // Currency chips in the order the user dragged them into (saved in the browser).
+  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(currencyCodes);
 
   // The saved currency is only replaced when the user picks one: if a company lacks it, the page
   // shows a fallback but keeps the preference for when they switch back.
