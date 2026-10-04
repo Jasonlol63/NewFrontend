@@ -22,6 +22,7 @@ export default function MaintenanceFilterCard({ filters, searchPlaceholder, acti
           value={processId}
           onChange={filters.setProcessPick}
           placeholder="Select process"
+          clearable
           searchable={!isGroupOwn}
           searchPlaceholder="Search process"
           ariaLabel="Process"

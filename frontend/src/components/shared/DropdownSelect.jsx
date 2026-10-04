@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Popover } from "radix-ui";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,6 +16,7 @@ export default function DropdownSelect({
   searchPlaceholder = "Search",
   className = "w-[250px]",
   ariaLabel,
+  clearable = false,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -48,7 +49,30 @@ export default function DropdownSelect({
             className
           )}
         >
-          <span className={cn("min-w-0 truncate", !selected && "text-dash-faint")}>{selected?.label ?? placeholder}</span>
+          <span className={cn("min-w-0 flex-1 truncate", !selected && "text-dash-faint")}>{selected?.label ?? placeholder}</span>
+          {clearable && selected && (
+            // A span, not a button: it sits inside the trigger button. Clicking it empties the choice (onChange(null)) without opening the list.
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={`Clear ${ariaLabel ?? "selection"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onChange(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onChange(null);
+                }
+              }}
+              className="-mr-0.5 flex size-[18px] flex-none items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-red-50 hover:text-dash-down focus-visible:ring-2 focus-visible:ring-[#3b82f6]/40 focus-visible:outline-none"
+            >
+              <X className="size-3" strokeWidth={2.6} />
+            </span>
+          )}
           <ChevronDown className={cn("size-3.5 flex-none text-slate-400 transition-transform", open && "rotate-180")} strokeWidth={2.6} />
         </button>
       </Popover.Trigger>
