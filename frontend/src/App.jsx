@@ -12,11 +12,12 @@ import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenan
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
 import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenancePage.jsx";
+import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
 // Submenu pages that have a real page; the rest still show the placeholder.
-const BUILT_PAGES = new Set(["/report/customer", "/report/domain", "/maintenance/data-capture", "/maintenance/transaction", "/maintenance/payment", "/maintenance/formula"]);
+const BUILT_PAGES = new Set(["/report/customer", "/report/domain", "/maintenance/data-capture", "/maintenance/transaction", "/maintenance/payment", "/maintenance/formula", "/maintenance/bank-process"]);
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/maintenance/transaction" element={<TransactionMaintenancePage />} />
           <Route path="/maintenance/payment" element={<PaymentMaintenancePage />} />
           <Route path="/maintenance/formula" element={<FormulaMaintenancePage />} />
+          <Route path="/maintenance/bank-process" element={<BankProcessMaintenancePage />} />
           {SUBMENU_PAGES.filter(({ path }) => !BUILT_PAGES.has(path)).map(({ path, group, label }) => (
             <Route key={path} path={path} element={<ComingSoonPage group={group} title={label} />} />
           ))}

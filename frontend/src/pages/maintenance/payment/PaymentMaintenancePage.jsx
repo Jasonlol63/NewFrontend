@@ -2,18 +2,14 @@ import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
-import { useListScope } from "@/components/shared/list/useListScope";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
-import FilterRow from "@/components/shared/FilterRow.jsx";
-import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { postJson } from "@/lib/api";
-import { toIsoDate } from "@/lib/date";
-import { useCurrencyOptions } from "@/pages/dashboard/useDashboardData";
 import { Field } from "@/pages/report/shared/ReportFilterCard.jsx";
+import CurrencyFilterRow from "../shared/CurrencyFilterRow.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
+import { useCurrencyFilters } from "../shared/useCurrencyFilters";
 import { useMaintenanceList } from "../shared/useMaintenanceList";
 import {
   PAYMENT_DELETE_URL,
@@ -25,7 +21,6 @@ import {
 } from "./paymentMaintenanceRules";
 
 const dash = (v) => v || "-";
-const ALL_CURRENCIES = [{ value: "ALL", label: "All" }];
 
 // Every cell stays on one line. Description, Remark and Deleter are the columns that give way
 // if the row is still wider than the card.
@@ -45,28 +40,11 @@ export default function PaymentMaintenancePage() {
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const [type, setType] = useState("");
-  const [currencyPick, setCurrencyPick] = useState(null);
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(() => new Set());
-  const [range, setRangeState] = useState(() => {
-    const today = toIsoDate(new Date());
-    return { from: today, to: today };
-  });
   const clearSelection = () => setSelected(new Set());
 
-  const scope = useListScope("maintenance.payment.scope", { onChange: clearSelection });
-  const { tenantId } = scope;
-
-  const currencyCodes = useCurrencyOptions(tenantId ? [tenantId] : []);
-  // Chips in the order the user dragged them into, shared with the Dashboard.
-  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(currencyCodes);
-  // "All" or one currency; starts on MYR when the company has it, else its first currency.
-  const currency =
-    currencyPick === "ALL" || currencyCodes.includes(currencyPick)
-      ? currencyPick
-      : currencyCodes.includes("MYR")
-        ? "MYR"
-        : (currencyCodes[0] ?? null);
+  const filters = useCurrencyFilters("maintenance.payment.scope", { onChange: clearSelection });
+  const { tenantId, currency, range } = filters;
 
   const request = useMemo(
     () =>
@@ -76,7 +54,7 @@ export default function PaymentMaintenancePage() {
     [tenantId, currency, range, type]
   );
   const payments = useMaintenanceList(PAYMENT_LIST_URL, request, normalizePaymentRow);
-  const rows = useMemo(() => filterPaymentRows(payments.rows, search), [payments.rows, search]);
+  const rows = useMemo(() => filterPaymentRows(payments.rows, filters.search), [payments.rows, filters.search]);
 
   // Archived rows are already deleted.
   const canSelect = (r) => !readOnly && !r.deleted;
@@ -91,17 +69,7 @@ export default function PaymentMaintenancePage() {
     onDeleted: clearSelection,
   });
 
-  const filters = {
-    scope,
-    search,
-    setSearch,
-    range,
-    setRange: (value) => {
-      setRangeState(value);
-      clearSelection();
-    },
-  };
-  const pageError = scope.error || payments.error;
+  const pageError = filters.scope.error || payments.error;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
@@ -122,24 +90,7 @@ export default function PaymentMaintenancePage() {
           </Field>
         }
         actions={<DeleteButton count={selectedRows.length} onClick={() => actions.requestDelete(selectedRows)} />}
-        extraRows={
-          <FilterRow label="Currency:">
-            {currencyCodes.length ? (
-              <SegmentGroup
-                leading={ALL_CURRENCIES}
-                options={currencyOptions}
-                value={currency}
-                onChange={(v) => {
-                  setCurrencyPick(v);
-                  clearSelection();
-                }}
-                onReorder={setCurrencyOrder}
-              />
-            ) : (
-              <span className="text-xs font-medium text-dash-faint">No currency available</span>
-            )}
-          </FilterRow>
-        }
+        extraRows={<CurrencyFilterRow filters={filters} />}
       />
 
       {pageError && (
