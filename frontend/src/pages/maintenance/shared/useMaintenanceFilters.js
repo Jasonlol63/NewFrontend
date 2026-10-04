@@ -8,8 +8,7 @@ import { useProcesses } from "@/pages/report/domain/useProcesses";
 export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId, isGroupOwn }) {
   return {
     tenantId,
-    dateFrom,
-    dateTo,
+    ...(dateFrom ? { dateFrom, dateTo } : {}),
     process: processId === "" ? null : String(processId),
     category: isGroupOwn ? "bank" : "games",
   };
@@ -18,9 +17,10 @@ export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId,
 /**
  * Filters shared by the Maintenance pages: Group / Company, Process, Date Range and the search text.
  * `request` is the body of the list call (null until there is something to ask).
+ * dated: false drops the Date Range (config lists such as Formula): no `range`, no dates in the request.
  * onChange runs when Group / Company, Process or the dates change, e.g. to clear a row selection.
  */
-export function useMaintenanceFilters(storageKey, { onChange } = {}) {
+export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {}) {
   const [processPick, setProcessPick] = useState("");
   const [search, setSearch] = useState("");
   const [range, setRangeState] = useState(() => {
@@ -46,9 +46,15 @@ export function useMaintenanceFilters(storageKey, { onChange } = {}) {
   const request = useMemo(
     () =>
       tenantId && (processId !== "" || !isGroupOwn)
-        ? buildMaintenanceRequest({ tenantId, dateFrom: range.from, dateTo: range.to, processId, isGroupOwn })
+        ? buildMaintenanceRequest({
+            tenantId,
+            dateFrom: dated ? range.from : null,
+            dateTo: dated ? range.to : null,
+            processId,
+            isGroupOwn,
+          })
         : null,
-    [tenantId, range, processId, isGroupOwn]
+    [tenantId, dated, range, processId, isGroupOwn]
   );
 
   return {
@@ -62,7 +68,7 @@ export function useMaintenanceFilters(storageKey, { onChange } = {}) {
     },
     search,
     setSearch,
-    range,
+    range: dated ? range : null,
     setRange: (value) => {
       setRangeState(value);
       onChange?.();

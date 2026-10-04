@@ -35,9 +35,11 @@ export default function MaintenanceFilterCard({ filters, searchPlaceholder, acti
           placeholder={searchPlaceholder}
         />
       </label>
-      <Field label="Date Range:">
-        <DateRangePicker from={range.from} to={range.to} onChange={filters.setRange} />
-      </Field>
+      {range && (
+        <Field label="Date Range:">
+          <DateRangePicker from={range.from} to={range.to} onChange={filters.setRange} />
+        </Field>
+      )}
       {actions && <div className="ml-auto flex-none">{actions}</div>}
     </ReportFilterCard>
   );
