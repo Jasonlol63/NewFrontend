@@ -124,11 +124,12 @@ export default function DataTable({
   return (
     <section
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-dash-line bg-white shadow-dash-card transition-opacity",
+        // Frosted glass like the modals: rows are solid, the empty area under them lets the page background through.
+        "flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-dash-line bg-white/35 shadow-dash-card backdrop-blur-[10px] transition-opacity",
         loading && "opacity-60"
       )}
     >
-      <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto">
+      <div ref={bodyRef} className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]">
         <table className="w-full min-w-[980px] border-separate border-spacing-0 text-[13px]">
           <thead className="sticky top-0 z-10">
             <tr className="bg-brand-head text-left text-[13px] font-bold text-white">
@@ -178,7 +179,7 @@ export default function DataTable({
                       // A full page ends on the footer line, so the last row drops its own bottom border.
                       pageFull && i === rows.length - 1 && "[&>td]:border-b-0",
                       // Hover swaps in the stripe gradient one step deeper, on blue and white rows alike.
-                      isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white" : "bg-row-stripe", "hover:bg-row-hover")
+                      isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover")
                     )}
                   >
                     {columns.map((col, c) => (
@@ -207,7 +208,7 @@ export default function DataTable({
         </table>
       </div>
 
-      <div className="flex flex-none items-center justify-between gap-3 border-t border-dash-line px-4 py-2 text-[12px] text-dash-sub">
+      <div className="flex flex-none items-center justify-between gap-3 border-t border-dash-line bg-white/70 px-4 py-2 text-[12px] text-dash-sub">
         <span>{summary}</span>
         {paged && pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} />}
       </div>
