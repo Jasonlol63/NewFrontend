@@ -24,8 +24,8 @@ export function useMaintenanceFilters(storageKey, { onChange } = {}) {
   const [processPick, setProcessPick] = useState("");
   const [search, setSearch] = useState("");
   const [range, setRangeState] = useState(() => {
-    const today = new Date();
-    return { from: toIsoDate(new Date(today.getFullYear(), 0, 1)), to: toIsoDate(today) };
+    const today = toIsoDate(new Date());
+    return { from: today, to: today };
   });
 
   const scope = useListScope(storageKey, {
