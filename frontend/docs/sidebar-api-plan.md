@@ -1,6 +1,8 @@
 # Sidebar 接 API + C168 权限检查：分析与落地方案
 
-> 写于 2026-09-30。明天继续时先读这份文件。**状态：只做了分析，前后端代码都还没改。**
+> 写于 2026-09-30，2026-10-04 更新。继续时先读这份文件。
+> **状态：** 前端的 Report / Maintenance 子菜单（含占位页和路由）已在 2026-10-04 完成，见第 0 节。
+> 其余部分（接 API、C168 权限检查、后端改动）仍然没做，前后端都没改。
 > 文中的行号是写这份文件时的位置，动手前先重新核对。
 
 ---
@@ -11,8 +13,18 @@
 - Sidebar 分两种模式：
   - 宽度 ≥ 1200px：完整的 `Sidebar.jsx`。
   - 宽度 < 1200px：只有图标的 `SidebarRail.jsx`，点击时把完整 Sidebar 作为抽屉滑出。
-  - 菜单配置放在 `src/components/layout/sidebarConfig.js`（`MENU_ITEMS`，目前是写死的 9 项，没有子菜单）。
-- 目前只有 `/dashboard` 这一条路由，其他菜单点进去都是空白页。
+  - 菜单配置放在 `src/components/layout/sidebarConfig.js`（`MENU_ITEMS`，目前是写死的 9 项，菜单内容还没接 API）。
+- **Report / Maintenance 子菜单（2026-10-04 已完成）：**
+  - `MENU_ITEMS` 里第 8、9 项没有 `path`，只有 `key` 和 `children`。每个子项是 `{ label, path, menu }`，`menu` 是以后接权限用的 key，现在没有用到。
+  - 显示的子菜单名只保留关键字：Report 下是 Customer、Domain；Maintenance 下是 Data Capture、Transaction、Payment、Formula、Bank Process。
+  - 子菜单网址：`/report/customer`、`/report/domain`、`/maintenance/data-capture`、`/maintenance/transaction`、`/maintenance/payment`、`/maintenance/formula`、`/maintenance/bank-process`。**不再有 `/report` 和 `/maintenance` 这两个父级路径。**
+  - `Sidebar.jsx`：父项是按钮，点击在原地展开或收起，箭头旋转。同一时间只展开一个（状态是 `openKey`）。
+  - **刷新或直接打开子页面时，父项不会自动展开。** 但当前页面在某个父项下面时，收起的父项会带浅色底，表示当前位置。
+  - `SidebarRail.jsx`：父项有 `children` 时当作有子菜单，点击仍然打开抽屉。路径在某个子项下面时，对应的父图标高亮。
+  - `sidebarConfig.js` 还导出 `SUBMENU_PAGES`（所有子页面的清单），`App.jsx` 用它给 7 个子页面注册路由。
+  - 7 个子页面目前都是占位页 `src/pages/placeholder/ComingSoonPage.jsx`，只显示分组和页面名。
+  - 所有人都能看到全部 7 个子项，**权限过滤还没做**。
+- 目前已注册的路由：`/dashboard`、`/admin`、`/account`，加上上面 7 个子页面。其余菜单（Ownership、Process、Data Capture、Transaction Payment）点进去还是空白页。
 
 ---
 
@@ -194,14 +206,16 @@ menu: {
    - 数据还在加载时，名字和菜单位置显示灰色占位块，不会先闪出一份错误的菜单。
 2. **修改 `sidebarConfig.js`**
    - 新增 Domain、Announcement、Auto Renew 三个入口。
-   - Report 下加 2 个子菜单，Maintenance 下加 5 个子菜单，每一项对应一个 `menu` key。
-   - 菜单编号按实际显示的项目自动排。
-   - 子菜单网址：`/report/customer`、`/report/domain`、`/maintenance/data-capture`、`/maintenance/transaction`、`/maintenance/payment`、`/maintenance/formula`、`/maintenance/bank-process`。
+   - ✅ 已完成：Report 下 2 个子菜单，Maintenance 下 5 个子菜单，每一项已有 `menu` key，网址也已定好（见第 0 节）。
+   - 还要做：新增 Domain、Announcement、Auto Renew 三个入口。
+   - 还要做：菜单编号按实际显示的项目自动排（目前是写死的 1–9）。
+   - 还要做：按 `menu` key 过滤显示。子项已经带了 `menu` key，只差拿后端的值去过滤。
    - 如果没做 B5：就由前端写一个 `buildSidebarMenu(session)`，自己按第 1.2 节的规则判断。
-3. **`Sidebar.jsx` 支持子菜单**
-   - Report、Maintenance 在原地展开或收起，不是跳转页面。
-   - 当前页面在某个子菜单里时，自动展开并高亮。
+3. **`Sidebar.jsx` 支持子菜单**：✅ 已完成（见第 0 节）。
+   - 原定"当前页面在某个子菜单里时自动展开"，**已改为不自动展开**（用户 2026-10-04 决定），只给收起的父项加当前位置的浅色底。
+   - 父级路径 `/report`、`/maintenance` 已去掉。
    - `SidebarRail.jsx` 维持现状：点这两项会打开抽屉。
+   - 这一步之后接 API 只需要过滤 `children`，父项的 `children` 全部被过滤掉时，整个父项也要隐藏（例如 Bank 公司看不到 Report）。
 4. **接上真实数据**
    - 用户名。
    - 角色：把 `role` 代码转成显示名称，例如 `customer_service` → "Customer Service"。
@@ -217,7 +231,7 @@ menu: {
 
 1. **后端 B1 → B2 → B3 → B4**：先堵住接口漏洞，再补迁移文件。
 2. **后端 B5**：前端的菜单依赖它。
-3. **前端 1 → 5**，第 6 项可选。
+3. **前端 1 → 5**，第 6 项可选。（第 2、3 项里的子菜单部分已经完成。）
 4. **后端验证**：用下面五种身份，逐一调用第 2.3 节的 21 个接口。C168 应该全部可以调用，其他四种都应该返回 403，`getDashboardAnnouncements` 例外（所有人都能调用）：
    - C168
    - 普通 Games 公司

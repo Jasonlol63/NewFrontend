@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Bell, ChevronRight, Clock, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
@@ -10,6 +10,9 @@ import {
   MENU_ITEMS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
+
+const ITEM_CLASS =
+  "flex flex-none items-center gap-2.5 rounded-[11px] px-[11px] py-[9px] text-[13px] font-semibold no-underline cursor-pointer short:py-1.5 short:text-[12.5px]";
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
@@ -29,6 +32,9 @@ export default function Sidebar({
   className,
 }) {
   const [lang, setLang] = useState("en");
+  // Only one submenu open at a time; starts collapsed, even when the current page is inside one.
+  const [openKey, setOpenKey] = useState(null);
+  const { pathname } = useLocation();
 
   return (
     <aside
@@ -91,25 +97,63 @@ export default function Sidebar({
 
       {/* Menu: only this list scrolls when the screen is too short */}
       <nav className="scrollbar-sidebar z-10 -mr-1.5 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto pr-1.5 short:gap-0.5">
-        {MENU_ITEMS.map(({ index, label, icon: Icon, path, hasSubmenu }) => (
-          <NavLink
-            key={path}
-            to={path}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                "flex flex-none items-center gap-2.5 rounded-[11px] px-[11px] py-[9px] text-[13px] font-semibold no-underline cursor-pointer short:py-1.5 short:text-[12.5px]",
-                isActive ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS
-              )
-            }
-          >
-            <Icon size={16} className="flex-none stroke-current" />
-            <span className="min-w-0 truncate">
-              {index}. {label}
-            </span>
-            {hasSubmenu && <ChevronRight size={14} className="ml-auto flex-none opacity-70" />}
-          </NavLink>
-        ))}
+        {MENU_ITEMS.map(({ index, key, label, icon: Icon, path, children }) => {
+          if (!children) {
+            return (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={onNavigate}
+                className={({ isActive }) => cn(ITEM_CLASS, isActive ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS)}
+              >
+                <Icon size={16} className="flex-none stroke-current" />
+                <span className="min-w-0 truncate">
+                  {index}. {label}
+                </span>
+              </NavLink>
+            );
+          }
+
+          const open = openKey === key;
+          // Collapsed parent still shows it holds the current page.
+          const holdsCurrent = children.some((c) => pathname === c.path || pathname.startsWith(`${c.path}/`));
+          return (
+            <div key={key} className="flex flex-none flex-col gap-[3px] short:gap-0.5">
+              <button
+                type="button"
+                onClick={() => setOpenKey(open ? null : key)}
+                aria-expanded={open}
+                className={cn(
+                  ITEM_CLASS,
+                  "w-full border-none bg-transparent text-left",
+                  holdsCurrent && !open ? "bg-white/10 text-white" : IDLE_ITEM_CLASS
+                )}
+              >
+                <Icon size={16} className="flex-none stroke-current" />
+                <span className="min-w-0 truncate">
+                  {index}. {label}
+                </span>
+                <ChevronRight
+                  size={14}
+                  className={cn("ml-auto flex-none opacity-70 transition-transform", open && "rotate-90")}
+                />
+              </button>
+              {open &&
+                children.map((child) => (
+                  <NavLink
+                    key={child.path}
+                    to={child.path}
+                    onClick={onNavigate}
+                    className={({ isActive }) =>
+                      cn(ITEM_CLASS, "ml-[22px] py-[7px] text-[12.5px] short:py-1", isActive ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS)
+                    }
+                  >
+                    <span className="min-w-0 truncate">{child.label}</span>
+                  </NavLink>
+                ))}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Footer: stacked normally, one row on short screens */}

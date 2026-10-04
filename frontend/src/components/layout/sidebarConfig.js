@@ -20,9 +20,36 @@ export const MENU_ITEMS = [
   { index: 5, label: "Process", icon: CheckCircle2, path: "/process" },
   { index: 6, label: "Data Capture", icon: BarChart2, path: "/data-capture" },
   { index: 7, label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
-  { index: 8, label: "Report", icon: FileText, path: "/report", hasSubmenu: true },
-  { index: 9, label: "Maintenance", icon: Wrench, path: "/maintenance", hasSubmenu: true },
+  {
+    index: 8,
+    key: "report",
+    label: "Report",
+    icon: FileText,
+    // `menu` is the permission key for the later Sidebar API; not used yet.
+    children: [
+      { label: "Customer", path: "/report/customer", menu: "reportCustomer" },
+      { label: "Domain", path: "/report/domain", menu: "reportDomain" },
+    ],
+  },
+  {
+    index: 9,
+    key: "maintenance",
+    label: "Maintenance",
+    icon: Wrench,
+    children: [
+      { label: "Data Capture", path: "/maintenance/data-capture", menu: "maintenanceDataCapture" },
+      { label: "Transaction", path: "/maintenance/transaction", menu: "maintenanceTransaction" },
+      { label: "Payment", path: "/maintenance/payment", menu: "maintenancePayment" },
+      { label: "Formula", path: "/maintenance/formula", menu: "maintenanceFormula" },
+      { label: "Bank Process", path: "/maintenance/bank-process", menu: "maintenanceBankProcess" },
+    ],
+  },
 ];
+
+// Every routable page under the submenus, for the placeholder routes.
+export const SUBMENU_PAGES = MENU_ITEMS.flatMap((item) =>
+  (item.children ?? []).map((child) => ({ ...child, group: item.label }))
+);
 
 export const SIDEBAR_BG_STYLE = {
   // Dominant color of the background image, shown until it has loaded.

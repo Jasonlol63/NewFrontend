@@ -30,7 +30,8 @@ Target desktop viewports (CSS px, i.e. after browser chrome and Windows scaling)
 7. **Sidebar has two modes**, switched at the `nav` breakpoint (1200px, `nav:` / `max-nav:`):
    ≥1200 full `Sidebar` (width `clamp(220px,15.5vw,236px)`); <1200 icon-only `SidebarRail` + the full
    sidebar as a floating drawer. Menu items live once in `components/layout/sidebarConfig.js`;
-   submenus are built only in the full `Sidebar` (the rail opens the drawer for them).
+   submenus are built only in the full `Sidebar` (the rail opens the drawer for them). A menu item with
+   `children` has no `path` of its own: it only expands/collapses (one open at a time, collapsed on load).
    Page layouts that switch to multi-column should key off available width (`lg:` = 1024+), since
    the rail frees ~180px below 1200.
 8. **Verify** each new/changed page in the preview at the viewports above:

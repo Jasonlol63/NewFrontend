@@ -77,14 +77,15 @@ export default function SidebarRail({
         <div className="h-px w-8 flex-none bg-[linear-gradient(90deg,transparent_0%,rgba(103,232,249,0.7)_50%,transparent_100%)] shadow-[0_0_8px_1px_rgba(56,189,248,0.5)]" />
 
         <nav className="scrollbar-sidebar flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden">
-          {MENU_ITEMS.map(({ label, icon: Icon, path, hasSubmenu }) => {
-            const tip = hasSubmenu ? `${label} ›` : label;
+          {MENU_ITEMS.map(({ key, label, icon: Icon, path, children }) => {
+            const tip = children ? `${label} ›` : label;
             // Resolved here rather than via NavLink: Tooltip's asChild Slot
             // stringifies a function className.
-            const active = pathname === path || pathname.startsWith(`${path}/`);
-            if (hasSubmenu) {
+            const isUnder = (p) => pathname === p || pathname.startsWith(`${p}/`);
+            const active = children ? children.some((c) => isUnder(c.path)) : isUnder(path);
+            if (children) {
               return (
-                <RailTip key={path} label={tip}>
+                <RailTip key={key} label={tip}>
                   <button
                     type="button"
                     onClick={onOpenMenu}
