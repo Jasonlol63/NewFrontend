@@ -10,7 +10,7 @@ const td = "border-b border-[#eef2f7] py-0 pr-3";
  * Delete-selection checkbox, same look as the Add User select-all box.
  * checked: true | false | "mixed". onHeader: white-on-blue variant for the gradient header.
  */
-function SelectBox({ checked, onChange, onHeader, label }) {
+function SelectBox({ checked, onChange, onHeader, label, disabled }) {
   const on = checked === true || checked === "mixed";
   return (
     <button
@@ -18,6 +18,7 @@ function SelectBox({ checked, onChange, onHeader, label }) {
       role="checkbox"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(checked !== true)}
       className={cn(
         "flex size-[18px] cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] p-0 align-middle outline-none transition-[background-color,border-color,box-shadow] active:scale-[0.92] motion-reduce:transition-none",
@@ -28,6 +29,7 @@ function SelectBox({ checked, onChange, onHeader, label }) {
           : on
             ? "border-transparent bg-brand-sweep text-white shadow-[0_3px_8px_-3px_rgba(20,90,220,0.6)]"
             : "border-[#c3d3ea] bg-white hover:border-[#7fb2ff]",
+        disabled && "cursor-not-allowed border-[#d5dbe5] bg-[#eef1f6] opacity-70 hover:border-[#d5dbe5] active:scale-100",
         onHeader ? "focus-visible:ring-[3px] focus-visible:ring-white/55" : "focus-visible:ring-[3px] focus-visible:ring-[#3b82f6]/35"
       )}
     >
@@ -85,6 +87,7 @@ const never = () => false;
  * List card: gradient header with sort arrows, striped fixed-height rows, a delete-selection
  * checkbox column, and a footer with the row count and pager.
  * columns: [{ key, label, sortable = true, className (header + cells), cellClassName, render(row, rowNumber) }]
+ * rowClassName(row) adds classes to a row; lockedSelect(row) shows a disabled checkbox on rows that can't be selected.
  * Paging / sort / selection props come from useListView's `table`; a plain read-only list (the
  * Reports) passes just rows and columns with `sortable: false`, plus:
  *  - totalRow: [{ span = 1, className, content }] cells of a Total row under the last data row.
@@ -111,6 +114,8 @@ export default function DataTable({
   selected = NO_SELECTION,
   onSelectedChange = noop,
   canSelect = never,
+  rowClassName,
+  lockedSelect = never,
   totalRow,
   emptyMessage,
   minWidth = "min-w-[980px]",
@@ -190,6 +195,7 @@ export default function DataTable({
                       "transition-colors",
                       // A full page ends on the footer line, so the last row drops its own bottom border.
                       pageFull && i === rows.length - 1 && "[&>td]:border-b-0",
+                      rowClassName?.(row),
                       // Hover swaps in the stripe gradient one step deeper, on blue and white rows alike.
                       isSelected ? "bg-[#c2dcff]" : cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover")
                     )}
@@ -203,6 +209,9 @@ export default function DataTable({
                       <td className={cn(td, "pr-4")}>
                         {canSelect(row) && (
                           <SelectBox label="Select row" checked={isSelected} onChange={(checked) => setMany([row], checked)} />
+                        )}
+                        {!canSelect(row) && lockedSelect(row) && (
+                          <SelectBox disabled label="Already deleted" checked={false} onChange={noop} />
                         )}
                       </td>
                     )}

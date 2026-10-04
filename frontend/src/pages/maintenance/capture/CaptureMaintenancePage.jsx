@@ -68,7 +68,7 @@ export default function CaptureMaintenancePage() {
     { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
     { key: "wlGroup", label: "W/L Group", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
     { key: "createdBy", label: "Submitted By", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
-    { key: "deletedBy", label: "Deleted By", sortable: false, cellClassName: "whitespace-nowrap text-[#374151]", render: (r) => r.deletedBy || "-" },
+    { key: "deletedBy", label: "Deleted By", sortable: false, cellClassName: "max-w-[240px] truncate", render: (r) => <span title={r.deletedBy || undefined}>{r.deletedBy || "-"}</span> },
   ];
 
   const pageError = scope.error || processError || captures.error;
@@ -128,6 +128,8 @@ export default function CaptureMaintenancePage() {
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}
+        lockedSelect={(r) => r.deleted}
+        rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}
         minWidth="min-w-[820px]"
         emptyMessage="No data found. Please adjust your search criteria and try again."
       />
