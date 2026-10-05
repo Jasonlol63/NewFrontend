@@ -8,6 +8,7 @@ import { PRICE_PERIODS } from "./domainRules";
 // every value is capped at the design size. Only the middle part scrolls when the screen is too short.
 const FLUID = {
   width: "clamp(300px, 92vw, 520px)",
+  "--top": "clamp(16px, 9dvh, 96px)",
   "--pad-x": "clamp(14px, 1.6vw, 20px)",
   "--pad-y": "clamp(10px, 2dvh, 16px)",
   "--row-h": "clamp(28px, 4dvh, 32px)",
@@ -49,10 +50,10 @@ export default function PriceDialog({ prices, onSave, onClose }) {
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 animate-dialog-overlay bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px] motion-reduce:animate-none" />
+        <Dialog.Overlay className="fixed inset-0 z-50 animate-dialog-overlay bg-[rgba(214,230,252,0.72)] backdrop-blur-[12px] motion-reduce:animate-none" />
         <Dialog.Content
           style={FLUID}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-32px)] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 animate-dialog-in flex-col overflow-hidden rounded-[20px] bg-white text-left shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)] outline-none motion-reduce:animate-none"
+          className="fixed left-1/2 top-(--top) z-50 flex max-h-[calc(100dvh-var(--top)-16px)] max-w-[calc(100vw-24px)] -translate-x-1/2 animate-dialog-in flex-col overflow-hidden rounded-[22px] bg-modal-bg text-left shadow-[0_30px_60px_-20px_rgba(20,51,107,0.35)] backdrop-blur-[22px] backdrop-saturate-[1.15] outline-none motion-reduce:animate-none"
         >
           <header className="flex flex-none items-center gap-3 px-(--pad-x) pb-2.5 pt-(--pad-y)">
             <div className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-brand-sweep text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] short:size-8">
@@ -68,7 +69,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-(--pad-x) pb-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
-            <Dialog.Description className="m-0 mb-1.5 flex gap-2 rounded-xl bg-[#eef4ff] px-3 py-2 text-[clamp(11.5px,1.7dvh,12px)] leading-[1.45] text-[#41588a]">
+            <Dialog.Description className="m-0 mb-1.5 flex gap-2 rounded-xl border border-modal-line bg-modal-card px-3 py-2 text-[clamp(11.5px,1.7dvh,12px)] leading-[1.45] text-[#41588a]">
               <Info className="mt-px size-[15px] flex-none text-brand-blue" strokeWidth={2.2} />
               Set default amounts for the company and group respectively. Company prices apply to company settings; group prices apply to group settings.
             </Dialog.Description>
@@ -78,7 +79,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
             <div className="grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-3.5 max-[479px]:grid-cols-1 max-[479px]:gap-y-2.5">
               {SECTIONS.map(({ key, label, icon: Icon, iconClass }, i) => (
                 <Fragment key={key}>
-                  {i === 1 && <div aria-hidden="true" className="bg-[#e6edf8] max-[479px]:h-px" />}
+                  {i === 1 && <div aria-hidden="true" className="bg-modal-divider max-[479px]:h-px" />}
                   <section className="min-w-0">
                     <h2 className="m-0 mb-2 flex items-center gap-[7px] text-[13px] font-bold text-brand-navy">
                       <Icon className={`size-4 ${iconClass}`} strokeWidth={2.2} />
@@ -91,7 +92,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
                           value={values[key][period]}
                           onChange={(e) => change(key, period, e.target.value)}
                           inputMode="decimal"
-                          className="h-(--row-h) w-full min-w-0 rounded-[9px] border border-modal-input-line bg-white px-2.5 text-[13px] text-dash-ink shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
+                          className="h-(--row-h) w-full min-w-0 rounded-[9px] border border-modal-input-line bg-modal-input px-2.5 text-[13px] text-dash-ink shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
                         />
                       </label>
                     ))}
@@ -101,11 +102,8 @@ export default function PriceDialog({ prices, onSave, onClose }) {
             </div>
           </div>
 
-          <footer className="flex flex-none justify-end gap-2 border-t border-modal-divider px-(--pad-x) pb-[calc(var(--pad-y)*0.9)] pt-2.5">
-            <SoftButton
-              onClick={onClose}
-              className="h-(--btn-h) min-w-[104px] border-[#dbe5f3] bg-white px-[22px] text-[13.5px] hover:bg-[#f5f8fd] max-[479px]:min-w-0 max-[479px]:flex-1"
-            >
+          <footer className="flex flex-none justify-end gap-2 border-t border-modal-line px-(--pad-x) pb-[calc(var(--pad-y)*0.9)] pt-2.5">
+            <SoftButton onClick={onClose} className="h-(--btn-h) min-w-[104px] px-[22px] text-[13.5px] max-[479px]:min-w-0 max-[479px]:flex-1">
               Cancel
             </SoftButton>
             <button
