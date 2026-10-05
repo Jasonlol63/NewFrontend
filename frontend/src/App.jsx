@@ -13,6 +13,7 @@ import TransactionMaintenancePage from "./pages/maintenance/transaction/Transact
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
 import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenancePage.jsx";
 import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
+import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
@@ -32,7 +33,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/domain" element={<ComingSoonPage group="Home" title="Domain" />} />
           <Route path="/announcement" element={<ComingSoonPage group="Home" title="Announcement" />} />
-          <Route path="/auto-renew" element={<ComingSoonPage group="Home" title="Auto Renew" />} />
+          <Route path="/auto-renew" element={<AutoRenewPage />} />
           <Route path="/admin"element={<AdminPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/report/customer" element={<CustomerReportPage />} />

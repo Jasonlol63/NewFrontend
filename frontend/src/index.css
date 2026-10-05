@@ -155,6 +155,24 @@ body {
   }
 }
 
+/* Auto Renew "Remaining" badges: one soft ring now and then, calmer for 15 days than for expired.
+   The ring colour comes from the badge's --glow; motion-reduce turns it off (see the badge classes). */
+@theme {
+  --animate-renew-ring-15: renew-ring 5.2s ease-out infinite;
+  --animate-renew-ring-7: renew-ring 4s ease-out infinite;
+  --animate-renew-ring-0: renew-ring 3s ease-out infinite;
+  --animate-renew-dot: renew-dot 4s ease-in-out infinite;
+
+  @keyframes renew-ring {
+    0% { box-shadow: 0 0 0 0 var(--glow); }
+    28%, 100% { box-shadow: 0 0 0 7px transparent; }
+  }
+  @keyframes renew-dot {
+    0%, 40%, 100% { opacity: 1; }
+    20% { opacity: 0.3; }
+  }
+}
+
 /* Dashboard cards, filter segments and chart series */
 @theme {
   --color-dash-ink: #111827;
