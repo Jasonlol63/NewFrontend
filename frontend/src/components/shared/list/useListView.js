@@ -5,23 +5,24 @@ const NO_CHIPS = { showAll: false, showActive: false, showInactive: false };
 
 // How many rows fit in the table body without scrolling, and how tall each one is so a full page
 // ends exactly at the bottom: the space left over after whole ROW_HEIGHT rows is shared out
-// between them (re-measured when the body resizes).
-function useFitRows(ref) {
+// between them (re-measured when the body resizes). With a gap (DataTable variant="cards") the rows are
+// spaced apart, and one gap also sits under the header.
+function useFitRows(ref, gap) {
   const [fit, setFit] = useState({ count: 10, rowHeight: ROW_HEIGHT });
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
     const measure = () => {
       const head = el.querySelector("thead")?.getBoundingClientRect().height ?? 40;
-      const space = el.clientHeight - head;
-      const count = Math.max(3, Math.floor(space / ROW_HEIGHT));
-      const rowHeight = Math.max(ROW_HEIGHT, space / count);
+      const space = el.clientHeight - head - gap;
+      const count = Math.max(3, Math.floor(space / (ROW_HEIGHT + gap)));
+      const rowHeight = Math.max(ROW_HEIGHT, space / count - gap);
       setFit((f) => (f.count === count && f.rowHeight === rowHeight ? f : { count, rowHeight }));
     };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [ref, gap]);
   return fit;
 }
 
@@ -29,17 +30,18 @@ function useFitRows(ref) {
  * Search / status chips / sort / paging / selection state of a list page.
  *  - filter(rows, { search, ...chips }) and sort(rows, key, dir) come from the page's rules.
  *  - Paging fits the table height ("Show All" turns it off and the table scrolls instead).
+ *  - rowGap: px between rows for DataTable variant="cards" (default 0).
  *  - `selected` holds row ids; only rows that pass `canSelect` and are still listed count.
  * Spread `table` into <DataTable> and use the rest for the toolbar.
  */
-export function useListView(rows, { filter, sort: sortRowsBy, canSelect }) {
+export function useListView(rows, { filter, sort: sortRowsBy, canSelect, rowGap = 0 }) {
   const [search, setSearchState] = useState("");
   const [chips, setChips] = useState(NO_CHIPS);
   const [sort, setSort] = useState({ key: null, dir: 1 });
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
   const bodyRef = useRef(null);
-  const { count: pageSize, rowHeight } = useFitRows(bodyRef);
+  const { count: pageSize, rowHeight } = useFitRows(bodyRef, rowGap);
 
   const visible = useMemo(
     () => sortRowsBy(filter(rows, { search, ...chips }), sort.key, sort.dir),

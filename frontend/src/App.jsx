@@ -8,6 +8,7 @@ import AdminPage from "./pages/admin/AdminPage.jsx";
 import AccountPage from "./pages/account/AccountPage.jsx";
 import CustomerReportPage from "./pages/report/customer/CustomerReportPage.jsx";
 import DomainReportPage from "./pages/report/domain/DomainReportPage.jsx";
+import DomainPage from "./pages/domain/DomainPage.jsx";
 import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenancePage.jsx";
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
@@ -31,7 +32,7 @@ export default function App() {
 
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/domain" element={<ComingSoonPage group="Home" title="Domain" />} />
+          <Route path="/domain" element={<DomainPage />} />
           <Route path="/announcement" element={<ComingSoonPage group="Home" title="Announcement" />} />
           <Route path="/auto-renew" element={<AutoRenewPage />} />
           <Route path="/admin"element={<AdminPage />} />
