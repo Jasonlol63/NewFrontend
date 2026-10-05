@@ -1,9 +1,11 @@
+import { useCallback, useState } from "react";
 import { CircleDollarSign, Plus, Search, Trash2 } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { PrimaryButton, SecondaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { IconAction } from "@/components/shared/list/cells.jsx";
 import { useListView } from "@/components/shared/list/useListView";
 import CodeChips from "./CodeChips.jsx";
+import DomainFormModal from "./DomainFormModal.jsx";
 import { MAX_COMPANIES, MAX_GROUPS, MOCK_DOMAINS, canDeleteDomain, filterDomains, sortDomains } from "./domainRules";
 
 const NOT_BUILT = "Not available yet";
@@ -14,10 +16,14 @@ const buttonSize = "h-9 py-0";
 
 /**
  * Domain: owners with their groups and companies.
- * Design preview only: the rows are placeholders and nothing here calls the API yet (Add, Price,
- * Edit and Delete are not wired). Rows are cards without a frame around the list or the toolbar.
+ * Design preview only: the rows are placeholders and nothing here calls the API yet (Price and Delete are
+ * not wired; Add and Edit open the form modal, whose Save just closes it). Rows are cards without a frame
+ * around the list or the toolbar.
  */
 export default function DomainPage() {
+  // null = closed, { mode: "add" } or { mode: "edit", domain } = open
+  const [domainForm, setDomainForm] = useState(null);
+  const closeDomainForm = useCallback(() => setDomainForm(null), []);
   const view = useListView(MOCK_DOMAINS, { filter: filterDomains, sort: sortDomains, canSelect: canDeleteDomain, rowGap: ROW_GAP });
 
   const columns = [
@@ -43,7 +49,7 @@ export default function DomainPage() {
       label: "Action",
       sortable: false,
       className: "text-center",
-      render: () => <IconAction title="Edit domain" aria-label="Edit domain" />,
+      render: (r) => <IconAction title="Edit domain" aria-label="Edit domain" onClick={() => setDomainForm({ mode: "edit", domain: r })} />,
     },
   ];
 
@@ -52,7 +58,7 @@ export default function DomainPage() {
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <div className="flex flex-none flex-wrap items-center gap-2.5 px-1">
-        <PrimaryButton icon={Plus} className={buttonSize} title={NOT_BUILT}>
+        <PrimaryButton icon={Plus} className={buttonSize} onClick={() => setDomainForm({ mode: "add" })}>
           Add Domain
         </PrimaryButton>
 
@@ -82,6 +88,11 @@ export default function DomainPage() {
       </div>
 
       <DataTable variant="cards" columns={columns} noun="domains" minWidth="min-w-0" fitWidth emptyMessage="No domains found" {...view.table} />
+
+      {/* Add Domain and Edit Domain share one modal. UI only for now: Save just closes it. */}
+      {domainForm && (
+        <DomainFormModal mode={domainForm.mode} domain={domainForm.domain} onClose={closeDomainForm} onSave={closeDomainForm} />
+      )}
     </div>
   );
 }
