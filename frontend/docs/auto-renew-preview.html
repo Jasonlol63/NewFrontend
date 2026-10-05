@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auto Renew Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; display:flex; height:100vh; overflow:hidden; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:#1e293b;
+    background:#eaf3fd linear-gradient(135deg,#e3efff,#f6faff 60%,#dbeaff); }
+  .side { width:200px; min-width:200px; background:linear-gradient(160deg,#123064,#0c2452 40%,#061225); color:#b7c9ea; padding:18px 12px; font-size:13px; font-weight:600; }
+  .side b { display:block; color:#fff; font-size:14px; letter-spacing:.5px; margin-bottom:22px; }
+  .side div { padding:9px 10px; border-radius:10px; margin-bottom:3px; }
+  .side .on { color:#fff; background:linear-gradient(100deg,#0a3fc9,#2f8dff 55%,#3fc4ff); }
+  main { flex:1; min-width:0; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+
+  /* ---- top bar: tabs + filters in one card ---- */
+  .bar { background:#fff; border-radius:16px; padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; box-shadow:0 6px 20px -10px rgba(30,80,170,.35); }
+  .tabs { display:flex; background:#eef4ff; border-radius:12px; padding:3px; }
+  .tab { border:0; background:none; padding:7px 16px; border-radius:10px; font:700 13px inherit; color:#64748b; cursor:pointer; display:flex; gap:7px; align-items:center; }
+  .tab.on { background:linear-gradient(100deg,#0a5bff,#2f8dff); color:#fff; box-shadow:0 6px 14px -6px rgba(20,90,220,.8); }
+  .badge { font-size:11px; min-width:18px; padding:1px 6px; border-radius:99px; background:#ef4444; color:#fff; text-align:center; }
+  .sep { width:1px; align-self:stretch; background:#e2e8f0; }
+  .field { display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border:1px solid #d6e2f5; border-radius:10px; background:#fff; font-size:13px; color:#64748b; }
+  .field.date { color:#1e293b; font-weight:600; }
+  .seg { display:flex; gap:6px; margin-left:auto; }
+  .chip { border:1px solid #d6e2f5; background:#fff; border-radius:99px; padding:6px 12px; font:600 12px inherit; color:#64748b; display:flex; gap:7px; align-items:center; cursor:pointer; }
+  .chip i { font-style:normal; font-size:11px; background:#eef2f7; border-radius:99px; padding:0 7px; }
+  .chip.on { background:#e8f1ff; border-color:#2f8dff; color:#0a4fd6; }
+  .chip.on i { background:#2f8dff; color:#fff; }
+  .chip .d { width:7px; height:7px; border-radius:50%; }
+
+  /* ---- list ---- */
+  .card { flex:1; min-height:0; background:#fff; border-radius:16px; box-shadow:0 6px 20px -10px rgba(30,80,170,.35); display:flex; flex-direction:column; overflow:hidden; }
+  .scroll { flex:1; overflow:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { position:sticky; top:0; background:linear-gradient(180deg,#2f8dff,#0a5bff); color:#fff; text-align:left; padding:10px 12px; font-weight:700; white-space:nowrap; }
+  td { padding:9px 12px; border-bottom:1px solid #eef2f8; white-space:nowrap; }
+  tr:hover td { background:#f5f9ff; }
+  .no { color:#94a3b8; width:36px; }
+  .co { font-weight:800; }
+  .sub { color:#94a3b8; font-size:12px; }
+  .price { font-weight:800; font-variant-numeric:tabular-nums; }
+  .muted { color:#cbd5e1; }
+  .exp small { display:block; color:#94a3b8; font-size:11px; }
+
+  .rem { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:700; }
+  .rem.red { background:#fee2e2; color:#b91c1c; } .rem.amber { background:#fef3c7; color:#b45309; } .rem.green { background:#dcfce7; color:#15803d; }
+
+  .per { display:flex; gap:4px; }
+  .per button { border:1px solid #d6e2f5; background:#fff; border-radius:8px; padding:4px 8px; font:700 11.5px inherit; color:#475569; cursor:pointer; }
+  .per button:hover { border-color:#2f8dff; color:#0a4fd6; }
+  .per button.on { background:#2f8dff; border-color:#2f8dff; color:#fff; }
+
+  .sw { display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:12px; cursor:pointer; }
+  .sw s { width:34px; height:19px; border-radius:99px; background:#cbd5e1; position:relative; transition:.15s; }
+  .sw s::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .sw.on { color:#0a4fd6; } .sw.on s { background:#2f8dff; } .sw.on s::after { left:17px; }
+
+  .act { display:flex; gap:6px; align-items:center; }
+  .btn { border:0; border-radius:9px; padding:6px 13px; font:700 12px inherit; cursor:pointer; }
+  .ok { background:linear-gradient(100deg,#0a5bff,#2f8dff); color:#fff; box-shadow:0 5px 12px -6px rgba(20,90,220,.8); }
+  .ok:disabled { background:#dbe7fb; color:#fff; box-shadow:none; cursor:not-allowed; }
+  .no-btn { background:#f1f5f9; color:#475569; } .no-btn:hover { background:#fee2e2; color:#b91c1c; }
+  .comm { width:30px; height:30px; padding:0; border-radius:9px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-size:14px; }
+  .st { padding:4px 10px; border-radius:99px; font-size:12px; font-weight:700; }
+  .st.a { background:#dcfce7; color:#15803d; } .st.r { background:#f1f5f9; color:#64748b; }
+
+  .foot { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; font-size:12px; color:#64748b; border-top:1px solid #eef2f8; }
+  .pg { display:flex; gap:6px; align-items:center; }
+  .pg button { width:28px; height:28px; border-radius:8px; border:1px solid #d6e2f5; background:#fff; color:#64748b; }
+  .note { position:fixed; right:14px; bottom:10px; background:#0f172a; color:#e2e8f0; font-size:12px; padding:8px 12px; border-radius:10px; opacity:.9; }
+</style>
+</head>
+<body>
+<aside class="side"><b>EAZYCOUNT</b>
+  <div>1. Home</div><div>2. Domain</div><div>3. Announcement</div><div class="on">4. Auto Renew</div><div>5. Admin</div><div>6. Account</div><div>7. Ownership</div><div>…</div>
+</aside>
+
+<main>
+  <div class="bar">
+    <div class="tabs">
+      <button class="tab on">Company <span class="badge">5</span></button>
+      <button class="tab">Group <span class="badge">1</span></button>
+    </div>
+    <div class="sep"></div>
+    <div class="field" style="min-width:210px">🔍 Search company or name…</div>
+    <div class="field date">📅 01/10/2026 - 05/10/2026 ⌄</div>
+    <div class="seg">
+      <button class="chip">Show All <i>5</i></button>
+      <button class="chip on"><span class="d" style="background:#f59e0b"></span>Pending <i>5</i></button>
+      <button class="chip"><span class="d" style="background:#22c55e"></span>Approved <i>0</i></button>
+      <button class="chip"><span class="d" style="background:#94a3b8"></span>Rejected <i>0</i></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="scroll"><table id="t">
+      <thead><tr><th>No.</th><th>Company / Name</th><th>Expiration</th><th>Remaining</th><th>Period</th><th>Price</th><th>Charge</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr data-p="2400"><td class="no">1</td><td><span class="co">ASIA</span><span class="sub"> · -</span></td><td class="exp">01-06-2026</td><td><span class="rem red">Expired</span></td><td><div class="per"></div></td><td class="price muted">—</td><td><span class="sw on"><s></s>On</span></td><td><div class="act"><button class="btn ok" disabled>Approve</button><button class="btn no-btn">Reject</button></div></td></tr>
+        <tr data-p="1200"><td class="no">2</td><td><span class="co">GT</span><span class="sub"> · -</span></td><td class="exp">01-06-2026</td><td><span class="rem red">Expired</span></td><td><div class="per"></div></td><td class="price muted">—</td><td><span class="sw on"><s></s>On</span></td><td><div class="act"><button class="btn ok" disabled>Approve</button><button class="btn no-btn">Reject</button></div></td></tr>
+        <tr data-p="600"><td class="no">3</td><td><span class="co">AJ</span><span class="sub"> · -</span></td><td class="exp">05-08-2026</td><td><span class="rem red">Expired</span></td><td><div class="per"></div></td><td class="price muted">—</td><td><span class="sw on"><s></s>On</span></td><td><div class="act"><button class="btn ok" disabled>Approve</button><button class="btn no-btn">Reject</button></div></td></tr>
+        <tr data-p="2400"><td class="no">4</td><td><span class="co">1039</span><span class="sub"> · IT01 KUNZZ</span></td><td class="exp">11-09-2026</td><td><span class="rem red">Expired</span></td><td><div class="per"></div></td><td class="price muted">—</td><td><span class="sw"><s></s>Off</span></td><td><div class="act"><button class="btn ok" disabled>Approve</button><button class="btn no-btn">Reject</button><button class="btn comm" title="Comm">💬</button></div></td></tr>
+        <tr data-p="3000"><td class="no">5</td><td><span class="co">BK1</span><span class="sub"> · IT01 KUNZZ</span></td><td class="exp">12-09-2026</td><td><span class="rem amber">Expiring · 12d</span></td><td><div class="per"></div></td><td class="price muted">—</td><td><span class="sw on"><s></s>On</span></td><td><div class="act"><button class="btn ok" disabled>Approve</button><button class="btn no-btn">Reject</button><button class="btn comm" title="Comm">💬</button></div></td></tr>
+        <tr data-p="0" style="opacity:.75"><td class="no">6</td><td><span class="co">ZX9</span><span class="sub"> · -</span></td><td class="exp">20-10-2026</td><td><span class="rem green">15 days left</span></td><td><span class="sub">1 year</span></td><td class="price">2400.00</td><td><span class="sw on"><s></s>On</span></td><td><span class="st a">✓ Approved</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="foot"><span>Showing 6 records</span><div class="pg"><button>‹</button><b>1 of 1</b><button>›</button></div></div>
+  </div>
+</main>
+<div class="note">Mockup: click a period to fill Price and enable Approve</div>
+
+<script>
+  const P = [["7d","7 days"],["1m","1 month"],["3m","3 months"],["6m","6 months"],["1y","1 year"]];
+  const mult = {"7d":.03,"1m":.1,"3m":.25,"6m":.5,"1y":1};
+  document.querySelectorAll("tr[data-p]").forEach(tr => {
+    const box = tr.querySelector(".per"); if (!box) return;
+    P.forEach(([k,l]) => { const b = document.createElement("button"); b.textContent = k.replace("7d","7 d"); b.title = l;
+      b.onclick = () => { box.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+        const pr = tr.querySelector(".price"); pr.classList.remove("muted"); pr.textContent = (tr.dataset.p*mult[k]).toFixed(2);
+        tr.querySelector(".ok").disabled = false; };
+      box.appendChild(b); });
+  });
+  document.querySelectorAll(".sw").forEach(s => s.onclick = () => { s.classList.toggle("on"); s.lastChild.textContent = s.classList.contains("on") ? "On" : "Off"; });
+</script>
+</body>
+</html>

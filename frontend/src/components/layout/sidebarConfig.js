@@ -8,20 +8,26 @@ import {
   CreditCard,
   FileText,
   Wrench,
+  Globe,
+  Megaphone,
+  RefreshCw,
 } from "lucide-react";
 
 // Shared by the full sidebar and the icon rail. Submenus live only in the
 // full sidebar; the rail opens the full sidebar as a drawer for those items.
 export const MENU_ITEMS = [
   { index: 1, label: "Home", icon: Home, path: "/dashboard" },
-  { index: 2, label: "Admin", icon: Shield, path: "/admin" },
-  { index: 3, label: "Account", icon: User, path: "/account" },
-  { index: 4, label: "Ownership", icon: Users, path: "/ownership" },
-  { index: 5, label: "Process", icon: CheckCircle2, path: "/process" },
-  { index: 6, label: "Data Capture", icon: BarChart2, path: "/data-capture" },
-  { index: 7, label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
+  { index: 2, label: "Domain", icon: Globe, path: "/domain" },
+  { index: 3, label: "Announcement", icon: Megaphone, path: "/announcement" },
+  { index: 4, label: "Auto Renew", icon: RefreshCw, path: "/auto-renew" },
+  { index: 5, label: "Admin", icon: Shield, path: "/admin" },
+  { index: 6, label: "Account", icon: User, path: "/account" },
+  { index: 7, label: "Ownership", icon: Users, path: "/ownership" },
+  { index: 8, label: "Process", icon: CheckCircle2, path: "/process" },
+  { index: 9, label: "Data Capture", icon: BarChart2, path: "/data-capture" },
+  { index: 10, label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
   {
-    index: 8,
+    index: 11,
     key: "report",
     label: "Report",
     icon: FileText,
@@ -32,7 +38,7 @@ export const MENU_ITEMS = [
     ],
   },
   {
-    index: 9,
+    index: 12,
     key: "maintenance",
     label: "Maintenance",
     icon: Wrench,
