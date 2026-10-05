@@ -107,7 +107,7 @@ export default function DomainPage() {
 
       {/* Add Domain and Edit Domain share one modal. UI only for now: Save just closes it. */}
       {domainForm && (
-        <DomainFormModal mode={domainForm.mode} domain={domainForm.domain} onClose={closeDomainForm} onSave={closeDomainForm} />
+        <DomainFormModal mode={domainForm.mode} domain={domainForm.domain} prices={prices} onClose={closeDomainForm} onSave={closeDomainForm} />
       )}
     </div>
   );

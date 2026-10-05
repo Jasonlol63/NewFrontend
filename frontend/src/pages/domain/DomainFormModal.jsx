@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Building2, Check, Globe, Layers, ListChecks, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, PasswordInput, SelectField, SoftButton, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import MemberRow from "./MemberRow.jsx";
+import SettingsModal from "./SettingsModal.jsx";
 import {
   NO_GROUP,
   SECONDARY_PASSWORD_LENGTH,
@@ -33,12 +34,15 @@ const addButton = cn(
  * Fills the content area (the sidebar stays visible), Domain page blurred behind. Mount it only while open.
  * mode: "add" | "edit"; domain: the list row being edited (edit mode).
  *
+ * Set opens the Group / Company Settings dialog (validity, company type and share); its Save keeps the values in
+ * this draft and shows the expiry date on the row.
+ *
  * Joining / leaving a group, adding and removing only change this draft; the database is only touched
  * by Save (UI only for now: Save just hands the draft back through onSave).
  *  - Quick: click the group chip of a company and pick a group (or "No group").
  *  - Multiple Choice: tick companies, pick a target group, Done.
  */
-export default function DomainFormModal({ mode = "add", domain, onClose, onSave }) {
+export default function DomainFormModal({ mode = "add", domain, prices, onClose, onSave }) {
   const isEdit = mode === "edit";
   const [initial] = useState(() => buildDraft(isEdit ? domain : null));
   const [owner, setOwner] = useState(initial.owner);
@@ -53,6 +57,11 @@ export default function DomainFormModal({ mode = "add", domain, onClose, onSave 
   const [groupError, setGroupError] = useState("");
   const [companyError, setCompanyError] = useState("");
   const [notice, setNotice] = useState("");
+
+  // Set dialog: which group / company is open ({ kind, code } or null) and what was saved for each ("kind:code").
+  const [settingsFor, setSettingsFor] = useState(null);
+  const [settings, setSettings] = useState({});
+  const closeSettings = useCallback(() => setSettingsFor(null), []);
 
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState(() => new Set());
@@ -128,6 +137,15 @@ export default function DomainFormModal({ mode = "add", domain, onClose, onSave 
     setCompanies((list) => list.map((c) => (picked.has(c.code) ? { ...c, group } : c)));
     exitMulti();
     setNotice(`${count} ${count === 1 ? "company" : "companies"} ${group ? `moved to ${group}` : "taken out of their group"}`);
+  };
+
+  const saveSettings = (values, expiry) => {
+    const { kind, code } = settingsFor;
+    setSettings((all) => ({ ...all, [`${kind}:${code}`]: values }));
+    const setDate = (list) => list.map((item) => (item.code === code ? { ...item, date: expiry || item.date } : item));
+    if (kind === "group") setGroups(setDate);
+    else setCompanies(setDate);
+    setSettingsFor(null);
   };
 
   const changes = countChanges(base, { groups, companies });
@@ -207,7 +225,7 @@ export default function DomainFormModal({ mode = "add", domain, onClose, onSave 
         <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {groups.length ? (
             groups.map((g) => (
-              <MemberRow key={g.code} code={g.code} date={g.date} onRemove={() => removeGroup(g.code)} />
+              <MemberRow key={g.code} code={g.code} date={g.date} onSet={() => setSettingsFor({ kind: "group", code: g.code })} onRemove={() => removeGroup(g.code)} />
             ))
           ) : (
             <EmptyList icon={Layers} text="No groups added yet" />
@@ -296,6 +314,7 @@ export default function DomainFormModal({ mode = "add", domain, onClose, onSave 
                 selectable={multi}
                 picked={picked.has(c.code)}
                 onPick={() => togglePick(c.code)}
+                onSet={() => setSettingsFor({ kind: "company", code: c.code })}
                 onRemove={() => removeCompany(c.code)}
               />
             ))
@@ -304,6 +323,17 @@ export default function DomainFormModal({ mode = "add", domain, onClose, onSave 
           )}
         </div>
       </FormCard>
+      {settingsFor && (
+        <SettingsModal
+          kind={settingsFor.kind}
+          code={settingsFor.code}
+          saved={settings[`${settingsFor.kind}:${settingsFor.code}`]}
+          fallbackDate={(settingsFor.kind === "group" ? groups : companies).find((i) => i.code === settingsFor.code)?.date}
+          prices={prices}
+          onClose={closeSettings}
+          onSave={saveSettings}
+        />
+      )}
     </FormModal>
   );
 }

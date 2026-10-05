@@ -1,8 +1,12 @@
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { Check, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
 import { SoftButton, primaryButtonClass } from "./fields.jsx";
+
+// Open modals, oldest first: a modal opened on top of another one (Set over Add Domain) is the only one that
+// answers Escape, so one press closes one modal.
+const openModals = [];
 
 // Width tiers come from the content area (@container/main = screen minus sidebar):
 //   @min-[900px]/main:@max-[1099px]/main = narrow content area (1200-1366 with the sidebar, 1024-1180 with the rail)
@@ -18,6 +22,7 @@ import { SoftButton, primaryButtonClass } from "./fields.jsx";
  * bodyClassName: the body's own layout (grid columns, scrolling...); it already has the padding
  *   and gap (--pad / --gap) and fills the space between header and footer.
  * footerStart: shown on the left of the footer (e.g. a validation message).
+ * footerExtra: another button between Cancel and Save (e.g. Reset).
  * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
  * Mount it only while open so every opening starts from its initial values.
  */
@@ -29,19 +34,27 @@ export default function FormModal({
   saveLabel = "Save",
   saveDisabled = false,
   footerStart,
+  footerExtra,
   bodyClassName,
   children,
 }) {
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
+    const token = {};
+    openModals.push(token);
     const onKeyDown = (e) => {
       // An open dropdown / popup handles (and prevents) its own Escape; only close the modal otherwise.
-      if (e.key === "Escape" && !e.defaultPrevented) onClose();
+      if (e.key === "Escape" && !e.defaultPrevented && openModals[openModals.length - 1] === token) onCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      openModals.splice(openModals.indexOf(token), 1);
+    };
+  }, []);
 
   const shell = (
     <>
@@ -85,6 +98,7 @@ export default function FormModal({
             <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
               Cancel
             </SoftButton>
+            {footerExtra}
             <button
               type="button"
               onClick={onSave}

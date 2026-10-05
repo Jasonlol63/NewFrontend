@@ -3,8 +3,6 @@ import { DropdownMenu } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { NO_GROUP } from "./domainFormRules";
 
-const NOT_BUILT = "Not available yet";
-
 /**
  * One Group or Company in the Add / Edit Domain modal:  [code (+ group chip)]  |  expiry date  |  [Set] [x].
  * The date sits in the middle of the row; Set is the big, obvious button and the remove x is small and quiet,
@@ -76,7 +74,6 @@ export default function MemberRow({
         <button
           type="button"
           onClick={onSet}
-          title={NOT_BUILT}
           className="h-[30px] min-w-[62px] cursor-pointer rounded-[9px] border-none bg-brand-sweep px-[18px] text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:brightness-105 modal-compact:h-7 modal-compact:min-w-14 modal-compact:px-3.5 modal-tiny:h-[26px] modal-tiny:min-w-[52px] modal-tiny:px-3 modal-tiny:text-[12px]"
         >
           Set

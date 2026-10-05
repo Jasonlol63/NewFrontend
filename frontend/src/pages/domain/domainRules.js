@@ -4,13 +4,14 @@ import { compareText, matchesSearch, sortRows } from "@/components/shared/list/l
 export const MAX_GROUPS = 2;
 export const MAX_COMPANIES = 3;
 
-// Periods the Price dialog sets an amount for, in display order.
+// Periods the Price dialog sets an amount for (and the Set dialog picks from), in display order.
+// `days` is how far a start date runs on to the expiry date (same lengths as the Auto Renew periods).
 export const PRICE_PERIODS = [
-  { key: "days7", label: "7 Days" },
-  { key: "month1", label: "1 Month" },
-  { key: "months3", label: "3 Months" },
-  { key: "months6", label: "6 Months" },
-  { key: "year1", label: "1 Year" },
+  { key: "days7", label: "7 Days", days: 7 },
+  { key: "month1", label: "1 Month", days: 30 },
+  { key: "months3", label: "3 Months", days: 91 },
+  { key: "months6", label: "6 Months", days: 182 },
+  { key: "year1", label: "1 Year", days: 365 },
 ];
 
 // Placeholder prices for the design preview; the real ones come with the API.
