@@ -106,6 +106,7 @@ export default function AdminPage() {
         rowKey={rowKey}
         noun="users"
         loading={loading}
+        boxedPager
         {...view.table}
       />
 

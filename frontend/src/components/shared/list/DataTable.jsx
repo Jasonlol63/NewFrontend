@@ -54,14 +54,22 @@ function SortIcon({ active, dir }) {
 const TRAY =
   "border border-[#cfe0fa] bg-[linear-gradient(135deg,#ffffff_0%,#e4efff_100%)] shadow-[0_6px_16px_-8px_rgba(30,80,170,0.4),inset_0_1px_0_rgba(255,255,255,0.95)]";
 
+// The boxed pager grows with the screen height: small on short screens (laptops), medium from 760px,
+// full size from 900px. Spelled out in full so Tailwind can see every class.
+const BOX_SIZE =
+  "h-6 min-w-6 rounded-[7px] px-1.5 text-[11px] [@media(min-height:760px)]:h-7 [@media(min-height:760px)]:min-w-7 [@media(min-height:760px)]:rounded-[8px] [@media(min-height:760px)]:px-2 [@media(min-height:760px)]:text-[12px] [@media(min-height:900px)]:h-[30px] [@media(min-height:900px)]:min-w-[30px] [@media(min-height:900px)]:rounded-[9px] [@media(min-height:900px)]:text-[12.5px]";
+const BOX_ICON = "size-3.5 [@media(min-height:760px)]:size-4";
+const BOX_TRAY =
+  "gap-[2px] rounded-[10px] p-0.5 [@media(min-height:760px)]:gap-[3px] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:p-1";
+
 function Pager({ page, pageCount, onPageChange, boxed }) {
   // boxed (cards variant): the whole pager sits in one rounded-square tray with a soft white-to-sky gradient;
   // the current page is a glowing blue gradient square.
   const btn = boxed
-    ? "flex h-[30px] min-w-[30px] cursor-pointer items-center justify-center rounded-[9px] px-2 text-[12.5px] font-bold text-[#1f3d73] tabular-nums transition-colors hover:bg-white/75 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
+    ? `flex ${BOX_SIZE} cursor-pointer items-center justify-center font-bold text-[#1f3d73] tabular-nums transition-colors hover:bg-white/75 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent`
     : "flex size-7 cursor-pointer items-center justify-center rounded-lg border border-dash-line bg-white hover:bg-slate-50 disabled:cursor-default disabled:opacity-40";
   const current = boxed
-    ? "flex h-[30px] min-w-[30px] items-center justify-center rounded-[9px] bg-[linear-gradient(135deg,#6fc8ff_0%,#2f7bff_55%,#0d60ff_100%)] px-2 text-[12.5px] font-bold text-white tabular-nums shadow-[0_5px_12px_-4px_rgba(13,96,255,0.75),inset_0_1px_0_rgba(255,255,255,0.45)]"
+    ? `flex ${BOX_SIZE} items-center justify-center bg-[linear-gradient(135deg,#6fc8ff_0%,#2f7bff_55%,#0d60ff_100%)] font-bold text-white tabular-nums shadow-[0_5px_12px_-4px_rgba(13,96,255,0.75),inset_0_1px_0_rgba(255,255,255,0.45)]`
     : "flex size-7 items-center justify-center rounded-lg bg-seg-active font-bold text-white";
   // Current page, its neighbours, the ends, and "…" for gaps.
   const pages = [];
@@ -70,13 +78,13 @@ function Pager({ page, pageCount, onPageChange, boxed }) {
     else if (pages.at(-1) !== "…") pages.push("…");
   }
   return (
-    <div className={boxed ? `flex items-center gap-[3px] rounded-xl p-1 ${TRAY}` : "flex items-center gap-1"}>
+    <div className={boxed ? `flex items-center ${BOX_TRAY} ${TRAY}` : "flex items-center gap-1"}>
       <button type="button" className={btn} disabled={page === 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page">
-        <ChevronLeft className="size-4" />
+        <ChevronLeft className={boxed ? BOX_ICON : "size-4"} />
       </button>
       {pages.map((n, i) =>
         n === "…" ? (
-          <span key={`gap-${i}`} className="px-1 text-dash-faint">…</span>
+          <span key={`gap-${i}`} className={boxed ? "px-0.5 text-dash-faint" : "px-1 text-dash-faint"}>…</span>
         ) : n === page ? (
           <span key={n} aria-current="page" className={current}>{n}</span>
         ) : (
@@ -84,7 +92,7 @@ function Pager({ page, pageCount, onPageChange, boxed }) {
         )
       )}
       <button type="button" className={btn} disabled={page === pageCount} onClick={() => onPageChange(page + 1)} aria-label="Next page">
-        <ChevronRight className="size-4" />
+        <ChevronRight className={boxed ? BOX_ICON : "size-4"} />
       </button>
     </div>
   );
@@ -209,6 +217,7 @@ const never = () => false;
  *  - variant="cards": no frame or header bar; every row is its own white rounded card with a gap between rows
  *    (pass the same gap to useListView's `rowGap`), plain header labels with a colon, and a boxed pager.
  *    Never scrolls: rows that don't fit go to the next page.
+ *  - boxedPager: the sky-gradient square pager of the cards variant, on a table-variant list too.
  */
 export default function DataTable({
   columns,
@@ -237,6 +246,7 @@ export default function DataTable({
   minWidth = "min-w-[980px]",
   fitWidth = false,
   variant = "table",
+  boxedPager = false,
 }) {
   const cards = variant === "cards";
   // The cell look of a body row. Cards: a sky-blue sweep, white on the left to light blue on the right, runs
@@ -417,11 +427,11 @@ export default function DataTable({
         className={cn(
           "flex flex-none items-center justify-between gap-3",
           // Cards: no footer bar; the count and the pager are sky-gradient chips sitting on the page background.
-          cards ? "pt-1 text-[12.5px]" : "border-t border-dash-line bg-white/70 px-4 py-2 text-[12px] text-dash-sub"
+          cards ? "pt-1" : "border-t border-dash-line bg-white/70 px-4 py-2 text-[12px] text-dash-sub"
         )}
       >
-        <span className={cards ? `rounded-xl px-3 py-[7px] font-medium text-[#33507f] ${TRAY}` : undefined}>{summary}</span>
-        {paged && pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} boxed={cards} />}
+        <span className={cards ? `rounded-[10px] px-2.5 py-1 text-[11px] font-medium text-[#33507f] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:px-3 [@media(min-height:760px)]:py-[7px] [@media(min-height:760px)]:text-[12.5px] ${TRAY}` : undefined}>{summary}</span>
+        {paged && pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} boxed={cards || boxedPager} />}
       </div>
       {cellTip}
     </section>

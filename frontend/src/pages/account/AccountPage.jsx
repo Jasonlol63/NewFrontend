@@ -160,7 +160,7 @@ export default function AccountPage() {
         </div>
       )}
 
-      <DataTable columns={columns} noun="accounts" loading={loading} {...view.table} />
+      <DataTable columns={columns} noun="accounts" loading={loading} boxedPager {...view.table} />
 
       {actions.dialogs}
 
