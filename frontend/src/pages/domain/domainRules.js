@@ -4,6 +4,21 @@ import { compareText, matchesSearch, sortRows } from "@/components/shared/list/l
 export const MAX_GROUPS = 2;
 export const MAX_COMPANIES = 3;
 
+// Periods the Price dialog sets an amount for, in display order.
+export const PRICE_PERIODS = [
+  { key: "days7", label: "7 Days" },
+  { key: "month1", label: "1 Month" },
+  { key: "months3", label: "3 Months" },
+  { key: "months6", label: "6 Months" },
+  { key: "year1", label: "1 Year" },
+];
+
+// Placeholder prices for the design preview; the real ones come with the API.
+export const MOCK_PRICES = {
+  company: { days7: "0", month1: "0", months3: "0", months6: "1200", year1: "2400" },
+  group: { days7: "0", month1: "0", months3: "0", months6: "0", year1: "1200" },
+};
+
 // Rows created by the system can't be deleted.
 export const SYSTEM_OWNER = "SYSTEM";
 export const canDeleteDomain = (row) => row.createdBy !== SYSTEM_OWNER;

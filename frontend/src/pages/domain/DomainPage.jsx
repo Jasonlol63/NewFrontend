@@ -6,7 +6,8 @@ import { IconAction } from "@/components/shared/list/cells.jsx";
 import { useListView } from "@/components/shared/list/useListView";
 import CodeChips from "./CodeChips.jsx";
 import DomainFormModal from "./DomainFormModal.jsx";
-import { MAX_COMPANIES, MAX_GROUPS, MOCK_DOMAINS, canDeleteDomain, filterDomains, sortDomains } from "./domainRules";
+import PriceDialog from "./PriceDialog.jsx";
+import { MAX_COMPANIES, MAX_GROUPS, MOCK_DOMAINS, MOCK_PRICES, canDeleteDomain, filterDomains, sortDomains } from "./domainRules";
 
 const NOT_BUILT = "Not available yet";
 // Gap between the row cards; useListView needs the same number to work out how many rows fit.
@@ -16,14 +17,22 @@ const buttonSize = "h-9 py-0";
 
 /**
  * Domain: owners with their groups and companies.
- * Design preview only: the rows are placeholders and nothing here calls the API yet (Price and Delete are
- * not wired; Add and Edit open the form modal, whose Save just closes it). Rows are cards without a frame
+ * Design preview only: the rows are placeholders and nothing here calls the API yet (Delete is not wired;
+ * Add and Edit open the form modal, whose Save just closes it; Price opens its dialog, whose Save only keeps
+ * the amounts in page state). Rows are cards without a frame
  * around the list or the toolbar.
  */
 export default function DomainPage() {
   // null = closed, { mode: "add" } or { mode: "edit", domain } = open
   const [domainForm, setDomainForm] = useState(null);
   const closeDomainForm = useCallback(() => setDomainForm(null), []);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [prices, setPrices] = useState(MOCK_PRICES);
+  const closePrice = useCallback(() => setPriceOpen(false), []);
+  const savePrices = (next) => {
+    setPrices(next);
+    setPriceOpen(false);
+  };
   const view = useListView(MOCK_DOMAINS, { filter: filterDomains, sort: sortDomains, canSelect: canDeleteDomain, rowGap: ROW_GAP });
 
   const columns = [
@@ -72,7 +81,12 @@ export default function DomainPage() {
           />
         </label>
 
-        <SecondaryButton icon={CircleDollarSign} className={buttonSize} title={NOT_BUILT}>
+        {/* Steel blue: one step deeper than Add Domain's blue, so Price reads as a settings action next to it. */}
+        <SecondaryButton
+          icon={CircleDollarSign}
+          className={`${buttonSize} bg-[linear-gradient(180deg,#5b86e8_0%,#2a52c0_100%)] shadow-[0_6px_14px_-6px_rgba(42,82,192,0.6)] transition-[filter] hover:brightness-105`}
+          onClick={() => setPriceOpen(true)}
+        >
           Price
         </SecondaryButton>
 
@@ -88,6 +102,8 @@ export default function DomainPage() {
       </div>
 
       <DataTable variant="cards" columns={columns} noun="domains" minWidth="min-w-0" fitWidth emptyMessage="No domains found" {...view.table} />
+
+      {priceOpen && <PriceDialog prices={prices} onSave={savePrices} onClose={closePrice} />}
 
       {/* Add Domain and Edit Domain share one modal. UI only for now: Save just closes it. */}
       {domainForm && (
