@@ -37,8 +37,9 @@ function TrashIcon() {
  * Global delete confirmation. One item shows its name, several show a count.
  *  - names: labels of the items to delete (string[])
  *  - noun: singular noun ("user", "account")
+ *  - note: optional extra line under the warning
  */
-export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", onConfirm }) {
+export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, onConfirm }) {
   const count = names.length;
   const single = count === 1;
 
@@ -64,6 +65,12 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
             )}
             <br />
             This action can't be undone.
+            {note && (
+              <>
+                <br />
+                {note}
+              </>
+            )}
           </Dialog.Description>
           <div className="mt-(--gap) flex gap-2.5">
             <Dialog.Close className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">

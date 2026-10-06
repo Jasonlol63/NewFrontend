@@ -1,35 +1,53 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Megaphone, Plus, Search, Settings } from "lucide-react";
 import SlideTabs from "@/components/shared/SlideTabs.jsx";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { TRAY } from "@/components/shared/list/DataTable.jsx";
 import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import AnnouncementList from "./AnnouncementList.jsx";
 import AnnouncementFormModal from "./AnnouncementFormModal.jsx";
 import MaintenanceTab from "./MaintenanceTab.jsx";
 import TelegramCard from "./TelegramCard.jsx";
 import {
-  CURRENT_USER,
-  MOCK_ANNOUNCEMENTS,
-  MOCK_CONTACT,
-  MOCK_NOTICE,
-  filterAnnouncements,
-  formatNow,
-  versionOf,
-} from "./announcementRules";
+  createAnnouncement,
+  createNotice,
+  deleteAnnouncement,
+  deleteNotice,
+  fetchAnnouncements,
+  fetchContact,
+  fetchKickMode,
+  fetchNotice,
+  saveContact,
+  setKickMode,
+  updateAnnouncement,
+  updateNotice,
+} from "./announcementApi";
+import { filterAnnouncements, versionOf } from "./announcementRules";
+
+const EMPTY_CONTACT = { handle: "", updatedBy: "", updatedAt: "" };
 
 /**
  * Announcement: announcements (every one shown in full, newest first) and Settings: the single maintenance notice and the
- * Telegram support link of the login page. Design preview: the data lives in page state only and nothing here
- * calls the API yet. New / Edit announcement open a full-area form modal; the maintenance notice is edited in place on its tab; Delete asks first.
+ * Telegram support link of the login page. Data comes from the Spring Boot API (announcementApi.js); every list is read
+ * again after a change. New / Edit announcement open a full-area form modal; the maintenance notice is edited in place on its tab; Delete asks first.
+ * The sign-out switch (IT only) is the global maintenance mode flag, read and written on its own.
  */
 export default function AnnouncementPage() {
+  const viewer = useCurrentUser();
+  const isIt = viewer?.role === "it";
+
   const [tab, setTab] = useState("announcement");
-  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS);
+  const [announcements, setAnnouncements] = useState([]);
   const [search, setSearch] = useState("");
-  const [notice, setNotice] = useState(MOCK_NOTICE);
-  const [contact, setContact] = useState(MOCK_CONTACT);
+  const [notice, setNotice] = useState(null);
+  const [contact, setContact] = useState(EMPTY_CONTACT);
+  const [kick, setKick] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState(null); // { title, message } of a failed action
 
   // null = closed, { mode: "new" } or { mode: "edit", item } = open
   const [announcementForm, setAnnouncementForm] = useState(null);
@@ -37,34 +55,123 @@ export default function AnnouncementPage() {
   const [contactSaved, setContactSaved] = useState(false);
   const closeAnnouncementForm = useCallback(() => setAnnouncementForm(null), []);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([fetchAnnouncements(), fetchNotice(), fetchContact()])
+      .then(([list, current, link]) => {
+        if (!alive) return;
+        setAnnouncements(list);
+        setNotice(current);
+        setContact(link);
+      })
+      .catch((e) => alive && setLoadError(e.message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    if (!isIt) return;
+    fetchKickMode()
+      .then(setKick)
+      .catch((e) => setProblem({ title: "Could not read the sign-out switch", message: e.message }));
+  }, [isIt]);
+
+  // Runs one change: blocks double clicks, shows the backend's message when it fails. Returns true on success.
+  const run = useCallback(async (title, action) => {
+    setBusy(true);
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      setProblem({ title, message: e.message });
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const sorted = useMemo(() => [...announcements].sort((a, b) => b.id - a.id), [announcements]);
   const shown = useMemo(() => filterAnnouncements(sorted, search), [sorted, search]);
 
-  const saveAnnouncement = (values) => {
-    if (announcementForm.mode === "edit") {
-      setAnnouncements((list) => list.map((a) => (a.id === announcementForm.item.id ? { ...a, ...values } : a)));
-    } else {
-      setAnnouncements((list) => [{ ...values, id: Math.max(0, ...list.map((a) => a.id)) + 1, createdBy: CURRENT_USER, createdAt: formatNow() }, ...list]);
-    }
-    setAnnouncementForm(null);
+  const saveAnnouncement = async (values) => {
+    if (busy) return;
+    const editing = announcementForm.mode === "edit";
+    const ok = await run(editing ? "Could not save the announcement" : "Could not publish the announcement", async () => {
+      if (editing) await updateAnnouncement(announcementForm.item.id, values);
+      else await createAnnouncement(values);
+      setAnnouncements(await fetchAnnouncements());
+    });
+    if (ok) setAnnouncementForm(null);
   };
 
-  const saveNotice = (values) => {
-    setNotice((cur) => (cur ? { ...cur, ...values } : { id: 1, ...values, createdBy: CURRENT_USER, createdAt: formatNow() }));
+  // Create: publish the notice, then (IT, switch on) turn the sign-out on. Edit: only the text changes.
+  const saveNotice = async ({ prefix, content, kickUsers }) => {
+    if (busy) return false;
+    return run(notice ? "Could not save the maintenance notice" : "Could not publish the maintenance notice", async () => {
+      if (notice) {
+        await updateNotice(notice.id, { prefix, content });
+        setNotice(await fetchNotice());
+        return;
+      }
+      await createNotice({ prefix, content });
+      setNotice(await fetchNotice());
+      if (isIt && kickUsers !== kick) {
+        try {
+          await setKickMode(kickUsers);
+          setKick(kickUsers);
+        } catch (e) {
+          throw new Error(`The notice is published, but the sign-out switch could not be changed: ${e.message}`);
+        }
+      }
+    });
   };
 
   // Turning the sign-out switch ON signs everyone out at once, so it is confirmed first; OFF just lets users sign in again.
   const [kickAsk, setKickAsk] = useState(false);
-  const changeKick = (on) => (on ? setKickAsk(true) : setNotice((cur) => ({ ...cur, kickUsers: false })));
-  const confirmKick = () => {
-    setNotice((cur) => ({ ...cur, kickUsers: true }));
+  const changeKick = async (on) => {
+    if (busy) return;
+    if (on) {
+      setKickAsk(true);
+      return;
+    }
+    if (await run("Could not turn off the sign-out switch", () => setKickMode(false))) setKick(false);
+  };
+  const confirmKick = async () => {
     setKickAsk(false);
+    if (await run("Could not turn on the sign-out switch", () => setKickMode(true))) setKick(true);
   };
 
-  const confirmDelete = () => {
-    if (toDelete.kind === "announcement") setAnnouncements((list) => list.filter((a) => a.id !== toDelete.item.id));
-    else setNotice(null);
+  const confirmDelete = async () => {
+    if (busy) return;
+    const { kind, item } = toDelete;
     setToDelete(null);
+    await run(kind === "announcement" ? "Could not delete the announcement" : "Could not delete the maintenance notice", async () => {
+      if (kind === "announcement") {
+        await deleteAnnouncement(item.id);
+        setAnnouncements(await fetchAnnouncements());
+        return;
+      }
+      // Users must not stay locked out with no switch left to turn it off, so the sign-out goes off first.
+      if (isIt && kick) {
+        await setKickMode(false);
+        setKick(false);
+      }
+      await deleteNotice(item.id);
+      setNotice(await fetchNotice());
+    });
+  };
+
+  const saveHandle = async (handle) => {
+    if (busy) return;
+    const ok = await run("Could not save the support link", async () => {
+      await saveContact(handle);
+      setContact(await fetchContact());
+    });
+    if (ok) setContactSaved(true);
   };
 
   const deleteLabel = !toDelete
@@ -105,7 +212,29 @@ export default function AnnouncementPage() {
         )}
       </div>
 
-      {tab === "announcement" && (
+      {(loading || loadError) && (
+        <div className="grid min-h-0 flex-1 place-items-center rounded-2xl border border-dashed border-modal-input-line bg-white/40 p-6 text-center text-[13px] text-[#5b74a3]">
+          {loading ? (
+            "Loading…"
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <span className="font-semibold text-[#b42318]">{loadError}</span>
+              <PrimaryButton
+                className="h-9 py-0"
+                onClick={() => {
+                  setLoadError("");
+                  setLoading(true);
+                  setReloadKey((k) => k + 1);
+                }}
+              >
+                Retry
+              </PrimaryButton>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && !loadError && tab === "announcement" && (
         <>
           <AnnouncementList
             announcements={shown}
@@ -123,16 +252,17 @@ export default function AnnouncementPage() {
 
       {/* Settings: the maintenance notice takes the free height, the Telegram link is a compact card under it.
           When both do not fit (short screens, the notice form open) this area scrolls, never the page. */}
-      {tab === "settings" && (
+      {!loading && !loadError && tab === "settings" && (
         <div className="flex min-h-0 flex-1 flex-col gap-[clamp(8px,1.5dvh,12px)] overflow-y-auto p-0.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
-          <MaintenanceTab notice={notice} onSave={saveNotice} onDelete={() => setToDelete({ kind: "notice", item: notice })} onKickChange={changeKick} />
-          <TelegramCard
-            saved={contact}
-            onSave={(handle) => {
-              setContact({ handle, updatedBy: CURRENT_USER, updatedAt: formatNow() });
-              setContactSaved(true);
-            }}
+          <MaintenanceTab
+            notice={notice}
+            isIt={isIt}
+            kick={kick}
+            onSave={saveNotice}
+            onDelete={() => setToDelete({ kind: "notice", item: notice })}
+            onKickChange={changeKick}
           />
+          <TelegramCard saved={contact} onSave={saveHandle} />
         </div>
       )}
 
@@ -145,6 +275,7 @@ export default function AnnouncementPage() {
         onOpenChange={(open) => !open && setToDelete(null)}
         names={deleteLabel}
         noun={toDelete?.kind === "notice" ? "maintenance notice" : "announcement"}
+        note={toDelete?.kind === "notice" && isIt && kick ? "Signing out users is turned off too." : undefined}
         onConfirm={confirmDelete}
       />
       <StatusDialog
@@ -163,6 +294,14 @@ export default function AnnouncementPage() {
         type="success"
         title="Support link saved"
         description={contact.handle ? "The Telegram button on the login page now uses the new link." : "The Telegram button is hidden from the login page."}
+        confirmText="OK"
+      />
+      <StatusDialog
+        open={Boolean(problem)}
+        onOpenChange={(open) => !open && setProblem(null)}
+        type="error"
+        title={problem?.title ?? ""}
+        description={problem?.message ?? ""}
         confirmText="OK"
       />
     </div>

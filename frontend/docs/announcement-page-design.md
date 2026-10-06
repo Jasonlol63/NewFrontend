@@ -1,8 +1,7 @@
 # Announcement page design
 
-Route `/announcement` (sidebar item 3). Design preview only: every list, the notice and the Telegram link live in
-`AnnouncementPage` state, nothing calls the API yet, a refresh restores the placeholder data
-(`announcementRules.js`: `MOCK_ANNOUNCEMENTS`, `MOCK_NOTICE`, `MOCK_CONTACT`).
+Route `/announcement` (sidebar item 3). Wired to the Spring Boot API (see "API wiring" below); the page
+loads announcements, the notice and the Telegram link on open and reads the lists again after every change.
 
 Files: `frontend/src/pages/announcement/`
 
@@ -16,7 +15,7 @@ Files: `frontend/src/pages/announcement/`
 | `TelegramCard.jsx` | Telegram support link of the login page (slim bar on laptops, three layers on big screens) |
 | `PanelCard.jsx` | Glass card frame of the Settings tab (accent bar, icon tile, title, subtitle, footer) + `StatusPill` |
 | `RichText.jsx` | Rich text editor (`RichTextEditor`), display component (`RichContent`), shared look `RICH_CLASS` |
-| `announcementRules.js` | Placeholder data, HTML sanitizing, search, version parsing, Telegram handle rules, `CURRENT_ROLE` |
+| `announcementRules.js` | HTML sanitizing, search, version parsing, Telegram handle rules, list-title <-> content, backend row mapping |
 
 ## Layout
 
@@ -89,8 +88,8 @@ Telegram card is `flex-none`, so the Maintenance card is always the larger one: 
 
 The two blocks are told apart by the 4px top accent bar (amber / blue) and the icon tile colour.
 
-### Sign out online users switch (IT only, no API yet)
-- Visible only when `CURRENT_ROLE === "IT"` (`announcementRules.js`, a placeholder until the login data is wired).
+### Sign out online users switch (IT only)
+- Visible only to the IT login (`useCurrentUser().role === "it"`).
 - Create form: the switch only records the choice (`kickUsers` in the Publish payload); nobody is signed out until
   Publish. Off: just publish the notice, users stay signed in.
 - Published notice: switching it ON signs everyone out immediately, after a confirm `StatusDialog` (warning,
@@ -136,7 +135,22 @@ notice row is shorter than the Telegram bar because the bar wraps into several l
 from about 900px of page width (laptops, and 1024-wide screens with the icon rail), wraps below that, and uses the
 roomy layout from a 1650px screen.
 
+## API wiring (`announcementApi.js`)
+| Page | Endpoint |
+|---|---|
+| Announcement list / add / edit / delete | `GET /api/announcement/listAnnouncement`, `POST addAnnouncementContent`, `updateAnnouncement`, `deleteAnnouncement` |
+| Maintenance notice | `GET listMaintenance` (the newest row, highest id, is the notice), `POST addMaintenanceContent`, `updateMaintenance`, `deleteMaintenance` |
+| Sign out switch (IT) | `GET /api/it/maintenance-mode`, `POST /api/it/maintenance-mode?enabled=` (form-encoded) |
+| Telegram link | `GET /api/settings/getTelegramLink`, `POST updateTelegramLink` (`https://t.me/<handle>`, empty = hidden) |
+
+- **List section title** has no column: it is stored as the leading `<h3>` of `content` (`joinContent` / `splitContent`);
+  empty falls back to the default title. Old rows without an `<h3>` show the default.
+- **Sign out switch** is the global maintenance mode flag, not a field of the notice. On the create form it only marks the
+  choice; Publish creates the notice and then turns the flag on. On a published notice it applies at once (turning on is confirmed first).
+  Deleting the notice while the flag is on turns the flag off first.
+- Failed calls show the backend message in an error `StatusDialog`; a failed first load shows a Retry.
+
 ## Not done
-- No API: announcements, notice, Telegram link and the sign-out switch are page state.
-- `CURRENT_ROLE` / `CURRENT_USER` are placeholders.
+- Whether IT can save the Telegram link is open: the backend `updateLink` rejects a login with no DB `user_id`.
+- Read-only logins are not hidden from the buttons; the backend rejects their changes and the error dialog shows why.
 - No pagination (by design); if the list grows very large, load more on scroll later.

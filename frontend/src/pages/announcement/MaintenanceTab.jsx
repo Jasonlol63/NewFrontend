@@ -6,9 +6,7 @@ import { Field, SoftButton, TextInput, primaryButtonClass } from "@/components/s
 import PanelCard, { StatusPill } from "./PanelCard.jsx";
 import RichTextEditor, { RichContent } from "./RichText.jsx";
 import { DELETE_ACTION_CLASS } from "./AnnouncementList.jsx";
-import { CURRENT_ROLE, hasText } from "./announcementRules";
-
-const IS_IT = CURRENT_ROLE === "IT";
+import { hasText } from "./announcementRules";
 
 const SUBTITLE = "Banner shown to all users";
 // grows to take the free height, never shrinks below its content (the tab scrolls instead)
@@ -77,13 +75,15 @@ function KickSwitch({ on, onToggle, title, note, active, className }) {
  * The form of the page: create the notice (nothing published yet) or edit it in place.
  * Left: Prefix + editor (the editor takes the rest of the height); right: live preview. Publish / Save sits in the footer.
  * Below 800px of content width the two columns stack and the body scrolls. Mount it keyed by the notice so it starts fresh.
+ * `kick` is the current state of the global sign-out switch; `onSave` may return a promise (the form is left to the tab).
  */
-function NoticeForm({ notice, onSave, onCancel }) {
+function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
   const editing = Boolean(notice);
   const [prefix, setPrefix] = useState(notice?.prefix ?? "");
   const [content, setContent] = useState(notice?.content ?? "");
   // Create form only: the switch just marks the choice; nobody is signed out until Publish is pressed.
-  const [kickUsers, setKickUsers] = useState(false);
+  const [kickChoice, setKickChoice] = useState(null); // null = follow the real switch (it may still be loading)
+  const kickUsers = kickChoice ?? kick;
   const problem = !prefix.trim() ? "Enter a prefix." : !hasText(content) ? "Enter the maintenance content." : "";
 
   return (
@@ -144,10 +144,10 @@ function NoticeForm({ notice, onSave, onCancel }) {
             <Info className="mt-px size-[15px] flex-none text-brand-blue" strokeWidth={2.2} />
             <span>Only one maintenance notice can exist at a time. Delete it to publish a different one.</span>
           </p>
-          {IS_IT && !editing && (
+          {isIt && !editing && (
             <KickSwitch
               on={kickUsers}
-              onToggle={() => setKickUsers((v) => !v)}
+              onToggle={() => setKickChoice(!kickUsers)}
               title="Sign out online users"
               active={kickUsers}
               note={kickUsers ? "Everyone online is signed out the moment you press Publish." : "Off: the notice is shown and users stay signed in."}
@@ -162,10 +162,11 @@ function NoticeForm({ notice, onSave, onCancel }) {
 /**
  * Maintenance tab. Nothing published: the create form fills the page. Published: one row with Edit / Delete in a glass panel that fills the page;
  * Edit swaps the row for the same form in place (no modal). Delete is asked about by the page, then the create form returns.
- *  - onSave({ prefix, content, kickUsers? }) creates or updates; onDelete() asks to delete
- *  - onKickChange(on) is the switch of a published notice (IT only): the page confirms, then signs users out
+ *  - onSave({ prefix, content, kickUsers? }) creates or updates and resolves true when it worked; onDelete() asks to delete
+ *  - isIt / kick: only IT sees the sign-out switch; kick is its real state. onKickChange(on) is the switch of a published
+ *    notice: the page confirms, then signs users out
  */
-export default function MaintenanceTab({ notice, onSave, onDelete, onKickChange }) {
+export default function MaintenanceTab({ notice, isIt, kick, onSave, onDelete, onKickChange }) {
   const [editing, setEditing] = useState(false);
 
   if (!notice || editing) {
@@ -173,10 +174,11 @@ export default function MaintenanceTab({ notice, onSave, onDelete, onKickChange 
       <NoticeForm
         key={notice?.id ?? "new"}
         notice={notice}
+        isIt={isIt}
+        kick={kick}
         onCancel={() => setEditing(false)}
-        onSave={(values) => {
-          onSave(values);
-          setEditing(false);
+        onSave={async (values) => {
+          if (await onSave(values)) setEditing(false);
         }}
       />
     );
@@ -205,13 +207,13 @@ export default function MaintenanceTab({ notice, onSave, onDelete, onKickChange 
         </footer>
       </article>
 
-      {IS_IT && (
+      {isIt && (
         <KickSwitch
-          on={notice.kickUsers}
-          onToggle={() => onKickChange(!notice.kickUsers)}
+          on={kick}
+          onToggle={() => onKickChange(!kick)}
           title="Sign out online users"
-          active={notice.kickUsers}
-          note={notice.kickUsers ? "On: online users were signed out and cannot sign in until this is turned off." : "Turning this on signs out everyone who is online right away."}
+          active={kick}
+          note={kick ? "On: online users were signed out and cannot sign in until this is turned off." : "Turning this on signs out everyone who is online right away."}
         />
       )}
     </PanelCard>

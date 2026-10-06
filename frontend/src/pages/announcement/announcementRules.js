@@ -1,79 +1,8 @@
-// Rules and placeholder data of the Announcement page (Announcement / Maintenance / Contact tabs).
-// Design preview: nothing here calls the API yet.
+// Rules and helpers of the Announcement page (Announcement / Settings tabs); the API calls live in announcementApi.js.
 
 export const DEFAULT_LIST_TITLE = "✨ 本次更新包括 ✨";
 export const THANKS_LINE = "感谢大家的使用，我们会持续优化系统。";
-export const CURRENT_USER = "JK";
-// Role of the signed-in user (placeholder until the login data is wired). Only IT sees the sign-out switch.
-export const CURRENT_ROLE = "IT";
 export const TELEGRAM_BASE = "https://t.me/";
-
-export const MOCK_ANNOUNCEMENTS = [
-  {
-    id: 6,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "524",
-    createdAt: "2026-09-11 14:31",
-    content:
-      '<p><strong>系统已更新至 Version 2.1.3</strong></p><ol><li>新增 App 安装页面，iPhone/Android 用户可直接添加到主屏幕，像原生App一样使用 <a href="https://count168.com/app/">https://count168.com/app/</a></li><li>修复 Rate Type 汇率计算与描述文字，显示更准确</li><li>修复交易记录页面日期筛选偶尔不显示的问题</li><li>修复 PDF 导出，修正中文显示效果</li><li>修复 Formula Maintenance 页面字段显示错乱的问题</li><li>修复 Customer Report / Domain Report 切换公司报错、刷新报错的问题，页面更稳定</li></ol>',
-  },
-  {
-    id: 5,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "218",
-    createdAt: "2026-08-07 14:45",
-    content:
-      "<p><strong>系统已更新至 Version 2.0.3</strong></p><ol><li>Process新增Save Draft功能，可保存已填写在Data Capture Table的资料</li><li>Rate Submit 后自动展示相关联的货币资料</li><li>Dashboard 优化，提升页面加载速度与操作流畅度</li></ol>",
-  },
-  {
-    id: 4,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "218",
-    createdAt: "2026-07-21 10:02",
-    content:
-      "<p><strong>系统已更新至 Version 2.0.2</strong></p><ol><li>修复登录后偶尔跳转空白页的问题</li><li>优化 Maintenance 页面表格滚动</li><li>修复 Formula 保存后字段顺序错乱</li></ol>",
-  },
-  {
-    id: 3,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "524",
-    createdAt: "2026-07-02 09:18",
-    content: "<p><strong>系统已更新至 Version 2.0.1</strong></p><ol><li>新增 Auto Renew 到期提醒徽标</li><li>修复 Domain 页面搜索大小写问题</li></ol>",
-  },
-  {
-    id: 2,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "218",
-    createdAt: "2026-06-18 16:40",
-    content:
-      "<p><strong>系统已更新至 Version 2.0.0</strong></p><ol><li>全新界面上线：侧边栏、列表与弹窗统一风格</li><li>Domain 新增 Price 与公司 / 群组设置</li><li>优化各页面在小屏幕上的显示</li></ol>",
-  },
-  {
-    id: 1,
-    title: "系统更新通知",
-    listTitle: "",
-    createdBy: "524",
-    createdAt: "2026-06-03 11:25",
-    content:
-      "<p><strong>系统已更新至 Version 1.9.8</strong></p><ol><li>修复 Transaction Payment 金额四舍五入问题</li><li>修复 Admin 权限设置保存后未刷新的问题</li></ol>",
-  },
-];
-
-export const MOCK_NOTICE = {
-  id: 1,
-  prefix: "系统更新通知",
-  content: "<p>测试SpringBoot通知</p>",
-  createdBy: "JK",
-  createdAt: "2026-10-06 12:35",
-  kickUsers: false, // online users are being signed out / kept out while this is on
-};
-
-export const MOCK_CONTACT = { handle: "testLinkforCount", updatedBy: "JK", updatedAt: "2026-10-06 12:35" };
 
 // ---- text helpers -------------------------------------------------------------------------------
 
@@ -137,10 +66,53 @@ export function filterAnnouncements(list, search) {
   return list.filter((a) => `${a.title} ${a.listTitle} ${htmlToText(a.content)} ${a.createdBy}`.toLowerCase().includes(q));
 }
 
-export function formatNow() {
-  const d = new Date();
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+const pad2 = (n) => String(n).padStart(2, "0");
+
+/** "2026-10-06 12:35" from what the backend sends for a LocalDateTime: an ISO string or a [y, m, d, h, mi, s] array. */
+export function formatDateTime(value) {
+  if (!value) return "";
+  if (Array.isArray(value)) {
+    const [y, mo, d, h = 0, mi = 0] = value;
+    return `${y}-${pad2(mo)}-${pad2(d)} ${pad2(h)}:${pad2(mi)}`;
+  }
+  const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/.exec(String(value));
+  return m ? `${m[1]} ${m[2]}` : String(value);
+}
+
+// ---- list section title <-> content -------------------------------------------------------------
+// The backend has no column for the list section title: it is stored as the leading <h3> of the content,
+// e.g. <h3>✨ 本次更新包括 ✨</h3><p><strong>系统已更新至 Version 2.0.1</strong></p>...
+
+const escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const LEADING_H3 = /^\s*<h3[^>]*>([\s\S]*?)<\/h3>/i;
+
+/** { listTitle, body } from the stored content: the leading <h3> is the list title, the rest is the body. */
+export function splitContent(content) {
+  const m = LEADING_H3.exec(content ?? "");
+  if (!m) return { listTitle: "", body: content ?? "" };
+  return { listTitle: htmlToText(m[1]), body: (content ?? "").slice(m[0].length) };
+}
+
+/** The content to store: the list title (default when empty) as the leading <h3>, then the editor body. */
+export function joinContent(listTitle, body) {
+  return `<h3>${escapeHtml(listTitle.trim() || DEFAULT_LIST_TITLE)}</h3>${body}`;
+}
+
+// ---- backend rows -> page items -----------------------------------------------------------------
+
+export function toAnnouncement(row) {
+  const { listTitle, body } = splitContent(row.content);
+  return { id: row.id, title: row.title ?? "", listTitle, content: body, createdBy: row.createdBy ?? "", createdAt: formatDateTime(row.createdAt) };
+}
+
+/** The maintenance notice is a single row; should the table ever hold several, the newest (highest id) wins. */
+export function toNotice(rows) {
+  const row = [...(rows ?? [])].sort((a, b) => b.id - a.id)[0];
+  return row ? { id: row.id, prefix: row.prefix ?? "", content: row.content ?? "", createdBy: row.createdBy ?? "", createdAt: formatDateTime(row.createdAt) } : null;
+}
+
+export function toContact(data) {
+  return { handle: normalizeHandle(data?.telegramSupportLink ?? ""), updatedBy: data?.updatedBy ?? "", updatedAt: formatDateTime(data?.updatedAt) };
 }
 
 // ---- Telegram link ------------------------------------------------------------------------------
