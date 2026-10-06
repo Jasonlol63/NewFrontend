@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
  * Tab switch in the same white bordered box as SegmentGroup; a blue (Login gradient) thumb glides to
  * the chosen tab. options: [{ value, label, icon: Icon, count }]; every tab gets the same width.
  */
-export default function SlideTabs({ options, value, onChange, className }) {
+export default function SlideTabs({ options, value, onChange, className, tabClassName, labelClassName }) {
   const index = Math.max(
     0,
     options.findIndex((o) => o.value === value)
@@ -28,14 +28,16 @@ export default function SlideTabs({ options, value, onChange, className }) {
               type="button"
               role="tab"
               aria-selected={active}
+              aria-label={label}
               onClick={() => onChange(v)}
               className={cn(
                 "relative z-10 flex h-7 min-w-[120px] cursor-pointer items-center justify-center gap-1.5 px-3.5 text-[12.5px] font-semibold transition-colors duration-200",
-                active ? "text-white" : "text-[#1f2937]"
+                active ? "text-white" : "text-[#1f2937]",
+                tabClassName
               )}
             >
               {Icon && <Icon className="size-4" strokeWidth={2} />}
-              {label}
+              <span className={labelClassName}>{label}</span>
               {count != null && (
                 <span
                   className={cn(

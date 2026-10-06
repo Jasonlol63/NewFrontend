@@ -15,6 +15,7 @@ import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenan
 import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenancePage.jsx";
 import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
+import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
@@ -33,7 +34,7 @@ export default function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/domain" element={<DomainPage />} />
-          <Route path="/announcement" element={<ComingSoonPage group="Home" title="Announcement" />} />
+          <Route path="/announcement" element={<AnnouncementPage />} />
           <Route path="/auto-renew" element={<AutoRenewPage />} />
           <Route path="/admin"element={<AdminPage />} />
           <Route path="/account" element={<AccountPage />} />

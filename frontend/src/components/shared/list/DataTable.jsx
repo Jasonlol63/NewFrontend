@@ -51,7 +51,7 @@ function SortIcon({ active, dir }) {
 }
 
 // Soft sky tray used by the cards variant for the pager and the row count.
-const TRAY =
+export const TRAY =
   "border border-[#cfe0fa] bg-[linear-gradient(135deg,#ffffff_0%,#e4efff_100%)] shadow-[0_6px_16px_-8px_rgba(30,80,170,0.4),inset_0_1px_0_rgba(255,255,255,0.95)]";
 
 // The boxed pager grows with the screen height: small on short screens (laptops), medium from 760px,

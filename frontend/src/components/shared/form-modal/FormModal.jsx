@@ -80,14 +80,14 @@ export default function FormModal({
               </div>
               <h1
                 id={titleId}
-                className="m-0 whitespace-nowrap text-[clamp(20px,2.6dvh,26px)] font-extrabold leading-[1.1] tracking-[-0.3px] text-brand-navy modal-compact:text-[20px] modal-tiny:text-[18px]"
+                className="m-0 truncate whitespace-nowrap text-[clamp(20px,2.6dvh,26px)] font-extrabold leading-[1.1] tracking-[-0.3px] text-brand-navy modal-compact:text-[20px] modal-tiny:text-[18px]"
               >
                 {title}
               </h1>
             </div>
-            <SoftButton onClick={onClose} className="h-9 px-4 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+            <SoftButton onClick={onClose} aria-label="Back" className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
               <ChevronLeft className="size-[15px]" strokeWidth={2.5} />
-              Back
+              <span className="@max-[479px]/main:hidden">Back</span>
             </SoftButton>
           </header>
 
