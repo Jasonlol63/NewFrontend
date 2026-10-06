@@ -11,7 +11,7 @@ import { COMPANY_TYPES, buildSettings, expiryOf, periodOf, priceFor, settingsPro
 
 // Company Settings / Group Settings: one dialog, only the title, the ID label and the Company type block differ
 // (a group has no Company type: the back end defaults it to Games). Left card: validity of the company / group;
-// right card: the Share split. It fills the content area like the other form modals (the Add / Edit Domain modal
+// right card: the Share split (4 : 6). It fills the content area like the other form modals (the Add / Edit Domain modal
 // stays behind it) and only the layout below 700px wide stacks the two cards.
 
 const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
@@ -64,7 +64,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
         </SoftButton>
       }
       bodyClassName={cn(
-        "grid grid-cols-[clamp(250px,32%,340px)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)]",
+        "grid grid-cols-[minmax(250px,4fr)_minmax(0,6fr)] grid-rows-[minmax(0,1fr)]",
         "@max-[699px]/main:grid-cols-1 @max-[699px]/main:grid-rows-[max-content_max-content] @max-[699px]/main:content-start @max-[699px]/main:overflow-y-auto",
       )}
     >
