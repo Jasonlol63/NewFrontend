@@ -115,7 +115,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 pb-[6dvh] bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
-      <div className="w-full max-w-[400px] py-fluid-md text-center">
+      <div className="w-full max-w-[clamp(320px,65dvh,400px)] py-fluid-md text-center">
         <div className="mx-auto mb-fluid-sm size-auth-logo rotate-[-45deg]">
           <img
             src={logoSrc}
