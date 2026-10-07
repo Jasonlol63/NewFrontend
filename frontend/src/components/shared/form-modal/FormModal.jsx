@@ -106,7 +106,7 @@ export default function FormModal({
               className={cn(
                 primaryButtonClass,
                 "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1",
-                "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
+                "whitespace-nowrap @max-[599px]/main:px-3 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
               )}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
