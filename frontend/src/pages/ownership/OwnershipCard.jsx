@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Clock, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, GripVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import { SoftButton, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
@@ -83,7 +83,7 @@ function AccountRow({ row, onChange, onRemove }) {
  * One company row card of the Ownership page. Collapsed: code, allocation bar and Ungroup / Manage.
  * Expanded (Manage): the account rows with their ownership %, Add Account, External Partner and Cancel / Confirm.
  * Design preview: edits live in this card's own state; Confirm just closes it.
- * historicalLabel ("Sep 2026") marks the card as a past month: amber bar on the left, HISTORICAL tag, notes and "Save Sep 2026".
+ * historicalLabel ("Sep 2026") marks the card as a past month: amber bar on the left, HISTORICAL tag and "Save Sep 2026".
  */
 // Header buttons run their own action only: the whole header row also toggles the card, so the click must not bubble up.
 const stop = (fn) => (e) => {
@@ -156,12 +156,6 @@ export default function OwnershipCard({ company, open, onToggle, historicalLabel
       {open && (
         <>
           <div className="mx-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] mb-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] py-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] rounded-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] xl-screen:mx-5 xl-screen:mb-[18px] xl-screen:px-6 xl-screen:py-5 xl-screen:rounded-2xl border border-white/80 bg-white/55">
-            {historicalLabel && (
-              <div className="mb-2 flex items-center gap-2 rounded-[10px] border border-[#f2d79a] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#8a4b04]">
-                <Clock className="size-3.5 flex-none" strokeWidth={2.2} />
-                Editing {historicalLabel}: saved to this month only, other months are untouched.
-              </div>
-            )}
             <div className="flex">
               <Section className="w-[clamp(234px,calc(47.7dvh_-_48.3px),300px)] flex-none">Account</Section>
               <Section>Ownership %</Section>
