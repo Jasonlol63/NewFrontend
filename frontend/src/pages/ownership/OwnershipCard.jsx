@@ -8,11 +8,11 @@ import { ACCOUNT_OPTIONS, clampPct, formatPct, totalAllocation } from "./ownersh
 const NOT_BUILT = "Not available yet";
 
 // Same blue as Save in the form modals, for Manage / Link Partner.
-const smallPrimary = cn(primaryButtonClass, "h-[clamp(23.4px,calc(4.77dvh_-_4.83px),30px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] text-[length:max(12px,clamp(9.75px,calc(1.99dvh_-_2.01px),12.5px))] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] xl-screen:h-[34px]");
+const smallPrimary = cn(primaryButtonClass, "h-[clamp(23.4px,calc(4.77dvh_-_4.83px),30px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] text-[length:max(12px,clamp(9.75px,calc(1.99dvh_-_2.01px),12.5px))] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] xl-screen:h-11 xl-screen:px-6 xl-screen:text-[15px] xl-screen:rounded-xl");
 
 // Danger action kept quiet: white glass with a rose outline.
 const ungroupClass =
-  "h-[clamp(23.4px,calc(4.77dvh_-_4.83px),30px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] text-[length:max(12px,clamp(9.75px,calc(1.99dvh_-_2.01px),12.5px))] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] xl-screen:h-[34px] inline-flex flex-none cursor-not-allowed items-center justify-center border border-[#fbc4cf] bg-white/75 font-bold text-[#e11d48] shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-colors hover:bg-[#fff1f4]";
+  "xl-screen:min-w-[104px] h-[clamp(23.4px,calc(4.77dvh_-_4.83px),30px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] text-[length:max(12px,clamp(9.75px,calc(1.99dvh_-_2.01px),12.5px))] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] xl-screen:h-11 xl-screen:px-6 xl-screen:text-[15px] xl-screen:rounded-xl inline-flex flex-none cursor-not-allowed items-center justify-center border border-[#fbc4cf] bg-white/75 font-bold text-[#e11d48] shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-colors hover:bg-[#fff1f4]";
 
 function Section({ children, className }) {
   return (
@@ -82,6 +82,12 @@ function AccountRow({ row, onChange, onRemove }) {
  * Expanded (Manage): the account rows with their ownership %, Add Account, External Partner and Cancel / Confirm.
  * Design preview: edits live in this card's own state; Confirm just closes it.
  */
+// Header buttons run their own action only: the whole header row also toggles the card, so the click must not bubble up.
+const stop = (fn) => (e) => {
+  e.stopPropagation();
+  fn?.();
+};
+
 export default function OwnershipCard({ company, open, onToggle }) {
   const [draft, setDraft] = useState(company.accounts);
   const [partner, setPartner] = useState("");
@@ -99,7 +105,13 @@ export default function OwnershipCard({ company, open, onToggle }) {
 
   return (
     <div className="rounded-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] flex-none bg-[linear-gradient(90deg,#ffffff_0%,#e6f0ff_50%,#cfe2fd_100%)] [filter:drop-shadow(0_2px_3px_rgba(15,23,42,0.1))]">
-      <div className="min-h-[clamp(60.84px,calc(12.4dvh_-_12.56px),78px)] px-[clamp(14.04px,calc(2.86dvh_-_2.9px),18px)] gap-[clamp(15.6px,calc(3.18dvh_-_3.22px),20px)] xl-screen:min-h-[100px] xl-screen:px-7 xl-screen:gap-8 flex items-center max-lg:flex-wrap">
+      <div
+        onClick={onToggle}
+        className={cn(
+          "cursor-pointer transition-colors hover:bg-brand-blue/[0.09]",
+          open ? "rounded-t-[inherit]" : "rounded-[inherit]",
+          "min-h-[clamp(60.84px,calc(12.4dvh_-_12.56px),78px)] px-[clamp(14.04px,calc(2.86dvh_-_2.9px),18px)] gap-[clamp(15.6px,calc(3.18dvh_-_3.22px),20px)] xl-screen:min-h-[100px] xl-screen:px-7 xl-screen:gap-8 flex items-center max-lg:flex-wrap"
+        )}>
         <div className="w-[clamp(110px,17vw,clamp(202.8px,calc(41.34dvh_-_41.86px),260px))] xl-screen:w-[300px] flex-none">
           <h3 className="text-[length:max(15px,clamp(13.26px,calc(2.7dvh_-_2.74px),17px))] m-0 flex items-center gap-2 font-extrabold text-brand-navy">
             {company.code}
@@ -115,14 +127,14 @@ export default function OwnershipCard({ company, open, onToggle }) {
             <div className="h-full rounded-full bg-brand-sweep transition-[width] duration-300" style={{ width: `${Math.min(100, total)}%` }} />
           </div>
         </div>
-        <button type="button" title={NOT_BUILT} className={ungroupClass}>
+        <button type="button" title={NOT_BUILT} onClick={stop()} className={ungroupClass}>
           Ungroup
         </button>
-        <button type="button" onClick={onToggle} className={smallPrimary}>
+        <button type="button" onClick={stop(onToggle)} className={cn(smallPrimary, "xl-screen:min-w-[104px]")}>
           Manage
         </button>
-        <button type="button" onClick={onToggle} aria-label={open ? "Collapse" : "Expand"} className="cursor-pointer text-brand-navy">
-          <ChevronDown className={cn("size-5 transition-transform", open && "rotate-180")} strokeWidth={2.6} />
+        <button type="button" onClick={stop(onToggle)} aria-label={open ? "Collapse" : "Expand"} className="cursor-pointer text-brand-navy">
+          <ChevronDown className={cn("size-5 transition-transform xl-screen:size-6", open && "rotate-180")} strokeWidth={2.6} />
         </button>
       </div>
 
