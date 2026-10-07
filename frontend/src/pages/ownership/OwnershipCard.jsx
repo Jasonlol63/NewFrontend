@@ -22,8 +22,10 @@ function Section({ children, className }) {
   );
 }
 
+// The fill ends under the centre of the thumb: half a thumb plus the value's share of the travel.
+const THUMB = "max(14px,clamp(13.26px,calc(2.7dvh_-_2.74px),17px))".replaceAll("_", " ");
 const trackFill = (pct) => ({
-  "--track": `linear-gradient(100deg,#0a3fc9 0%,#2f8dff ${pct / 2 + 25}%,#3fc4ff ${Math.max(pct, 1)}%,#dbe7fa ${Math.max(pct, 1)}%)`,
+  "--track": `linear-gradient(90deg,#0a3fc9,#2f8dff 55%,#3fc4ff) left / calc(${THUMB} / 2 + (100% - ${THUMB}) * ${pct / 100}) 100% no-repeat, #dbe7fa`,
 });
 
 function AccountRow({ row, onChange, onRemove }) {
@@ -96,7 +98,13 @@ export default function OwnershipCard({ company, open, onToggle }) {
   const remaining = 100 - total;
   const full = remaining === 0;
 
-  const update = (id, patch) => setDraft((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  // A row can never take more than what the other rows leave, so the total stays within 100%.
+  const update = (id, patch) =>
+    setDraft((rows) => {
+      const others = rows.reduce((sum, r) => (r.id === id ? sum : sum + r.pct), 0);
+      const next = "pct" in patch ? { ...patch, pct: Math.min(patch.pct, 100 - others) } : patch;
+      return rows.map((r) => (r.id === id ? { ...r, ...next } : r));
+    });
   const addRow = () => setDraft((rows) => [...rows, { id: `n${Date.now()}`, account: ACCOUNT_OPTIONS[0].value, pct: Math.max(0, remaining) }]);
   const close = (keep) => {
     if (!keep) setDraft(company.accounts);
