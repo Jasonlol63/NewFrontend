@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, LayoutGrid, Layers, RotateCcw, Users } from "lucide-react";
+import { Clock, LayoutGrid, Layers, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import SlideTabs from "@/components/shared/SlideTabs.jsx";
@@ -60,9 +60,8 @@ export default function OwnershipPage() {
                 setMonth(current);
                 setOpenId(null);
               }}
-              className={cn(primaryButtonClass, pillSize, "gap-1.5")}
+              className={cn(primaryButtonClass, pillSize, "min-w-[88px] text-white shadow-[0_6px_14px_-6px_rgba(20,90,220,0.6),inset_0_1px_2px_rgba(255,255,255,0.35)]")}
             >
-              <RotateCcw className="size-4" strokeWidth={2.4} />
               Current
             </button>
           )}
