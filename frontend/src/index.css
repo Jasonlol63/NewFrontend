@@ -9,6 +9,9 @@
    leave ~600-730px of browser height. Use `short:` to tighten layouts there. */
 @custom-variant short (@media (max-height: 720px));
 
+/* Big screens (e.g. 1920x1080): only the layout is loosened, controls keep their 1536x730 size. */
+@custom-variant xl-screen (@media (min-height: 900px) and (min-width: 1700px));
+
 /* Height tiers for the full-area modals (Add User): 1536x730 / 1366x768 are "compact",
    1280x560 / 1366x610 are "tiny", 1920x1080 is "tall". */
 @custom-variant modal-compact (@media (max-height: 760px));
