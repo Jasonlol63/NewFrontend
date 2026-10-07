@@ -19,6 +19,8 @@ const EASE = 8;
  * The position is one continuous offset advanced every frame (speed x time, wrapped at one lap), not a CSS animation,
  * so re-measuring (fonts loading, window resized) keeps the same place in the lap instead of jumping, and the lap is a
  * whole number of pixels with the offset snapped to device pixels so the wrap-around is invisible.
+ * Each copy is exactly one lap wide (the text, then empty space up to the lap), so the second copy sits where the
+ * first one started when the offset wraps. (min-width + padding is border-box, which left a copy GAP px short.)
  *  - prefix, text: what the Settings tab saved (rich text already flattened by the page)
  */
 export default function MaintenanceNotice({ prefix, text, className }) {
@@ -100,13 +102,13 @@ export default function MaintenanceNotice({ prefix, text, className }) {
         className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left [mask-image:linear-gradient(90deg,transparent,#000_4%,#000_94%,transparent)] motion-reduce:[mask-image:none]"
       >
         <div ref={trackRef} className="inline-flex will-change-transform motion-reduce:!transform-none">
-          <span className="inline-block" style={lap ? { minWidth: lap - GAP, paddingRight: GAP } : undefined}>
+          <span className="inline-block flex-none motion-reduce:!w-full" style={lap ? { width: lap } : undefined}>
             <span ref={textRef} className={cn(copy, "motion-reduce:max-w-full motion-reduce:truncate")}>
               {text}
             </span>
           </span>
           {lap && (
-            <span aria-hidden="true" className="inline-block motion-reduce:hidden" style={{ minWidth: lap - GAP, paddingRight: GAP }}>
+            <span aria-hidden="true" className="inline-block flex-none motion-reduce:hidden" style={{ width: lap }}>
               <span className={copy}>{text}</span>
             </span>
           )}
