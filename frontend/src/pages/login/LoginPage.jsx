@@ -9,6 +9,7 @@ import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import TelegramFab from "./components/TelegramFab.jsx";
 import { getJson, postForm } from "@/lib/api";
+import { noticeLine, toNotice } from "@/pages/announcement/announcementRules";
 import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
 import { markLogin } from "@/hooks/useSavedState";
 
@@ -44,9 +45,6 @@ const LANG_OPTIONS = [
 // the cut lands on a frame that already looks identical to the static logo
 const LOGO_ANIMATION_MS = 2500;
 
-// Announcement banner is hidden for now; flip to true to bring it back.
-const SHOW_MAINTENANCE_NOTICE = false;
-
 // Only a plain https link is trusted for the support button (the value is set by an admin on the Settings tab).
 const SAFE_LINK = /^https:\/\/[^\s"<>]+$/i;
 
@@ -62,6 +60,7 @@ export default function LoginPage() {
   const [errorTitle, setErrorTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [supportLink, setSupportLink] = useState("");
+  const [notice, setNotice] = useState(null); // { prefix, text } of the published maintenance notice, or null
   const navigate = useNavigate();
   const [logoSrc, setLogoSrc] = useState(
     "/images/count_logo_puzzle_animation.webp"
@@ -82,6 +81,19 @@ export default function LoginPage() {
       .then((body) => {
         const link = String(body?.data?.telegramSupportLink ?? "").trim();
         setSupportLink(SAFE_LINK.test(link) ? link : "");
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  // Public endpoint (no sign-in needed): the newest active notice. None, empty text or any failure: no banner.
+  useEffect(() => {
+    const controller = new AbortController();
+    getJson("/api/announcement/getMaintenanceInLogin", undefined, { signal: controller.signal })
+      .then((body) => {
+        const row = toNotice(body?.data);
+        const text = noticeLine(row?.content ?? "");
+        setNotice(text ? { prefix: (row.prefix ?? "").trim(), text } : null);
       })
       .catch(() => {});
     return () => controller.abort();
@@ -128,7 +140,7 @@ export default function LoginPage() {
           Accounting Management System
         </h1>
 
-        {SHOW_MAINTENANCE_NOTICE && <MaintenanceNotice className="mb-fluid-sm" />}
+        {notice && <MaintenanceNotice prefix={notice.prefix} text={notice.text} className="mb-fluid-sm" />}
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
           <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />

@@ -174,3 +174,23 @@ shows it as a floating button at the bottom right, no sign-in needed.
 - **Position**: fixed, `bottom: clamp(16px, 3dvh, 32px)`, `right: clamp(16px, 2.2vw, 32px)`; it never overlaps the
   login card or the language switch and adds no page scroll (checked from 1920x1030 down to 320x640).
 - Only `/login` has it (not the secondary-password or reset-password pages).
+
+## Maintenance notice on the login page
+`pages/login/components/MaintenanceNotice.jsx`, used by `LoginPage.jsx` (the old hard-coded, hidden banner behind
+`SHOW_MAINTENANCE_NOTICE` is gone). It shows the notice saved on the Settings tab above the login card.
+- **Data**: `LoginPage` reads the public `GET /api/announcement/getMaintenanceInLogin` (in `SecurityConfig`'s public
+  paths; the back end returns the ACTIVE rows of `maintenance_marquee`, newest first, at most 10) and shows the newest
+  one (`toNotice`). No row, an empty text or any failure of the call: no banner, no error, sign-in unaffected. The
+  `content` is HTML from the editor, so it goes through `noticeLine` (`announcementRules.js`): sanitized first (scripts and
+  styles never count), blocks and list items separated by a space, flattened to one line.
+- **Look** (design A of the drafts, the pill of the old banner): 40px high pill in the notice gradient, a white round
+  wrench, the prefix in bold (kept in place), then the text. The "即将开始" tag of the old design is gone: the table has no
+  start / end time to drive it.
+- **Motion**: the text always runs left in a loop, short or long (a marquee is there to be noticed): two copies, each at
+  least as wide as the pill plus a 48px gap, speed 45px/s (`--animate-notice-run` in `index.css`), so a short text
+  crosses the whole pill before it comes round again. It starts at the left edge so nothing waits to come in, fades at
+  both ends and pauses while the pointer is over the text; the full text is also the tooltip. With "reduce motion"
+  (the system setting) nothing moves and the text is cut off with "...". The loop is re-measured when the pill is resized.
+- Same width as the login card (so it follows the slimmer card on short screens); no page scroll from 1920x1030 down
+  to 320x640. It appears after the call returns, so the card below moves down a little once.
+- Only `/login`. The sign-out switch of the Settings tab is a different endpoint and does not affect this banner.

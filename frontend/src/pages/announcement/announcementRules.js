@@ -52,6 +52,12 @@ export function htmlToText(html) {
   return (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
+/** One line of text for the login page banner: sanitized first (scripts and styles never count), blocks and list items separated by a space. */
+export function noticeLine(html) {
+  const clean = sanitizeHtml(html).replace(/<\/(p|li|div|h[2-4]|blockquote|pre)>|<br\s*\/?>/gi, " $&");
+  return htmlToText(clean);
+}
+
 export const hasText = (html) => htmlToText(html).length > 0;
 
 /** "2.1.3" from "...Version 2.1.3..." in the content, or "" when there is none. */

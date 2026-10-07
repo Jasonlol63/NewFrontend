@@ -165,6 +165,15 @@ body {
   }
 }
 
+/* Login page maintenance notice: the text runs left, one text length plus the gap per loop (set by --run-distance) */
+@theme {
+  --animate-notice-run: notice-run 20s linear infinite;
+
+  @keyframes notice-run {
+    to { transform: translateX(var(--run-distance)); }
+  }
+}
+
 /* Auto Renew "Remaining" badges: one soft ring now and then, calmer for 15 days than for expired.
    The ring colour comes from the badge's --glow; motion-reduce turns it off (see the badge classes). */
 @theme {
