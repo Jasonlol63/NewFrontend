@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, LayoutGrid, Layers, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SlideTabs from "@/components/shared/SlideTabs.jsx";
 import OwnershipCard from "./OwnershipCard.jsx";
+import "./ownership.css";
 import { GROUPS, MOCK_COMPANIES, groupCount } from "./ownershipRules";
 
 const NOT_BUILT = "Not available yet";
@@ -13,7 +14,22 @@ const TABS = [
 ];
 
 const whitePill =
-  "inline-flex h-9 flex-none items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 text-[13px] font-semibold text-brand-navy shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+  "own-pill inline-flex flex-none items-center gap-2 border border-dash-line bg-white font-semibold text-brand-navy shadow-[0_1px_3px_rgba(15,23,42,0.05)]";
+
+const clamp = (min, max, v) => Math.min(max, Math.max(min, v));
+
+// Size factor of the page (see ownership.css): follows the window height and width, never above 1.
+function useSizeFactor(ref) {
+  useEffect(() => {
+    const apply = () => {
+      const k = Math.min(clamp(0.78, 1, innerHeight * 0.00159 - 0.161), clamp(0.78, 1, innerWidth / 1500));
+      ref.current?.style.setProperty("--k", k.toFixed(3));
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, [ref]);
+}
 
 /**
  * Ownership: who owns each company, per Group.
@@ -24,10 +40,12 @@ export default function OwnershipPage() {
   const [tab, setTab] = useState("ownership");
   const [group, setGroup] = useState(GROUPS[0]);
   const [openId, setOpenId] = useState(null);
+  const pageRef = useRef(null);
+  useSizeFactor(pageRef);
   const rows = MOCK_COMPANIES.filter((c) => c.group === group);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div ref={pageRef} className="own-page flex h-full min-h-[520px] flex-col">
       <div className="flex flex-none items-center gap-3 px-1">
         <SlideTabs options={TABS} value={tab} onChange={setTab} tabClassName="min-w-[150px]" />
         <button type="button" title={NOT_BUILT} className={cn(whitePill, "ml-auto cursor-not-allowed")}>
@@ -40,8 +58,8 @@ export default function OwnershipPage() {
       {tab === "ownership" ? (
         <>
           <div className="flex flex-none items-center gap-3 px-1">
-            <span className="text-[11.5px] font-extrabold tracking-[0.5px] text-brand-navy">GROUP</span>
-            <div className="inline-flex overflow-hidden rounded-[10px] border border-dash-line shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+            <span className="own-label font-extrabold tracking-[0.5px] text-brand-navy">GROUP</span>
+            <div className="own-seg inline-flex overflow-hidden border border-dash-line shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
               {GROUPS.map((g) => {
                 const active = g === group;
                 return (
@@ -53,12 +71,12 @@ export default function OwnershipPage() {
                       setOpenId(null);
                     }}
                     className={cn(
-                      "flex cursor-pointer items-center gap-1.5 border-r border-dash-line px-4 py-1.5 text-[12.5px] font-semibold last:border-r-0",
+                      "flex cursor-pointer items-center gap-1.5 border-r border-dash-line font-semibold last:border-r-0",
                       active ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
                     )}
                   >
                     {g}
-                    <span className={cn("min-w-5 rounded-full px-1.5 text-center text-[11px] font-extrabold tabular-nums", active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]")}>
+                    <span className={cn("min-w-5 rounded-full px-1.5 text-center font-extrabold tabular-nums", active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]")}>
                       {groupCount(MOCK_COMPANIES, g)}
                     </span>
                   </button>
@@ -71,7 +89,7 @@ export default function OwnershipPage() {
             </button>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1 pb-1 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
+          <div className="own-list flex min-h-0 flex-1 flex-col overflow-y-auto px-1 pb-1 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
             {rows.map((c) => (
               <OwnershipCard key={c.id} company={c} open={openId === c.id} onToggle={() => setOpenId(openId === c.id ? null : c.id)} />
             ))}
