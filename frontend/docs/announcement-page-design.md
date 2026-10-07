@@ -154,3 +154,23 @@ roomy layout from a 1650px screen.
 - Whether IT can save the Telegram link is open: the backend `updateLink` rejects a login with no DB `user_id`.
 - Read-only logins are not hidden from the buttons; the backend rejects their changes and the error dialog shows why.
 - No pagination (by design); if the list grows very large, load more on scroll later.
+
+## Telegram button on the login page
+`pages/login/components/TelegramFab.jsx`, used by `LoginPage.jsx`. The Settings tab saves the link; the login page
+shows it as a floating button at the bottom right, no sign-in needed.
+- **Data**: `LoginPage` reads `GET /api/settings/getTelegramLink` on load (a public path in the back end's
+  `SecurityConfig`; see `Count/docs/telegram-support-link.md`) and shows the button only when the answer is a plain
+  `https://...` link (`SAFE_LINK`). An empty link (cleared on the Settings tab), another scheme such as `javascript:`,
+  or any failure of the call keeps the button hidden, with no error shown and no effect on sign-in.
+- **Look** (the design picked in the drafts): a round button, `clamp(54px, 6.4dvh, 64px)`, the system brand gradient
+  (the Login button's blue), the Telegram paper plane (the plane outline of the Telegram logo, white, 56% of the
+  button, cropped to its own box so it sits in the centre) and a soft ring that breathes every 3.2s
+  (`--animate-telegram-ring` in `index.css`). On hover or keyboard focus the button lifts and scales slightly and a
+  white glass label "Contact us on Telegram" slides out on its left. Below 640px only the round button is shown.
+  `motion-reduce` turns the ring and the transitions off.
+- **Behaviour**: an `<a>` that opens the link in a new tab (`target="_blank"`, `rel="noopener noreferrer"`), with the
+  aria-label "Contact support on Telegram". Only the round button takes clicks (the wrapper is `pointer-events-none`),
+  so the empty strip where the label slides in never opens the link by accident.
+- **Position**: fixed, `bottom: clamp(16px, 3dvh, 32px)`, `right: clamp(16px, 2.2vw, 32px)`; it never overlaps the
+  login card or the language switch and adds no page scroll (checked from 1920x1030 down to 320x640).
+- Only `/login` has it (not the secondary-password or reset-password pages).

@@ -7,7 +7,8 @@ import RoleTabs from "./components/RoleTabs.jsx";
 import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
-import { postForm } from "@/lib/api";
+import TelegramFab from "./components/TelegramFab.jsx";
+import { getJson, postForm } from "@/lib/api";
 import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
 import { markLogin } from "@/hooks/useSavedState";
 
@@ -46,6 +47,9 @@ const LOGO_ANIMATION_MS = 2500;
 // Announcement banner is hidden for now; flip to true to bring it back.
 const SHOW_MAINTENANCE_NOTICE = false;
 
+// Only a plain https link is trusted for the support button (the value is set by an admin on the Settings tab).
+const SAFE_LINK = /^https:\/\/[^\s"<>]+$/i;
+
 export default function LoginPage() {
   const [role, setRole] = useState("admin");
   const [lang, setLang] = useState("en");
@@ -57,6 +61,7 @@ export default function LoginPage() {
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [supportLink, setSupportLink] = useState("");
   const navigate = useNavigate();
   const [logoSrc, setLogoSrc] = useState(
     "/images/count_logo_puzzle_animation.webp"
@@ -68,6 +73,18 @@ export default function LoginPage() {
       setLogoSrc("/images/count_logo.webp");
     }, LOGO_ANIMATION_MS);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Public endpoint (no sign-in needed). No link, or any failure: the button just stays hidden.
+  useEffect(() => {
+    const controller = new AbortController();
+    getJson("/api/settings/getTelegramLink", undefined, { signal: controller.signal })
+      .then((body) => {
+        const link = String(body?.data?.telegramSupportLink ?? "").trim();
+        setSupportLink(SAFE_LINK.test(link) ? link : "");
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const onSubmit = async (e) => {
@@ -195,6 +212,8 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      {supportLink && <TelegramFab href={supportLink} />}
 
       <StatusDialog
         open={errorOpen}
