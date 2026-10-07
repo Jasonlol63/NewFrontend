@@ -34,3 +34,25 @@ export const clampPct = (n) => Math.min(100, Math.max(0, Math.round(Number(n) ||
 export const formatPct = (n) => `${n.toFixed(2)}%`;
 
 export const groupCount = (companies, group) => companies.filter((c) => c.group === group).length;
+
+// ---- Months ("YYYY-MM") ----
+
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export const monthKey = (year, monthIndex) => `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+
+export const currentMonth = () => {
+  const now = new Date();
+  return monthKey(now.getFullYear(), now.getMonth());
+};
+
+export const monthLabel = (key) => {
+  const [y, m] = key.split("-");
+  return `${MONTHS[Number(m) - 1]} ${y}`;
+};
+
+// Placeholder: the four months before the current one count as "has saved changes".
+export const savedMonths = (current) => {
+  const [y, m] = current.split("-").map(Number);
+  return new Set([1, 2, 3, 4].map((back) => monthKey(m - 1 - back < 0 ? y - 1 : y, (m - 1 - back + 12) % 12)));
+};

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Clock, GripVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import { SoftButton, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
@@ -83,6 +83,7 @@ function AccountRow({ row, onChange, onRemove }) {
  * One company row card of the Ownership page. Collapsed: code, allocation bar and Ungroup / Manage.
  * Expanded (Manage): the account rows with their ownership %, Add Account, External Partner and Cancel / Confirm.
  * Design preview: edits live in this card's own state; Confirm just closes it.
+ * historicalLabel ("Sep 2026") marks the card as a past month: amber bar on the left, HISTORICAL tag, notes and "Save Sep 2026".
  */
 // Header buttons run their own action only: the whole header row also toggles the card, so the click must not bubble up.
 const stop = (fn) => (e) => {
@@ -90,7 +91,7 @@ const stop = (fn) => (e) => {
   fn?.();
 };
 
-export default function OwnershipCard({ company, open, onToggle }) {
+export default function OwnershipCard({ company, open, onToggle, historicalLabel }) {
   const [draft, setDraft] = useState(company.accounts);
   const [partner, setPartner] = useState("");
   const saved = totalAllocation(company.accounts);
@@ -112,7 +113,12 @@ export default function OwnershipCard({ company, open, onToggle }) {
   };
 
   return (
-    <div className="rounded-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] flex-none bg-[linear-gradient(90deg,#ffffff_0%,#e6f0ff_50%,#cfe2fd_100%)] [filter:drop-shadow(0_2px_3px_rgba(15,23,42,0.1))]">
+    <div
+      className={cn(
+        "rounded-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] flex-none bg-[linear-gradient(90deg,#ffffff_0%,#e6f0ff_50%,#cfe2fd_100%)] [filter:drop-shadow(0_2px_3px_rgba(15,23,42,0.1))]",
+        historicalLabel && "shadow-[inset_5px_0_0_#f5a524]"
+      )}
+    >
       <div
         onClick={onToggle}
         className={cn(
@@ -124,6 +130,7 @@ export default function OwnershipCard({ company, open, onToggle }) {
           <h3 className="text-[length:max(15px,clamp(13.26px,calc(2.7dvh_-_2.74px),17px))] m-0 flex items-center gap-2 font-extrabold text-brand-navy">
             {company.code}
             <span className="text-[length:max(10px,clamp(8.19px,calc(1.67dvh_-_1.69px),10.5px))] px-[clamp(6.24px,calc(1.27dvh_-_1.29px),8px)] py-px rounded-full border border-[#bcd3fb] bg-[#e8f1ff] font-extrabold text-[#0b4fd0]">{company.group}</span>
+            {historicalLabel && <span className="rounded-full border border-[#f2c869] bg-[#fff0d0] px-2 py-px text-[10px] font-extrabold tracking-[0.4px] text-[#a45a04]">HISTORICAL</span>}
           </h3>
           <div className="text-[length:max(10.5px,clamp(8.58px,calc(1.75dvh_-_1.77px),11px))] mt-[3px] text-dash-sub">{company.date}</div>
         </div>
@@ -149,6 +156,12 @@ export default function OwnershipCard({ company, open, onToggle }) {
       {open && (
         <>
           <div className="mx-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] mb-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] py-[clamp(9.36px,calc(1.91dvh_-_1.93px),12px)] rounded-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] xl-screen:mx-5 xl-screen:mb-[18px] xl-screen:px-6 xl-screen:py-5 xl-screen:rounded-2xl border border-white/80 bg-white/55">
+            {historicalLabel && (
+              <div className="mb-2 flex items-center gap-2 rounded-[10px] border border-[#f2d79a] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#8a4b04]">
+                <Clock className="size-3.5 flex-none" strokeWidth={2.2} />
+                Editing {historicalLabel}: saved to this month only, other months are untouched.
+              </div>
+            )}
             <div className="flex">
               <Section className="w-[clamp(234px,calc(47.7dvh_-_48.3px),300px)] flex-none">Account</Section>
               <Section>Ownership %</Section>
@@ -201,7 +214,7 @@ export default function OwnershipCard({ company, open, onToggle }) {
               className={cn(primaryButtonClass, "h-[clamp(29.64px,calc(6.04dvh_-_6.12px),38px)] min-w-[clamp(87.36px,calc(17.81dvh_-_18.03px),112px)] px-[clamp(17.16px,calc(3.5dvh_-_3.54px),22px)] text-[length:max(12.5px,clamp(10.53px,calc(2.15dvh_-_2.17px),13.5px))] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] xl-screen:h-[42px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none")}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
-              Confirm
+              {historicalLabel ? `Save ${historicalLabel}` : "Confirm"}
             </button>
           </div>
         </>
