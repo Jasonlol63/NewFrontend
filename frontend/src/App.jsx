@@ -9,6 +9,7 @@ import AccountPage from "./pages/account/AccountPage.jsx";
 import CustomerReportPage from "./pages/report/customer/CustomerReportPage.jsx";
 import DomainReportPage from "./pages/report/domain/DomainReportPage.jsx";
 import DomainPage from "./pages/domain/DomainPage.jsx";
+import OwnershipPage from "./pages/ownership/OwnershipPage.jsx";
 import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenancePage.jsx";
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/auto-renew" element={<AutoRenewPage />} />
           <Route path="/admin"element={<AdminPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/ownership" element={<OwnershipPage />} />
           <Route path="/report/customer" element={<CustomerReportPage />} />
           <Route path="/report/domain" element={<DomainReportPage />} />
           <Route path="/maintenance/data-capture" element={<CaptureMaintenancePage />} />
