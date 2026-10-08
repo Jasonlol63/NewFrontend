@@ -54,14 +54,18 @@ const tileActive = "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,
 
 /**
  * App-wide date range picker. `from` / `to` are ISO "yyyy-mm-dd" strings; onChange({ from, to })
- * fires when a preset is picked or the second day of a range is clicked.
+ * fires when a preset is picked or the second day of a range is clicked. `compact` is the 256px box (toolbars
+ * that must stay on one row): the popup is the same design, but the presets sit in a dropdown above the calendar
+ * instead of a column beside it.
  */
-export default function DateRangePicker({ from, to, onChange, align = "start" }) {
+export default function DateRangePicker({ from, to, onChange, align = "start", className, compact = false }) {
+  const S = SIZE;
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(to || toIsoDate(new Date())));
   const [anchor, setAnchor] = useState(null); // first clicked day while picking a range
   const [hovered, setHovered] = useState(null);
+  const [presetOpen, setPresetOpen] = useState(false); // compact: the preset dropdown above the calendar
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -74,6 +78,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
       setViewDate(parseIsoDate(to || todayIso));
       setAnchor(null);
       setHovered(null);
+      setPresetOpen(false);
     }
     setOpen(next);
   };
@@ -112,7 +117,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
       <Popover.Trigger asChild>
         <button
           type="button"
-          className={cn("inline-flex max-w-full cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white text-[13px] font-semibold text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]", SIZE.trigger)}
+          className={cn("inline-flex max-w-full cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white text-[13px] font-semibold text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]", compact ? "w-[256px]" : S.trigger, className)}
         >
           <span className="flex w-9 flex-none items-center justify-center bg-[#3b82f6] text-white">
             <CalendarDays className="size-3.5" strokeWidth={2.2} />
@@ -130,33 +135,69 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
         <Popover.Content
           align={align}
           sideOffset={6}
-          className="z-50 flex w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className={cn(
+            "z-50 flex w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]",
+            compact && "flex-col"
+          )}
         >
-          {/* presets */}
-          <div className={cn("flex flex-none flex-col border-r border-dash-line bg-[#f4f8fe]", SIZE.presetColumn)}>
-            {PRESETS.map((preset) => (
+          {compact ? (
+            // presets: one dropdown above the calendar
+            <div className="relative flex-none border-b border-dash-line bg-[#f4f8fe] p-2">
               <button
-                key={preset.label}
                 type="button"
-                onClick={() => commit(presetRange(preset))}
-                className={cn(
-                  "cursor-pointer rounded-lg text-left font-semibold transition-colors",
-                  SIZE.presetItem,
-                  preset === activePreset ? tileActive : "text-[#1e3a6e] hover:bg-white"
-                )}
+                aria-expanded={presetOpen}
+                onClick={() => setPresetOpen((v) => !v)}
+                className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-dash-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1e3a6e]"
               >
-                {preset.label}
+                {activePreset?.label ?? "Custom range"}
+                <ChevronDown className={cn("size-3.5 transition-transform", presetOpen && "rotate-180")} strokeWidth={2.6} />
               </button>
-            ))}
-          </div>
+              {presetOpen && (
+                <div className="absolute inset-x-2 top-[calc(100%-4px)] z-10 flex flex-col rounded-[10px] border border-dash-line bg-white p-1 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]">
+                  {PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => commit(presetRange(preset))}
+                    className={cn(
+                      "cursor-pointer rounded-lg text-left font-semibold transition-colors",
+                      S.presetItem,
+                      preset === activePreset ? tileActive : "text-[#1e3a6e] hover:bg-white"
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            // presets: the column beside the calendar
+            <div className={cn("flex flex-none flex-col border-r border-dash-line bg-[#f4f8fe]", S.presetColumn)}>
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => commit(presetRange(preset))}
+                  className={cn(
+                    "cursor-pointer rounded-lg text-left font-semibold transition-colors",
+                    S.presetItem,
+                    preset === activePreset ? tileActive : "text-[#1e3a6e] hover:bg-white"
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* calendar */}
-          <div className={cn("min-w-0 flex-1", SIZE.calendar)}>
-            <div className={cn("flex items-center justify-between", SIZE.header)}>
+          <div className={cn("min-w-0 flex-1", S.calendar)}>
+            <div className={cn("flex items-center justify-between", S.header)}>
               <button
                 type="button"
                 onClick={() => step(-1)}
-                className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", SIZE.navButton)}
+                className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", S.navButton)}
                 aria-label="Previous"
               >
                 <ChevronLeft className="size-4" strokeWidth={2.4} />
@@ -168,7 +209,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
                   onClick={() => setView(view === "month" ? "day" : "month")}
                   className={cn(
                     "flex cursor-pointer items-center gap-1 font-bold transition-colors",
-                    SIZE.headerButton,
+                    S.headerButton,
                     view === "month" ? tileActive : "text-[#1d4ed8] hover:bg-slate-50"
                   )}
                 >
@@ -180,7 +221,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
                   onClick={() => setView(view === "year" ? "day" : "year")}
                   className={cn(
                     "flex cursor-pointer items-center gap-1 border-l border-dash-line font-bold transition-colors",
-                    SIZE.headerButton,
+                    S.headerButton,
                     view === "year" ? tileActive : "text-[#1e3a6e] hover:bg-slate-50"
                   )}
                 >
@@ -192,7 +233,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
               <button
                 type="button"
                 onClick={() => step(1)}
-                className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", SIZE.navButton)}
+                className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", S.navButton)}
                 aria-label="Next"
               >
                 <ChevronRight className="size-4" strokeWidth={2.4} />
@@ -200,9 +241,9 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
             </div>
 
             {view === "day" && (
-              <div className={cn("grid grid-cols-7 text-center", SIZE.dayRowGap)} onMouseLeave={() => setHovered(null)}>
+              <div className={cn("grid grid-cols-7 text-center", S.dayRowGap)} onMouseLeave={() => setHovered(null)}>
                 {WEEKDAYS.map((d) => (
-                  <span key={d} className={cn("font-semibold text-dash-sub", SIZE.weekday)}>
+                  <span key={d} className={cn("font-semibold text-dash-sub", S.weekday)}>
                     {d}
                   </span>
                 ))}
@@ -239,7 +280,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
                         onMouseEnter={() => anchor && setHovered(iso)}
                         className={cn(
                           "relative flex cursor-pointer items-center justify-center rounded-lg font-semibold tabular-nums transition-colors",
-                          SIZE.dayCell,
+                          S.dayCell,
                           isEdge
                             ? "bg-seg-active text-white shadow-[0_3px_8px_-2px_rgba(13,96,255,0.6)]"
                             : inRange
@@ -263,7 +304,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
             )}
 
             {view === "month" && (
-              <div className={cn("grid grid-cols-3", SIZE.tileGap)}>
+              <div className={cn("grid grid-cols-3", S.tileGap)}>
                 {MONTHS.map((label, i) => (
                   <button
                     key={label}
@@ -281,7 +322,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start" })
             )}
 
             {view === "year" && (
-              <div className={cn("grid grid-cols-3", SIZE.tileGap)}>
+              <div className={cn("grid grid-cols-3", S.tileGap)}>
                 {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map((y) => (
                   <button
                     key={y}

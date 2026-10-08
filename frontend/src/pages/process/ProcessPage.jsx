@@ -8,6 +8,8 @@ import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import BankProcessView from "./BankProcessView.jsx";
+import { isBankCompany } from "./companyCategory";
 import ProcessFormModal from "./ProcessFormModal.jsx";
 import { DAYS, filterProcesses, sortProcesses } from "./processRules";
 import { useProcessList } from "./useProcessList";
@@ -41,8 +43,8 @@ export default function ProcessPage() {
   const [editRow, setEditRow] = useState(null);
   const closeEdit = useCallback(() => setEditRow(null), []);
   const scope = useListScope("process.scope", { onChange: () => view.reset() });
-  // The Group's own data (no company picked) holds the Bank processes; a company holds the Games ones.
-  const isBank = Boolean(scope.tenantId) && scope.company === null;
+  // The picked company's category decides the page: Bank companies get the Bank Process list, Game companies this one.
+  const isBank = scope.company !== null && isBankCompany(scope.company);
   const { rows: allRows, error: listError, loading, toggleStatus, deleteRows } = useProcessList(isBank ? null : scope.tenantId);
   const rows = useMemo(() => allRows.filter((p) => p.category === "GAME"), [allRows]);
 
@@ -87,11 +89,14 @@ export default function ProcessPage() {
 
   const pageError = scope.error || listError;
 
+  // Bank companies have their own list.
+  if (isBank) return <BankProcessView scope={scope} readOnly={readOnly} />;
+
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly || isBank} title={readOnly ? "Read-only login" : isBank ? "Pick a company first" : undefined}>
+          <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
             Add Process
           </PrimaryButton>
         }
@@ -110,13 +115,7 @@ export default function ProcessPage() {
         </div>
       )}
 
-      {isBank ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dash-line bg-white/35 text-[13px] text-dash-sub shadow-dash-card backdrop-blur-[10px]">
-          The Bank Process list is coming next. Pick a company to see its Games processes.
-        </div>
-      ) : (
-        <DataTable columns={columns} noun="processes" loading={loading} boxedPager fitWidth minWidth="min-w-[640px]" {...view.table} />
-      )}
+      <DataTable columns={columns} noun="processes" loading={loading} boxedPager fitWidth minWidth="min-w-[640px]" {...view.table} />
 
       {actions.dialogs}
 

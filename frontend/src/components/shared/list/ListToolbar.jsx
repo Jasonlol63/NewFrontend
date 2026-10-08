@@ -43,19 +43,23 @@ export function SecondaryButton({ icon: Icon, children, className, ...props }) {
   );
 }
 
-export function DeleteButton({ count, ...props }) {
+// iconOnly: just the trash can (and the count once something is selected), for toolbars that are short of room.
+export function DeleteButton({ count, iconOnly = false, ...props }) {
   return (
     <button
       type="button"
       disabled={count === 0}
+      aria-label={iconOnly ? `Delete (${count})` : undefined}
+      title={iconOnly ? `Delete (${count})` : undefined}
       className={cn(
         buttonBase,
+        iconOnly && "h-9 min-w-9 justify-center px-2.5 py-0",
         "enabled:cursor-pointer enabled:bg-[linear-gradient(180deg,#ff8a8a_0%,#ef4444_100%)] enabled:shadow-[0_6px_14px_-6px_rgba(239,68,68,0.6)] disabled:bg-slate-300"
       )}
       {...props}
     >
       <Trash2 className="size-4" strokeWidth={2.2} />
-      Delete ({count})
+      {iconOnly ? count > 0 && <span>{count}</span> : `Delete (${count})`}
     </button>
   );
 }
