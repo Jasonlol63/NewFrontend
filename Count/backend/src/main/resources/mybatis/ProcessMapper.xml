@@ -192,6 +192,18 @@
         </foreach>
     </select>
 
+    <insert id="grantProcessToCustomAdmins">
+        INSERT INTO user_tenant_process_access (user_tenant_access_id, process_id)
+        SELECT uta.id, #{processId}
+        FROM user_tenant_access uta
+        WHERE uta.tenant_id = #{tenantId}
+          AND uta.process_acl_mode = 'CUSTOM'
+          AND NOT EXISTS (
+              SELECT 1 FROM user_tenant_process_access x
+              WHERE x.user_tenant_access_id = uta.id AND x.process_id = #{processId}
+          )
+    </insert>
+
     <!-- Insert Process Use -->
     <insert id="insertNewProcess" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO process (tenant_id, category, code, copied_from_process_id, enable_save_draft, currency_id, remove_word, replace_word_from, replace_word_to, remark, status, created_by, created_at)

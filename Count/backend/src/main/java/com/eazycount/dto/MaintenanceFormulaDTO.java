@@ -28,10 +28,14 @@ public class MaintenanceFormulaDTO {
     private String parentIdProduct;
     private Integer formulaVariant;
     private BigDecimal subOrder;
+    // Read-only: Capture row this formula is aligned to (Summary tells same-id_product rows apart by it).
+    private Integer rowIndex;
     private String account;
     // Read-only join columns so callers (Summary) can build the "code [name]" display client-side.
     private String accountName;
     private String accountRole;
+    // Read-only: data_capture_formula.currency_id — Summary needs the id (not just the code) to submit under the row's own currency.
+    private Integer currencyId;
     private String currency;
     private String description;
     private String sourceColumns;

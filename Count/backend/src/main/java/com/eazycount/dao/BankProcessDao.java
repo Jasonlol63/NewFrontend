@@ -27,6 +27,8 @@ public interface BankProcessDao {
 
     void updateStatus(@Param("id") Integer id, @Param("tenantId") Integer tenantId, @Param("status") BankProcess.Status status);
 
+    void updateDueClosed(@Param("id") Integer id, @Param("tenantId") Integer tenantId, @Param("dueClosed") boolean dueClosed);
+
     void updateRemark(@Param("id") Integer id,
                       @Param("tenantId") Integer tenantId,
                       @Param("remark") String remark,

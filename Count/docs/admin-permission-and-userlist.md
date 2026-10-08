@@ -7,7 +7,7 @@
 > |---|---|---|
 > | 1 | `admin-permission-rbac-hierarchy.md` | **权限体系基础**（2026-08-27）—— 角色层级 + `read_only` 全局校验：把 `/api/**` 从 `permitAll()` 收紧，并给所有写接口补上 `read_only` 防护 |
 > | 2 | `admin-permission-account-override.md` | **权限体系扩展**（2026-08-27）—— 账号级侧边栏权限覆盖（`permissions` 字段以前提交后被静默丢弃） |
-> | 3 | `account-process-permission-fixes.md` | 数据权限修复 —— Edit User 的 Account / Process 勾选控制 `/api/account/list`、`/api/process/process-list` 能看到哪些数据，本文记围绕它的几个 bug |
+> | 3 | `account-process-permission-fixes.md` | 数据权限修复 —— Edit User 的 Account / Process 勾选控制 `/api/account/list`、`/api/process/process-list` 能看到哪些数据，本文记围绕它的几个 bug（含 2026-10-05：新建 Account / Process 不会自动进 `CUSTOM` 管理员白名单） |
 > | 4 | `userlist-groupview-owner-missing-fix.md` | 列表行为 —— 新建 Group 后单 Group 视图看不到自己数据 |
 > | 5 | `last-login-logout-tracking.md` | 列表行为 —— Admin / Owner / Account 的 Last Login & Last Logout 追踪 |
 >
@@ -253,6 +253,8 @@ Edit User 页面的 Account / Process 勾选，控制一个 admin/staff 登录�
 - `backend/src/main/java/com/eazycount/service/impl/UserServiceImpl.java`
 - `backend/src/main/java/com/eazycount/service/impl/ProcessServiceImpl.java`
 - `backend/src/main/java/com/eazycount/service/impl/AdminServiceImpl.java`
+- 问题 4 另涉及：`DomainServiceImpl.java`、`DataCaptureServiceImpl.java`、`DataCaptureSummaryServiceImpl.java`、
+  `dao/UserDao.java`、`dao/ProcessDao.java`、`mybatis/AccountMapper.xml`、`mybatis/ProcessMapper.xml`
 - `backend/src/main/java/com/eazycount/dto/AdminDTO.java`（无残留改动，最终与改动前一致）
 - 前端未改动（曾短暂加过一个多租户标签页 UI，已完全撤销）
 
@@ -346,6 +348,58 @@ private AclMode resolveAclMode(List<?> itemsRaw) {
 | 勾选部分 | `[{id:1},{id:2},...]` | `CUSTOM` | 只有勾选的那些 |
 
 多公司账号：每个公司在自己的 Group/Company 上下文下独立保存，互不影响；新授权但还没设置过的公司默认 `ALL`。
+
+### 问题 4：`CUSTOM` 管理员新建的 Account / Process，自己和其他管理员都看不到（2026-10-05）
+
+**现象**：子管理员（`user_type=user`，ACL 为 `CUSTOM`）在 Account 页新建 `CS009`，提示成功、数据库里也有（`ACTIVE`），
+但列表里不显示；再建同名账号会报 `Account ID already exists in this tenant`。Process 页同理（新建的 `TEST KK`
+Owner 看得到，子管理员看不到）。Owner / `ALL` 管理员看得到，所以在 Owner 测试时复现不了。
+
+**根因**：问题 1 加的 `filterByAccountAcl` / `filterByProcessAcl` 对 `CUSTOM` 只放行白名单
+（`user_tenant_account_access` / `user_tenant_process_access`）里的 id，但**所有新建路径只写了主表和
+`account_tenant_access`，从不往白名单里补**。结果是每新建一个对象，所有 `CUSTOM` 管理员的白名单就比实际少一个。
+org 线上 AG 公司 8 个管理员全是 `CUSTOM`、白名单 353 个、实际 354 个，缺的正是新建的 `CS009`。
+
+**修复**：新增一条幂等的批量 SQL，把新对象加进「该公司所有 `CUSTOM` 管理员」的白名单：
+
+```sql
+INSERT INTO user_tenant_account_access (user_tenant_access_id, account_id)   -- Process 则是 *_process_access / process_id
+SELECT uta.id, #{accountId}
+FROM user_tenant_access uta
+WHERE uta.tenant_id = #{tenantId}
+  AND uta.account_acl_mode = 'CUSTOM'          -- Process 用 process_acl_mode
+  AND NOT EXISTS (SELECT 1 FROM user_tenant_account_access x
+                  WHERE x.user_tenant_access_id = uta.id AND x.account_id = #{accountId})
+```
+
+| 对象 | 方法 | 调用位置 |
+|---|---|---|
+| Account | `UserDao.grantAccountToCustomAdmins(tenantId, accountId)`（`AccountMapper.xml`） | `UserServiceImpl.addUser`（每个目标公司）、`UserServiceImpl.updateUser`（新增绑定的公司）、`DomainServiceImpl.createAccountTenantInC168`（域名自动建号） |
+| Process | `ProcessDao.grantProcessToCustomAdmins(tenantId, processId)`（`ProcessMapper.xml`） | `ProcessServiceImpl.addNewProcess`、`DataCaptureServiceImpl` 与 `DataCaptureSummaryServiceImpl` 里自动创建 BANK Process 的 `insertBankProcess` 之后 |
+
+设计取舍：
+- **只补 `CUSTOM`**：`ALL` 本来就看得到全部，`NONE` 是明确禁止，不能擅自放开。
+- **给全部 `CUSTOM` 管理员，而不是只给创建者**：新对象默认对该公司所有 `CUSTOM` 管理员可见；想对某人隐藏，建好后到 Admin 页取消勾选。已有对象的白名单不受影响。
+- 调用都在原来的 `@Transactional` 里，失败整体回滚；SQL 幂等，重复调用不会产生重复行。
+- **新增任何会创建 `account` / `process` 的入口时，必须同样调用上面的方法**，否则同样的 bug 会在新入口复现。
+
+**存量数据**：代码只管以后新建的。修复前漏掉的需要手工补（先备份白名单表，再按 id `INSERT ... SELECT`）。
+补数据时只建议补 `ACTIVE` 的近期对象；很多老的 `INACTIVE` Process 当初就是被有意排除的，不要一把梭全补。
+排查哪些对象漏了：
+
+```sql
+SELECT p.id, p.code, COUNT(*) missing_admins
+FROM process p
+JOIN user_tenant_access uta ON uta.tenant_id = p.tenant_id AND uta.process_acl_mode = 'CUSTOM'
+WHERE NOT EXISTS (SELECT 1 FROM user_tenant_process_access x
+                  WHERE x.user_tenant_access_id = uta.id AND x.process_id = p.id)
+GROUP BY p.id ORDER BY p.id;   -- Account 同理，换成 account / account_tenant_access / user_tenant_account_access
+```
+
+**注意**：org 与 site 是两个独立的库，同一个 id 指向不同对象，补数据脚本不能互换执行。
+
+**相关删除行为**（顺带记录）：`user_tenant_account_access.account_id` 外键为 `ON DELETE CASCADE`，账号行真正删除时所有管理员白名单对应行自动清除；
+`deleteUserByIdAndStatus` 只有账号 `INACTIVE`、该公司下无交易、且解绑后不再属于任何公司时，才会真正删 `account` 行。
 
 ---
 ---

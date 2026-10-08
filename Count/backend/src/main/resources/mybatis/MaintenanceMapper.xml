@@ -365,15 +365,48 @@
         ORDER BY td.created_at DESC, td.transaction_id DESC
     </select>
 
+    <!-- Row description: MAIN -> description_main; SUB -> description_sub, falling back to description_main (legacy parity). -->
+    <!-- NULL when blank, so the UI shows "-". Used for the "(description)" suffix in Id_Product and as the -->
+    <!-- Description column's fallback; the column itself prefers the process description (desc_agg). -->
+    <sql id="transactionLineDescriptionExpr">
+        CASE
+            WHEN dl.product_type = 'MAIN' THEN NULLIF(TRIM(dl.description_main), '')
+            ELSE COALESCE(NULLIF(TRIM(dl.description_sub), ''), NULLIF(TRIM(dl.description_main), ''))
+        END
+    </sql>
+
+    <!-- Id_Product display (legacy parity): product followed by "(description)", unless already present. -->
+    <!-- Product: SUB -> id_product_sub, else id_product_main, then id_product as last resort. -->
+    <sql id="transactionLineIdProductExpr">
+        CASE
+            WHEN <include refid="transactionLineDescriptionExpr"/> IS NULL THEN
+                <include refid="transactionLineProductBaseExpr"/>
+            WHEN LOCATE(CONCAT('(', <include refid="transactionLineDescriptionExpr"/>, ')'),
+                        <include refid="transactionLineProductBaseExpr"/>) > 0 THEN
+                <include refid="transactionLineProductBaseExpr"/>
+            ELSE CONCAT(<include refid="transactionLineProductBaseExpr"/>, ' (', <include refid="transactionLineDescriptionExpr"/>, ')')
+        END
+    </sql>
+
+    <sql id="transactionLineProductBaseExpr">
+        COALESCE(
+            CASE WHEN dl.product_type = 'SUB' THEN NULLIF(TRIM(dl.id_product_sub), '') END,
+            NULLIF(TRIM(dl.id_product_main), ''),
+            NULLIF(TRIM(dl.id_product_sub), ''),
+            NULLIF(TRIM(dl.id_product), ''),
+            '-'
+        )
+    </sql>
+
     <!-- Transaction Maintenance (view-only): every data_capture_line row (MAIN+SUB, one category at a time — never mix GAME/BANK). -->
     <select id="findTransactionLineMaintenanceRows" resultType="com.eazycount.dto.MaintenanceTransactionDTO">
         SELECT
             dl.id AS id,
             dl.created_at AS dtsCreated,
             p.code AS process,
-            dl.id_product AS idProduct,
+            <include refid="transactionLineIdProductExpr"/> AS idProduct,
             a.account_id AS account,
-            CASE WHEN dl.product_type = 'MAIN' THEN dl.description_main ELSE dl.description_sub END AS description,
+            COALESCE(desc_agg.description_names, <include refid="transactionLineDescriptionExpr"/>) AS description,
             dc.remark AS remark,
             dl.source_percent AS percent,
             UPPER(c.code) AS currency,
@@ -389,6 +422,7 @@
         INNER JOIN process p ON p.id = dc.process_id
         INNER JOIN currency c ON c.id = dl.currency_id AND c.tenant_id = dl.tenant_id
         INNER JOIN account a ON a.id = dl.account_id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
         WHERE dl.tenant_id = #{tenantId}
           AND dc.capture_date &gt;= #{dateFrom}
           AND dc.capture_date &lt;= #{dateTo}
@@ -400,6 +434,7 @@
             AND (
                 UPPER(dl.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
                 OR UPPER(a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
                 OR UPPER(COALESCE(dl.description_main, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
                 OR UPPER(COALESCE(dl.description_sub, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
                 OR UPPER(COALESCE(dc.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
@@ -411,15 +446,15 @@
 
     <!-- Capture Maintenance (live rows): one row per data_captures header — a submission can cover several -->
     <!-- products (data_capture_line rows), rolled up here, not shown per-product. Product/W-L Group mirror -->
-    <!-- each other: BANK -> process.code (already the fixed SALARY/BONUS/PROFIT/COMMISSION code); GAME -> the -->
-    <!-- description(s) selected at submit time (data_capture_description), comma-joined if more than one, -->
-    <!-- falling back to process.code when none were selected. -->
+    <!-- each other (same as legacy): BANK -> process.code (already the fixed SALARY/BONUS/PROFIT/COMMISSION code); -->
+    <!-- GAME -> the description(s) configured on the process (process_description_link), comma-joined if more -->
+    <!-- than one, falling back to process.code when none are linked. Not the per-submit selection. -->
     <sql id="captureDescriptionAgg">
         (
-            SELECT dcd.capture_id, GROUP_CONCAT(DISTINCT pd.name ORDER BY pd.name SEPARATOR ', ') AS description_names
-            FROM data_capture_description dcd
-            INNER JOIN process_description pd ON pd.id = dcd.description_id
-            GROUP BY dcd.capture_id
+            SELECT pdl.process_id, GROUP_CONCAT(DISTINCT pd.name ORDER BY pd.name SEPARATOR ', ') AS description_names
+            FROM process_description_link pdl
+            INNER JOIN process_description pd ON pd.id = pdl.description_id
+            GROUP BY pdl.process_id
         )
     </sql>
 
@@ -447,7 +482,7 @@
         INNER JOIN data_captures dc ON dc.id = dl.capture_id AND dc.tenant_id = dl.tenant_id
         INNER JOIN process p ON p.id = dc.process_id
         INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
-        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.capture_id = dc.id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
         WHERE dl.tenant_id = #{tenantId}
           AND dc.capture_date &gt;= #{dateFrom}
           AND dc.capture_date &lt;= #{dateTo}
@@ -485,7 +520,7 @@
         INNER JOIN data_captures dc ON dc.id = dld.capture_id AND dc.tenant_id = dld.tenant_id
         INNER JOIN process p ON p.id = dc.process_id
         INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
-        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.capture_id = dc.id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
         WHERE dld.tenant_id = #{tenantId}
           AND dc.capture_date &gt;= #{dateFrom}
           AND dc.capture_date &lt;= #{dateTo}
@@ -595,10 +630,12 @@
             f.parent_id_product AS parentIdProduct,
             f.formula_variant AS formulaVariant,
             f.sub_order AS subOrder,
+            f.row_index AS rowIndex,
             f.account_id AS accountId,
             a.account_id AS account,
             a.name AS accountName,
             a.role AS accountRole,
+            f.currency_id AS currencyId,
             UPPER(c.code) AS currency,
             f.description AS description,
             f.source_columns AS sourceColumns,

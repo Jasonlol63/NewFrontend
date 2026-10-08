@@ -25,6 +25,12 @@ public interface DataCaptureSummaryDao {
     //Used to decide Add Formula → MAIN vs SUB.
     DataCaptureFormula findMainWithAccount(@Param("tenantId") Integer tenantId, @Param("processId") Integer processId, @Param("idProduct") String idProduct);
 
+    //Find the MAIN row for the product on one specific Capture row (same id_product can repeat across rows).
+    DataCaptureFormula findMainByProductAndRowIndex(@Param("tenantId") Integer tenantId, @Param("processId") Integer processId, @Param("idProduct") String idProduct, @Param("rowIndex") Integer rowIndex);
+
+    //Legacy MAIN rows saved before row_index was tracked.
+    DataCaptureFormula findMainWithoutRowIndex(@Param("tenantId") Integer tenantId, @Param("processId") Integer processId, @Param("idProduct") String idProduct);
+
     //Find Main row for the product
     DataCaptureFormula findMainByProduct(@Param("tenantId") Integer tenantId, @Param("processId") Integer processId, @Param("idProduct") String idProduct);
 

@@ -36,7 +36,8 @@ import java.util.Map;
  * <pre>
  *   java -cp &lt;classpath&gt; com.eazycount.service.impl.BankProcessDescriptionBackfillTool \
  *       --url=jdbc:mysql://localhost:3306/count_real?serverTimezone=Asia/Shanghai --user=root --password= \
- *       [--tenant=82] [--apply] [--report=backfill_report.txt]
+ *       [--tenant=82] [--min-txn-id=N] [--apply] [--report=backfill_report.txt]
+ *       (--min-txn-id limits the pass to transactions with id >= N, e.g. only the rows added by a delta sync)
  * </pre>
  */
 public final class BankProcessDescriptionBackfillTool {
@@ -51,12 +52,15 @@ public final class BankProcessDescriptionBackfillTool {
         String reportPath = "backfill_report.txt";
         boolean apply = false;
         Integer tenantFilter = null;
+        Integer minTxnId = null;
 
         for (String arg : args) {
             if ("--apply".equals(arg)) {
                 apply = true;
             } else if (arg.startsWith("--tenant=")) {
                 tenantFilter = Integer.parseInt(arg.substring("--tenant=".length()));
+            } else if (arg.startsWith("--min-txn-id=")) {
+                minTxnId = Integer.parseInt(arg.substring("--min-txn-id=".length()));
             } else if (arg.startsWith("--url=")) {
                 url = arg.substring("--url=".length());
             } else if (arg.startsWith("--user=")) {
@@ -92,6 +96,7 @@ public final class BankProcessDescriptionBackfillTool {
                     + "JOIN bank_process bp ON bp.id = bpap.bank_process_id "
                     + "WHERE t.bank_process_posted_id IS NOT NULL "
                     + (tenantFilter != null ? "AND t.tenant_id = " + tenantFilter + " " : "")
+                    + (minTxnId != null ? "AND t.id >= " + minTxnId + " " : "")
                     + "ORDER BY t.tenant_id, bp.id, t.transaction_date, t.id";
 
             try (PreparedStatement listPs = conn.prepareStatement(sql);
@@ -133,7 +138,22 @@ public final class BankProcessDescriptionBackfillTool {
 
                     BigDecimal baseAmount = null;
                     String leg;
-                    if (supplierAccountId != null && supplierAccountId == accountId) {
+                    // When one account plays several roles (e.g. supplier AND profit-sharing), the legacy description prefix says which
+                    // leg this row really is; only then fall back to matching by account id.
+                    String hinted = hintedLeg(oldDescription);
+                    BigDecimal hintedShare = "SHARE".equals(hinted)
+                            ? shareAmountCache.computeIfAbsent(bpId + ":" + accountId, k -> resolveShareAmount(conn, bpId, accountId))
+                            : null;
+                    if (hintedShare != null) {
+                        baseAmount = hintedShare;
+                        leg = "SHARE";
+                    } else if ("COMPANY".equals(hinted) && companyAccountId != null && companyAccountId == accountId) {
+                        baseAmount = rs.getBigDecimal("company_price");
+                        leg = "COMPANY";
+                    } else if ("CUSTOMER".equals(hinted) && customerAccountId != null && customerAccountId == accountId) {
+                        baseAmount = rs.getBigDecimal("customer_price");
+                        leg = "CUSTOMER";
+                    } else if (supplierAccountId != null && supplierAccountId == accountId) {
                         baseAmount = rs.getBigDecimal("supplier_price");
                         leg = "SUPPLIER";
                     } else if (customerAccountId != null && customerAccountId == accountId) {
@@ -207,6 +227,26 @@ public final class BankProcessDescriptionBackfillTool {
                 "total=%d changed=%d unchanged=%d skipped=%d mode=%s report=%s",
                 total, changed, unchanged, skipped, apply ? "APPLY" : "PREVIEW", reportPath);
         System.out.println(summary);
+    }
+
+    /* Legacy "Process: Buy Price / Sell Price / Profit Sharing / Profit for ..." prefix -> which leg the row is. */
+    private static String hintedLeg(String oldDescription) {
+        if (oldDescription == null) {
+            return null;
+        }
+        if (oldDescription.startsWith("Process: Profit Sharing")) {
+            return "SHARE";
+        }
+        if (oldDescription.startsWith("Process: Profit for")) {
+            return "COMPANY";
+        }
+        if (oldDescription.startsWith("Process: Sell Price")) {
+            return "CUSTOMER";
+        }
+        if (oldDescription.startsWith("Process: Buy Price")) {
+            return "SUPPLIER";
+        }
+        return null;
     }
 
     private static BigDecimal resolveShareAmount(Connection conn, int bankProcessId, int accountId) {

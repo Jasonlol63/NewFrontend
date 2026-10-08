@@ -30,6 +30,8 @@ public interface ProcessDao {
     //Insert Process, ProcessDescriptionLink, ProcessDay
     void insertNewProcess(Process process);
 
+    void grantProcessToCustomAdmins(@Param("tenantId") int tenantId, @Param("processId") int processId);
+
     void insertProcessDescriptionLinkBatch(@Param("list") List<ProcessDescriptionLink> list);
 
     void insertProcessDayBatch(@Param("list") List<ProcessDay> list);

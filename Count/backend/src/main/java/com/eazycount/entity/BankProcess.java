@@ -39,6 +39,9 @@ public class BankProcess {
 
     private LocalDate dueGenerationFloor;
 
+    /** Set when entering INACTIVE after the contract ended and every due was settled; see Accounting Due §31. */
+    private Boolean dueClosed;
+
     private Frequency frequency;
 
     private Integer supplierAccountId;

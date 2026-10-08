@@ -4812,6 +4812,22 @@ Customer Report 那邊的 `reportCompanyApi.js` / `CustomerReportPage.jsx` 改�
 - `ACTIVE`：一律可生成正常账单，不分合同类型。
 - `OFFICIAL`、`E_INVOICE`、`BLOCK`：**非 1+N 合同**可正常生成账单（各 frequency 原规则）；**1+N 合同**不生成正常账单，改走赔款（见下方「Contract 1+1 / 1+2 / 1+3（赔款，已实现）」章节）。
 - `INACTIVE`、`WAITING`：不生成任何账单，也不触发赔款。
+- **Inactive 后重新启用（`bank_process.due_closed`，已实现）**：
+  - **判定时机**：每次状态变成 `INACTIVE` 时（手动切换，经 `updateBankProcessStatus`）重新计算一次 `due_closed`。合同**已到期**才记 `1`，否则 `0`：
+    - `1st of Every Month` / `Monthly`：`今天 >= dayEnd`。
+    - `Week` / `Day`：没有 `dayEnd`，不判断到期，只要求 `今天 >= dayStart`，进入 Inactive 一律视为终止。
+    - `Once` 恒为 `0`。
+  - **进入 Inactive 时自动 Skip 挂账**：`due_closed` 记 `1` 的同时，把按进入前状态算出的、当时仍未结算的所有账期（与 Accounting Due 红点同一口径，用系统今天，不用前端 `asOf` 预览日期）自动写成 `SKIPPED`（`skip_reason = INACTIVE`）。不再要求用户事先把账单处理完。进入前状态本身不出正常账单的（如 1+N 赔款类）不 Skip、记 `0`。开放中的 Resend 补单不受影响，不自动 Skip。
+  - **`due_closed = 0`（合同期内手动切 Inactive、或老合同）**：行为不变——Inactive 期间不出账，改回 Active 后照常重新出账，不做任何自动处理。
+  - **`due_closed = 1`，`INACTIVE → ACTIVE`**：
+    - `1st of Every Month` / `Monthly`：把 `postedDate` 早于今天所在月 1 号、且尚未结算的账期自动写成 `SKIPPED`（`skip_reason = INACTIVE`），当月及以后照常出账；写完后 `due_closed` 清回 `0`。
+      例：10 月进 Inactive、12 月改回 Active → 10 月、11 月自动 SKIPPED，12 月照常出账。
+    - `Week` / `Day`：改回 Active 后**不再自动出账**（`resolveDues` 直接返回空），`due_closed` 保持 `1`，只能用 Resend 补账。
+  - `INACTIVE → 非 ACTIVE`（如 Official）：`due_closed` 清回 `0`，不触发上述规则。其它状态变更（如 `ACTIVE → BLOCK`）不处理。
+  - **Resend 不受影响**；补单仍可正常出现在 Accounting Due 并入账。
+  - **`bank_process_accounting_posted.skip_reason`**：用户 Delete 写 `MANUAL`；上述自动 Skip 写 `INACTIVE`。Refresh（`restoreSkipped`，受 `app.accounting-due.restore-skipped-enabled` 控制）只删除非 `INACTIVE` 的 SKIPPED，自动 Skip 的账期不会被恢复。
+  - 老合同不会被迁移脚本自动回填：`due_closed` 默认 `0`。需要时另行补标记：已到期、非 Once 的 Inactive 合同可直接置 `1`，改回 Active 时当月之前的账期会被自动 Skip；若还想让进入 Inactive 当时挂着的账期也立刻落成 `SKIPPED`，需要用后端同一套账期逻辑写入（不要在 SQL 里手算账期类型和区间）。迁移脚本：`backend/src/main/resources/sql/migrate_add_due_closed.sql`。
+  - **本地 `count_real` 已于 2026-10-06 回填**：18 个已到期、仍有挂账的 Inactive 合同（共 21 条 `SKIPPED / INACTIVE`，创建人 `SYSTEM`，不挂交易）并置 `due_closed = 1`；另有 6 个账期已结清的合同直接置 `1`。**线上库尚未执行**，执行前必须在线上重新核对清单。
 - `postedDate` 是账单锚点，也是账期唯一键的一部分。
 - 已 `POSTED` 或 `SKIPPED` 的账期通过 `bankProcessId + postedDate + periodType` 排除。
 - Accounting Due 只返回尚未结算的账期。
@@ -6960,5 +6976,119 @@ if (transactionDao.countTransactionsByCurrencyId(id, tenantId) > 0) {
 详见独立文档：
 - 后端：`docs/admin-permission-and-userlist.md` 第 1 节「后续追加」章节
 - 前端：`Count-frontend/docs/permission-rbac-frontend-alignment.md` 第 5、6 节
+
+---
+
+## 42. Capture / Transaction Maintenance：Product、W/L Group、Id_Product、Description 与旧版对照（2026-10-05）
+
+> 记录日期：2026-10-05。改动文件：`backend/src/main/resources/mybatis/MaintenanceMapper.xml`。
+>
+> 背景：新库表结构和旧库（count168.org，PHP）不一致，旧版的取值字段在新库里没有一一对应的列，
+> 这里记录**旧版取什么、新版对应取什么、以及已知差异**，方便后续排查展示对不上的问题。
+>
+> - 旧版：`count168.org/api/capture_maintenance/search_api.php`、`api/transactions/maintenance_search_api.php`
+> - 新版：`MaintenanceMapper.xml` 中 `findCaptureLineMaintenanceRows` / `findCaptureLineMaintenanceDeletedRows`
+>   （Capture Maintenance）和 `findTransactionLineMaintenanceRows`（Transaction Maintenance）
+
+### 0. 旧库 → 新库的字段对应
+
+| 旧版 | 新版 | 说明 |
+|---|---|---|
+| `process.process_id`（代码） | `process.code` | 仅改名 |
+| `process.description_id` → `description.name` | `process_description_link.process_id` → `process_description.name` | 单个描述变成多对多链接表，多个时用 `, ` 拼接 |
+| 固定代码判断 `IN (PROFIT, SALARY, COMMISSION, BONUS)` | `process.category = 'BANK'` | BANK 的 `code` 就是这四个固定码 |
+| `data_capture_details` | `data_capture_line` | `columns_value` 对应 `source_columns`，**新版不再用作兜底** |
+
+> ⚠️ 新库还有一张 `data_capture_description`（该次提交时勾选的描述快照），**和旧版取法无关，不要用它**：
+> 旧版取的是 process 配置上的描述，不是每次提交的选择。
+
+### 1. Capture Maintenance：Product / W/L Group
+
+两列用同一个表达式，值始终相同。
+
+**旧版**（`dcSqlCaptureProductLabel`）：
+
+```
+CASE WHEN UPPER(TRIM(process.process_id)) IN ('PROFIT','SALARY','COMMISSION','BONUS')
+     THEN UPPER(TRIM(process.process_id))
+     ELSE COALESCE(description.name, process.process_id) END
+```
+
+**新版**（`captureProductExpr` + `captureDescriptionAgg`）：
+
+```
+CASE WHEN p.category = 'BANK' THEN p.code
+     WHEN desc_agg.description_names 非空 THEN desc_agg.description_names
+     ELSE p.code END
+```
+
+- `desc_agg` = `process_description_link` 关联 `process_description`，按 `process_id` 分组，
+  `GROUP_CONCAT(DISTINCT name ORDER BY name SEPARATOR ', ')`。
+- join 条件：`desc_agg.process_id = p.id`（live 和 deleted 两个查询都是）。
+
+**已知差异**：process 绑定了多个描述时，新版会全部拼出来；旧版 `description_id` 是单值，只会有一个。
+
+### 2. Transaction Maintenance：Id_Product 与 Description
+
+#### 2.1 描述取值（行自己的描述）`transactionLineDescriptionExpr`
+
+- MAIN 行：`description_main`
+- SUB 行：先 `description_sub`，为空再回退 `description_main`
+- 空白（TRIM 后为空）当 NULL，页面显示 `-`
+
+> 为什么 SUB 行要回退 `description_main`：库里存在 SUB 行但描述写在 `description_main` 的数据，
+> 例如 `data_capture_line` id 132005 / 131855（`ROUNDING ADJUST` 调整行：`product_type='SUB'`、
+> `description_sub` 为 NULL、`description_main`=`ROUNDING ADJUST`）。旧版靠同样的回退才能显示出来。
+> 不回退的话这类行 Id_Product 括号和 Description 都会丢。
+
+#### 2.2 Id_Product 列 `transactionLineIdProductExpr`
+
+**旧版**（`formatMaintenanceIdProductLikeDataSummary`）：`product (description)`，
+product 先取 sub / main，再回退 `id_product`、`columns_value`。
+
+**新版**：
+
+- product（`transactionLineProductBaseExpr`）：
+  SUB 行取 `id_product_sub`；否则 `id_product_main`；再依次回退 `id_product_sub`、`id_product`；最后 `-`。
+- 有描述（2.1 的结果）就拼成 `product (描述)`；
+  描述为空，或括号内容已经在 product 里时，不重复拼。
+- 括号里用的是**行自己的描述**，**不是** process 描述。
+
+> 对照例子：capture 20819 的 SB9 / -0.01 行 → Id_Product `SB9 (ROUNDING ADJUST)`，与旧版一致；
+> 其余描述为空的 SB9 行 → `SB9`。
+
+#### 2.3 Description 列
+
+**旧版**：`COALESCE(d.name, description_main, description_sub, columns_value, 'Data Capture')`，
+第一优先是 process 描述 `d.name`，所以同一个 process 的每一行都显示同一个描述
+（例如 MAXBET 所有行都显示 `MAXBET`，SB9 那行自己的 `ROUNDING ADJUST` 被盖住，只出现在 Id_Product 括号里）。
+
+**新版**：
+
+```
+COALESCE(desc_agg.description_names,          -- process 描述（process_description_link），优先
+         <transactionLineDescriptionExpr>)    -- 行自己的描述（2.1），为空显示 '-'
+```
+
+- 和 Capture Maintenance 共用同一个 `captureDescriptionAgg`，join：`desc_agg.process_id = p.id`。
+- **没有**旧版的 `columns_value` / `'Data Capture'` 兜底，都为空直接显示 `-`。
+- 搜索 `q` 增加了 `desc_agg.description_names` 的匹配（搜 `MAXBET` 能搜到），原有的
+  `id_product` / `account_id` / `description_main` / `description_sub` / `remark` / `created_by` 匹配保持不变。
+
+### 3. 排查：展示和旧版对不上时先看什么
+
+1. **Description 显示 `-` 或行自己的描述，而旧版是 process 描述**：
+   查该 process 在 `process_description_link` 里有没有绑定描述（新库迁移时这张表可能没带过来）。
+2. **Id_Product 缺括号**：查该行 `data_capture_line` 的 `description_main` / `description_sub`
+   是否为空（Id_Product 括号只用行自己的描述，和 process 描述无关）。
+3. **SUB 行描述写在 `description_main`**：属于数据写入问题（提交 capture 时 SUB 行应写 `description_sub`），
+   目前靠 SUB 回退 `description_main` 兜住；根治需改提交逻辑或迁移已有数据。
+4. **Capture Maintenance 的 Product 显示成 process 代码**：说明该 GAME process 没有关联描述（回退 `p.code`）。
+
+### 4. 未覆盖 / 后续
+
+- 本次只改了 live 行查询；Transaction Maintenance 目前没有 deleted 行的对应查询，如以后加，需沿用 §2 的同一套表达式。
+- 以上改动编译、页面均由使用者自行测试；SQL 表达式已用 `count_real` 库 capture 20819 的数据验证过
+  Id_Product / 行描述两项（process 描述 join 部分未在库里直接验证）。
 
 ---

@@ -206,6 +206,8 @@ public class UserServiceImpl implements UserService {
                 userTenantAccess.setAccountId(user.getId());
                 userTenantAccess.setTenantId(targetTenantId);
                 userDao.insertAccountTenantAccess(userTenantAccess);
+                // CUSTOM-ACL admins only see whitelisted accounts; make the new one visible to them.
+                userDao.grantAccountToCustomAdmins(targetTenantId, user.getId());
                 if (targetTenantId.equals(tenantId)) {
                     primaryTenantAccessId = userTenantAccess.getId();
                 }
@@ -309,6 +311,7 @@ public class UserServiceImpl implements UserService {
                 userTenantAccess.setAccountId(userListDTO.getId());
                 userTenantAccess.setTenantId(targetTenantId);
                 userDao.insertAccountTenantAccess(userTenantAccess);
+                userDao.grantAccountToCustomAdmins(targetTenantId, userListDTO.getId());
             }
             for (Integer targetTenantId : toRemove) {
                 // Same ordering reason as deleteUserByIdAndStatus — currency unbind first, while

@@ -32,6 +32,9 @@ public class BkProcessAccountingPosted {
 
     private Outcome outcome;
 
+    /** SKIPPED rows only; INACTIVE = auto-skipped on re-activation, never restored by Refresh. */
+    private SkipReason skipReason;
+
     private LocalDate billingStart;
 
     private LocalDate billingEnd;
@@ -59,5 +62,11 @@ public class BkProcessAccountingPosted {
     public enum Outcome {
         POSTED,
         SKIPPED
+    }
+
+    @Getter
+    public enum SkipReason {
+        MANUAL,
+        INACTIVE
     }
 }

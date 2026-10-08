@@ -189,6 +189,154 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
         return inbox;
     }
 
+    /*
+     * Status transition hook (called by BankProcessServiceImpl.updateBankProcessStatus after the status was
+     * written; {@code bp.getStatus()} is already the new status).
+     *
+     * - Entering INACTIVE: if the contract has ended (today >= dayEnd; WEEK / DAY have no dayEnd and always count;
+     *   ONCE never), every due still pending under its previous status is auto-SKIPPED and due_closed = 1.
+     *   A contract still inside its term keeps the previous behavior (due_closed = 0, nothing skipped).
+     * - INACTIVE -> ACTIVE with due_closed: 1st / Monthly auto-SKIP unsettled periods before the current month
+     *   (current month onward generates as usual); WEEK / DAY stay closed (see resolveDues).
+     * - INACTIVE -> any other status: due_closed reset, previous behavior.
+     * Everything else (e.g. ACTIVE -> BLOCK) is untouched. Never uses the Inbox asOf preview date.
+     */
+    @Override
+    @Transactional
+    public void onStatusChanged(BankProcess bp, BankProcess.Status oldStatus, String actor) {
+        if (bp == null || bp.getId() == null || bp.getTenantId() == null || oldStatus == null) {
+            return;
+        }
+        BankProcess.Status newStatus = bp.getStatus();
+        if (newStatus == oldStatus || newStatus == null) {
+            return;
+        }
+        if (newStatus == BankProcess.Status.INACTIVE) {
+            boolean closed = closeOnInactive(bp, oldStatus, actor);
+            bankProcessDao.updateDueClosed(bp.getId(), bp.getTenantId(), closed);
+            bp.setDueClosed(closed);
+            return;
+        }
+        if (oldStatus != BankProcess.Status.INACTIVE) {
+            return;
+        }
+        if (newStatus != BankProcess.Status.ACTIVE) {
+            if (Boolean.TRUE.equals(bp.getDueClosed())) {
+                bankProcessDao.updateDueClosed(bp.getId(), bp.getTenantId(), false);
+                bp.setDueClosed(false);
+            }
+            return;
+        }
+        if (!Boolean.TRUE.equals(bp.getDueClosed())) {
+            return;
+        }
+        if (!isOpenEnded(bp)) {
+            autoSkipUnsettled(bp, actor, YearMonth.from(LocalDate.now()).atDay(1));
+            bankProcessDao.updateDueClosed(bp.getId(), bp.getTenantId(), false);
+            bp.setDueClosed(false);
+        }
+    }
+
+    private static boolean isOpenEnded(BankProcess bp) {
+        return bp.getFrequency() == BankProcess.Frequency.WEEK || bp.getFrequency() == BankProcess.Frequency.DAY;
+    }
+
+    private static boolean isClosedOpenEnded(BankProcess bp) {
+        return Boolean.TRUE.equals(bp.getDueClosed()) && isOpenEnded(bp);
+    }
+
+    private static boolean hasEnded(BankProcess bp) {
+        BankProcess.Frequency frequency = bp.getFrequency();
+        if (frequency == null || frequency == BankProcess.Frequency.ONCE || bp.getDayStart() == null) {
+            return false;
+        }
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(bp.getDayStart())) {
+            return false;
+        }
+        return isOpenEnded(bp) || (bp.getDayEnd() != null && !today.isBefore(bp.getDayEnd()));
+    }
+
+    /*
+     * Entering INACTIVE: an ended contract auto-skips every due still pending under its previous status and is
+     * marked closed. A previous status that never generated normal dues (e.g. 1+N compensation) is not closed.
+     */
+    private boolean closeOnInactive(BankProcess bp, BankProcess.Status previousStatus, String actor) {
+        if (!hasEnded(bp)) {
+            return false;
+        }
+        BankProcess.Status current = bp.getStatus();
+        bp.setStatus(previousStatus);
+        try {
+            if (!isBillableForDueGeneration(bp, bp.getTenantId())) {
+                return false;
+            }
+            autoSkipUnsettled(bp, actor, null);
+            return true;
+        } finally {
+            bp.setStatus(current);
+        }
+    }
+
+    /*
+     * Writes SKIPPED (skip_reason = INACTIVE) for every unsettled normal due, optionally only those whose
+     * postedDate is before {@code beforeDate}. Open Resend make-ups are never touched.
+     */
+    private void autoSkipUnsettled(BankProcess bp, String actor, LocalDate beforeDate) {
+        for (AccountingDueDTO due : findUnsettledDues(bp, LocalDate.now())) {
+            if (due.getPostedDate() == null
+                    || (beforeDate != null && !due.getPostedDate().isBefore(beforeDate))) {
+                continue;
+            }
+            BkProcessAccountingPosted row = new BkProcessAccountingPosted();
+            row.setTenantId(bp.getTenantId());
+            row.setBankProcessId(bp.getId());
+            row.setPostedDate(due.getPostedDate());
+            row.setPeriodType(parsePeriodType(due.getPeriodType()));
+            row.setOutcome(BkProcessAccountingPosted.Outcome.SKIPPED);
+            row.setSkipReason(BkProcessAccountingPosted.SkipReason.INACTIVE);
+            row.setBillingStart(due.getBillingStart());
+            row.setBillingEnd(due.getBillingEnd());
+            row.setCreatedBy(actor);
+            accountingDueDao.insertLedgerEntry(row);
+        }
+    }
+
+    /* Normal periodic dues generated for this process as of {@code today} that have no POSTED / SKIPPED ledger row. */
+    private List<AccountingDueDTO> findUnsettledDues(BankProcess bp, LocalDate today) {
+        BankProcessDTO dto = new BankProcessDTO();
+        dto.setBankProcess(bp);
+        List<AccountingDueDTO> dues = resolveDues(dto, today, bp.getTenantId());
+        if (dues == null || dues.isEmpty()) {
+            return List.of();
+        }
+        LocalDate from = null;
+        LocalDate to = null;
+        for (AccountingDueDTO due : dues) {
+            LocalDate posted = due.getPostedDate();
+            if (posted == null) {
+                continue;
+            }
+            if (from == null || posted.isBefore(from)) {
+                from = posted;
+            }
+            if (to == null || posted.isAfter(to)) {
+                to = posted;
+            }
+        }
+        if (from == null) {
+            return List.of();
+        }
+        Set<String> settled = loadSettledKeys(bp.getTenantId(), from, to);
+        List<AccountingDueDTO> unsettled = new ArrayList<>();
+        for (AccountingDueDTO due : dues) {
+            if (!settled.contains(settledKey(due.getBankProcessId(), due.getPostedDate(), due.getPeriodType()))) {
+                unsettled.add(due);
+            }
+        }
+        return unsettled;
+    }
+
     @Override
     @Transactional
     public void skipPeriods(List<AccountingDueDTO> items) {
@@ -256,6 +404,10 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
             return List.of();
         }
         if (!isBillableForDueGeneration(bp, tenantId)) {
+            return List.of();
+        }
+        // Closed WEEK / DAY contract (ended + fully settled before INACTIVE): never auto-bills again, Resend only.
+        if (isClosedOpenEnded(bp)) {
             return List.of();
         }
         switch (bp.getFrequency()) {
@@ -661,6 +813,7 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
         row.setPostedDate(postedDate);
         row.setPeriodType(periodType);
         row.setOutcome(BkProcessAccountingPosted.Outcome.SKIPPED);
+        row.setSkipReason(BkProcessAccountingPosted.SkipReason.MANUAL);
         row.setBillingStart(item.getBillingStart());
         row.setBillingEnd(item.getBillingEnd());row.setCreatedBy(createdBy);
         accountingDueDao.insertLedgerEntry(row);

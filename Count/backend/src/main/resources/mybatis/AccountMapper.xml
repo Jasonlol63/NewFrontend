@@ -115,6 +115,18 @@
         )
     </insert>
 
+    <insert id="grantAccountToCustomAdmins">
+        INSERT INTO user_tenant_account_access (user_tenant_access_id, account_id)
+        SELECT uta.id, #{accountId}
+        FROM user_tenant_access uta
+        WHERE uta.tenant_id = #{tenantId}
+          AND uta.account_acl_mode = 'CUSTOM'
+          AND NOT EXISTS (
+              SELECT 1 FROM user_tenant_account_access x
+              WHERE x.user_tenant_access_id = uta.id AND x.account_id = #{accountId}
+          )
+    </insert>
+
     <insert id="insertAccountTenantAccess" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO account_tenant_access (account_id, tenant_id)
         VALUES (#{accountId}, #{tenantId})

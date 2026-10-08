@@ -25,6 +25,8 @@ public interface UserDao {
 
     void insertAccountTenantAccess(UserTenantAccess userTenantAccess);
 
+    void grantAccountToCustomAdmins(@Param("tenantId") int tenantId, @Param("accountId") int accountId);
+
     void updateUserDetails(User user);
 
     void deleteUserByIdAndStatus(@Param("id") int id, @Param("status") User.AccountStatus status);

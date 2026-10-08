@@ -19,6 +19,7 @@ import com.eazycount.entity.BankProcess;
 import com.eazycount.entity.BankProcessShare;
 import com.eazycount.entity.Transaction;
 import com.eazycount.security.SessionUser;
+import com.eazycount.service.AccountingDueService;
 import com.eazycount.service.BankProcessService;
 import com.eazycount.service.MaintenanceService;
 import com.eazycount.service.TransactionSubmitService;
@@ -63,6 +64,9 @@ public class BankProcessServiceImpl implements BankProcessService {
 
     @Autowired
     private RealtimeEventPublisher realtimeEventPublisher;
+
+    @Autowired
+    private AccountingDueService accountingDueService;
 
     @Override
     public List<BankProcessDTO> findAllBankProcess(Integer tenantId) {
@@ -208,8 +212,10 @@ public class BankProcessServiceImpl implements BankProcessService {
             throw new BusinessException("Update bank process status failed. Please try again!");
         }
 
+        BankProcess.Status oldStatus = existing.getStatus();
         existing.setStatus(status);
         existing.setUpdatedBy(sessionUser.login_id);
+        accountingDueService.onStatusChanged(existing, oldStatus, sessionUser.login_id);
         AuditContext.captureAfter(id, AuditSnapshots.bankProcess(existing));
         AuditContext.captureSummary(id, AuditLabels.updateStatus("合同", contractIdentity(existing)));
         return existing;

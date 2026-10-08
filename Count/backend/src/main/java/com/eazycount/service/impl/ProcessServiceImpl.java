@@ -140,6 +140,8 @@ public class ProcessServiceImpl implements ProcessService {
         if (process.getId() == null) {
             throw new BusinessException("Insert process failed. Please try again!");
         }
+        // CUSTOM-ACL admins only see whitelisted processes; make the new one visible to them.
+        processDao.grantProcessToCustomAdmins(process.getTenantId(), process.getId());
 
         if (copySource != null) {
             copyProcessChildData(copySource.getId(), process.getId(), processDTO.getTenantId(), sessionUser.login_id);

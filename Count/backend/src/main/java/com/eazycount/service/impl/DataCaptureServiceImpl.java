@@ -352,6 +352,7 @@ public class DataCaptureServiceImpl implements DataCaptureService {
         created.setStatus(Process.Status.ACTIVE);
         created.setCreatedBy(session.login_id);
         dataCaptureDao.insertBankProcess(created);
+        processDao.grantProcessToCustomAdmins(tenantId, created.getId());
         return created;
     }
 

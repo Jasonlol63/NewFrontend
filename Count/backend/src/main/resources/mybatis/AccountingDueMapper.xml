@@ -11,6 +11,8 @@
                 javaType="com.eazycount.entity.BkProcessAccountingPosted$PeriodType" jdbcType="VARCHAR"/>
         <result property="outcome" column="outcome"
                 javaType="com.eazycount.entity.BkProcessAccountingPosted$Outcome" jdbcType="VARCHAR"/>
+        <result property="skipReason" column="skip_reason"
+                javaType="com.eazycount.entity.BkProcessAccountingPosted$SkipReason" jdbcType="VARCHAR"/>
         <result property="billingStart" column="billing_start"/>
         <result property="billingEnd" column="billing_end"/>
         <result property="createdAt" column="created_at"/>
@@ -61,6 +63,7 @@
             posted_date,
             period_type,
             outcome,
+            skip_reason,
             billing_start,
             billing_end,
             created_by
@@ -70,6 +73,7 @@
             #{postedDate},
             #{periodType},
             #{outcome},
+            #{skipReason},
             #{billingStart},
             #{billingEnd},
             #{createdBy}
@@ -81,6 +85,7 @@
         WHERE tenant_id = #{tenantId}
           AND posted_date BETWEEN #{fromDate} AND #{toDate}
           AND outcome = 'SKIPPED'
+          AND (skip_reason IS NULL OR skip_reason &lt;&gt; 'INACTIVE')
     </delete>
 
     <select id="countNormalPosted" resultType="int">

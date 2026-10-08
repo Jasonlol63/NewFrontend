@@ -1002,6 +1002,7 @@ CREATE TABLE `bank_process` (
     `day_end_monthly_cap_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1st of every month only: 1=last month DAY_END_TAIL to day_end; 0=last month FULL_MONTH to month end',
     `expired_at_creation`  TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'FIRST_OF_EVERY_MONTH/MONTHLY only: set once at insert; 1=day_end''s month was already before the creation month, so ACTIVE never extends billing past day_end',
     `due_generation_floor` DATE                  DEFAULT NULL COMMENT 'Optional override for the due-backfill floor month; when set, Inbox generation starts here instead of created_at (used to stop old/migrated records from regenerating stale past-month dues without altering created_at)',
+    `due_closed`           TINYINT(1)            NOT NULL DEFAULT 0 COMMENT '1=contract ended when it entered INACTIVE (pending dues were auto-SKIPPED then); after re-activation 1st/Monthly auto-skip past months, Week/Day stop auto dues',
     `frequency`            ENUM( 'FIRST_OF_EVERY_MONTH', 'MONTHLY', 'ONCE', 'DAY', 'WEEK') NOT NULL DEFAULT 'FIRST_OF_EVERY_MONTH',
 
     `supplier_account_id`  INT UNSIGNED          DEFAULT NULL COMMENT 'FK account.id — Supplier',
@@ -1078,6 +1079,7 @@ CREATE TABLE `bank_process_accounting_posted` (
   `posted_date`     DATE NOT NULL COMMENT 'Due anchor date (billing due day)',
   `period_type`     ENUM('MONTHLY', 'FIRST_MONTH', 'PARTIAL_FIRST_MONTH', 'FULL_MONTH', 'DAY_END_TAIL', 'ONCE_ONE_OFF', 'COMPENSATION', 'RESEND_CONSOLIDATED', 'WEEKLY','DAILY', 'DAILY_CONSOLIDATED') NOT NULL DEFAULT 'MONTHLY',
   `outcome`         ENUM('POSTED', 'SKIPPED') NOT NULL DEFAULT 'POSTED' COMMENT 'Replaces old period_type *_skipped suffix',
+  `skip_reason`     ENUM('MANUAL', 'INACTIVE') DEFAULT NULL COMMENT 'SKIPPED rows only: INACTIVE=auto-skipped by the INACTIVE flow (on entering INACTIVE, or past months on re-activation), never restored by Refresh; NULL/MANUAL=user Delete',
   `billing_start`   DATE DEFAULT NULL COMMENT 'Optional period start for display / clear',
   `billing_end`     DATE DEFAULT NULL COMMENT 'Optional period end for display / clear',
   `created_at`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -146,6 +146,34 @@
         LIMIT 1
     </select>
 
+    <!-- Row-aware MAIN lookup: the same id_product may appear on several independent Capture rows. -->
+    <select id="findMainByProductAndRowIndex" resultMap="FormulaMap">
+        SELECT
+        <include refid="FormulaSelectColumns"/>
+        FROM data_capture_formula
+        WHERE tenant_id = #{tenantId}
+          AND process_id = #{processId}
+          AND product_type = 'MAIN'
+          AND id_product = #{idProduct}
+          AND row_index = #{rowIndex}
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+
+    <!-- Legacy MAIN rows saved before row_index was tracked. -->
+    <select id="findMainWithoutRowIndex" resultMap="FormulaMap">
+        SELECT
+        <include refid="FormulaSelectColumns"/>
+        FROM data_capture_formula
+        WHERE tenant_id = #{tenantId}
+          AND process_id = #{processId}
+          AND product_type = 'MAIN'
+          AND id_product = #{idProduct}
+          AND row_index IS NULL
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+
     <select id="findMainByProduct" resultMap="FormulaMap">
         SELECT
         <include refid="FormulaSelectColumns"/>

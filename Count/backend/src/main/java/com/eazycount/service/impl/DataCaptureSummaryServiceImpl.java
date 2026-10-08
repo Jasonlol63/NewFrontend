@@ -124,14 +124,27 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         boolean enableInputMethod = Boolean.TRUE.equals(request.getEnableInputMethod())
                 || NormalizeUtils.trimToNull(request.getInputMethod()) != null;
 
-        // Prefer MAIN when product has no main-row data; otherwise add SUB under that product.
-        DataCaptureFormula mainWithAccount =
-                dataCaptureSummaryDao.findMainWithAccount(tenantId, processId, idProduct);
+        // MAIN vs SUB. The same id_product can sit on several independent Capture rows (e.g. a
+        // Replace Word maps another row onto the same product), each with its own MAIN, so the
+        // lookup is row-aware: a MAIN already at this row_index with an account -> add a SUB under
+        // it; otherwise this row is its own MAIN. Legacy MAINs without row_index can't be told
+        // apart by row, so they keep the old product-wide rule (any MAIN with an account -> SUB).
+        Integer rowIndex = request.getRowIndex();
+        boolean saveMain;
+        DataCaptureFormula mainTarget;
+        if (rowIndex != null
+                && dataCaptureSummaryDao.findMainWithoutRowIndex(tenantId, processId, idProduct) == null) {
+            mainTarget = dataCaptureSummaryDao.findMainByProductAndRowIndex(tenantId, processId, idProduct, rowIndex);
+            saveMain = mainTarget == null || mainTarget.getAccountId() == null;
+        } else {
+            saveMain = dataCaptureSummaryDao.findMainWithAccount(tenantId, processId, idProduct) == null;
+            mainTarget = saveMain ? dataCaptureSummaryDao.findMainByProduct(tenantId, processId, idProduct) : null;
+        }
 
         DataCaptureSummaryDTO saved;
-        if (mainWithAccount == null) {
+        if (saveMain) {
             saved = saveAsMain(request, tenantId, processId, idProduct, accountId, currencyId, formula,
-                    sourcePercent, enableSourcePercent, enableInputMethod, loginId);
+                    sourcePercent, enableSourcePercent, enableInputMethod, loginId, mainTarget);
         } else {
             saved = saveAsSub(request, tenantId, processId, idProduct, accountId, currencyId, formula,
                     sourcePercent, enableSourcePercent, enableInputMethod, loginId);
@@ -178,15 +191,15 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         created.setStatus(Process.Status.ACTIVE);
         created.setCreatedBy(session.login_id);
         dataCaptureDao.insertBankProcess(created);
+        processDao.grantProcessToCustomAdmins(tenantId, created.getId());
         return created;
     }
 
     private DataCaptureSummaryDTO saveAsMain(DataCaptureSummaryDTO request, Integer tenantId, Integer processId,
                                              String idProduct, Integer accountId, Integer currencyId,
                                              String formula, String sourcePercent,
-                                             boolean enableSourcePercent, boolean enableInputMethod, String loginId) {
-
-        DataCaptureFormula existingMain = dataCaptureSummaryDao.findMainByProduct(tenantId, processId, idProduct);
+                                             boolean enableSourcePercent, boolean enableInputMethod, String loginId,
+                                             DataCaptureFormula existingMain) {
 
         DataCaptureFormula row = existingMain != null ? existingMain : new DataCaptureFormula();
         row.setTenantId(tenantId);
@@ -196,8 +209,7 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         row.setParentIdProduct(null);
         row.setSubOrder(null);
         row.setFormulaVariant(existingMain != null && existingMain.getFormulaVariant() != null
-                ? existingMain.getFormulaVariant()
-                : 1);
+                ? existingMain.getFormulaVariant() : 1);
         row.setRowIndex(request.getRowIndex());
         row.setAccountId(accountId);
         row.setCurrencyId(currencyId);
@@ -511,6 +523,11 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         List<ComputedLine> computedLines = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
         for (DataCaptureLineDTO line : lines) {
+            // A line must carry its own account currency; falling back to the process currency
+            // would silently book e.g. a MYR account under a CNY process as CNY.
+            if (line == null || line.getCurrencyId() == null || line.getCurrencyId() <= 0) {
+                throw new BusinessException("Currency Id is required for every line");
+            }
             ComputedLine computed = computeLine(line);
             computedLines.add(computed);
             total = total.add(computed.finalAmount);
@@ -636,7 +653,10 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         if (formulaText == null) {
             formulaText = TransactionMoneyFormat.formatMoney(computed.finalAmount);
         }
-        txn.setDescription(processCode + ": " + formulaText);
+        String processDescription = resolveHistoryDescriptionPrefix(dto);
+        txn.setDescription(processDescription != null
+                ? processDescription + " : " + formulaText
+                : processCode + ": " + formulaText);
         txn.setRemark(resolveLineRemark(dto));
         txn.setCreatedBy(session.login_id);
         txn.setApprovalStatus(Transaction.ApprovalStatus.APPROVED);
@@ -649,6 +669,12 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
     private static String resolveLineRemark(DataCaptureLineDTO dto) {
         boolean isSub = parseProductType(dto.getProductType()) == DataCaptureLine.ProductType.SUB;
         return NormalizeUtils.trimToNull(isSub ? dto.getDescriptionSub() : dto.getDescriptionMain());
+    }
+
+    /* History description prefix (legacy parity): the row's process description; SUB rows fall back to the parent's. */
+    private static String resolveHistoryDescriptionPrefix(DataCaptureLineDTO dto) {
+        String own = resolveLineRemark(dto);
+        return own != null ? own : NormalizeUtils.trimToNull(dto.getDescriptionMain());
     }
 
     private static DataCaptureLine.ProductType parseProductType(String value) {

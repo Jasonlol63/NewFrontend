@@ -860,6 +860,7 @@ public class DomainServiceImpl implements DomainService {
                 userTenantAccess.setAccountId(user.getId());
                 userTenantAccess.setTenantId(c168TenantId);
                 userDao.insertAccountTenantAccess(userTenantAccess);
+                userDao.grantAccountToCustomAdmins(c168TenantId, user.getId());
 
                 Integer myrCurrencyId = null;
                 List<Currency> currencyList = currencyDao.findCurrencyByTenantId(c168TenantId);

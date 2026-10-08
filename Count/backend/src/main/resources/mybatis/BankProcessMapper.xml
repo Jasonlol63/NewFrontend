@@ -14,6 +14,7 @@
         <result property="dayEndMonthlyCapEnabled" column="day_end_monthly_cap_enabled"/>
         <result property="expiredAtCreation" column="expired_at_creation"/>
         <result property="dueGenerationFloor" column="due_generation_floor"/>
+        <result property="dueClosed" column="due_closed"/>
         <result property="frequency" column="frequency"/>
         <result property="supplierAccountId" column="supplier_account_id"/>
         <result property="supplierPrice" column="supplier_price"/>
@@ -64,6 +65,7 @@
             <result property="dayEndMonthlyCapEnabled" column="bp_day_end_monthly_cap_enabled"/>
             <result property="expiredAtCreation" column="bp_expired_at_creation"/>
             <result property="dueGenerationFloor" column="bp_due_generation_floor"/>
+            <result property="dueClosed" column="bp_due_closed"/>
             <result property="frequency" column="bp_frequency"/>
             <result property="supplierAccountId" column="bp_supplier_account_id"/>
             <result property="supplierPrice" column="bp_supplier_price"/>
@@ -113,6 +115,7 @@
             bp.day_end_monthly_cap_enabled AS bp_day_end_monthly_cap_enabled,
             bp.expired_at_creation  AS bp_expired_at_creation,
             bp.due_generation_floor AS bp_due_generation_floor,
+            bp.due_closed           AS bp_due_closed,
             bp.frequency            AS bp_frequency,
             bp.supplier_account_id  AS bp_supplier_account_id,
             bp.supplier_price       AS bp_supplier_price,
@@ -173,6 +176,7 @@
             day_end_monthly_cap_enabled,
             expired_at_creation,
             due_generation_floor,
+            due_closed,
             frequency,
             supplier_account_id,
             supplier_price,
@@ -280,6 +284,13 @@
     <update id="updateStatus">
         UPDATE bank_process
         SET status = #{status}
+        WHERE id = #{id}
+        AND tenant_id = #{tenantId}
+    </update>
+
+    <update id="updateDueClosed">
+        UPDATE bank_process
+        SET due_closed = #{dueClosed}
         WHERE id = #{id}
         AND tenant_id = #{tenantId}
     </update>
