@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Data Capture Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --navy: #14336b;
+    --line: #e5e7eb;
+    --sub: #6b7280;
+    --faint: #9ca3af;
+    --input-line: rgba(130,155,195,.38);
+    --input-bg: rgba(255,255,255,.62);
+    --gap: clamp(8px, 1.5dvh, 12px);
+    --pad: clamp(10px, 2dvh, 16px);
+  }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; height: 100dvh; overflow: hidden;
+    font-family: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #111827;
+    background: #eaf3fd url('../public/images/Count-Inside-Bg.webp') center/cover no-repeat fixed;
+  }
+  button { font-family: inherit; }
+
+  /* ================= SIDEBAR (same as components/layout/Sidebar.jsx) ================= */
+  .sidebar {
+    position: relative; display: flex; flex-direction: column; flex: none; height: 100%;
+    width: clamp(220px, 15.5vw, 236px); overflow: hidden; color: #eaf1ff;
+    padding: clamp(12px,1.8dvh,16px) 12px clamp(10px,1.6dvh,14px);
+    box-shadow: 6px 0 24px -8px rgba(4,15,40,.55);
+    background-color: #08285f;
+    background-image:
+      radial-gradient(120% 90% at 100% 0%, rgba(70,140,255,.3) 0%, rgba(70,140,255,0) 45%),
+      linear-gradient(160deg, rgba(18,48,100,.45) 0%, rgba(12,36,82,.4) 38%, rgba(8,26,61,.35) 70%, rgba(6,18,37,.35) 100%),
+      url('../public/images/count-sidebar-bg.webp');
+    background-size: cover, cover, cover;
+    background-position: center, center, bottom;
+    background-repeat: no-repeat;
+  }
+  .sidebar::before { content:""; position:absolute; inset:0; pointer-events:none; background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 18%); }
+  .sidebar > * { position: relative; z-index: 1; }
+  .brand { display:flex; align-items:center; gap:6px; margin-bottom:12px; }
+  .brand-ico { width:30px; height:30px; flex:none; border-radius:11px; border:1px solid rgba(255,255,255,.25); padding:4px; backdrop-filter: blur(10px);
+    background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.04)); box-shadow: inset 0 1px 1px rgba(255,255,255,.35), 0 4px 10px -4px rgba(0,10,40,.5); }
+  .brand-ico img { width:100%; height:100%; object-fit:contain; display:block; }
+  .brand-name { flex:1; font-size:13px; font-weight:800; letter-spacing:.2px; color:#fff; }
+  .bell { position:relative; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid rgba(120,170,255,.4); background: rgba(30,58,120,.55); }
+  .bell b { position:absolute; right:-5px; top:-5px; min-width:15px; height:15px; padding:0 4px; border-radius:99px; background:#ef4444; color:#fff; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #0c2452; }
+  .glow-line { height:1px; margin:0 4px 12px; background: linear-gradient(90deg, transparent, rgba(103,232,249,.7) 50%, transparent); box-shadow: 0 0 8px 1px rgba(56,189,248,.5); }
+  .profile { display:flex; flex-direction:column; gap:10px; margin-bottom: clamp(10px,2dvh,16px); padding:12px; border-radius:16px; border:1px solid rgba(90,160,255,.3); background: rgba(23,45,95,.55); }
+  .profile-top { display:flex; align-items:center; gap:10px; }
+  .avatar { position:relative; width:44px; height:44px; flex:none; padding:2px; border-radius:50%; background: conic-gradient(from 180deg, #38bdf8, #0a3fc9, #38bdf8); box-shadow: 0 0 10px 1px rgba(56,189,248,.5); }
+  .avatar img { width:100%; height:100%; border-radius:50%; border:2px solid #0c2452; object-fit:cover; display:block; }
+  .avatar i { position:absolute; right:0; bottom:0; width:12px; height:12px; border-radius:50%; border:2px solid #12305f; background:#31d67a; }
+  .p-name { font-size:14px; font-weight:800; color:#fff; line-height:1.25; }
+  .p-role { margin-top:2px; font-size:11px; font-weight:500; color:#9db8e8; }
+  .lang { align-self:center; display:inline-flex; padding:3px; border-radius:99px; background: linear-gradient(180deg,#dfe9f8,#ccdcf3); box-shadow: inset 0 2px 5px rgba(20,70,160,.18), inset 0 -1px 0 rgba(255,255,255,.5); }
+  .lang span { width:59px; text-align:center; padding:3px 0; font-size:11px; font-weight:700; color:#6f93c9; border-radius:99px; }
+  .lang span.on { color:#fff; background: linear-gradient(100deg,#0a3fc9,#2f8dff 55%,#3fc4ff); box-shadow: 0 3px 8px -2px rgba(20,90,220,.55), inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 5px rgba(0,0,30,.18); }
+  nav { flex:1; min-height:0; display:flex; flex-direction:column; gap:3px; overflow-y:auto; margin-right:-6px; padding-right:6px; scrollbar-width:thin; scrollbar-color: rgba(183,201,234,.3) transparent; }
+  .item { display:flex; flex:none; align-items:center; gap:10px; padding:9px 11px; border-radius:11px; font-size:13px; font-weight:600; color:#b7c9ea; cursor:pointer; }
+  .item:hover { background: rgba(255,255,255,.05); color:#e6edfb; }
+  .item svg { width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .item.active { color:#fff; background: linear-gradient(100deg,#0a3fc9,#2f8dff 55%,#3fc4ff); box-shadow: 0 8px 18px -6px rgba(20,90,220,.75), inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 6px rgba(0,0,0,.12); }
+  .item .chev { margin-left:auto; width:14px; height:14px; opacity:.7; }
+  .sb-foot { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .expiry { display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 10px; border-radius:12px; border:1px solid rgba(114,168,255,.35); background: rgba(79,141,255,.16); font-size:11.5px; font-weight:600; color:#bcd3ff; }
+  .logout { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px; border:none; border-radius:11px; color:#fff; font-size:13px; font-weight:700;
+    background: linear-gradient(100deg,#0a3fc9,#2f8dff 55%,#3fc4ff); box-shadow: 0 10px 20px -6px rgba(20,90,220,.6), inset 0 -3px 6px rgba(0,0,0,.1), inset 0 2px 3px rgba(255,255,255,.3); }
+  @media (max-height: 720px) { .item { padding:6px 11px; font-size:12.5px; } .profile { padding:9px 10px; gap:8px; } .avatar { width:36px; height:36px; } }
+
+  /* ================= PAGE ================= */
+  .content { flex:1; min-width:0; height:100%; }
+  main { height:100%; min-height:520px; display:flex; flex-direction:column; gap:var(--gap); padding:var(--pad); }
+
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+  .top { flex:none; display:grid; grid-template-columns: minmax(0,1.85fr) minmax(0,1fr); gap:var(--gap); }
+  @media (max-width: 1023px) { .top { grid-template-columns: 1fr; } }
+
+  /* ---- left: scope + form ---- */
+  .form-card { padding:10px 16px 14px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .scope-row { display:flex; align-items:center; gap:8px; }
+  .scope-row > span { width:84px; flex:none; font-size:13px; font-weight:700; color:#1f2937; }
+  .seg { display:inline-flex; max-width:100%; overflow:hidden; border-radius:10px; border:1px solid var(--line); background:#fff; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .seg button { flex:none; padding:6px 16px; border:none; border-right:1px solid var(--line); background:#fff; font-size:12.5px; font-weight:600; color:#1f2937; white-space:nowrap; cursor:pointer; }
+  .seg button:last-child { border-right:0; }
+  .seg button:hover { background:#f8fafc; }
+  .seg button.on { color:#fff; background: linear-gradient(180deg,#63c4ff,#0d60ff); }
+  .rule { height:1px; margin:2px 0 2px; background: var(--line); }
+
+  .grid { display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px 14px; }
+  .s2 { grid-column: span 2; } .s3 { grid-column: span 3; } .s4 { grid-column: span 4; }
+  @media (max-width: 899px) { .s2, .s3, .s4 { grid-column: span 6; } }
+  .field > label, .field > .lbl { display:block; margin:0 0 4px 2px; font-size:12.5px; font-weight:600; color:#374151; }
+  .field .req { color:#ef4444; font-style:normal; }
+  .ctl {
+    width:100%; height:36px; padding:0 12px; border-radius:10px; border:1px solid var(--input-line); background: var(--input-bg);
+    font: inherit; font-size:13.5px; color:#111827; outline:none; box-shadow: 0 1px 3px rgba(15,23,42,.05);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ctl:focus { border-color:#3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .ctl::placeholder { color:#9ca3af; }
+  .upper { text-transform: uppercase; }
+  select.ctl { appearance:none; cursor:pointer; padding-right:32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position: right 10px center; }
+  select.ctl:invalid, select.ctl.unset { color:#9ca3af; }
+
+  /* "+" button: same as AddButton in components/shared/form-modal/fields.jsx (dashed = add, solid pen = edit) */
+  .with-add { display:flex; align-items:center; gap:6px; }
+  .with-add .box { flex:1; min-width:0; }
+  .add-btn {
+    display:flex; flex:none; width:36px; height:36px; align-items:center; justify-content:center; cursor:pointer;
+    border-radius:10px; border:1.5px dashed #7fb2ff; background: rgba(232,242,255,.7); color:#2563eb; transition: background-color .15s;
+  }
+  .add-btn:hover { background:#d6e8ff; border-style:solid; }
+  .add-btn.edit { border-style:solid; }
+  .add-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:2.4; }
+  .add-btn.edit svg { stroke-width:2.1; }
+  .picked { display:flex; align-items:center; gap:6px; overflow:hidden; cursor:default; }
+  .picked .ph { color:#9ca3af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tag { flex:none; display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:7px; border:1px solid #bfd8ff; background: linear-gradient(90deg,#d6ebff,#f0f8ff); font-size:11.5px; font-weight:800; color:var(--navy); }
+
+  .replace { display:flex; align-items:center; gap:8px; }
+  .replace .ctl { flex:1; min-width:0; }
+  .replace .arrow { flex:none; color:var(--sub); font-size:13px; }
+
+  /* ---- right: submitted ---- */
+  .sub-card { padding:12px 16px 14px; display:flex; flex-direction:column; min-height:0; }
+  .head { display:flex; align-items:center; gap:8px; padding-bottom:9px; border-bottom:1px solid rgba(47,111,239,.35); }
+  .head::before { content:""; width:4px; height:16px; border-radius:2px; background: linear-gradient(180deg,#3fc4ff,#0a3fc9); }
+  .head h2 { margin:0; font-size:16px; font-weight:800; color:var(--navy); }
+  .empty { flex:1; min-height:84px; margin-top:12px; display:grid; place-items:center; border-radius:10px; border:1px solid var(--line); background:#f8fafc; font-size:13px; font-style:italic; color:var(--sub); text-align:center; padding:10px; }
+
+  /* ---- table card ---- */
+  .table-card { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+  .t-bar { flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; }
+  .t-bar h2 { margin:0 6px 0 0; font-size:16px; font-weight:800; color:var(--navy); display:flex; align-items:center; gap:8px; }
+  .t-bar h2::before { content:""; width:4px; height:16px; border-radius:2px; background: linear-gradient(180deg,#3fc4ff,#0a3fc9); }
+  .t-bar select.ctl { width:auto; min-width:120px; height:34px; font-size:13px; font-weight:600; }
+  .btn-soft { height:34px; padding:0 16px; border-radius:10px; border:1px solid var(--input-line); background:#fff; color:#475569; font-size:13px; font-weight:700; cursor:pointer; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .btn-soft:hover { background:#f1f5f9; border-color:#94a3b8; }
+  .icon-btn { margin-left:auto; width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid var(--input-line); background:#fff; color:#475569; cursor:pointer; }
+  .icon-btn:hover { background:#f1f5f9; }
+  .icon-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+
+  .sheet { flex:1; min-height:0; overflow:auto; border-top:1px solid var(--line); scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; }
+  table { border-collapse:separate; border-spacing:0; width:100%; min-width:1100px; table-layout:fixed; font-size:12.5px; }
+  th, td { border-right:1px solid #e6edf6; border-bottom:1px solid #e6edf6; height:27px; padding:0; text-align:center; }
+  thead th { position:sticky; top:0; z-index:2; color:#fff; font-weight:700; background: linear-gradient(180deg,#60c1fe,#0f61ff); border-color: rgba(255,255,255,.25); }
+  thead th.corner { left:0; z-index:3; width:56px; }
+  tbody th { position:sticky; left:0; z-index:1; width:56px; background:#eaf3ff; color:var(--navy); font-weight:800; }
+  td { background:#fff; padding:0 6px; text-align:left; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:cell; }
+  tbody tr:nth-child(even) td { background:#f8fbff; }
+  td:hover { background:#eef5ff !important; }
+  td.sel { outline:2px solid #3b82f6; outline-offset:-2px; background:#fff !important; }
+  td:focus { outline:2px solid #3b82f6; outline-offset:-2px; background:#fff; text-overflow:clip; }
+
+  /* ---- submit ---- */
+  .submit-row { flex:none; display:flex; justify-content:center; }
+  .submit {
+    min-width:108px; height:34px; padding:0 22px; border:none; border-radius:10px; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer;
+    background: linear-gradient(100deg,#0a3fc9,#2f8dff 55%,#3fc4ff);
+    box-shadow: 0 10px 20px -8px rgba(20,90,220,.55), inset 0 -3px 8px rgba(0,0,0,.08), inset 0 2px 4px rgba(255,255,255,.35);
+  }
+  .submit:hover:not(:disabled) { filter:brightness(1.05); }
+  .submit:disabled { cursor:not-allowed; filter:grayscale(.55) opacity(.55); box-shadow:none; }
+
+  @media (max-height: 760px) { .ctl { height:30px; } .add-btn { width:30px; height:30px; } .form-card { gap:6px; padding-bottom:10px; } .grid { gap:6px 14px; } .seg button { padding:4px 16px; } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-ico"><img src="../public/images/Logo-2.webp" alt="" /></div>
+    <div class="brand-name">EAZYCOUNT</div>
+    <div class="bell">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+      <b>3</b>
+    </div>
+  </div>
+  <div class="glow-line"></div>
+  <div class="profile">
+    <div class="profile-top">
+      <div class="avatar"><img src="../public/images/avatar1.webp" alt="" /><i></i></div>
+      <div><div class="p-name">BOSS</div><div class="p-role">Owner</div></div>
+    </div>
+    <div class="lang"><span class="on">EN</span><span>中</span></div>
+  </div>
+  <nav id="menu"></nav>
+  <div class="sb-foot">
+    <div class="expiry">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bcd3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Exp: 3m 15d left
+    </div>
+    <button class="logout" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg>
+      Logout
+    </button>
+  </div>
+</aside>
+
+<div class="content">
+<main>
+  <div class="top">
+    <!-- Left: Group / Company scope + form -->
+    <section class="card form-card">
+      <div class="scope-row"><span>GroupID:</span>
+        <div class="seg" data-seg><button>AP</button><button class="on">IG</button></div>
+      </div>
+      <div class="scope-row"><span>Company:</span>
+        <div class="seg" data-seg><button class="on">95</button><button>AG</button><button>CX</button><button>RS</button><button>VG</button></div>
+      </div>
+      <div class="rule"></div>
+
+      <div class="grid">
+        <div class="field s2">
+          <label for="date">Date <i class="req">*</i></label>
+          <select id="date" class="ctl"><option>2026-10-08 (THURSDAY)</option><option>2026-10-07 (WEDNESDAY)</option><option>2026-10-06 (TUESDAY)</option></select>
+        </div>
+        <div class="field s2">
+          <label for="process">Process <i class="req">*</i></label>
+          <select id="process" class="ctl unset" onchange="this.classList.toggle('unset', !this.value)"><option value="" selected>Select Process</option><option>GM001</option><option>GM002</option></select>
+        </div>
+        <div class="field s2">
+          <label for="currency">Currency <i class="req">*</i></label>
+          <select id="currency" class="ctl unset" onchange="this.classList.toggle('unset', !this.value)"><option value="" selected>Select Currency</option><option>MYR</option><option>SGD</option><option>USD</option></select>
+        </div>
+
+        <div class="field s2">
+          <span class="lbl">Description <i class="req">*</i></span>
+          <div class="with-add">
+            <div class="box"><div class="ctl picked" id="descBox"><span class="ph">Click + to select descriptions</span></div></div>
+            <button type="button" class="add-btn" id="descBtn" aria-label="Add description" title="Add description">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field s4">
+          <span class="lbl">Replace Word</span>
+          <div class="replace">
+            <input class="ctl upper" placeholder="OLD WORD" />
+            <span class="arrow">→</span>
+            <input class="ctl upper" placeholder="NEW WORD" />
+          </div>
+        </div>
+
+        <div class="field s3">
+          <label for="remove">Remove Word</label>
+          <input id="remove" class="ctl upper" />
+        </div>
+        <div class="field s3">
+          <label for="remark">Remark</label>
+          <input id="remark" class="ctl upper" placeholder="ENTER REMARK" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: submitted processes -->
+    <section class="card sub-card">
+      <div class="head"><h2>Submitted Processes</h2></div>
+      <div class="empty">No processes submitted for this date</div>
+    </section>
+  </div>
+
+  <!-- Data Capture Table -->
+  <section class="card table-card">
+    <div class="t-bar">
+      <h2>Data Capture Table</h2>
+      <select class="ctl"><option>1.TEXT</option><option>2.NUMBER</option></select>
+      <button type="button" class="btn-soft" id="reset">Reset</button>
+      <button type="button" class="icon-btn" aria-label="Full screen" title="Full screen">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </div>
+    <div class="sheet"><table id="sheet"></table></div>
+  </section>
+
+  <div class="submit-row"><button type="button" class="submit" id="submit" disabled>Submit</button></div>
+</main>
+</div>
+
+<script>
+  // ---- sidebar (menu from components/layout/sidebarConfig.js, Data Capture active) ----
+  const I = {
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+    mega: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    renew: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    check: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    bar: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+    card: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+  };
+  const MENU = [
+    [1,'Home','home'],[2,'Domain','globe'],[3,'Announcement','mega'],[4,'Auto Renew','renew'],[5,'Admin','shield'],[6,'Account','user'],
+    [7,'Ownership','users'],[8,'Process','check'],[9,'Data Capture','bar',true],[10,'Transaction Payment','card'],[11,'Report','file',false,true],[12,'Maintenance','wrench',false,true],
+  ];
+  document.getElementById('menu').innerHTML = MENU.map(([n, label, ic, active, parent]) =>
+    `<div class="item${active ? ' active' : ''}"><svg viewBox="0 0 24 24">${I[ic]}</svg><span>${n}. ${label}</span>` +
+    (parent ? '<svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>' : '') + '</div>'
+  ).join('');
+
+  // ---- Group / Company segments ----
+  document.querySelectorAll('[data-seg]').forEach((seg) =>
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    })
+  );
+
+  // ---- "+" demo: first click "selects" descriptions (button turns into the edit pen), click again to clear ----
+  const PLUS = '<path d="M5 12h14"/><path d="M12 5v14"/>';
+  const PEN = '<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>';
+  const descBtn = document.getElementById('descBtn'), descBox = document.getElementById('descBox');
+  let picked = false;
+  descBtn.addEventListener('click', () => {
+    picked = !picked;
+    descBox.innerHTML = picked ? '<span class="tag">BANK CHARGES</span><span class="tag">SERVICE FEE</span>' : '<span class="ph">Click + to select descriptions</span>';
+    descBtn.classList.toggle('edit', picked);
+    descBtn.title = descBtn.ariaLabel = picked ? 'Edit descriptions' : 'Add description';
+    descBtn.querySelector('svg').innerHTML = picked ? PEN : PLUS;
+  });
+
+  // ---- sheet: columns 1-20, rows A.. ----
+  const COLS = 20, ROWS = 40;
+  const letter = (i) => (i >= 26 ? String.fromCharCode(64 + Math.floor(i / 26)) : '') + String.fromCharCode(65 + (i % 26));
+  const sheet = document.getElementById('sheet'), submit = document.getElementById('submit');
+  const build = () => {
+    sheet.innerHTML = '<thead><tr><th class="corner"></th>' + Array.from({ length: COLS }, (_, c) => `<th>${c + 1}</th>`).join('') + '</tr></thead><tbody>' +
+      Array.from({ length: ROWS }, (_, r) => `<tr><th>${letter(r)}</th>` + Array.from({ length: COLS }, () => '<td contenteditable="plaintext-only"></td>').join('') + '</tr>').join('') + '</tbody>';
+    submit.disabled = true;
+  };
+  build();
+  sheet.addEventListener('input', () => { submit.disabled = ![...sheet.querySelectorAll('td')].some((td) => td.textContent.trim()); });
+  sheet.addEventListener('focusin', (e) => { if (e.target.tagName === 'TD') { sheet.querySelectorAll('td.sel').forEach((x) => x.classList.remove('sel')); } });
+  document.getElementById('reset').addEventListener('click', build);
+</script>
+</body>
+</html>
