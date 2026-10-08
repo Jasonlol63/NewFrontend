@@ -16,7 +16,7 @@ const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-s
  * Dashboard calendar (month / year views). Picking a day sets it and closes the popup.
  * value / onChange use ISO "yyyy-mm-dd" strings.
  */
-export default function DateField({ value, onChange, placeholder = "Select date" }) {
+export default function DateField({ value, onChange, placeholder = "Select date", popupClassName }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(value || toIsoDate(new Date())));
@@ -50,10 +50,13 @@ export default function DateField({ value, onChange, placeholder = "Select date"
       <Popover.Portal>
         <Popover.Content
           side="bottom"
-          align="start"
+          align="center"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-2.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)] modal-short:min-w-[216px] modal-short:p-2"
+          className={cn(
+            "z-50 max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-2.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)] modal-short:min-w-[216px] modal-short:p-2",
+            popupClassName
+          )}
         >
           <div className="mb-2 flex items-center justify-between modal-short:mb-1">
             <NavButton onClick={() => step(-1)} label="Previous">

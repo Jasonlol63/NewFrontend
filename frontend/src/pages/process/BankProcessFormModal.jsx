@@ -5,7 +5,8 @@ import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
-import { AddButton, Field, SelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
+import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
+import { CalendarDays } from "lucide-react";
 import AccountFormModal from "@/pages/account/AccountFormModal.jsx";
 import BankProfitSharing from "./BankProfitSharing.jsx";
 import { contractEndDate } from "./bankProcessRules";
@@ -26,6 +27,11 @@ import {
 const pair = "grid grid-cols-2 gap-3 modal-compact:gap-2 @max-[599px]/main:grid-cols-1";
 const cardFlex = "flex-none @max-[899px]/main:overflow-visible";
 const cardBody = "flex flex-col gap-3 modal-compact:gap-2 @max-[899px]/main:overflow-visible";
+
+// On big screens the date picker popup is a little narrower than the (wide) field; below that it follows the field as before.
+const DATE_POPUP = "min-[1536px]:max-w-[300px]";
+// Only this frequency has the Day End lock switch (Edit).
+const FIRST_OF_MONTH = BANK_MODAL_FREQUENCIES[0].value;
 
 const money = (v) => v.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 
@@ -60,7 +66,7 @@ function formOf(process) {
     cardOwner: process.cardOwner,
     dayStart: process.date,
     dayEnd: contractEndDate(process),
-    frequency: "Monthly",
+    frequency: process.frequency ?? FIRST_OF_MONTH,
     supplier: process.supplier,
     buyPrice: String(process.cost),
     customer: process.customer,
@@ -83,8 +89,9 @@ function accountOf(value, role) {
 
 // A select with the button beside it: "+" (opens Add Account) while nothing is chosen, the edit pen (opens Edit Account
 // for the chosen one) once something is. While something is chosen a small x in the box clears it.
-function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, ...select }) {
-  const chosen = Boolean(select.value);
+// addOnly: the button stays "+" whatever is chosen (Country, Bank).
+function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = false, ...select }) {
+  const chosen = Boolean(select.value) && !addOnly;
   return (
     <div className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
@@ -93,10 +100,6 @@ function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, ...select }) {
       <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />
     </div>
   );
-}
-
-function DisabledBox({ placeholder }) {
-  return <div className={cn(inputClass, "flex cursor-not-allowed items-center bg-modal-off text-dash-faint")}>{placeholder}</div>;
 }
 
 // Edit: fields that cannot change any more.
@@ -113,6 +116,8 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => formOf(isEdit ? process : null));
   const [sharing, setSharing] = useState([]);
+  // Edit, frequency 1st of Every Month: the Day End switch. On = Day End is locked (keeps its value), Off (the default) = editable.
+  const [dayEndLocked, setDayEndLocked] = useState(false);
   // Add / Edit Account opened from a "+" / edit button: { mode, account, role, apply(label) }. Accounts made or renamed there join the lists.
   const [accountForm, setAccountForm] = useState(null);
   const [extraAccounts, setExtraAccounts] = useState([]);
@@ -133,6 +138,8 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
   const setMoney = (key) => (e) => set(key)(money(e.target.value));
 
   const accounts = useMemo(() => [...extraAccounts, form.supplier, form.customer, form.company].reduce((list, v) => withCurrent(list, v), BANK_MODAL_ACCOUNTS), [extraAccounts, form.supplier, form.customer, form.company]);
+  const showDayEndSwitch = isEdit && form.frequency === FIRST_OF_MONTH;
+  const dayEndIsLocked = showDayEndSwitch && dayEndLocked;
   const profit = (parseFloat(form.sellPrice) || 0) - (parseFloat(form.buyPrice) || 0);
   const save = () => onSave?.({ ...form, profit, sharing });
 
@@ -153,10 +160,10 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
         <FormCard title="Bank Information" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Country (Currency)" as="div">
-              {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd addLabel="Add country" editLabel="Edit country" value={form.country} onChange={set("country")} options={BANK_MODAL_COUNTRIES} placeholder="Select Country" />}
+              {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd addOnly addLabel="Add country" editLabel="Edit country" value={form.country} onChange={set("country")} options={BANK_MODAL_COUNTRIES} placeholder="Select Country" />}
             </Field>
             <Field label="Bank" as="div">
-              {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd addLabel="Add bank" editLabel="Edit bank" value={form.bank} onChange={set("bank")} options={BANK_MODAL_BANKS} placeholder="Select Bank" disabled={!form.country} />}
+              {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd addOnly addLabel="Add bank" editLabel="Edit bank" value={form.bank} onChange={set("bank")} options={BANK_MODAL_BANKS} placeholder="Select Bank" disabled={!form.country} />}
             </Field>
           </div>
           <div className={pair}>
@@ -172,11 +179,26 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
         <FormCard title="Schedule" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Day Start" as="div">
-              {form.type ? <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" /> : <DisabledBox placeholder="DD/MM/YYYY" />}
+              <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} />
             </Field>
-            <Field label="Day End" optional as="div">
-              {form.dayStart ? <DateField value={form.dayEnd} onChange={set("dayEnd")} placeholder="DD/MM/YYYY" /> : <DisabledBox placeholder="DD/MM/YYYY" />}
-            </Field>
+            <div className="block min-w-0">
+              <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
+                <span className="truncate text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px]">
+                  Day End <span className="text-[10px] font-medium text-[#8a96a8]">(opt.)</span>
+                </span>
+                {showDayEndSwitch && (
+                  <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? "ON" : "OFF"} className="font-bold" />
+                )}
+              </div>
+              {dayEndIsLocked ? (
+                <div title="Locked while the switch is on" className={cn(inputClass, "flex cursor-not-allowed items-center gap-2 bg-modal-off text-[#6b7280] tabular-nums")}>
+                  <span className="min-w-0 flex-1 truncate">{form.dayEnd || "DD/MM/YYYY"}</span>
+                  <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
+                </div>
+              ) : (
+                <DateField value={form.dayEnd} onChange={set("dayEnd")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} />
+              )}
+            </div>
           </div>
           <Field label="Frequency">
             <SelectField value={form.frequency} onChange={set("frequency")} options={withCurrent(BANK_MODAL_FREQUENCIES, form.frequency)} placeholder="Select Frequency" />

@@ -78,12 +78,11 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
         className={cn(
           inputClass,
           "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
-          clearable && "pr-[52px]",
           "data-[state=open]:border-[#3b82f6] data-[state=open]:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] data-placeholder:text-dash-faint",
           "data-disabled:cursor-not-allowed data-disabled:bg-modal-off data-disabled:text-dash-faint data-disabled:hover:border-modal-input-line"
         )}
       >
-        <span className="min-w-0 flex-1 truncate">
+        <span className={cn("min-w-0 flex-1 truncate", clearable && "pr-6")}>
           <Select.Value placeholder={placeholder} />
         </span>
         <Select.Icon asChild>
@@ -143,7 +142,7 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
 }
 
 // The button beside a select: "+" (add a new one) while nothing is chosen, the pen (edit the chosen one) once something is.
-// Both are the same pale blue button as tall as an input: dashed outline for add (solid on hover), solid outline for edit.
+// Both are the same pale blue button as tall as an input: same dashed outline for both (solid on hover); only the icon differs.
 export function AddButton({ label, edit = false, className, ...props }) {
   const Icon = edit ? SquarePen : Plus;
   return (
@@ -153,7 +152,7 @@ export function AddButton({ label, edit = false, className, ...props }) {
       title={label}
       className={cn(
         "flex size-9 flex-none cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-[#7fb2ff] bg-[rgba(232,242,255,0.7)] text-[#2563eb] transition-colors hover:bg-[#d6e8ff]",
-        edit ? "border-solid" : "border-dashed hover:border-solid",
+        "border-dashed hover:border-solid",
         "@min-[900px]/main:@max-[1099px]/main:size-8 modal-compact:size-[30px] modal-tiny:size-7",
         "disabled:pointer-events-none disabled:opacity-50",
         className

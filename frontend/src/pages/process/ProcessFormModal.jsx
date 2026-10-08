@@ -99,9 +99,9 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
         <div>
           <div className="mb-1 ml-0.5 flex items-center justify-between">
             <span className="text-[12.5px] font-semibold text-[#374151]">Description <i className="not-italic text-[#ef4444]">*</i></span>
-            <button type="button" onClick={() => setPicker(true)} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
+            <button type="button" onClick={() => setPicker(true)} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
               <Plus className="size-3.5" strokeWidth={2.8} />
-              Select
+              Add
             </button>
           </div>
           <DescriptionBox items={descriptionList.items} selected={descriptions} onChange={setDescriptions} onOpen={() => setPicker(true)} />
@@ -261,7 +261,7 @@ function MultiButton({ on, onClick, small }) {
       aria-label="Multi-Process"
       aria-pressed={Boolean(on)}
       title={on ? "Back to a single Process ID" : "Pick existing processes"}
-      className={cn(small ? "h-6 rounded-full px-2.5 text-[12px]" : "h-9 px-3.5 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7 @max-[479px]/main:px-2.5", on && "border-[#7fb2ff] bg-row-stripe text-[#1d4ed8]")}
+      className={cn(small ? "h-6 rounded-lg px-2.5 text-[12px]" : "h-9 px-3.5 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7 @max-[479px]/main:px-2.5", on && "border-[#7fb2ff] bg-row-stripe text-[#1d4ed8]")}
     >
       <Layers className="size-3.5" strokeWidth={2.4} />
       <span className="@max-[479px]/main:hidden">Multi-Process</span>
@@ -301,9 +301,9 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
     return (
       <div ref={rootRef}>
         {head(
-          <button type="button" onClick={onOpen} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
+          <button type="button" onClick={onOpen} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
             <Plus className="size-3.5" strokeWidth={2.8} />
-            Select
+            Add
           </button>
         )}
         <div

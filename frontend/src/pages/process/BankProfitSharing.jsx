@@ -17,7 +17,7 @@ const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maxim
 
 // As tall as an input at every modal height tier.
 const square = "size-9 @min-[900px]/main:@max-[1099px]/main:size-8 modal-compact:size-[30px] modal-tiny:size-7";
-const pill = "inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border text-[12px] font-bold";
+const pill = "inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border text-[12px] font-bold";
 
 function ColumnLabel({ children }) {
   return (
@@ -75,7 +75,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
       ) : (
         <button type="button" onClick={() => setOpen(true)} className={cn(pill, "border-[#7fb2ff] bg-white/70 pr-2.5 pl-1.5 text-[#1d4ed8] hover:bg-white")}>
           <Plus className="size-3.5" strokeWidth={2.8} />
-          Select
+          Add
         </button>
       )}
     </>
