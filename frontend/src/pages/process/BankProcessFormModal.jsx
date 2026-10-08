@@ -9,10 +9,11 @@ import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } fr
 import { CalendarDays } from "lucide-react";
 import AccountFormModal from "@/pages/account/AccountFormModal.jsx";
 import BankProfitSharing from "./BankProfitSharing.jsx";
+import CountryBankAdder from "./CountryBankAdder.jsx";
 import { contractEndDate } from "./bankProcessRules";
 import {
   BANK_MODAL_ACCOUNTS,
-  BANK_MODAL_BANKS,
+  BANK_MODAL_BANKS_BY_COUNTRY,
   BANK_MODAL_CONTRACTS,
   BANK_MODAL_COUNTRIES,
   BANK_MODAL_FREQUENCIES,
@@ -78,6 +79,7 @@ function formOf(process) {
 }
 
 // The options plus the current value, so a value the list does not know (an old account) still shows.
+const toOptions = (list) => list.map((x) => ({ value: x, label: x }));
 const withCurrent = (options, value) => (value && !options.some((o) => o.value === value) ? [{ value, label: value }, ...options] : options);
 
 // The accounts are shown as "BA019 [MUAR DASON]" or just "BS005"; Edit Account wants them apart again.
@@ -87,17 +89,18 @@ function accountOf(value, role) {
   return { accountId: m ? m[1] : value, name: m ? m[2] : "", role, remark: "", paymentAlert: false };
 }
 
-// A select with the button beside it: "+" (opens Add Account) while nothing is chosen, the edit pen (opens Edit Account
+// A select with the button beside it (`button`, or a function of the row element, replaces the default one): "+" (opens Add Account) while nothing is chosen, the edit pen (opens Edit Account
 // for the chosen one) once something is. While something is chosen a small x in the box clears it.
 // addOnly: the button stays "+" whatever is chosen (Country, Bank).
-function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = false, ...select }) {
+function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = false, button, ...select }) {
   const chosen = Boolean(select.value) && !addOnly;
+  const [row, setRow] = useState(null);
   return (
-    <div className="flex items-center gap-1.5">
+    <div ref={setRow} className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
         <SelectField onClear={onClear} {...select} />
       </div>
-      <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />
+      {(typeof button === "function" ? button(row) : button) ?? <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />}
     </div>
   );
 }
@@ -116,6 +119,13 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => formOf(isEdit ? process : null));
   const [sharing, setSharing] = useState([]);
+  // Countries and, under each, its banks (sample lists; the real ones come from the API). The "+" beside Country / Bank edits them.
+  const [countries, setCountries] = useState(BANK_MODAL_COUNTRIES);
+  const [banksByCountry, setBanksByCountry] = useState(BANK_MODAL_BANKS_BY_COUNTRY);
+  // Ones switched off in the "+" popover (grey there) stay created but are not offered in the select. Banks are keyed "COUNTRY/BANK".
+  const [hidden, setHidden] = useState({});
+  const isShown = (key) => !hidden[key];
+  const toggleShown = (key) => setHidden((h) => ({ ...h, [key]: !h[key] }));
   // Edit, frequency 1st of Every Month: the Day End switch. On = Day End is locked (keeps its value), Off (the default) = editable.
   const [dayEndLocked, setDayEndLocked] = useState(false);
   // Add / Edit Account opened from a "+" / edit button: { mode, account, role, apply(label) }. Accounts made or renamed there join the lists.
@@ -133,11 +143,41 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
     }
     setAccountForm(null);
   };
+  const toggleCountry = (country) => {
+    toggleShown(country);
+    if (isShown(country)) setForm((f) => (f.country === country ? { ...f, country: "", bank: "" } : f));
+  };
+  const toggleBank = (bank) => {
+    toggleShown(bankKey(bank));
+    if (isShown(bankKey(bank))) setForm((f) => (f.bank === bank ? { ...f, bank: "" } : f));
+  };
+  const pickCountry = (country) => setForm((f) => ({ ...f, country, bank: "" }));
+  const addCountry = (country) => {
+    setCountries((list) => [...list, country]);
+    setBanksByCountry((map) => ({ ...map, [country]: [] }));
+    pickCountry(country);
+  };
+  const removeCountry = (country) => {
+    setCountries((list) => list.filter((c) => c !== country));
+    setHidden(({ [country]: _gone, ...rest }) => rest);
+    setForm((f) => (f.country === country ? { ...f, country: "", bank: "" } : f));
+  };
+  const addBank = (bank) => {
+    setBanksByCountry((map) => ({ ...map, [form.country]: [...(map[form.country] ?? []), bank] }));
+    setForm((f) => ({ ...f, bank }));
+  };
+  const removeBank = (bank) => {
+    setBanksByCountry((map) => ({ ...map, [form.country]: (map[form.country] ?? []).filter((b) => b !== bank) }));
+    setHidden(({ [bankKey(bank)]: _gone, ...rest }) => rest);
+    setForm((f) => (f.bank === bank ? { ...f, bank: "" } : f));
+  };
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const setText = (key) => (e) => set(key)(e.target.value);
   const setMoney = (key) => (e) => set(key)(money(e.target.value));
 
   const accounts = useMemo(() => [...extraAccounts, form.supplier, form.customer, form.company].reduce((list, v) => withCurrent(list, v), BANK_MODAL_ACCOUNTS), [extraAccounts, form.supplier, form.customer, form.company]);
+  const banks = banksByCountry[form.country] ?? [];
+  const bankKey = (bank) => form.country + "/" + bank;
   const showDayEndSwitch = isEdit && form.frequency === FIRST_OF_MONTH;
   const dayEndIsLocked = showDayEndSwitch && dayEndLocked;
   const profit = (parseFloat(form.sellPrice) || 0) - (parseFloat(form.buyPrice) || 0);
@@ -160,10 +200,54 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
         <FormCard title="Bank Information" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Country (Currency)" as="div">
-              {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd addOnly addLabel="Add country" editLabel="Edit country" value={form.country} onChange={set("country")} options={BANK_MODAL_COUNTRIES} placeholder="Select Country" />}
+              {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd
+                  addOnly
+                  value={form.country}
+                  onChange={pickCountry}
+                  options={toOptions(countries.filter(isShown))}
+                  placeholder="Select Country"
+                  button={(anchorEl) => (
+                    <CountryBankAdder
+                      anchorEl={anchorEl}
+                      noun="country"
+                      title="Add country"
+                      items={countries}
+                      onAdd={addCountry}
+                      onRemove={removeCountry}
+                      isOn={isShown}
+                      onToggle={toggleCountry}
+                      lockedReason={(c) => {
+                        const n = banksByCountry[c]?.length ?? 0;
+                        return n ? c + " has " + n + (n === 1 ? " bank" : " banks") + ", remove them first" : "";
+                      }}
+                    />
+                  )}
+                />}
             </Field>
             <Field label="Bank" as="div">
-              {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd addOnly addLabel="Add bank" editLabel="Edit bank" value={form.bank} onChange={set("bank")} options={BANK_MODAL_BANKS} placeholder="Select Bank" disabled={!form.country} />}
+              {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd
+                  addOnly
+                  value={form.bank}
+                  onChange={set("bank")}
+                  options={toOptions(banks.filter((b) => isShown(bankKey(b))))}
+                  placeholder="Select Bank"
+                  disabled={!form.country}
+                  button={(anchorEl) => (
+                    <CountryBankAdder
+                      anchorEl={anchorEl}
+                      key={form.country}
+                      noun="bank"
+                      title="Add bank"
+                      hint={"Added under " + form.country}
+                      items={banks}
+                      onAdd={addBank}
+                      onRemove={removeBank}
+                      isOn={(b) => isShown(bankKey(b))}
+                      onToggle={toggleBank}
+                      disabledReason={form.country ? "" : "Pick a country first"}
+                    />
+                  )}
+                />}
             </Field>
           </div>
           <div className={pair}>
