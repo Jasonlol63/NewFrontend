@@ -6,7 +6,7 @@ import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import { AddButton, SelectField, SoftButton, TextInput, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import AccountFormModal from "@/pages/account/AccountFormModal.jsx";
 import { MOCK_CURRENCIES } from "@/pages/process/games/processFormOptions";
-import { INPUT_METHODS, MOCK_CAPTURED, MOCK_SUMMARY_ACCOUNTS, capturedCells, evalFormula } from "./dataCaptureRules";
+import { INPUT_METHODS, MOCK_CAPTURED, MOCK_SUMMARY_ACCOUNTS, capturedCells, evalFormula } from "./summaryRules";
 
 // "KY [KAI YUAN]" <-> { accountId: "KY", name: "KAI YUAN" }
 const parseAccount = (label) => {

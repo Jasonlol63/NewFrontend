@@ -1,21 +1,23 @@
 # Data Capture and Data Capture Summary design
 
 Routes `/data-capture` (sidebar item 9) and `/data-capture/summary` (opened by Submit). UI drafts: the
-captured rows, accounts and submitted list are mock data (marked `TEMPORARY` in `dataCaptureRules.js`) until the
+captured rows, accounts and submitted list are mock data (marked `TEMPORARY` in `shared/dataCaptureRules.js`, `summary/summaryRules.js`) until the
 submit API exists. All sizes below are CSS px; "short" = viewport height <= 720, "modal-compact" <= 760,
 "modal-short" <= 700, "modal-tiny" <= 600 (variants in `src/index.css`).
 
-Files: `frontend/src/pages/data-capture/`
+Files: `frontend/src/pages/data-capture/` (split like Process: an entry page plus one folder per kind)
 
 | File | Role |
 |---|---|
-| `DataCapturePage.jsx` | Game company capture: Group / Company, Date, Process, Currency, Description, Replace / Remove word, Remark, the sheet, Submit |
-| `BankCaptureView.jsx` | Bank company capture: Date, Process (fixed list), Currency, Remark, the sheet, Submit |
-| `CaptureSheet.jsx` | The paste sheet (columns 1-20, rows A.., editable cells) |
-| `SubmittedProcesses.jsx`, `cardParts.jsx` | Right card of the capture pages, shared card surface and title |
-| `DataCaptureSummaryPage.jsx` | The summary list (this document, "Summary page") |
-| `FormulaDialog.jsx` | Add / Edit Formula dialog |
-| `dataCaptureRules.js` | Constants, mock data, `parseRate`, `rowAmount`, `capturedCells`, `evalFormula` |
+| `DataCapturePage.jsx` | Entry (`/data-capture`): owns the Group / Company scope and shows the Game or the Bank view |
+| `games/GameCaptureView.jsx` | Game company capture: Date, Process, Currency, Description, Replace / Remove word, Remark, the sheet, Submit |
+| `bank/BankCaptureView.jsx` | Bank company capture: Date, Process (fixed list), Currency, Remark, the sheet, Submit |
+| `shared/CaptureSheet.jsx` | The paste sheet (columns 1-20, rows A.., editable cells) |
+| `shared/SubmittedProcesses.jsx`, `shared/cardParts.jsx`, `shared/useFullscreen.js` | Right card of the capture pages, shared card surface and title, full-screen toggle |
+| `shared/dataCaptureRules.js` | Capture constants (sheet size, modes, date options, mock submitted list) |
+| `summary/DataCaptureSummaryPage.jsx` | The summary list (see "Summary page") |
+| `summary/FormulaDialog.jsx` | Add / Edit Formula dialog |
+| `summary/summaryRules.js` | Mock summary / captured data, `parseRate`, `rowAmount`, `capturedCells`, `evalFormula` |
 
 Design previews (plain HTML, open with Live Server): `docs/data-capture-preview.html`,
 `docs/data-capture-summary-preview.html` (summary + dialog, add `?frame=1` for the outer frame draft),

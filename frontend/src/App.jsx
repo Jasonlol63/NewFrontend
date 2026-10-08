@@ -12,7 +12,7 @@ import DomainPage from "./pages/domain/DomainPage.jsx";
 import OwnershipPage from "./pages/ownership/OwnershipPage.jsx";
 import ProcessPage from "./pages/process/ProcessPage.jsx";
 import DataCapturePage from "./pages/data-capture/DataCapturePage.jsx";
-import DataCaptureSummaryPage from "./pages/data-capture/DataCaptureSummaryPage.jsx";
+import DataCaptureSummaryPage from "./pages/data-capture/summary/DataCaptureSummaryPage.jsx";
 import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenancePage.jsx";
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";

@@ -7,7 +7,7 @@ import { IconAction } from "@/components/shared/list/cells.jsx";
 import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import FormulaDialog from "./FormulaDialog.jsx";
-import { MOCK_SUMMARY, parseRate, rowAmount } from "./dataCaptureRules";
+import { MOCK_SUMMARY, parseRate, rowAmount } from "./summaryRules";
 
 const fmt = (n) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

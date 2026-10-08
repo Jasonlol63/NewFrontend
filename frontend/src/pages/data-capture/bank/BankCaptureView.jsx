@@ -6,11 +6,11 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { Field, SelectField, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import { MOCK_CURRENCIES } from "@/pages/process/games/processFormOptions";
-import CaptureSheet from "./CaptureSheet.jsx";
-import SubmittedProcesses from "./SubmittedProcesses.jsx";
-import { cardClass } from "./cardParts.jsx";
-import { ADD_ROW_OPTIONS, BANK_PROCESSES, MOCK_SUBMITTED, SHEET_ROWS, dateOptions } from "./dataCaptureRules";
-import { useFullscreen } from "./useFullscreen";
+import CaptureSheet from "../shared/CaptureSheet.jsx";
+import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
+import { cardClass } from "../shared/cardParts.jsx";
+import { ADD_ROW_OPTIONS, BANK_PROCESSES, MOCK_SUBMITTED, SHEET_ROWS, dateOptions } from "../shared/dataCaptureRules";
+import { useFullscreen } from "../shared/useFullscreen";
 
 const iconBtn = "flex size-[34px] flex-none cursor-pointer items-center justify-center rounded-[10px] border border-modal-input-line bg-modal-input text-[#475569] hover:bg-white/90";
 
