@@ -12,7 +12,9 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { cn } from "@/lib/utils";
+import AccountingDueModal from "./AccountingDueModal.jsx";
 import BankProcessFormModal from "./BankProcessFormModal.jsx";
+import { dueNowCount } from "./accountingDueRules";
 import {
   BANK_CURRENCIES,
   BANK_PICKABLE_STATUSES,
@@ -36,10 +38,11 @@ const CHIPS = [
 ];
 
 // Next to Add Process; the count is how many processes are due for accounting.
-function AccountingDueButton({ count }) {
+function AccountingDueButton({ count, onClick }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 text-[13px] font-bold whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
     >
       <Inbox className="size-4" strokeWidth={2.2} />
@@ -210,6 +213,8 @@ export default function BankProcessView({ scope, readOnly }) {
   const closeAdd = useCallback(() => setAddOpen(false), []);
   const [editRow, setEditRow] = useState(null);
   const closeEdit = useCallback(() => setEditRow(null), []);
+  const [dueOpen, setDueOpen] = useState(false);
+  const closeDue = useCallback(() => setDueOpen(false), []);
   const [dateRange, setDateRange] = useState(thisYear);
   const [currency, setCurrency] = useState("ALL");
   const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(BANK_CURRENCIES);
@@ -327,7 +332,7 @@ export default function BankProcessView({ scope, readOnly }) {
         <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
           Add Process
         </PrimaryButton>
-        <AccountingDueButton count={0} />
+        <AccountingDueButton count={dueNowCount()} onClick={() => setDueOpen(true)} />
       </div>
 
       <section ref={toolbarRef} className={cn("flex-none rounded-xl border border-dash-line bg-white shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
@@ -373,6 +378,7 @@ export default function BankProcessView({ scope, readOnly }) {
       {/* UI only for now: Save just closes the modal until the add / update API is wired up. */}
       {addOpen && <BankProcessFormModal onClose={closeAdd} onSave={closeAdd} />}
       {editRow && <BankProcessFormModal mode="edit" process={editRow} onClose={closeEdit} onSave={closeEdit} />}
+      {dueOpen && <AccountingDueModal readOnly={readOnly} onClose={closeDue} />}
     </div>
   );
 }

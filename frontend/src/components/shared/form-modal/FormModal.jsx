@@ -23,6 +23,7 @@ const openModals = [];
  *   and gap (--pad / --gap) and fills the space between header and footer.
  * footerStart: shown on the left of the footer (e.g. a validation message).
  * footerExtra: another button between Cancel and Save (e.g. Reset).
+ * headerExtra: another button before Back (e.g. Refresh).
  * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
  * Mount it only while open so every opening starts from its initial values.
  */
@@ -35,6 +36,7 @@ export default function FormModal({
   saveDisabled = false,
   footerStart,
   footerExtra,
+  headerExtra,
   bodyClassName,
   children,
 }) {
@@ -85,10 +87,13 @@ export default function FormModal({
                 {title}
               </h1>
             </div>
-            <SoftButton onClick={onClose} aria-label="Back" className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
-              <ChevronLeft className="size-[15px]" strokeWidth={2.5} />
-              <span className="@max-[479px]/main:hidden">Back</span>
-            </SoftButton>
+            <div className="flex flex-none items-center gap-2">
+              {headerExtra}
+              <SoftButton onClick={onClose} aria-label="Back" className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+                <ChevronLeft className="size-[15px]" strokeWidth={2.5} />
+                <span className="@max-[479px]/main:hidden">Back</span>
+              </SoftButton>
+            </div>
           </header>
 
           <div className={cn("min-h-0 min-w-0 flex-1 gap-(--gap) px-(--pad) py-(--gap)", bodyClassName)}>{children}</div>
