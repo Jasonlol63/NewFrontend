@@ -346,3 +346,45 @@ body {
     @apply font-sans;
   }
 }
+
+/* Add / Edit Formula dialog (pages/data-capture/FormulaDialog.jsx): every row lines up across the left and right
+   columns, the keypad sits on the right, the narrow windows drop it below. Areas are set on the children. */
+.formula-grid {
+  display: grid;
+  align-items: center;
+  gap: 10px 14px;
+  grid-template-columns: 78px minmax(0, 0.9fr) 96px minmax(0, 1.1fr) 232px;
+  grid-template-areas:
+    "lid cid lim cim keys"
+    "lac cac lcu ccu keys"
+    "lsr csr lde cde keys"
+    "ldt cdt .   .   keys"
+    "lfx cfx cfx cfx keys"
+    "lrs crs crs crs keys"
+    "lrd crd crd crd crd";
+}
+@media (max-width: 1400px) {
+  .formula-grid {
+    grid-template-columns: 72px minmax(0, 0.85fr) 84px minmax(0, 1.15fr) 200px;
+    gap: 8px 12px;
+  }
+}
+@media (max-width: 1100px) {
+  .formula-grid {
+    grid-template-columns: 78px minmax(0, 1fr) 92px minmax(0, 1fr);
+    grid-template-areas:
+      "lid cid lim cim"
+      "lac cac lcu ccu"
+      "lsr csr lde cde"
+      "ldt cdt cdt cdt"
+      "lfx cfx cfx cfx"
+      "lrs crs crs crs"
+      "lrd crd crd crd"
+      "keys keys keys keys";
+  }
+}
+@media (max-height: 700px) {
+  .formula-grid {
+    gap: 6px 12px;
+  }
+}

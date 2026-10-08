@@ -12,6 +12,7 @@ import DomainPage from "./pages/domain/DomainPage.jsx";
 import OwnershipPage from "./pages/ownership/OwnershipPage.jsx";
 import ProcessPage from "./pages/process/ProcessPage.jsx";
 import DataCapturePage from "./pages/data-capture/DataCapturePage.jsx";
+import DataCaptureSummaryPage from "./pages/data-capture/DataCaptureSummaryPage.jsx";
 import CaptureMaintenancePage from "./pages/maintenance/capture/CaptureMaintenancePage.jsx";
 import TransactionMaintenancePage from "./pages/maintenance/transaction/TransactionMaintenancePage.jsx";
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/ownership" element={<OwnershipPage />} />
           <Route path="/process" element={<ProcessPage />} />
           <Route path="/data-capture" element={<DataCapturePage />} />
+          <Route path="/data-capture/summary" element={<DataCaptureSummaryPage />} />
           <Route path="/report/customer" element={<CustomerReportPage />} />
           <Route path="/report/domain" element={<DomainReportPage />} />
           <Route path="/maintenance/data-capture" element={<CaptureMaintenancePage />} />

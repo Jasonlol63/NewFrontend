@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FilterRow from "@/components/shared/FilterRow.jsx";
@@ -26,6 +27,7 @@ const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "",
  * UI only for now: Submit just clears the sheet until the submit API is wired up.
  */
 export default function DataCapturePage() {
+  const navigate = useNavigate();
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const scope = useListScope("dataCapture.scope");
@@ -71,6 +73,12 @@ export default function DataCapturePage() {
   };
 
   const { ref: tableCardRef, full, toggle: toggleFull } = useFullscreen();
+
+  // Submit opens the Data Capture Summary with what was chosen here (the captured rows will come from the submit API).
+  const submit = () =>
+    navigate("/data-capture/summary", {
+      state: { date, process: processes.find((p) => String(p.id) === form.process)?.code ?? "", description: picked.map((it) => it.label).join(", "), currency: form.currency, remark: form.remark },
+    });
 
   const canSubmit = !readOnly && hasData && form.process && form.currency && descriptions.size > 0;
   const pageError = scope.error || listError;
@@ -172,7 +180,7 @@ export default function DataCapturePage() {
         <button
           type="button"
           disabled={!canSubmit}
-          onClick={resetSheet}
+          onClick={submit}
           title={readOnly ? "Read-only login" : undefined}
           className={cn(primaryButtonClass, "h-[34px] min-w-[108px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.55] disabled:hover:brightness-100")}
         >
