@@ -33,17 +33,17 @@ import {
 
 /**
  * Add Account / Edit Account: the same modal, only the title, header icon and defaults change.
- * mode: "add" | "edit"; account: the list row being edited (edit mode).
+ * mode: "add" | "edit"; account: the list row being edited (edit mode); defaultRole: the role a new account starts with.
  * companyCode: the company picked on the Account page; companyOptions: the companies of the
  * picked Group ([{ value, label }]).
  * UI only for now: currencies are placeholders and Save just hands the draft back through onSave.
  */
-export default function AccountFormModal({ mode = "add", account, companyCode, companyOptions = [], onClose, onSave }) {
+export default function AccountFormModal({ mode = "add", account, defaultRole = "", companyCode, companyOptions = [], onClose, onSave }) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => ({
     accountId: isEdit ? (account?.accountId ?? "") : "",
     name: isEdit ? (account?.name ?? "") : "",
-    role: isEdit ? (account?.role ?? "") : "",
+    role: isEdit ? (account?.role ?? "") : defaultRole,
     password: "",
     remark: isEdit ? (account?.remark ?? "") : "",
   }));

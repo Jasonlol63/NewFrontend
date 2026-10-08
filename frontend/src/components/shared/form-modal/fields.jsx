@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { Check, ChevronDown, Eye, EyeOff, Plus, SquarePen, X } from "lucide-react";
 import { Select } from "radix-ui";
 import { cn } from "@/lib/utils";
 
@@ -66,17 +66,21 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * Dropdown styled like the rest of the modal (a native <select> list can't be styled).
  * options: [{ value, label }]. The list is exactly as wide as the trigger, opens below it
  * (above when there's no room) and scrolls inside itself if the screen is too short.
+ * onClear: while a value is chosen, a small x inside the box clears it (onClear is called).
  */
-export function SelectField({ value, onChange, options, placeholder = "Select" }) {
+export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear }) {
   const label = options.find((o) => o.value === value)?.label;
-  return (
-    <Select.Root value={value} onValueChange={onChange}>
+  const clearable = Boolean(onClear && value && !disabled);
+  const select = (
+    <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
       <Select.Trigger
         title={label}
         className={cn(
           inputClass,
           "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
-          "data-[state=open]:border-[#3b82f6] data-[state=open]:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] data-placeholder:text-dash-faint"
+          clearable && "pr-[52px]",
+          "data-[state=open]:border-[#3b82f6] data-[state=open]:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] data-placeholder:text-dash-faint",
+          "data-disabled:cursor-not-allowed data-disabled:bg-modal-off data-disabled:text-dash-faint data-disabled:hover:border-modal-input-line"
         )}
       >
         <span className="min-w-0 flex-1 truncate">
@@ -118,6 +122,46 @@ export function SelectField({ value, onChange, options, placeholder = "Select" }
         </Select.Content>
       </Select.Portal>
     </Select.Root>
+  );
+  if (!onClear) return select;
+  return (
+    <div className="relative">
+      {select}
+      {clearable && (
+        <button
+          type="button"
+          aria-label="Clear"
+          title="Clear"
+          onClick={onClear}
+          className="absolute top-1/2 right-7 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 text-[#94a3b8] transition-colors hover:bg-[#fee2e2] hover:text-[#ef4444]"
+        >
+          <X className="size-3.5" strokeWidth={2.6} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// The button beside a select: "+" (add a new one) while nothing is chosen, the pen (edit the chosen one) once something is.
+// Both are the same pale blue button as tall as an input: dashed outline for add (solid on hover), solid outline for edit.
+export function AddButton({ label, edit = false, className, ...props }) {
+  const Icon = edit ? SquarePen : Plus;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex size-9 flex-none cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-[#7fb2ff] bg-[rgba(232,242,255,0.7)] text-[#2563eb] transition-colors hover:bg-[#d6e8ff]",
+        edit ? "border-solid" : "border-dashed hover:border-solid",
+        "@min-[900px]/main:@max-[1099px]/main:size-8 modal-compact:size-[30px] modal-tiny:size-7",
+        "disabled:pointer-events-none disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <Icon className="size-4" strokeWidth={edit ? 2.1 : 2.4} />
+    </button>
   );
 }
 

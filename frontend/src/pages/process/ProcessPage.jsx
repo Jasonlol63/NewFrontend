@@ -90,7 +90,7 @@ export default function ProcessPage() {
   const pageError = scope.error || listError;
 
   // Bank companies have their own list.
-  if (isBank) return <BankProcessView scope={scope} readOnly={readOnly} />;
+  if (true /*TMPCHECK*/) return <BankProcessView scope={{ ...scope, showGroups: true, groupOptions: [{ value: "IG", label: "IG" }, { value: "AP", label: "AP" }], group: "IG", companyOptions: ["95", "AG", "CX", "RS", "VG"].map((c) => ({ value: c, label: c })), company: "CX" }} readOnly={readOnly} />;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">

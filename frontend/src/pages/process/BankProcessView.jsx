@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Inbox, MessageSquare, Plus, RotateCcw, Search, SquarePen } from "lucide-react";
+import { Popover } from "radix-ui";
 import DataTable, { ROW_HEIGHT, SelectBox } from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
 import { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -11,7 +12,17 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { cn } from "@/lib/utils";
-import { BANK_CURRENCIES, BANK_STATUS_BADGE, SAMPLE_BANK_PROCESSES, filterBankProcesses, formatMoney, sortBankProcesses } from "./bankProcessRules";
+import BankProcessFormModal from "./BankProcessFormModal.jsx";
+import {
+  BANK_CURRENCIES,
+  BANK_PICKABLE_STATUSES,
+  BANK_STATUS_BADGE,
+  SAMPLE_BANK_PROCESSES,
+  filterBankProcesses,
+  formatMoney,
+  isContractExpired,
+  sortBankProcesses,
+} from "./bankProcessRules";
 
 const ALL_CURRENCIES = [{ value: "ALL", label: "All" }];
 
@@ -122,6 +133,70 @@ function SearchIcon({ value, onChange }) {
 // Two lines of text per cell need a taller row than the single-line list.
 const TWO_LINE_ROW_HEIGHT = 52;
 
+// The badges drop their letter spacing: the picker chevron and the contract dot add width, so the text gives some back.
+const TIGHT = { letterSpacing: 0 };
+// Every status badge is the same width, and so is each option in the picker (the popup is that plus its padding and border),
+// so badge and popup line up. The width is the narrowest that fits E-INVOICE on small screens and grows on big ones, where
+// the table has room to spare: 74px, 84px from 1366px, 96px from 1536px. No arrow: the pointer and a hover shade say it is clickable.
+const STATUS_WIDTH = "w-[74px] min-[1366px]:w-[84px] min-[1536px]:w-[96px] justify-center";
+const STATUS_POPUP_WIDTH = "w-[88px] min-[1366px]:w-[98px] min-[1536px]:w-[110px]";
+
+// The status badge is also the control: a click opens a small popup with the statuses to choose from. The popup is
+// portalled, so the table never clips or covers it.
+function StatusPicker({ status, readOnly, onChange }) {
+  const [open, setOpen] = useState(false);
+  const current = BANK_STATUS_BADGE[status];
+  if (readOnly) return <Badge className={cn("px-1.5", STATUS_WIDTH, current.className)} style={TIGHT}>{current.label}</Badge>;
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button type="button" aria-label={`Status: ${current.label}. Change status`} className="cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6]/40">
+          <Badge className={cn("px-1.5 transition-[filter] hover:brightness-95", STATUS_WIDTH, current.className)} style={TIGHT}>
+            {current.label}
+          </Badge>
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="center"
+          sideOffset={6}
+          collisionPadding={8}
+          className={cn("z-50 flex flex-col gap-0.5 rounded-xl border border-dash-line bg-white p-1.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]", STATUS_POPUP_WIDTH)}
+        >
+          {BANK_PICKABLE_STATUSES.map((s) => {
+            const option = BANK_STATUS_BADGE[s];
+            const picked = s === status;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  onChange(s);
+                  setOpen(false);
+                }}
+                className="flex w-full cursor-pointer justify-center rounded-lg py-0.5 outline-none hover:bg-[#f1f6fd] focus-visible:bg-[#f1f6fd]"
+              >
+                <Badge className={cn("w-full justify-center px-1.5", picked ? option.className : cn("border-transparent bg-transparent", option.text))}>{option.label}</Badge>
+              </button>
+            );
+          })}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+// A white outlined badge with a dot: green while the contract runs, grey (and greyed text) once it has expired.
+function ContractBadge({ row }) {
+  const expired = isContractExpired(row);
+  return (
+    <Badge className={cn("items-center gap-1 bg-white px-1.5", expired ? "border-[#e2e8f0] text-[#94a3b8]" : "border-[#bcd9fb] text-brand-navy")} style={TIGHT}>
+      <span className={cn("size-1.5 flex-none rounded-full", expired ? "bg-[#9ca3af]" : "bg-[#22c55e]")} />
+      {row.contract}
+    </Badge>
+  );
+}
+
 const thisYear = () => {
   const y = new Date().getFullYear();
   return { from: `${y}-01-01`, to: `${y}-12-31` };
@@ -131,6 +206,10 @@ const thisYear = () => {
 // important columns into two-line cells instead of scrolling sideways (see DataTable `altColumns`).
 export default function BankProcessView({ scope, readOnly }) {
   const [allRows, setAllRows] = useState(SAMPLE_BANK_PROCESSES);
+  const [addOpen, setAddOpen] = useState(false);
+  const closeAdd = useCallback(() => setAddOpen(false), []);
+  const [editRow, setEditRow] = useState(null);
+  const closeEdit = useCallback(() => setEditRow(null), []);
   const [dateRange, setDateRange] = useState(thisYear);
   const [currency, setCurrency] = useState("ALL");
   const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(BANK_CURRENCIES);
@@ -157,9 +236,9 @@ export default function BankProcessView({ scope, readOnly }) {
   });
 
   const money = (key) => (p) => formatMoney(p[key]);
-  // px-1.5: slightly slimmer badges than the default, to keep the columns narrow.
-  const contract = (p) => <Badge className="border-[#bcd9fb] bg-white px-1.5 text-brand-navy">{p.contract}</Badge>;
-  const status = (p) => <Badge className={cn("px-1.5", BANK_STATUS_BADGE[p.status].className)}>{BANK_STATUS_BADGE[p.status].label}</Badge>;
+  const contract = (p) => <ContractBadge row={p} />;
+  const changeStatus = (p, next) => setAllRows((rows) => rows.map((r) => (r.id === p.id ? { ...r, status: next } : r)));
+  const status = (p) => <StatusPicker status={p.status} readOnly={readOnly} onChange={(next) => changeStatus(p, next)} />;
 
   // The Action column: edit, remark, then either Renew or (inactive rows, which can be deleted) the delete checkbox.
   const { selected, onSelectedChange } = view.table;
@@ -186,7 +265,7 @@ export default function BankProcessView({ scope, readOnly }) {
     cellClassName: "whitespace-nowrap",
     render: (p) => (
       <span className="inline-flex">
-        <IconAction icon={SquarePen} disabled={readOnly} title={readOnly ? "Read-only login" : "Edit process"} aria-label="Edit process" />
+        <IconAction icon={SquarePen} onClick={() => setEditRow(p)} disabled={readOnly} title={readOnly ? "Read-only login" : "Edit process"} aria-label="Edit process" />
         <IconAction icon={MessageSquare} title="Remark" aria-label="Remark" />
         {p.status === "INACTIVE" ? (
           <SelectBox label="Select row" checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
@@ -203,8 +282,8 @@ export default function BankProcessView({ scope, readOnly }) {
     noColumn,
     { key: "supplier", label: "Supplier", cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.supplier },
     { key: "country", label: "Country", render: (p) => p.country },
-    { key: "bank", label: "Bank", fit: true, fitMin: 84, render: (p) => p.bank },
-    { key: "cardOwner", label: "Card Owner", fit: true, fitMin: 96, render: (p) => p.cardOwner },
+    { key: "bank", label: "Bank", fit: true, fitMin: 76, render: (p) => p.bank },
+    { key: "cardOwner", label: "Card Owner", fit: true, fitMin: 88, render: (p) => p.cardOwner },
     { key: "contract", label: "Contract", render: contract },
     { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance },
     { key: "customer", label: "Cust.", render: (p) => p.customer },
@@ -229,10 +308,10 @@ export default function BankProcessView({ scope, readOnly }) {
       <span className="text-[11px] font-semibold opacity-85">{second}</span>
     </span>
   );
+  // No "No" column here: on a narrow card the row number is the least useful thing to spend 40px on.
   const twoLineColumns = [
-    noColumn,
     { key: "supplier", label: head2("Supplier", "Customer"), render: (p) => stacked(<span className="font-semibold">{p.supplier}</span>, p.customer) },
-    { key: "bank", label: head2("Bank", "Card Owner"), fit: true, fitMin: 84, render: (p) => stacked(p.bank, p.cardOwner) },
+    { key: "bank", label: head2("Bank", "Card Owner"), fit: true, fitMin: 76, render: (p) => stacked(p.bank, p.cardOwner) },
     { key: "country", label: head2("Country", "Contract"), render: (p) => stacked(p.country, contract(p)) },
     { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance },
     { key: "cost", label: "Cost", cellClassName: "tabular-nums", render: money("cost") },
@@ -245,7 +324,7 @@ export default function BankProcessView({ scope, readOnly }) {
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <div className="flex flex-none flex-wrap items-center gap-2.5">
-        <PrimaryButton icon={Plus} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
+        <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
           Add Process
         </PrimaryButton>
         <AccountingDueButton count={0} />
@@ -290,6 +369,10 @@ export default function BankProcessView({ scope, readOnly }) {
 
       <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" boxedPager fitWidth dense minWidth="min-w-0" {...view.table} />
       {actions.dialogs}
+
+      {/* UI only for now: Save just closes the modal until the add / update API is wired up. */}
+      {addOpen && <BankProcessFormModal onClose={closeAdd} onSave={closeAdd} />}
+      {editRow && <BankProcessFormModal mode="edit" process={editRow} onClose={closeEdit} onSave={closeEdit} />}
     </div>
   );
 }

@@ -5,6 +5,8 @@ import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, SelectField, SoftButton, TextInput, ToggleSwitch, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
+import { ByTag } from "@/components/shared/form-modal/RecordBar.jsx";
+import { formatRecordTime } from "@/components/shared/form-modal/recordTime.js";
 import { DAYS } from "./processRules";
 import { MOCK_CURRENCIES } from "./processFormOptions";
 import { useProcessDescriptions } from "./useProcessDescriptions";
@@ -228,8 +230,6 @@ function DescriptionBox({ items, selected, onChange, onOpen }) {
   );
 }
 
-const fmt = (v) => (v ? String(v).replace("T", " ").slice(0, 19) : "-");
-
 // Edit only, inside the Information card: who last changed the process and who created it, one per row, read-only.
 function RecordSection({ process }) {
   const rows = [
@@ -243,8 +243,8 @@ function RecordSection({ process }) {
         {rows.map((r) => (
           <Field key={r.label} label={r.label} plain as="div">
             <div className={cn(inputClass, "flex items-center justify-between gap-2 bg-modal-off text-[13px] tabular-nums text-[#374151]")}>
-              <span className="truncate">{fmt(r.at)}</span>
-              {r.by && <span className="flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[10px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">{r.by}</span>}
+              <span className="truncate">{formatRecordTime(r.at)}</span>
+              {r.by && <ByTag>{r.by}</ByTag>}
             </div>
           </Field>
         ))}
