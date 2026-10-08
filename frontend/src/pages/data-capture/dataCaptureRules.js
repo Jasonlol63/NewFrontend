@@ -33,3 +33,9 @@ export const MOCK_SUBMITTED = [
   { id: 6, code: "CPKUN", name: "CROWDPLAY API", by: "BEE", date: "05/10/2026", time: "17:59:55" },
   { id: 7, code: "BCA31SUB", name: "PS3838", by: "BEE", date: "05/10/2026", time: "17:13:33" },
 ];
+
+// TEMPORARY while the Bank Data Capture is a UI draft: Bank companies' processes are fixed, not loaded from the backend.
+export const BANK_PROCESSES = ["PROFIT", "SALARY", "COMMISSION", "BONUS"].map((p) => ({ value: p, label: p }));
+
+// "Add Row": how many rows one click appends to the sheet.
+export const ADD_ROW_OPTIONS = ["5", "10", "26", "50"].map((n) => ({ value: n, label: n }));

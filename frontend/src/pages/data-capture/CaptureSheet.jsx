@@ -2,14 +2,15 @@ import { forwardRef } from "react";
 import { SHEET_COLS, SHEET_ROWS, rowLetter } from "./dataCaptureRules";
 
 const cols = Array.from({ length: SHEET_COLS }, (_, c) => c + 1);
-const rows = Array.from({ length: SHEET_ROWS }, (_, r) => rowLetter(r));
+
 
 /**
  * Spreadsheet-like paste area: columns 1-20, rows A.., every cell editable text. Cells are uncontrolled
  * (the browser keeps what is typed / pasted); onInput lets the page know something was entered.
  * Remount it with a new `key` to clear it.
  */
-const CaptureSheet = forwardRef(function CaptureSheet({ onInput }, ref) {
+const CaptureSheet = forwardRef(function CaptureSheet({ rows: rowCount = SHEET_ROWS, onInput }, ref) {
+  const rows = Array.from({ length: rowCount }, (_, r) => rowLetter(r));
   return (
     <div className="min-h-0 flex-1 overflow-auto border-t border-modal-input-line [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
       <table ref={ref} onInput={onInput} className="w-full min-w-[1100px] table-fixed border-separate border-spacing-0 text-[12.5px]">

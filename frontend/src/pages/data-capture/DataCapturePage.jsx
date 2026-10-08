@@ -12,8 +12,10 @@ import { MOCK_CURRENCIES } from "@/pages/process/games/processFormOptions";
 import { useProcessDescriptions } from "@/pages/process/games/useProcessDescriptions";
 import { useProcessList } from "@/pages/process/games/useProcessList";
 import CaptureSheet from "./CaptureSheet.jsx";
+import BankCaptureView from "./BankCaptureView.jsx";
 import SubmittedProcesses from "./SubmittedProcesses.jsx";
 import { cardClass } from "./cardParts.jsx";
+import { useFullscreen } from "./useFullscreen";
 import { CAPTURE_MODES, MOCK_SUBMITTED, dateOptions } from "./dataCaptureRules";
 
 const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "", replaceTo: "", remark: "" };
@@ -68,25 +70,13 @@ export default function DataCapturePage() {
     setHasData(false);
   };
 
-  const tableCardRef = useRef(null);
-  const [full, setFull] = useState(false);
-  useEffect(() => {
-    const onChange = () => setFull(document.fullscreenElement === tableCardRef.current);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-  const toggleFull = () => (document.fullscreenElement ? document.exitFullscreen() : tableCardRef.current?.requestFullscreen?.());
+  const { ref: tableCardRef, full, toggle: toggleFull } = useFullscreen();
 
   const canSubmit = !readOnly && hasData && form.process && form.currency && descriptions.size > 0;
   const pageError = scope.error || listError;
 
-  if (isBank) {
-    return (
-      <div className="flex h-full min-h-[520px] items-center justify-center p-fluid-md text-center text-[13px] text-dash-sub">
-        Data Capture for Bank companies is not available yet.
-      </div>
-    );
-  }
+  // Bank companies capture differently: no descriptions / replace words, a fixed process list.
+  if (isBank) return <BankCaptureView scope={scope} readOnly={readOnly} />;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
