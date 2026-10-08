@@ -18,7 +18,7 @@ import {
   BANK_MODAL_COUNTRIES,
   BANK_MODAL_FREQUENCIES,
   BANK_MODAL_TYPES,
-} from "./processFormOptions";
+} from "./bankFormOptions";
 
 // Layout, from the content area width (@container/main = screen minus sidebar), like the Games process modal:
 //   >= 900px: 2 columns, Bank Information / Schedule / SOP and Remark on the left | Detail / Profit Sharing on the right

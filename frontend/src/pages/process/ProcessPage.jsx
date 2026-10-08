@@ -8,11 +8,11 @@ import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import BankProcessView from "./BankProcessView.jsx";
+import BankProcessView from "./bank/BankProcessView.jsx";
 import { isBankCompany } from "./companyCategory";
-import ProcessFormModal from "./ProcessFormModal.jsx";
-import { DAYS, filterProcesses, sortProcesses } from "./processRules";
-import { useProcessList } from "./useProcessList";
+import ProcessFormModal from "./games/ProcessFormModal.jsx";
+import { DAYS, filterProcesses, sortProcesses } from "./games/processRules";
+import { useProcessList } from "./games/useProcessList";
 
 // The seven weekdays, the ones the process runs on lit blue. Slightly smaller on narrow screens.
 function DayUse({ days }) {

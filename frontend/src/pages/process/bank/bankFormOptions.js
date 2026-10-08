@@ -1,6 +1,3 @@
-// Options of the Add Process modal. Placeholder until the currency API is wired up.
-export const MOCK_CURRENCIES = ["EUR", "MYR", "SGD", "USD", "THB", "IDR", "VND", "PHP", "CNY", "HKD", "USDT"].map((c) => ({ value: c, label: c }));
-
 // Sample options of the Bank Process modal, until its APIs are wired up.
 const options = (list) => list.map((x) => ({ value: x, label: x }));
 export const BANK_MODAL_COUNTRIES = ["MYR", "SGD", "AUD", "USDT", "IDR"];
