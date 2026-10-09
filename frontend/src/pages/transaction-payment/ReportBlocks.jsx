@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openPaymentHistory } from "./paymentHistoryRules";
 import { ROLE_COLORS, convert, fmt } from "./transactionPaymentRules";
 
 const DEBTOR = ROLE_COLORS.DEBTOR;
@@ -33,7 +34,9 @@ function AccountTable({ rows, currency }) {
             return (
               <tr key={r.account} className={rowTone(i)}>
                 <td className={cn(TD, "overflow-hidden text-left font-extrabold text-ellipsis whitespace-nowrap")} style={{ background: bg, color: fg }}>
-                  {r.account}
+                  <button type="button" title="Payment history" onClick={() => openPaymentHistory(r.account)} className="block w-full cursor-pointer truncate text-left font-extrabold hover:underline">
+                    {r.account}
+                  </button>
                 </td>
                 <td className={cn(TD, amountTone(r.value))}>{fmt(r.value)}</td>
                 <td className={TD}>0.00</td>

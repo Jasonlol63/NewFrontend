@@ -19,6 +19,7 @@ import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenan
 import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenancePage.jsx";
 import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
 import TransactionPaymentPage from "./pages/transaction-payment/TransactionPaymentPage.jsx";
+import PaymentHistoryPage from "./pages/transaction-payment/PaymentHistoryPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
@@ -35,6 +36,9 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/secondary-password" element={<SecondaryPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* opens in its own popup window from Transaction Payment, so no sidebar around it */}
+        <Route path="/transaction-payment/history/:account" element={<PaymentHistoryPage />} />
 
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
