@@ -12,7 +12,7 @@ import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import BankProfitSharing from "./BankProfitSharing.jsx";
 import CountryBankAdder from "./CountryBankAdder.jsx";
-import { formatMoney } from "./bankProcessRules";
+import { LOCKED_EDIT_TITLE, formatMoney, isBankLocked } from "./bankProcessRules";
 import {
   BANK_BALANCE_DELETE_URL,
   CARD_OWNER_TYPES,
@@ -21,6 +21,7 @@ import {
   FREQUENCIES,
   accountLabel,
   buildBankRequest,
+  isBankPickAccount,
   money,
   profitOf,
   usesDayEnd,
@@ -67,6 +68,9 @@ const BLANK = {
   insurance: "",
   bankBalance: "",
 };
+
+// A billing field that can't be changed: same grey as the other read-only boxes.
+const LOCKED_INPUT = "disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint";
 
 const idText = (id) => (id == null ? "" : String(id));
 const amountText = (n) => (n == null ? "" : String(n));
@@ -135,6 +139,8 @@ function ReadOnlyBox({ children }) {
  */
 export default function BankProcessFormModal({ mode = "add", process, tenantId, accountCompanyOptions = [], onClose, onSave, onBalanceDeleted }) {
   const isEdit = mode === "edit";
+  // Official, E-Invoice and Block: only SOP, Remark and Insurance can change; the billing fields below are read-only.
+  const billingLocked = isEdit && isBankLocked(process);
   const [form, setForm] = useState(() => formOf(isEdit ? process : null));
   const [sharing, setSharing] = useState(() => sharingOf(isEdit ? process : null));
   const [message, setMessage] = useState(""); // validation problem or the backend's error
@@ -209,9 +215,21 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
     if (bank && !hidden.isHidden(bankKey(name)) && form.bankId === String(bank.id)) set("bankId")("");
   };
 
-  // Accounts for every select: all of the company's, plus the ones this process already uses (in case the list left them out).
+  // Accounts for every select: the active ones with a role this page offers (isBankPickAccount), plus the ones this process
+  // already uses and any account made or edited here, so they never vanish from the list they were picked in.
+  const [pinned, setPinned] = useState(() => new Set());
   const accountOptions = useMemo(() => {
-    const options = accountData.rows.map((r) => ({ value: String(r.id), label: accountLabel(r.accountId, r.name) }));
+    const keep = new Set([
+      ...pinned,
+      ...(isEdit
+        ? [process?.supplierAccountId, process?.customerAccountId, process?.companyAccountId, ...(process?.shares ?? []).map((s) => s.accountId)]
+            .filter((id) => id != null)
+            .map(String)
+        : []),
+    ]);
+    const options = accountData.rows
+      .filter((r) => isBankPickAccount(r) || keep.has(String(r.id)))
+      .map((r) => ({ value: String(r.id), label: accountLabel(r.accountId, r.name) }));
     const used = isEdit
       ? [
           [process?.supplierAccountId, process?.supplier, process?.supplierName],
@@ -223,7 +241,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       if (id != null && code && !options.some((o) => o.value === String(id))) options.push({ value: String(id), label: accountLabel(code, name) });
     });
     return options;
-  }, [accountData.rows, isEdit, process]);
+  }, [accountData.rows, isEdit, process, pinned]);
 
   // Add / Edit Account opened from a "+" / edit button: { mode, account, role, apply(id) }. A new account is picked straight away.
   const [accountForm, setAccountForm] = useState(null);
@@ -240,6 +258,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
     const response = await postJson(url, body);
     const row = normalizeAccountRow({ ...body, ...response.data });
     accountData.put(row);
+    setPinned((ids) => new Set(ids).add(String(row.id)));
     accountForm?.apply?.(String(row.id));
     setAccountForm(null);
   };
@@ -257,14 +276,14 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
     }
   };
 
-  const showDayEndSwitch = isEdit && form.frequency === FIRST_OF_MONTH;
+  const showDayEndSwitch = isEdit && !billingLocked && form.frequency === FIRST_OF_MONTH;
   const dayEndOff = !usesDayEnd(form.frequency); // this frequency has no Day End
   const dayEndIsLocked = showDayEndSwitch && dayEndLocked;
   const profit = profitOf(form);
 
   const save = async () => {
     if (saving) return;
-    const problem = validateBankForm({ isEdit, form, sharing });
+    const problem = validateBankForm({ isEdit, form, sharing, billingLocked });
     if (problem) {
       setMessage(problem);
       return;
@@ -272,7 +291,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
     setMessage("");
     setSaving(true);
     try {
-      await onSave(buildBankRequest({ isEdit, id: process?.id, tenantId, form, sharing, dayEndLocked, balanceLocked }));
+      await onSave(buildBankRequest({ isEdit, id: process?.id, tenantId, form, sharing, dayEndLocked, balanceLocked, billingLocked }));
     } catch (err) {
       setMessage(err.message);
       setSaving(false);
@@ -306,6 +325,11 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
+        {billingLocked && (
+          <div role="note" className="flex-none rounded-xl border border-[#fde68a] bg-[#fffbeb] px-3.5 py-2 text-[12.5px] font-semibold leading-snug text-[#92400e] @max-[899px]/main:order-first">
+            {LOCKED_EDIT_TITLE}
+          </div>
+        )}
         <FormCard title="Bank Information" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Country (Currency)" as="div">
@@ -369,7 +393,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         <FormCard title="Schedule" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Day Start" as="div">
-              <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} />
+              <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} disabled={billingLocked} />
             </Field>
             <div className="block min-w-0">
               <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
@@ -380,9 +404,9 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                   <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? "ON" : "OFF"} className="font-bold" />
                 )}
               </div>
-              {dayEndOff || dayEndIsLocked ? (
+              {billingLocked || dayEndOff || dayEndIsLocked ? (
                 <div
-                  title={dayEndOff ? "This frequency has no Day End" : "Locked while the switch is on"}
+                  title={billingLocked ? LOCKED_EDIT_TITLE : dayEndOff ? "This frequency has no Day End" : "Locked while the switch is on"}
                   className={cn(inputClass, "flex cursor-not-allowed items-center gap-2 bg-modal-off text-[#6b7280] tabular-nums")}
                 >
                   <span className="min-w-0 flex-1 truncate">{dayEndOff ? "Not used" : form.dayEnd || "DD/MM/YYYY"}</span>
@@ -394,7 +418,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
             </div>
           </div>
           <Field label="Frequency">
-            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES} placeholder="Select Frequency" />
+            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES} placeholder="Select Frequency" disabled={billingLocked} />
           </Field>
         </FormCard>
 
@@ -418,6 +442,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                 addLabel="Add supplier account"
                 editLabel="Edit supplier account"
                 value={form.supplier}
+                disabled={billingLocked}
                 onChange={set("supplier")}
                 onClear={() => set("supplier")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.supplier, role: "SUPPLIER", apply: set("supplier") })}
@@ -426,7 +451,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
               />
             </Field>
             <Field label="Buy Price">
-              <TextInput value={form.buyPrice} onChange={setMoney("buyPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" />
+              <TextInput value={form.buyPrice} onChange={setMoney("buyPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
             </Field>
           </div>
           <div className={pair}>
@@ -435,6 +460,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                 addLabel="Add customer account"
                 editLabel="Edit customer account"
                 value={form.customer}
+                disabled={billingLocked}
                 onChange={set("customer")}
                 onClear={() => set("customer")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.customer, role: "", apply: set("customer") })}
@@ -443,7 +469,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
               />
             </Field>
             <Field label="Sell Price">
-              <TextInput value={form.sellPrice} onChange={setMoney("sellPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" />
+              <TextInput value={form.sellPrice} onChange={setMoney("sellPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
             </Field>
           </div>
           <div className={pair}>
@@ -452,9 +478,10 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                 addLabel="Add company account"
                 editLabel="Edit company account"
                 value={form.company}
+                disabled={billingLocked}
                 onChange={set("company")}
                 onClear={() => set("company")("")}
-                onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.company, role: "COMPANY", apply: set("company") })}
+                onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.company, role: "", apply: set("company") })}
                 options={accountOptions}
                 placeholder="Select Account"
               />
@@ -465,7 +492,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           </div>
           <div className={pair}>
             <Field label="Contract" as="div">
-              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract)} placeholder="Contract" />
+              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract)} placeholder="Contract" disabled={billingLocked} />
             </Field>
             <div className={pair}>
               <Field label="Insurance" optional>
@@ -476,28 +503,32 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                   <div className={cn(inputClass, "flex items-center gap-1.5 bg-modal-off pr-1 text-[#6b7280]")}>
                     <Lock className="size-3.5 flex-none" strokeWidth={2.2} />
                     <span className="min-w-0 flex-1 truncate font-semibold tabular-nums text-[#374151]">{formatMoney(process?.bankBalance)}</span>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteBalanceOpen(true)}
-                      aria-label="Delete Bank Balance"
-                      title="Delete Bank Balance"
-                      className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-md border border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]"
-                    >
-                      <Trash2 className="size-3.5" strokeWidth={2.2} />
-                    </button>
+                    {!billingLocked && (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteBalanceOpen(true)}
+                        aria-label="Delete Bank Balance"
+                        title="Delete Bank Balance"
+                        className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-md border border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]"
+                      >
+                        <Trash2 className="size-3.5" strokeWidth={2.2} />
+                      </button>
+                    )}
                   </div>
-                  <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8]">Settled by a Contra. Delete it to enter a new amount.</span>
+                  <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8]">
+                    {billingLocked ? "Change the status first to delete it." : "Settled by a Contra. Delete it to enter a new amount."}
+                  </span>
                 </Field>
               ) : (
                 <Field label="Bank Balance" optional>
-                  <TextInput value={form.bankBalance} onChange={setMoney("bankBalance")} inputMode="decimal" autoComplete="off" placeholder="0.00" />
+                  <TextInput value={form.bankBalance} onChange={setMoney("bankBalance")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
                 </Field>
               )}
             </div>
           </div>
         </FormCard>
 
-        <BankProfitSharing entries={sharing} onChange={setSharing} accounts={accountOptions} profit={profit} currency={form.country || countryCode || "MYR"} onAccount={(request) => openAccount({ ...request, role: "" })} />
+        <BankProfitSharing entries={sharing} onChange={setSharing} accounts={accountOptions} profit={profit} currency={form.country || countryCode || "MYR"} onAccount={(request) => openAccount({ ...request, role: "" })} inert={billingLocked} />
       </div>
 
       {/* Add / Edit Account open right on top (same modal as the Account page); a new account is picked in the select it was opened from. */}

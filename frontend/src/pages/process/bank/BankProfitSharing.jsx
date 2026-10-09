@@ -53,7 +53,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
   const headerRight = (
     <>
       <CardCount>{entries.length} selected</CardCount>
-      {open ? (
+      {inert ? null : open ? (
         <>
           <button type="button" onClick={close} className={cn(pill, "border-[#7fb2ff] bg-white/70 px-2.5 text-[#1d4ed8] hover:bg-white")}>
             Cancel
@@ -89,7 +89,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
       bodyClassName="flex flex-col gap-2 @max-[899px]/main:overflow-visible"
       right={headerRight}
     >
-      {open && (
+      {open && !inert && (
         <div className="flex flex-none flex-col gap-2 rounded-xl border border-[#bfd8ff] bg-[linear-gradient(180deg,rgba(240,248,255,0.9),rgba(226,239,255,0.7))] p-2.5 modal-compact:gap-1.5 modal-compact:p-2">
           {rows.map((row, i) => {
             const taken = takenBy(i);
@@ -195,14 +195,16 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
           <span className="flex-none rounded-lg border border-[#bcd9fb] bg-white px-2.5 py-0.5 text-[13px] font-extrabold text-[#1d4ed8] tabular-nums">
             {currency} {money(Number(entry.amount) || 0)}
           </span>
-          <button
-            type="button"
-            aria-label={`Remove ${label}`}
-            onClick={() => onChange(entries.filter((e) => e.account !== entry.account))}
-            className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca]"
-          >
-            <Trash2 className="size-3.5" strokeWidth={2.4} />
-          </button>
+          {!inert && (
+            <button
+              type="button"
+              aria-label={`Remove ${label}`}
+              onClick={() => onChange(entries.filter((e) => e.account !== entry.account))}
+              className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca]"
+            >
+              <Trash2 className="size-3.5" strokeWidth={2.4} />
+            </button>
+          )}
         </div>
         );
       })}

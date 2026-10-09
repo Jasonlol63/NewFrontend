@@ -111,10 +111,12 @@ export const BANK_STATUS_BADGE = {
 // What the user can set from the status picker. WAITING is set by the system, so it is only ever shown.
 export const BANK_PICKABLE_STATUSES = ["ACTIVE", "INACTIVE", "OFFICIAL", "E_INVOICE", "BLOCK"];
 
-// The backend refuses to edit a process in these statuses (details, remark, Bank Balance): change the status first.
+// In these statuses the backend freezes the billing fields (it saves only SOP, Remark and Insurance) and refuses to delete the
+// Bank Balance: change the status first for anything more.
 const LOCKED_STATUSES = ["OFFICIAL", "E_INVOICE", "BLOCK"];
 export const isBankLocked = (p) => LOCKED_STATUSES.includes(p.status);
-export const LOCKED_TITLE = "Change the status first to edit this process";
+// Official, E-Invoice and Block: Edit still opens, but the backend keeps the billing fields (dates, frequency, contract, prices, accounts, profit sharing) and only saves SOP, Remark and Insurance.
+export const LOCKED_EDIT_TITLE = "Billing fields are locked in this status; only SOP, Remark and Insurance can be changed";
 
 // A contract ends on its Day End. Only 1st of Every Month and Monthly have one; Once, Daily and Weekly never run out.
 export function isContractExpired(p, today = new Date()) {

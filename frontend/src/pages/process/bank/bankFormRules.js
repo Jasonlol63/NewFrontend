@@ -38,11 +38,18 @@ export const money = (v) => String(v).replace(/[^\d.]/g, "").replace(/(\..*)\./g
 const round2 = (n) => Math.round(n * 100) / 100;
 export const profitOf = (form) => round2((parseFloat(form.sellPrice) || 0) - (parseFloat(form.buyPrice) || 0));
 
+// The accounts the Supplier, Customer, Company and Profit Sharing selects offer (same list as the old Bank Process page):
+// these roles only, and only active accounts. CAPITAL, BANK, CASH, EXPENSES, COMPANY and DEBTOR are not offered.
+export const BANK_PICK_ACCOUNT_ROLES = ["PARTNER", "SUPPLIER", "STAFF", "AGENT", "MEMBER", "PROFIT"];
+export const isBankPickAccount = (row) => row.status === "active" && BANK_PICK_ACCOUNT_ROLES.includes(String(row.role ?? "").trim().toUpperCase());
+
 // "BA019 [MUAR DASON]" or just "BS005" when the account has no name.
 export const accountLabel = (code, name) => (name ? `${String(code).toUpperCase()} [${name}]` : String(code).toUpperCase());
 
-// The first problem with the form, or "" when it can be saved.
-export function validateBankForm({ isEdit, form, sharing }) {
+// The first problem with the form, or "" when it can be saved. billingLocked: nothing but SOP, Remark and Insurance is
+// saved, and none of those is required.
+export function validateBankForm({ isEdit, form, sharing, billingLocked = false }) {
+  if (billingLocked) return "";
   if (!isEdit) {
     if (!form.countryId) return "Country is required";
     if (!form.bankId) return "Bank is required";
@@ -66,7 +73,20 @@ export function validateBankForm({ isEdit, form, sharing }) {
  * (dayEndMonthlyCapEnabled) only exists in Edit with 1st of Every Month. Bank Balance is only sent while the process
  * has none yet (the backend ignores it once one is linked). companyPrice is the profit (Sell - Buy).
  */
-export function buildBankRequest({ isEdit, id, tenantId, form, sharing, dayEndLocked, balanceLocked }) {
+export function buildBankRequest({ isEdit, id, tenantId, form, sharing, dayEndLocked, balanceLocked, billingLocked = false }) {
+  // Official, E-Invoice and Block: the backend keeps every billing field and saves only these three.
+  if (billingLocked) {
+    return {
+      url: BANK_UPDATE_URL,
+      body: {
+        id,
+        tenantId,
+        insurancePrice: form.insurance === "" ? null : Number(form.insurance),
+        sop: form.sop.toUpperCase(),
+        remark: form.remark.toUpperCase(),
+      },
+    };
+  }
   const body = {
     tenantId,
     dayStart: form.dayStart,

@@ -16,7 +16,7 @@ const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-s
  * Dashboard calendar (month / year views). Picking a day sets it and closes the popup.
  * value / onChange use ISO "yyyy-mm-dd" strings.
  */
-export default function DateField({ value, onChange, placeholder = "Select date", popupClassName }) {
+export default function DateField({ value, onChange, placeholder = "Select date", popupClassName, disabled = false }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(value || toIsoDate(new Date())));
@@ -41,7 +41,16 @@ export default function DateField({ value, onChange, placeholder = "Select date"
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
-        <button type="button" className={cn(inputClass, "flex cursor-pointer items-center gap-2 text-left hover:border-[#93c5fd]", open && openFieldClass)}>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            inputClass,
+            "flex cursor-pointer items-center gap-2 text-left hover:border-[#93c5fd]",
+            "disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint disabled:hover:border-modal-input-line",
+            open && openFieldClass
+          )}
+        >
           <span className={cn("min-w-0 flex-1 truncate tabular-nums", !value && "text-dash-faint")}>{value || placeholder}</span>
           <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
         </button>
