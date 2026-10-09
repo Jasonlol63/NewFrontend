@@ -11,7 +11,7 @@ import TelegramFab from "./components/TelegramFab.jsx";
 import { getJson, postForm } from "@/lib/api";
 import { noticeLine, toNotice } from "@/pages/announcement/announcementRules";
 import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
-import { markLogin } from "@/hooks/useSavedState";
+import { loadSessionUser, markLogin } from "@/hooks/useSavedState";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -65,6 +65,19 @@ export default function LoginPage() {
   const [logoSrc, setLogoSrc] = useState(
     "/images/count_logo_puzzle_animation.webp"
   );
+
+  // Already logged in (and past the secondary password): no need to see the login form again.
+  useEffect(() => {
+    let cancelled = false;
+    loadSessionUser().then((user) => {
+      if (!cancelled && user?.menu && !user.needs_owner_secondary && !user.needs_user_secondary) {
+        navigate("/dashboard", { replace: true });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   useEffect(() => {
     preloadImages(["/images/count_logo.webp", ...APP_SHELL_IMAGES]);

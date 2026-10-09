@@ -30,13 +30,32 @@ export function SessionProvider({ children }) {
 
   const value = useMemo(() => ({ ...state, switchCompany }), [state, switchCompany]);
 
-  // No session, or one saved before `menu` existed (no `home` key): log in again.
-  if (state.ready && !(state.user?.menu && "home" in state.user.menu)) {
-    return <Navigate to="/login" replace />;
+  if (state.ready) {
+    // No session, or one saved before `menu` existed (no `home` key): log in again.
+    if (!(state.user?.menu && "home" in state.user.menu)) return <Navigate to="/login" replace />;
+    // Primary password done, secondary one still to verify: the backend rejects everything else.
+    if (state.user.needs_owner_secondary || state.user.needs_user_secondary) {
+      const userType = state.user.user_type === "owner" ? "owner" : "user";
+      return <Navigate to="/secondary-password" state={{ userType }} replace />;
+    }
   }
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSession() {
   return useContext(SessionContext);
+}
+
+// For a page outside AuthenticatedLayout that still needs a login: nothing renders until the
+// session is confirmed, and without one the user is sent to the login page.
+export function RequireSession({ children }) {
+  return (
+    <SessionProvider>
+      <WhenReady>{children}</WhenReady>
+    </SessionProvider>
+  );
+}
+
+function WhenReady({ children }) {
+  return useSession().ready ? children : null;
 }

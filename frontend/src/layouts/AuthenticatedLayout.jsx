@@ -60,7 +60,7 @@ function Shell() {
           content area but never the sidebar. */}
       <div className="relative min-w-0 flex-1">
         <main className="h-full overflow-y-auto">
-          <Outlet />
+          {ready && <Outlet />}
         </main>
         <div id="main-overlay" />
       </div>

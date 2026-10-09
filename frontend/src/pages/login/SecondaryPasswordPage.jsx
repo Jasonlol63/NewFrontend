@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { postForm } from "@/lib/api";
+import { clearSession, loadSessionUser } from "@/hooks/useSavedState";
 
 // Owner and admin ("user") have separate verify endpoints.
 const VERIFY_URLS = {
@@ -28,10 +29,24 @@ export default function SecondaryPasswordPage() {
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const inputRef = useRef(null);
+  // Normally passed by the login page; when the page is opened directly it comes from the session.
+  const [userType, setUserType] = useState(state?.userType);
+  const [checked, setChecked] = useState(Boolean(state?.userType));
+
+  useEffect(() => {
+    if (checked) return;
+    loadSessionUser().then((user) => {
+      if (user?.needs_owner_secondary) setUserType("owner");
+      else if (user?.needs_user_secondary) setUserType("user");
+      setChecked(true);
+    });
+  }, [checked]);
 
   // Only reachable right after a successful login that needs this step.
-  const verifyUrl = VERIFY_URLS[state?.userType];
+  const verifyUrl = VERIFY_URLS[userType];
+  if (!checked) return null;
   if (!verifyUrl) {
+    // Not logged in, or nothing left to verify.
     return <Navigate to="/login" replace />;
   }
 
@@ -47,6 +62,7 @@ export default function SecondaryPasswordPage() {
     setSubmitting(true);
     try {
       await postForm(verifyUrl, { secondary_password: password });
+      clearSession(); // the cached session still says "secondary pending"
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setErrorTitle(ERROR_TITLES[err.message] ?? err.message);

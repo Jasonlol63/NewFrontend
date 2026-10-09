@@ -22,6 +22,7 @@ import TransactionPaymentPage from "./pages/transaction-payment/TransactionPayme
 import PaymentHistoryPage from "./pages/transaction-payment/PaymentHistoryPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
+import { RequireSession } from "./context/session";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
@@ -38,7 +39,14 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* opens in its own popup window from Transaction Payment, so no sidebar around it */}
-        <Route path="/transaction-payment/history/:account" element={<PaymentHistoryPage />} />
+        <Route
+          path="/transaction-payment/history/:account"
+          element={
+            <RequireSession>
+              <PaymentHistoryPage />
+            </RequireSession>
+          }
+        />
 
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -63,6 +71,9 @@ export default function App() {
             <Route key={path} path={path} element={<ComingSoonPage group={group} title={label} />} />
           ))}
         </Route>
+
+        {/* unknown URL: the login page sends a logged-in user on to the dashboard */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
