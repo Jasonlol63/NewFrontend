@@ -138,6 +138,25 @@ public final class AccessControlUtils {
         }
     }
 
+    /*
+     * Edit User: same rules as above, but a role change has to clear the hierarchy at BOTH ends — the
+     * target's current role and the one it is being given. Checking only the new role would let a
+     * Manager demote an Admin by submitting a lower role for them.
+     * existingTargetLevel / newTargetLevel: hierarchy_level before / after (equal when the role is not changing).
+     */
+    public static void assertCanManageAdminTarget(
+            SessionUser actor,
+            int actorHierarchyLevel,
+            boolean isSelf,
+            int existingTargetLevel,
+            int newTargetLevel,
+            boolean roleFieldChanging
+    ) {
+        // Lower number = higher privilege, so the smaller of the two is the one that must stay below the actor.
+        assertCanManageAdminTarget(
+                actor, actorHierarchyLevel, isSelf, Math.min(existingTargetLevel, newTargetLevel), roleFieldChanging);
+    }
+
     /* Rejects a Domain page save that sets/keeps Tenant.PERMANENT_EXPIRATION_DATE unless the actor is Admin+. */
     public static void assertCanSetPermanentExpiration(SessionUser session) {
         if (session == null) {

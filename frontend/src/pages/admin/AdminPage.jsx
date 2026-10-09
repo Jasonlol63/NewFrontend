@@ -8,6 +8,7 @@ import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { postJson } from "@/lib/api";
 import { ROLE_BADGE, filterUsers, normalizeUserRow, roleLabel, rowCapabilities, sortUsers } from "./userListRules";
 import UserFormModal from "./UserFormModal.jsx";
 
@@ -21,10 +22,21 @@ export default function AdminPage() {
   const [userForm, setUserForm] = useState(null);
   const closeUserForm = useCallback(() => setUserForm(null), []);
   const scope = useListScope({ onChange: () => view.reset() });
-  const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/userlist", scope.tenantId, {
+  const { rows, error: listError, loading, toggleStatus, deleteRows, reload } = useTenantList("/api/userlist", scope.tenantId, {
     normalize: normalizeUserRow,
     rowKey,
   });
+
+  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again.
+  // A failure is thrown back to the modal, which shows the message.
+  const submitUser = useCallback(
+    async ({ url, body }) => {
+      await postJson(url, body);
+      closeUserForm();
+      reload();
+    },
+    [closeUserForm, reload]
+  );
 
   const rowsWithCaps = useMemo(() => rows.map((u) => ({ ...u, caps: rowCapabilities(u, viewer) })), [rows, viewer]);
   const filter = useCallback((list, opts) => filterUsers(list, { ...opts, viewer }), [viewer]);
@@ -82,7 +94,11 @@ export default function AdminPage() {
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={UserPlus} onClick={() => setUserForm({ mode: "add" })}>
+          <PrimaryButton
+            icon={UserPlus}
+            disabled={!scope.tenantId || Boolean(viewer?.readOnly)}
+            onClick={() => setUserForm({ mode: "add" })}
+          >
             Add User
           </PrimaryButton>
         }
@@ -112,14 +128,16 @@ export default function AdminPage() {
 
       {actions.dialogs}
 
-      {/* Add User and Edit User share one modal. UI only for now: Save just closes it until the API is wired up. */}
+      {/* Add User and Edit User share one modal. */}
       {userForm && (
         <UserFormModal
           mode={userForm.mode}
           user={userForm.user}
+          tenantId={scope.tenantId}
           companyCode={scope.company}
+          viewer={viewer}
           onClose={closeUserForm}
-          onSave={closeUserForm}
+          onSave={submitUser}
         />
       )}
     </div>

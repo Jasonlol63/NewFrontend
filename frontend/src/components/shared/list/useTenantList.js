@@ -9,6 +9,9 @@ import { postJson } from "@/lib/api";
  */
 export function useTenantList(base, tenantId, { normalize, rowKey = (row) => row.id }) {
   const [state, setState] = useState({ tenantId: null, rows: [], error: "" });
+  // Bumped by reload() to fetch the same tenant again (after an add / edit elsewhere).
+  const [version, setVersion] = useState(0);
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -19,7 +22,7 @@ export function useTenantList(base, tenantId, { normalize, rowKey = (row) => row
         if (err.name !== "AbortError") setState({ tenantId, rows: [], error: err.message });
       });
     return () => controller.abort();
-  }, [base, tenantId, normalize]);
+  }, [base, tenantId, normalize, version]);
 
   // The response carries the new status; the rest of the row is kept as listed.
   const toggleStatus = useCallback(
@@ -55,5 +58,6 @@ export function useTenantList(base, tenantId, { normalize, rowKey = (row) => row
     loading: Boolean(tenantId) && !current,
     toggleStatus,
     deleteRows,
+    reload,
   };
 }

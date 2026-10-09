@@ -202,6 +202,18 @@ public class AdminServiceImpl implements AdminService {
         adminDao.insertOverridePermissionsBatch(rows);
     }
 
+    /*
+     * A submitted permission list must name at least one permission. An empty one differs from every
+     * role's defaults, so it would be stored as CUSTOM with no rows, and a session with no permissions
+     * is read as "unrestricted" (the Owner / IT convention) — the user would see every menu.
+     * null (not submitted) is fine: the role defaults apply.
+     */
+    static void requireSomePermission(List<String> submittedPermissions) {
+        if (submittedPermissions != null && normalizePermissionCodes(submittedPermissions).isEmpty()) {
+            throw new BusinessException("At least one permission is required");
+        }
+    }
+
     private static Set<String> normalizePermissionCodes(List<String> codes) {
         Set<String> result = new HashSet<>();
         for (String code : codes) {
@@ -398,9 +410,11 @@ public class AdminServiceImpl implements AdminService {
         boolean roleChanging = dto.getRole() != null && !dto.getRole().isBlank()
                 && !normalizeStaffRoleCode(dto.getRole()).equals(normalizeStaffRoleCode(existing.getRoleCode()));
         AdminRole actorRole = resolveActorRole(session);
-        AdminRole targetRole = roleChanging ? resolveRole(dto.getRole()) : resolveRole(existing.getRoleCode());
+        AdminRole existingRole = resolveRole(existing.getRoleCode());
+        AdminRole newRole = roleChanging ? resolveRole(dto.getRole()) : existingRole;
         AccessControlUtils.assertCanManageAdminTarget(
-                session, actorRole.getHierarchyLevel(), isSelf, targetRole.getHierarchyLevel(), roleChanging);
+                session, actorRole.getHierarchyLevel(), isSelf,
+                existingRole.getHierarchyLevel(), newRole.getHierarchyLevel(), roleChanging);
 
         // Primary `user` row, with company binding + effective sidebar permissions folded into
         // tenant_ids/permission_codes as a stopgap (see AuditSnapshots.admin) — the account/process
@@ -415,6 +429,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private Admin persistUserForCreate(AdminDTO dto) {
+        requireSomePermission(dto.getPermissions());
         Admin admin = mapDtoToAdmin(dto);
         admin.setRoleId(resolveRoleId(dto.getRole()));
         admin.setPermissionMode(resolvePermissionMode(dto.getPermissions(), admin.getRoleId()));
@@ -493,6 +508,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         boolean permissionsSubmitted = dto.getPermissions() != null;
+        requireSomePermission(dto.getPermissions());
         admin.setPermissionMode(permissionsSubmitted
                 ? resolvePermissionMode(dto.getPermissions(), admin.getRoleId())
                 : existing.getPermissionMode());
