@@ -16,7 +16,9 @@ import { cn } from "@/lib/utils";
 import AccountingDueModal from "./AccountingDueModal.jsx";
 import BankProcessFormModal from "./BankProcessFormModal.jsx";
 import BankRemarkDialog from "./BankRemarkDialog.jsx";
+import BankResendModal from "./BankResendModal.jsx";
 import { dueNowCount } from "./accountingDueRules";
+import { canResend } from "./bankResendRules";
 import { contractLabel } from "./bankFormRules";
 import {
   BANK_PICKABLE_STATUSES,
@@ -212,10 +214,12 @@ const thisYear = () => {
 // Bank Process list (shown for Bank companies). Same card look as the Games list; the table folds its least
 // important columns into two-line cells instead of scrolling sideways (see DataTable `altColumns`).
 export default function BankProcessView({ scope, readOnly }) {
-  const { rows: allRows, error: listError, loading, changeStatus, saveRemark, deleteRows, reload } = useBankProcesses(scope.tenantId);
+  const { rows: allRows, error: listError, loading, changeStatus, saveRemark, resend, deleteRows, reload } = useBankProcesses(scope.tenantId);
   const [statusPending, setStatusPending] = useState(() => new Set()); // process ids whose status is being changed
   const [actionError, setActionError] = useState("");
   const [remarkRow, setRemarkRow] = useState(null);
+  const [resendRow, setResendRow] = useState(null);
+  const closeResend = useCallback(() => setResendRow(null), []);
   const closeRemark = useCallback(() => setRemarkRow(null), []);
   const [addOpen, setAddOpen] = useState(false);
   const closeAdd = useCallback(() => setAddOpen(false), []);
@@ -324,7 +328,13 @@ export default function BankProcessView({ scope, readOnly }) {
         {p.status === "INACTIVE" ? (
           <SelectBox label="Select row" checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
         ) : (
-          <IconAction icon={RotateCcw} disabled title="Resend (not available yet)" aria-label="Resend" />
+          <IconAction
+            icon={RotateCcw}
+            onClick={() => setResendRow(p)}
+            disabled={readOnly || !canResend(p)}
+            title={readOnly ? "Read-only login" : canResend(p) ? "Resend to Accounting Due" : "Resend isn't available in this status"}
+            aria-label="Resend"
+          />
         )}
       </span>
     ),
@@ -445,6 +455,7 @@ export default function BankProcessView({ scope, readOnly }) {
           onBalanceDeleted={reload}
         />
       )}
+      {resendRow && <BankResendModal row={resendRow} tenantId={scope.tenantId} onClose={closeResend} onResend={resend} />}
       {dueOpen && <AccountingDueModal readOnly={readOnly} onClose={closeDue} />}
     </div>
   );

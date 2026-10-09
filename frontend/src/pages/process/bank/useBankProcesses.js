@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { postJson } from "@/lib/api";
+import { BANK_RESEND_URL } from "./bankResendRules";
 import {
   BANK_COUNTRY_LIST_URL,
   BANK_DELETE_URL,
@@ -11,7 +12,7 @@ import {
 
 /**
  * Bank processes of one tenant (null tenant: nothing loads). While another tenant is loading the previous rows
- * stay on screen; `loading` dims them. changeStatus / saveRemark / deleteRows call the API and throw on failure.
+ * stay on screen; `loading` dims them. changeStatus / saveRemark / resend / deleteRows call the API and throw on failure.
  */
 export function useBankProcesses(tenantId) {
   const [state, setState] = useState({ tenantId: null, rows: [], error: "" });
@@ -49,6 +50,11 @@ export function useBankProcesses(tenantId) {
     [tenantId, patchRow]
   );
 
+  // Resend to Accounting Due: the body is built by buildResendRequest; nothing on the list changes.
+  const resend = useCallback(async (request) => {
+    await postJson(BANK_RESEND_URL, request);
+  }, []);
+
   // Deletes one by one so a failure part-way still removes the ones that went through.
   const deleteRows = useCallback(
     async (rows) => {
@@ -72,6 +78,7 @@ export function useBankProcesses(tenantId) {
     loading: Boolean(tenantId) && !current,
     changeStatus,
     saveRemark,
+    resend,
     deleteRows,
     reload,
   };

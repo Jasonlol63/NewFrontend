@@ -309,6 +309,21 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       onSave={save}
       saveDisabled={saving}
       className={UPPERCASE}
+      // The lock notice lives in the header (a chip with the full sentence as its tooltip) so it takes no room from the cards.
+      headerExtra={
+        billingLocked && (
+          <span
+            role="note"
+            title={LOCKED_EDIT_TITLE}
+            aria-label={LOCKED_EDIT_TITLE}
+            className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-3 text-[12px] font-bold text-[#92400e] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:px-2"
+          >
+            <Lock className="size-3.5 flex-none" strokeWidth={2.4} />
+            <span className="truncate @max-[1099px]/main:hidden">Billing locked · only SOP, Remark and Insurance can be changed</span>
+            <span className="hidden truncate @max-[1099px]/main:inline @max-[599px]/main:hidden">Billing locked</span>
+          </span>
+        )
+      }
       footerStart={
         <>
           {footerNote && (
@@ -325,11 +340,6 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        {billingLocked && (
-          <div role="note" className="flex-none rounded-xl border border-[#fde68a] bg-[#fffbeb] px-3.5 py-2 text-[12.5px] font-semibold leading-snug text-[#92400e] @max-[899px]/main:order-first">
-            {LOCKED_EDIT_TITLE}
-          </div>
-        )}
         <FormCard title="Bank Information" className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label="Country (Currency)" as="div">

@@ -26,6 +26,8 @@ const openModals = [];
  * headerExtra: another button before Back (e.g. Refresh).
  * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
  * className: extra classes for the dialog itself (e.g. a text-transform for everything inside).
+ * compact: a small dialog centred over the page (up to 640px wide) instead of one filling the content area, for
+ *   forms with only a few fields (Resend).
  * Mount it only while open so every opening starts from its initial values.
  */
 export default function FormModal({
@@ -40,6 +42,7 @@ export default function FormModal({
   headerExtra,
   bodyClassName,
   className,
+  compact = false,
   children,
 }) {
   const titleId = useId();
@@ -63,14 +66,24 @@ export default function FormModal({
   const shell = (
     <>
       <div className="@container/main absolute inset-0 z-30 flex animate-dialog-overlay motion-reduce:animate-none">
-        <div aria-hidden="true" onClick={onClose} className="absolute inset-0 bg-[rgba(214,230,252,0.72)] backdrop-blur-[12px]" />
+        <div
+          aria-hidden="true"
+          onClick={onClose}
+          // A compact dialog floats over the page, so its backdrop is the darker one of the Delete dialog (the full-area modals
+          // use the light frosted one, which would hide where a small dialog starts).
+          className={cn("absolute inset-0", compact ? "bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px]" : "bg-[rgba(214,230,252,0.72)] backdrop-blur-[12px]")}
+        />
 
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           className={cn(
-            "relative z-10 m-[clamp(8px,1.6dvh,16px)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-modal-bg backdrop-blur-[22px] backdrop-saturate-[1.15]",
+            "relative z-10 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[22px]",
+            compact
+              ? "bg-[#f1f6fd] shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)]"
+              : "bg-modal-bg backdrop-blur-[22px] backdrop-saturate-[1.15]",
+            compact ? "m-auto! max-h-[calc(100%-24px)] w-[min(640px,calc(100%-24px))] flex-none" : "m-[clamp(8px,1.6dvh,16px)] flex-1",
             "[--gap:clamp(8px,1.5dvh,14px)] [--pad:clamp(10px,2dvh,18px)]",
             "@min-[900px]/main:@max-[1099px]/main:[--gap:8px] @min-[900px]/main:@max-[1099px]/main:[--pad:10px]",
             "modal-compact:[--gap:8px] modal-compact:[--pad:10px] modal-tiny:m-2 modal-tiny:[--gap:6px] modal-tiny:[--pad:8px]",
