@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/layout/Sidebar.jsx";
 import SidebarRail from "@/components/layout/SidebarRail.jsx";
+import NotificationPanel from "@/components/layout/NotificationPanel.jsx";
 import { menuKeyForPath } from "@/components/layout/sidebarConfig";
+import { useNotifications } from "@/components/layout/useNotifications";
 import { SessionProvider, useSession } from "@/context/session";
 import { clearSession } from "@/hooks/useSavedState";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,15 @@ function Shell() {
   // Drawer only exists below 1200px, where the icon rail replaces the sidebar.
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = () => setDrawerOpen(false);
+  // The bell's announcement panel; its list is read again each time it opens.
+  const notifications = useNotifications();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const closePanel = useCallback(() => setPanelOpen(false), []);
+  const { reload: reloadNotifications } = notifications;
+  const openPanel = useCallback(() => {
+    setPanelOpen(true);
+    reloadNotifications();
+  }, [reloadNotifications]);
   const onLogout = async () => {
     try {
       await fetch("/auth/logout", { method: "POST", credentials: "include" });
@@ -50,7 +61,7 @@ function Shell() {
   return (
     <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="hidden h-full nav:flex">
-        <Sidebar onLogout={onLogout} />
+        <Sidebar onLogout={onLogout} onOpenNotifications={openPanel} unreadCount={notifications.unreadCount} />
       </div>
       <div className="flex h-full nav:hidden">
         <SidebarRail onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
@@ -63,6 +74,17 @@ function Shell() {
           {ready && <Outlet />}
         </main>
         <div id="main-overlay" />
+        <NotificationPanel
+          open={panelOpen}
+          onClose={closePanel}
+          items={notifications.items}
+          isUnread={notifications.isUnread}
+          unreadCount={notifications.unreadCount}
+          loading={notifications.loading}
+          error={notifications.error}
+          onMarkAllRead={notifications.markAllRead}
+          onRetry={notifications.reload}
+        />
       </div>
 
       {/* Drawer: full sidebar floating over the page */}
@@ -84,7 +106,16 @@ function Shell() {
             drawerOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <Sidebar className="w-[236px]" onLogout={onLogout} onNavigate={closeDrawer} />
+          <Sidebar
+            className="w-[236px]"
+            onLogout={onLogout}
+            onNavigate={closeDrawer}
+            onOpenNotifications={() => {
+              closeDrawer();
+              openPanel();
+            }}
+            unreadCount={notifications.unreadCount}
+          />
         </div>
       </div>
     </div>

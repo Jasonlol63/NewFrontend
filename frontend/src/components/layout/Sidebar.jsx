@@ -9,6 +9,7 @@ import {
   IDLE_ITEM_CLASS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
+import { unreadLabel } from "./notificationRules";
 import { useSidebarData } from "./useSidebarData";
 
 const ITEM_CLASS =
@@ -21,8 +22,9 @@ const LANG_OPTIONS = [
 
 // Full sidebar. Width follows the viewport (220px on a 1366 laptop, 236px on
 // 1920) and spacing tightens on short screens via `short:`. Also rendered as
-// the drawer behind the icon rail below 1200px (onNavigate closes it).
-export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, className }) {
+// the drawer behind the icon rail below 1200px (onNavigate closes it). The bell opens the notification panel
+// (onOpenNotifications) and shows how many announcements are unread.
+export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, onOpenNotifications, unreadCount = 0, className }) {
   const { loading, items, userName, userRole, expiryLabel } = useSidebarData();
   const [lang, setLang] = useState("en");
   // Only one submenu open at a time; starts collapsed, even when the current page is inside one.
@@ -52,13 +54,16 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
         </div>
         <button
           type="button"
-          aria-label="Notifications"
+          onClick={onOpenNotifications}
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
           className="relative flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[10px] border border-[rgba(120,170,255,0.4)] bg-[rgba(30,58,120,0.55)] cursor-pointer"
         >
           <Bell size={14} className="stroke-[#cfe0ff]" />
-          <span className="absolute -right-[5px] -top-[5px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] font-extrabold text-white shadow-[0_0_0_2px_#0c2452]">
-            3
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-[5px] -top-[5px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] font-extrabold text-white shadow-[0_0_0_2px_#0c2452]">
+              {unreadLabel(unreadCount)}
+            </span>
+          )}
         </button>
       </div>
 
