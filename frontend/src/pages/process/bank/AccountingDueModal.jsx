@@ -8,11 +8,14 @@ import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
 import { SelectBox } from "@/components/shared/list/DataTable.jsx";
-import { earlyDatePresets, isEarlyBill, sampleAccountingDue, visibleBills, yearEndIso } from "./accountingDueRules";
+import { earlyDatePresets, isEarlyBill, yearEndIso } from "./accountingDueRules";
+import { useAccountingDue } from "./useAccountingDue";
 
 // Accounting Due: the bills the backend has generated (by each process's schedule), plus the early ones the user can
 // post or delete ahead of time. One table, grouped "Due now" / "Early"; the checked bills are what Transaction posts
-// and Delete removes. UI only for now: posting or deleting just takes the bills out of this list.
+// (/accounting-due/post) and Delete skips (/accounting-due/skip). The Early transaction date is the backend's `asOf`.
+// Refresh loads again and asks the backend to restore skipped bills; whether it does is the backend's switch
+// (app.accounting-due.restore-skipped-enabled), not the page's.
 //
 // The table drops columns by its own width (not the screen's), so nothing is cut off at any size:
 //   >= 900px: all columns | 560-899px: No / Start Date / Frequency fold under Billing Date and Card Owner | 430-559px: Contract folds under Bank | < 430px (phones): Bank and Contract fold under Card Owner
@@ -81,18 +84,20 @@ function cellFor(key, bill, mode) {
 const presetClass =
   "h-8 flex-none cursor-pointer whitespace-nowrap rounded-[9px] border px-3 text-[12.5px] font-bold text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
 
-export default function AccountingDueModal({ readOnly, onClose }) {
-  const [bills, setBills] = useState(sampleAccountingDue);
+export default function AccountingDueModal({ tenantId, readOnly, onClose, onChanged }) {
   const [earlyDate, setEarlyDate] = useState(yearEndIso);
+  const { bills, loading, error: loadError, reload, post, skip } = useAccountingDue(tenantId, earlyDate);
   // Bills the user unticked; everything shown is ticked until then (new ones appearing with a later date start ticked).
   const [unticked, setUnticked] = useState(() => new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState({ text: "", error: false }); // the result of the last Post / Delete, or why it failed
   const tableRef = useRef(null);
   const tableWidth = useWidth(tableRef);
   const mode = tableWidth >= 900 ? "full" : tableWidth >= 560 ? "mid" : tableWidth >= 430 ? "narrow" : "tiny";
 
   const presets = useMemo(() => earlyDatePresets(), []);
-  const visible = useMemo(() => visibleBills(bills, earlyDate), [bills, earlyDate]);
+  const visible = bills;
   const dueNow = visible.filter((b) => !isEarlyBill(b));
   const early = visible.filter(isEarlyBill);
   const picked = visible.filter((b) => !unticked.has(b.id));
@@ -108,15 +113,32 @@ export default function AccountingDueModal({ readOnly, onClose }) {
     const n = list.filter((b) => !unticked.has(b.id)).length;
     return n === 0 ? false : n === list.length ? true : "mixed";
   };
-  const removePicked = () => {
-    const ids = new Set(picked.map((b) => b.id));
-    setBills((list) => list.filter((b) => !ids.has(b.id)));
+  // Post (Transaction) and Delete send the ticked bills as the backend gave them, then load the list again. Whatever
+  // else the backend changed (a bill that was settled elsewhere meanwhile) shows in the reloaded list.
+  const run = async (action, done) => {
+    if (busy) return;
+    setBusy(true);
+    setMessage({ text: "", error: false });
+    try {
+      const result = await action(picked);
+      setMessage({ text: done(result), error: false });
+      setUnticked(new Set());
+      onChanged?.();
+    } catch (err) {
+      setMessage({ text: err.message, error: true });
+    } finally {
+      setBusy(false);
+    }
   };
+  const postPicked = () => run(post, (created) => `Posted ${created} transaction ${created === 1 ? "line" : "lines"}`);
+  const deletePicked = () => run(skip, () => "Deleted");
   const refresh = () => {
-    setBills(sampleAccountingDue());
+    setMessage({ text: "", error: false });
     setUnticked(new Set());
-    setEarlyDate(yearEndIso());
+    reload({ restoreSkipped: true });
   };
+  const footerNote = message.text || loadError || (loading ? "Loading…" : "");
+  const footerIsError = message.error || Boolean(loadError);
 
   const rowNumbers = new Map([...dueNow, ...early].map((b, i) => [b.id, i + 1]));
   const groupRow = (label, list, tag) =>
@@ -160,9 +182,7 @@ export default function AccountingDueModal({ readOnly, onClose }) {
           </span>
         }
         onClose={onClose}
-        onSave={() => {
-          removePicked();
-        }}
+        onSave={postPicked}
         saveLabel={
           <>
             <span className="@max-[479px]/main:hidden">Transaction</span>
@@ -170,23 +190,29 @@ export default function AccountingDueModal({ readOnly, onClose }) {
             <span>({picked.length})</span>
           </>
         }
-        saveDisabled={readOnly || picked.length === 0}
+        saveDisabled={readOnly || busy || loading || picked.length === 0}
         headerExtra={
-          <SoftButton onClick={refresh} aria-label="Refresh" className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+          <SoftButton onClick={refresh} disabled={busy} title="Reload the bills" aria-label="Refresh" className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
             <RefreshCw className="size-[15px]" strokeWidth={2.4} />
             <span className="@max-[479px]/main:hidden">Refresh</span>
           </SoftButton>
         }
         footerStart={
-          <span className="mr-auto inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#5b7196] @max-[599px]/main:hidden">
+          <span
+            role={footerIsError ? "alert" : "status"}
+            className={cn(
+              "mr-auto inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold",
+              footerIsError ? "text-[#dc2626]" : "text-[#5b7196] @max-[599px]/main:hidden"
+            )}
+          >
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
-            {visible.length} {visible.length === 1 ? "process" : "processes"} awaiting accounting
+            {footerNote || `${visible.length} ${visible.length === 1 ? "bill" : "bills"} awaiting accounting`}
           </span>
         }
         footerExtra={
           <button
             type="button"
-            disabled={readOnly || picked.length === 0}
+            disabled={readOnly || busy || loading || picked.length === 0}
             onClick={() => setConfirmDelete(true)}
             className={cn(
               actionClass,
@@ -270,8 +296,8 @@ export default function AccountingDueModal({ readOnly, onClose }) {
         noun="bill"
         note="Deleted bills won't be generated again."
         onConfirm={() => {
-          removePicked();
           setConfirmDelete(false);
+          deletePicked();
         }}
       />
     </>

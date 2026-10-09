@@ -18,6 +18,7 @@ import BankProcessFormModal from "./BankProcessFormModal.jsx";
 import BankRemarkDialog from "./BankRemarkDialog.jsx";
 import BankResendModal from "./BankResendModal.jsx";
 import { dueNowCount } from "./accountingDueRules";
+import { useDueCount } from "./useAccountingDue";
 import { canResend } from "./bankResendRules";
 import { contractLabel } from "./bankFormRules";
 import {
@@ -227,6 +228,7 @@ export default function BankProcessView({ scope, readOnly }) {
   const closeEdit = useCallback(() => setEditRow(null), []);
   const [dueOpen, setDueOpen] = useState(false);
   const closeDue = useCallback(() => setDueOpen(false), []);
+  const dueBills = useDueCount(scope.tenantId);
   const [dateRange, setDateRange] = useState(thisYear);
   const [currency, setCurrency] = useState("ALL");
   const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(useBankCountries(scope.tenantId));
@@ -393,7 +395,7 @@ export default function BankProcessView({ scope, readOnly }) {
         <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
           Add Process
         </PrimaryButton>
-        <AccountingDueButton count={dueNowCount()} onClick={() => setDueOpen(true)} />
+        <AccountingDueButton count={dueNowCount(dueBills.bills)} onClick={() => setDueOpen(true)} />
       </div>
 
       <section ref={toolbarRef} className={cn("flex-none rounded-xl border border-dash-line bg-white shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
@@ -455,8 +457,11 @@ export default function BankProcessView({ scope, readOnly }) {
           onBalanceDeleted={reload}
         />
       )}
-      {resendRow && <BankResendModal row={resendRow} tenantId={scope.tenantId} onClose={closeResend} onResend={resend} />}
-      {dueOpen && <AccountingDueModal readOnly={readOnly} onClose={closeDue} />}
+      {resendRow && <BankResendModal row={resendRow} tenantId={scope.tenantId} onClose={closeResend} onResend={async (request) => {
+          await resend(request);
+          dueBills.refresh(); // a resend adds a bill to Accounting Due
+        }} />}
+      {dueOpen && <AccountingDueModal tenantId={scope.tenantId} readOnly={readOnly} onClose={closeDue} onChanged={dueBills.refresh} />}
     </div>
   );
 }

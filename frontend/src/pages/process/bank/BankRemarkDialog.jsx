@@ -12,7 +12,8 @@ const FLUID = {
   "--pad-y": "clamp(18px, 3.4dvh, 30px)",
   "--gap": "clamp(12px, 2.4dvh, 22px)",
 };
-const WIDTH = { normal: "min(540px, calc(100vw - 24px))", expanded: "min(760px, calc(100vw - 24px))" };
+// Widths are of the content area (the dialog is rendered into #main-overlay), not of the screen.
+const WIDTH = { normal: "min(540px, calc(100% - 24px))", expanded: "min(760px, calc(100% - 24px))" };
 
 /**
  * Remark of one Bank Process, edited on its own (the backend has a separate endpoint for it).
@@ -28,11 +29,12 @@ export default function BankRemarkDialog({ row, onClose, onSave }) {
   };
   return (
     <Dialog.Root open={Boolean(row)} onOpenChange={(open) => !open && close()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 animate-dialog-overlay bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px] motion-reduce:animate-none" />
+      {/* Into #main-overlay (the content area only), so the sidebar stays sharp like it does behind the full-area modals. */}
+      <Dialog.Portal container={typeof document === "undefined" ? undefined : document.getElementById("main-overlay")}>
+        <Dialog.Overlay className="absolute inset-0 z-50 animate-dialog-overlay bg-[rgba(20,51,107,0.22)] backdrop-blur-[6px] motion-reduce:animate-none" />
         <Dialog.Content
           style={{ ...FLUID, width: expanded ? WIDTH.expanded : WIDTH.normal }}
-          className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-24px)] -translate-x-1/2 -translate-y-1/2 animate-dialog-in overflow-y-auto rounded-[20px] bg-white px-(--pad-x) pb-[calc(var(--pad-y)*0.75)] pt-(--pad-y) shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)] outline-none transition-[width] duration-200 motion-reduce:animate-none motion-reduce:transition-none"
+          className="absolute left-1/2 top-1/2 z-50 max-h-[calc(100%-24px)] -translate-x-1/2 -translate-y-1/2 animate-dialog-in overflow-y-auto rounded-[20px] bg-white px-(--pad-x) pb-[calc(var(--pad-y)*0.75)] pt-(--pad-y) shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)] outline-none transition-[width] duration-200 motion-reduce:animate-none motion-reduce:transition-none"
         >
           {/* Mounted only while a row is open, so every opening starts from that row's remark. */}
           {row && <RemarkForm row={row} onClose={close} onSave={onSave} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />}
