@@ -25,6 +25,7 @@ const openModals = [];
  * footerExtra: another button between Cancel and Save (e.g. Reset).
  * headerExtra: another button before Back (e.g. Refresh).
  * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
+ * className: extra classes for the dialog itself (e.g. a text-transform for everything inside).
  * Mount it only while open so every opening starts from its initial values.
  */
 export default function FormModal({
@@ -38,6 +39,7 @@ export default function FormModal({
   footerExtra,
   headerExtra,
   bodyClassName,
+  className,
   children,
 }) {
   const titleId = useId();
@@ -72,7 +74,8 @@ export default function FormModal({
             "[--gap:clamp(8px,1.5dvh,14px)] [--pad:clamp(10px,2dvh,18px)]",
             "@min-[900px]/main:@max-[1099px]/main:[--gap:8px] @min-[900px]/main:@max-[1099px]/main:[--pad:10px]",
             "modal-compact:[--gap:8px] modal-compact:[--pad:10px] modal-tiny:m-2 modal-tiny:[--gap:6px] modal-tiny:[--pad:8px]",
-            "@max-[599px]/main:m-2 @max-[599px]/main:rounded-[18px]"
+            "@max-[599px]/main:m-2 @max-[599px]/main:rounded-[18px]",
+            className
           )}
         >
           <header className="flex flex-none items-center justify-between gap-3 px-[calc(var(--pad)+6px)] pt-(--pad)">

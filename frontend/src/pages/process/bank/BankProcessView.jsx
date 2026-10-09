@@ -11,20 +11,24 @@ import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
+import { postJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import AccountingDueModal from "./AccountingDueModal.jsx";
 import BankProcessFormModal from "./BankProcessFormModal.jsx";
+import BankRemarkDialog from "./BankRemarkDialog.jsx";
 import { dueNowCount } from "./accountingDueRules";
+import { contractLabel } from "./bankFormRules";
 import {
-  BANK_CURRENCIES,
   BANK_PICKABLE_STATUSES,
   BANK_STATUS_BADGE,
-  SAMPLE_BANK_PROCESSES,
+  LOCKED_TITLE,
   filterBankProcesses,
   formatMoney,
+  isBankLocked,
   isContractExpired,
   sortBankProcesses,
 } from "./bankProcessRules";
+import { useBankCountries, useBankProcesses } from "./useBankProcesses";
 
 const ALL_CURRENCIES = [{ value: "ALL", label: "All" }];
 
@@ -195,7 +199,7 @@ function ContractBadge({ row }) {
   return (
     <Badge className={cn("items-center gap-1 bg-white px-1.5", expired ? "border-[#e2e8f0] text-[#94a3b8]" : "border-[#bcd9fb] text-brand-navy")} style={TIGHT}>
       <span className={cn("size-1.5 flex-none rounded-full", expired ? "bg-[#9ca3af]" : "bg-[#22c55e]")} />
-      {row.contract}
+      {contractLabel(row.contract)}
     </Badge>
   );
 }
@@ -208,7 +212,11 @@ const thisYear = () => {
 // Bank Process list (shown for Bank companies). Same card look as the Games list; the table folds its least
 // important columns into two-line cells instead of scrolling sideways (see DataTable `altColumns`).
 export default function BankProcessView({ scope, readOnly }) {
-  const [allRows, setAllRows] = useState(SAMPLE_BANK_PROCESSES);
+  const { rows: allRows, error: listError, loading, changeStatus, saveRemark, deleteRows, reload } = useBankProcesses(scope.tenantId);
+  const [statusPending, setStatusPending] = useState(() => new Set()); // process ids whose status is being changed
+  const [actionError, setActionError] = useState("");
+  const [remarkRow, setRemarkRow] = useState(null);
+  const closeRemark = useCallback(() => setRemarkRow(null), []);
   const [addOpen, setAddOpen] = useState(false);
   const closeAdd = useCallback(() => setAddOpen(false), []);
   const [editRow, setEditRow] = useState(null);
@@ -217,11 +225,27 @@ export default function BankProcessView({ scope, readOnly }) {
   const closeDue = useCallback(() => setDueOpen(false), []);
   const [dateRange, setDateRange] = useState(thisYear);
   const [currency, setCurrency] = useState("ALL");
-  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(BANK_CURRENCIES);
+  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(useBankCountries(scope.tenantId));
   // True while the table shows its two-line cells (taller rows).
   const [twoLine, setTwoLine] = useState(false);
   const toolbarRef = useRef(null);
   const layout = toolbarLayout(useContentWidth(toolbarRef, 32));
+
+  // Companies Add Account offers inside the modal: the picked Group's companies, or just the Group when its own view is picked.
+  const accountCompanyOptions =
+    scope.company === null && scope.group ? [{ value: scope.group, label: scope.group, tenantId: scope.tenantId }] : scope.companyOptions;
+
+  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again. A failure goes
+  // back to the modal, which shows the message.
+  const submitBank = useCallback(
+    async ({ url, body }) => {
+      await postJson(url, body);
+      closeAdd();
+      closeEdit();
+      reload();
+    },
+    [closeAdd, closeEdit, reload]
+  );
 
   const scoped = useMemo(
     () => allRows.filter((p) => (currency === "ALL" || p.currency === currency) && p.date >= dateRange.from && p.date <= dateRange.to),
@@ -230,11 +254,8 @@ export default function BankProcessView({ scope, readOnly }) {
   const canSelect = useCallback((p) => !readOnly && p.status === "INACTIVE", [readOnly]);
   const view = useListView(scoped, { filter: filterBankProcesses, sort: sortBankProcesses, canSelect, rowMin: twoLine ? TWO_LINE_ROW_HEIGHT : ROW_HEIGHT });
   const actions = useRowActions({
-    toggleStatus: async () => {},
-    deleteRows: async (picked) => {
-      const ids = new Set(picked.map((p) => p.id));
-      setAllRows((rows) => rows.filter((r) => !ids.has(r.id)));
-    },
+    toggleStatus: async () => {}, // the status badge below picks the status itself
+    deleteRows,
     noun: "process",
     label: (p) => `${p.supplier} (${p.bank})`,
     onDeleted: view.clearSelection,
@@ -242,8 +263,24 @@ export default function BankProcessView({ scope, readOnly }) {
 
   const money = (key) => (p) => formatMoney(p[key]);
   const contract = (p) => <ContractBadge row={p} />;
-  const changeStatus = (p, next) => setAllRows((rows) => rows.map((r) => (r.id === p.id ? { ...r, status: next } : r)));
-  const status = (p) => <StatusPicker status={p.status} readOnly={readOnly} onChange={(next) => changeStatus(p, next)} />;
+  // The backend also opens or closes the process's accounting dues for the new status; a refusal shows in the banner.
+  const pickStatus = async (p, next) => {
+    if (next === p.status) return;
+    setActionError("");
+    setStatusPending((s) => new Set(s).add(p.id));
+    try {
+      await changeStatus(p, next);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setStatusPending((s) => {
+        const rest = new Set(s);
+        rest.delete(p.id);
+        return rest;
+      });
+    }
+  };
+  const status = (p) => <StatusPicker status={p.status} readOnly={readOnly || statusPending.has(p.id)} onChange={(next) => pickStatus(p, next)} />;
 
   // The Action column: edit, remark, then either Renew or (inactive rows, which can be deleted) the delete checkbox.
   const { selected, onSelectedChange } = view.table;
@@ -270,12 +307,24 @@ export default function BankProcessView({ scope, readOnly }) {
     cellClassName: "whitespace-nowrap",
     render: (p) => (
       <span className="inline-flex">
-        <IconAction icon={SquarePen} onClick={() => setEditRow(p)} disabled={readOnly} title={readOnly ? "Read-only login" : "Edit process"} aria-label="Edit process" />
-        <IconAction icon={MessageSquare} title="Remark" aria-label="Remark" />
+        <IconAction
+          icon={SquarePen}
+          onClick={() => setEditRow(p)}
+          disabled={readOnly || isBankLocked(p)}
+          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_TITLE : "Edit process"}
+          aria-label="Edit process"
+        />
+        <IconAction
+          icon={MessageSquare}
+          onClick={() => setRemarkRow(p)}
+          disabled={readOnly || isBankLocked(p)}
+          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_TITLE : p.remark ? `Remark: ${p.remark}` : "Remark"}
+          aria-label="Remark"
+        />
         {p.status === "INACTIVE" ? (
           <SelectBox label="Select row" checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
         ) : (
-          <IconAction icon={RotateCcw} disabled={readOnly} title="Renew" aria-label="Renew" />
+          <IconAction icon={RotateCcw} disabled title="Resend (not available yet)" aria-label="Resend" />
         )}
       </span>
     ),
@@ -290,7 +339,7 @@ export default function BankProcessView({ scope, readOnly }) {
     { key: "bank", label: "Bank", fit: true, fitMin: 76, render: (p) => p.bank },
     { key: "cardOwner", label: "Card Owner", fit: true, fitMin: 88, render: (p) => p.cardOwner },
     { key: "contract", label: "Contract", render: contract },
-    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance },
+    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
     { key: "customer", label: "Cust.", render: (p) => p.customer },
     { key: "cost", label: "Cost", cellClassName: "tabular-nums", render: money("cost") },
     { key: "price", label: "Price", cellClassName: "tabular-nums", render: money("price") },
@@ -318,13 +367,15 @@ export default function BankProcessView({ scope, readOnly }) {
     { key: "supplier", label: head2("Supplier", "Customer"), render: (p) => stacked(<span className="font-semibold">{p.supplier}</span>, p.customer) },
     { key: "bank", label: head2("Bank", "Card Owner"), fit: true, fitMin: 76, render: (p) => stacked(p.bank, p.cardOwner) },
     { key: "country", label: head2("Country", "Contract"), render: (p) => stacked(p.country, contract(p)) },
-    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance },
+    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
     { key: "cost", label: "Cost", cellClassName: "tabular-nums", render: money("cost") },
     { key: "price", label: "Price", cellClassName: "tabular-nums", render: money("price") },
     { key: "profit", label: "Profit", cellClassName: "tabular-nums", render: money("profit") },
     { key: "status", label: head2("Status", "Date"), render: (p) => stacked(status(p), p.date) },
     actionColumn,
   ];
+
+  const pageError = scope.error || listError || actionError;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
@@ -372,12 +423,28 @@ export default function BankProcessView({ scope, readOnly }) {
         </div>
       </section>
 
-      <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" boxedPager fitWidth dense minWidth="min-w-0" {...view.table} />
-      {actions.dialogs}
+      {pageError && (
+        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>
+      )}
 
-      {/* UI only for now: Save just closes the modal until the add / update API is wired up. */}
-      {addOpen && <BankProcessFormModal onClose={closeAdd} onSave={closeAdd} />}
-      {editRow && <BankProcessFormModal mode="edit" process={editRow} onClose={closeEdit} onSave={closeEdit} />}
+      <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" loading={loading} boxedPager fitWidth dense minWidth="min-w-0" {...view.table} />
+      {actions.dialogs}
+      <BankRemarkDialog row={remarkRow} onClose={closeRemark} onSave={saveRemark} />
+
+      {addOpen && (
+        <BankProcessFormModal tenantId={scope.tenantId} accountCompanyOptions={accountCompanyOptions} onClose={closeAdd} onSave={submitBank} />
+      )}
+      {editRow && (
+        <BankProcessFormModal
+          mode="edit"
+          process={editRow}
+          tenantId={scope.tenantId}
+          accountCompanyOptions={accountCompanyOptions}
+          onClose={closeEdit}
+          onSave={submitBank}
+          onBalanceDeleted={reload}
+        />
+      )}
       {dueOpen && <AccountingDueModal readOnly={readOnly} onClose={closeDue} />}
     </div>
   );

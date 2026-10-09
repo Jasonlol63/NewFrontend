@@ -1,24 +1,32 @@
 import { useCallback, useMemo, useState } from "react";
-import { FilePen, FilePlus2 } from "lucide-react";
+import { CalendarDays, FilePen, FilePlus2, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { postJson } from "@/lib/api";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
+import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
-import { CalendarDays } from "lucide-react";
 import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
+import { normalizeAccountRow } from "@/pages/account/accountRules";
 import BankProfitSharing from "./BankProfitSharing.jsx";
 import CountryBankAdder from "./CountryBankAdder.jsx";
-import { contractEndDate } from "./bankProcessRules";
+import { formatMoney } from "./bankProcessRules";
 import {
-  BANK_MODAL_ACCOUNTS,
-  BANK_MODAL_BANKS_BY_COUNTRY,
-  BANK_MODAL_CONTRACTS,
-  BANK_MODAL_COUNTRIES,
-  BANK_MODAL_FREQUENCIES,
-  BANK_MODAL_TYPES,
-} from "./bankFormOptions";
+  BANK_BALANCE_DELETE_URL,
+  CARD_OWNER_TYPES,
+  CONTRACTS,
+  FIRST_OF_MONTH,
+  FREQUENCIES,
+  accountLabel,
+  buildBankRequest,
+  money,
+  profitOf,
+  usesDayEnd,
+  validateBankForm,
+} from "./bankFormRules";
+import { useAccountRows, useBankCountryOptions, useBankOptions, useHiddenBankOptions } from "./useBankFormData";
 
 // Layout, from the content area width (@container/main = screen minus sidebar), like the Games process modal:
 //   >= 900px: 2 columns, Bank Information / Schedule / SOP and Remark on the left | Detail / Profit Sharing on the right
@@ -29,24 +37,28 @@ const pair = "grid grid-cols-2 gap-3 modal-compact:gap-2 @max-[599px]/main:grid-
 const cardFlex = "flex-none @max-[899px]/main:overflow-visible";
 const cardBody = "flex flex-col gap-3 modal-compact:gap-2 @max-[899px]/main:overflow-visible";
 
-// On big screens the date picker popup is a little narrower than the (wide) field; below that it follows the field as before.
-const DATE_POPUP = "min-[1536px]:max-w-[300px]";
-// Only this frequency has the Day End lock switch (Edit).
-const FIRST_OF_MONTH = BANK_MODAL_FREQUENCIES[0].value;
+// Everything in this modal is shown in upper case: titles, labels, values and placeholders. Buttons keep their normal case
+// (Cancel, Add Process, Back...); the selects are upper case through their own `uppercase` prop. Inputs and text areas don't
+// inherit text-transform (the browser resets it), so they are named; the select and date popups are outside the modal and
+// carry the class themselves.
+const UPPERCASE = "uppercase [&_input]:uppercase [&_textarea]:uppercase";
 
-const money = (v) => v.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+// On big screens the date picker popup is a little narrower than the (wide) field; below that it follows the field as before.
+const DATE_POPUP = "uppercase min-[1536px]:max-w-[300px]";
 
 const BLANK = {
-  country: "",
+  countryId: "",
+  bankId: "",
+  country: "", // Edit only: the saved country / bank / type / card owner, shown read-only
   bank: "",
   type: "",
   cardOwner: "",
   dayStart: "",
   dayEnd: "",
-  frequency: BANK_MODAL_FREQUENCIES[0].value,
+  frequency: FIRST_OF_MONTH,
   sop: "",
   remark: "",
-  supplier: "",
+  supplier: "", // account ids as text (what the selects hold)
   buyPrice: "",
   customer: "",
   sellPrice: "",
@@ -56,38 +68,40 @@ const BLANK = {
   bankBalance: "",
 };
 
-// Edit starts from the list row (sample values for what the row does not carry yet).
+const idText = (id) => (id == null ? "" : String(id));
+const amountText = (n) => (n == null ? "" : String(n));
+
+// Edit starts from the list row.
 function formOf(process) {
   if (!process) return BLANK;
   return {
     ...BLANK,
     country: process.country,
     bank: process.bank,
-    type: "BUSINESS",
+    type: process.cardOwnerType,
     cardOwner: process.cardOwner,
     dayStart: process.date,
-    dayEnd: contractEndDate(process),
-    frequency: process.frequency ?? FIRST_OF_MONTH,
-    supplier: process.supplier,
-    buyPrice: String(process.cost),
-    customer: process.customer,
-    sellPrice: String(process.price),
-    company: "BANK [BANK]",
+    dayEnd: process.dayEnd ?? "",
+    frequency: process.frequency || FIRST_OF_MONTH,
+    sop: process.sop,
+    remark: process.remark,
+    supplier: idText(process.supplierAccountId),
+    buyPrice: amountText(process.cost),
+    customer: idText(process.customerAccountId),
+    sellPrice: amountText(process.price),
+    company: idText(process.companyAccountId),
     contract: process.contract,
-    insurance: String(process.insurance),
+    insurance: amountText(process.insurance),
   };
 }
 
-// The options plus the current value, so a value the list does not know (an old account) still shows.
-const toOptions = (list) => list.map((x) => ({ value: x, label: x }));
-const withCurrent = (options, value) => (value && !options.some((o) => o.value === value) ? [{ value, label: value }, ...options] : options);
+const sharingOf = (process) =>
+  [...(process?.shares ?? [])]
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((s) => ({ account: idText(s.accountId), amount: (Number(s.amount) || 0).toFixed(2) }));
 
-// The accounts are shown as "BA019 [MUAR DASON]" or just "BS005"; Edit Account wants them apart again.
-const accountLabel = (f) => (f.name ? f.accountId.toUpperCase() + " [" + f.name + "]" : f.accountId.toUpperCase());
-function accountOf(value, role) {
-  const m = /^(.*?)\s*\[(.*)\]$/.exec(value);
-  return { accountId: m ? m[1] : value, name: m ? m[2] : "", role, remark: "", paymentAlert: false };
-}
+// The options plus the current value, so a value the list does not know (an old contract text) still shows.
+const withCurrent = (options, value) => (value && !options.some((o) => o.value === value) ? [{ value, label: value }, ...options] : options);
 
 // A select with the button beside it (`button`, or a function of the row element, replaces the default one): "+" (opens Add Account) while nothing is chosen, the edit pen (opens Edit Account
 // for the chosen one) once something is. While something is chosen a small x in the box clears it.
@@ -98,7 +112,7 @@ function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = fals
   return (
     <div ref={setRow} className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
-        <SelectField onClear={onClear} {...select} />
+        <SelectField uppercase onClear={onClear} {...select} />
       </div>
       {(typeof button === "function" ? button(row) : button) ?? <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />}
     </div>
@@ -113,75 +127,159 @@ function ReadOnlyBox({ children }) {
 /**
  * Add / Edit Process for a Bank company: same modal shell as the Games one, with the Bank Information / Schedule / SOP and Remark /
  * Detail / Profit Sharing cards. mode: "add" | "edit"; process: the list row being edited (edit mode: the bank fields are read-only
- * and the footer shows the Record). Options are samples and Save just hands the draft back through onSave (UI only for now).
+ * and the footer shows the Record).
+ * tenantId: the company; accountCompanyOptions: the company options Add Account offers ([{ value, label, tenantId }]).
+ * Country / Bank, the accounts and the profit sharing come from the API. Save hands { url, body } to onSave, which posts it
+ * and closes the modal; if it throws the message shows in the footer. onBalanceDeleted: the list should reload after the
+ * Bank Balance was deleted here.
  */
-export default function BankProcessFormModal({ mode = "add", process, onClose, onSave }) {
+export default function BankProcessFormModal({ mode = "add", process, tenantId, accountCompanyOptions = [], onClose, onSave, onBalanceDeleted }) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => formOf(isEdit ? process : null));
-  const [sharing, setSharing] = useState([]);
-  // Countries and, under each, its banks (sample lists; the real ones come from the API). The "+" beside Country / Bank edits them.
-  const [countries, setCountries] = useState(BANK_MODAL_COUNTRIES);
-  const [banksByCountry, setBanksByCountry] = useState(BANK_MODAL_BANKS_BY_COUNTRY);
-  // Ones switched off in the "+" popover (grey there) stay created but are not offered in the select. Banks are keyed "COUNTRY/BANK".
-  const [hidden, setHidden] = useState({});
-  const isShown = (key) => !hidden[key];
-  const toggleShown = (key) => setHidden((h) => ({ ...h, [key]: !h[key] }));
-  // Edit, frequency 1st of Every Month: the Day End switch. On = Day End is locked (keeps its value), Off (the default) = editable.
-  const [dayEndLocked, setDayEndLocked] = useState(false);
-  // Add / Edit Account opened from a "+" / edit button: { mode, account, role, apply(label) }. Accounts made or renamed there join the lists.
-  const [accountForm, setAccountForm] = useState(null);
-  const [extraAccounts, setExtraAccounts] = useState([]);
-  const closeAccountForm = useCallback(() => setAccountForm(null), []);
-  const openAccount = useCallback(({ mode: accountMode, value, role = "", apply }) => {
-    setAccountForm({ mode: accountMode, account: accountMode === "edit" ? accountOf(value, role) : undefined, role, apply });
-  }, []);
-  const saveAccount = (saved) => {
-    const label = accountLabel(saved);
-    if (label) {
-      setExtraAccounts((list) => (list.includes(label) ? list : [...list, label]));
-      accountForm?.apply?.(label);
-    }
-    setAccountForm(null);
-  };
-  const toggleCountry = (country) => {
-    toggleShown(country);
-    if (isShown(country)) setForm((f) => (f.country === country ? { ...f, country: "", bank: "" } : f));
-  };
-  const toggleBank = (bank) => {
-    toggleShown(bankKey(bank));
-    if (isShown(bankKey(bank))) setForm((f) => (f.bank === bank ? { ...f, bank: "" } : f));
-  };
-  const pickCountry = (country) => setForm((f) => ({ ...f, country, bank: "" }));
-  const addCountry = (country) => {
-    setCountries((list) => [...list, country]);
-    setBanksByCountry((map) => ({ ...map, [country]: [] }));
-    pickCountry(country);
-  };
-  const removeCountry = (country) => {
-    setCountries((list) => list.filter((c) => c !== country));
-    setHidden(({ [country]: _gone, ...rest }) => rest);
-    setForm((f) => (f.country === country ? { ...f, country: "", bank: "" } : f));
-  };
-  const addBank = (bank) => {
-    setBanksByCountry((map) => ({ ...map, [form.country]: [...(map[form.country] ?? []), bank] }));
-    setForm((f) => ({ ...f, bank }));
-  };
-  const removeBank = (bank) => {
-    setBanksByCountry((map) => ({ ...map, [form.country]: (map[form.country] ?? []).filter((b) => b !== bank) }));
-    setHidden(({ [bankKey(bank)]: _gone, ...rest }) => rest);
-    setForm((f) => (f.bank === bank ? { ...f, bank: "" } : f));
-  };
+  const [sharing, setSharing] = useState(() => sharingOf(isEdit ? process : null));
+  const [message, setMessage] = useState(""); // validation problem or the backend's error
+  const [saving, setSaving] = useState(false);
+  // Edit, frequency 1st of Every Month: the Day End switch. On = Day End is locked (the last month bills up to it), Off (the default) = editable.
+  const [dayEndLocked, setDayEndLocked] = useState(() => Boolean(isEdit && process?.dayEndMonthlyCapEnabled));
+  // Bank Balance already settled by a Contra: the field is read-only until that Contra is deleted.
+  const [balanceLocked, setBalanceLocked] = useState(() => Boolean(isEdit && process?.bankBalanceTransactionId != null));
+  const [deleteBalanceOpen, setDeleteBalanceOpen] = useState(false);
+
+  // Countries and banks only matter in Add (Edit shows the saved ones read-only).
+  const countryData = useBankCountryOptions(isEdit ? null : tenantId);
+  const bankData = useBankOptions(isEdit ? null : tenantId, form.countryId);
+  const accountData = useAccountRows(tenantId);
+  const hidden = useHiddenBankOptions(tenantId);
+
+  const countries = countryData.countries;
+  const countryCode = countries.find((c) => String(c.id) === form.countryId)?.code ?? "";
+  const countryKey = (code) => "C:" + code;
+  const bankKey = (name) => "B:" + countryCode + "/" + name;
+
+  const countryOptions = useMemo(
+    () => countries.filter((c) => !hidden.isHidden(countryKey(c.code))).map((c) => ({ value: String(c.id), label: c.code })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hidden.isHidden reads the saved list
+    [countries, hidden]
+  );
+  const bankOptions = useMemo(
+    () => bankData.banks.filter((b) => !hidden.isHidden(bankKey(b.name))).map((b) => ({ value: String(b.id), label: b.name })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hidden.isHidden reads the saved list
+    [bankData.banks, hidden, countryCode]
+  );
+
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const setText = (key) => (e) => set(key)(e.target.value);
   const setMoney = (key) => (e) => set(key)(money(e.target.value));
+  const pickCountry = (countryId) => setForm((f) => ({ ...f, countryId, bankId: "" }));
+  // Day End only exists for the frequencies that run to one; the others drop whatever was in it.
+  const setFrequency = (frequency) => setForm((f) => ({ ...f, frequency, dayEnd: usesDayEnd(frequency) ? f.dayEnd : "" }));
 
-  const accounts = useMemo(() => [...extraAccounts, form.supplier, form.customer, form.company].reduce((list, v) => withCurrent(list, v), BANK_MODAL_ACCOUNTS), [extraAccounts, form.supplier, form.customer, form.company]);
-  const banks = banksByCountry[form.country] ?? [];
-  const bankKey = (bank) => form.country + "/" + bank;
+  // The "+" popovers: Add / Remove write at once (adding a country also creates a currency of that code); Show / hide is only
+  // kept in this browser. A failure is thrown to the popover, which shows it.
+  const addCountry = async (code) => {
+    const created = await countryData.add(code);
+    if (created.id != null) pickCountry(String(created.id));
+  };
+  const removeCountry = async (code) => {
+    const country = countries.find((c) => c.code === code);
+    if (!country) return;
+    await countryData.remove(country.id);
+    hidden.forget(countryKey(code));
+    if (form.countryId === String(country.id)) pickCountry("");
+  };
+  const toggleCountry = (code) => {
+    const country = countries.find((c) => c.code === code);
+    hidden.toggle(countryKey(code));
+    if (country && !hidden.isHidden(countryKey(code)) && form.countryId === String(country.id)) pickCountry("");
+  };
+  const addBank = async (name) => {
+    const created = await bankData.add(name);
+    if (created.id != null) set("bankId")(String(created.id));
+  };
+  const removeBank = async (name) => {
+    const bank = bankData.banks.find((b) => b.name === name);
+    if (!bank) return;
+    await bankData.remove(bank.id);
+    hidden.forget(bankKey(name));
+    if (form.bankId === String(bank.id)) set("bankId")("");
+  };
+  const toggleBank = (name) => {
+    const bank = bankData.banks.find((b) => b.name === name);
+    hidden.toggle(bankKey(name));
+    if (bank && !hidden.isHidden(bankKey(name)) && form.bankId === String(bank.id)) set("bankId")("");
+  };
+
+  // Accounts for every select: all of the company's, plus the ones this process already uses (in case the list left them out).
+  const accountOptions = useMemo(() => {
+    const options = accountData.rows.map((r) => ({ value: String(r.id), label: accountLabel(r.accountId, r.name) }));
+    const used = isEdit
+      ? [
+          [process?.supplierAccountId, process?.supplier, process?.supplierName],
+          [process?.customerAccountId, process?.customer, process?.customerName],
+          [process?.companyAccountId, process?.company, process?.companyName],
+        ]
+      : [];
+    used.forEach(([id, code, name]) => {
+      if (id != null && code && !options.some((o) => o.value === String(id))) options.push({ value: String(id), label: accountLabel(code, name) });
+    });
+    return options;
+  }, [accountData.rows, isEdit, process]);
+
+  // Add / Edit Account opened from a "+" / edit button: { mode, account, role, apply(id) }. A new account is picked straight away.
+  const [accountForm, setAccountForm] = useState(null);
+  const closeAccountForm = useCallback(() => setAccountForm(null), []);
+  const openAccount = useCallback(
+    ({ mode: accountMode, value, role = "", apply }) => {
+      const account = accountMode === "edit" ? accountData.rows.find((r) => String(r.id) === value) : undefined;
+      if (accountMode === "edit" && !account) return; // an account the list doesn't hold can't be edited here
+      setAccountForm({ mode: accountMode, account, role, apply });
+    },
+    [accountData.rows]
+  );
+  const submitAccount = async ({ url, body }) => {
+    const response = await postJson(url, body);
+    const row = normalizeAccountRow({ ...body, ...response.data });
+    accountData.put(row);
+    accountForm?.apply?.(String(row.id));
+    setAccountForm(null);
+  };
+
+  const deleteBalance = async () => {
+    setDeleteBalanceOpen(false);
+    setMessage("");
+    try {
+      await postJson(BANK_BALANCE_DELETE_URL, { id: process.id, tenantId });
+      setBalanceLocked(false);
+      set("bankBalance")("");
+      onBalanceDeleted?.();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const showDayEndSwitch = isEdit && form.frequency === FIRST_OF_MONTH;
+  const dayEndOff = !usesDayEnd(form.frequency); // this frequency has no Day End
   const dayEndIsLocked = showDayEndSwitch && dayEndLocked;
-  const profit = (parseFloat(form.sellPrice) || 0) - (parseFloat(form.buyPrice) || 0);
-  const save = () => onSave?.({ ...form, profit, sharing });
+  const profit = profitOf(form);
+
+  const save = async () => {
+    if (saving) return;
+    const problem = validateBankForm({ isEdit, form, sharing });
+    if (problem) {
+      setMessage(problem);
+      return;
+    }
+    setMessage("");
+    setSaving(true);
+    try {
+      await onSave(buildBankRequest({ isEdit, id: process?.id, tenantId, form, sharing, dayEndLocked, balanceLocked }));
+    } catch (err) {
+      setMessage(err.message);
+      setSaving(false);
+    }
+  };
+
+  const footerNote = message || countryData.error || bankData.error || accountData.error;
 
   return (
     <FormModal
@@ -190,7 +288,18 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
       saveLabel={isEdit ? "Update Process" : "Add Process"}
       onClose={onClose}
       onSave={save}
-      footerStart={isEdit ? <RecordBar modified={{ at: process?.updatedAt, by: process?.updatedBy }} created={{ at: process?.createdAt, by: process?.createdBy }} /> : undefined}
+      saveDisabled={saving}
+      className={UPPERCASE}
+      footerStart={
+        <>
+          {footerNote && (
+            <p role="alert" className="m-0 basis-full text-[12.5px] font-semibold leading-tight text-[#dc2626] @max-[599px]/main:text-[12px]">
+              {footerNote}
+            </p>
+          )}
+          {isEdit && <RecordBar modified={{ at: process?.updatedAt, by: process?.updatedBy }} created={{ at: process?.createdAt, by: process?.createdBy }} />}
+        </>
+      }
       bodyClassName={cn(
         "grid grid-cols-2 grid-rows-1",
         "@max-[899px]/main:flex @max-[899px]/main:flex-col @max-[899px]/main:overflow-y-auto @max-[899px]/main:[scrollbar-width:thin]"
@@ -202,24 +311,21 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
             <Field label="Country (Currency)" as="div">
               {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd
                   addOnly
-                  value={form.country}
+                  value={form.countryId}
                   onChange={pickCountry}
-                  options={toOptions(countries.filter(isShown))}
+                  options={countryOptions}
                   placeholder="Select Country"
                   button={(anchorEl) => (
                     <CountryBankAdder
                       anchorEl={anchorEl}
                       noun="country"
                       title="Add country"
-                      items={countries}
+                      hint="Also creates a currency of that name"
+                      items={countries.map((c) => c.code)}
                       onAdd={addCountry}
                       onRemove={removeCountry}
-                      isOn={isShown}
+                      isOn={(code) => !hidden.isHidden(countryKey(code))}
                       onToggle={toggleCountry}
-                      lockedReason={(c) => {
-                        const n = banksByCountry[c]?.length ?? 0;
-                        return n ? c + " has " + n + (n === 1 ? " bank" : " banks") + ", remove them first" : "";
-                      }}
                     />
                   )}
                 />}
@@ -227,24 +333,24 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
             <Field label="Bank" as="div">
               {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd
                   addOnly
-                  value={form.bank}
-                  onChange={set("bank")}
-                  options={toOptions(banks.filter((b) => isShown(bankKey(b))))}
+                  value={form.bankId}
+                  onChange={set("bankId")}
+                  options={bankOptions}
                   placeholder="Select Bank"
-                  disabled={!form.country}
+                  disabled={!form.countryId}
                   button={(anchorEl) => (
                     <CountryBankAdder
                       anchorEl={anchorEl}
-                      key={form.country}
+                      key={form.countryId}
                       noun="bank"
                       title="Add bank"
-                      hint={"Added under " + form.country}
-                      items={banks}
+                      hint={"Added under " + countryCode}
+                      items={bankData.banks.map((b) => b.name)}
                       onAdd={addBank}
                       onRemove={removeBank}
-                      isOn={(b) => isShown(bankKey(b))}
+                      isOn={(name) => !hidden.isHidden(bankKey(name))}
                       onToggle={toggleBank}
-                      disabledReason={form.country ? "" : "Pick a country first"}
+                      disabledReason={form.countryId ? "" : "Pick a country first"}
                     />
                   )}
                 />}
@@ -252,7 +358,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
           </div>
           <div className={pair}>
             <Field label="Type" as="div">
-              {isEdit ? <ReadOnlyBox>{form.type}</ReadOnlyBox> : <SelectField value={form.type} onChange={set("type")} options={BANK_MODAL_TYPES} placeholder="Select Type" />}
+              {isEdit ? <ReadOnlyBox>{form.type}</ReadOnlyBox> : <SelectField uppercase value={form.type} onChange={set("type")} options={CARD_OWNER_TYPES} placeholder="Select Type" />}
             </Field>
             <Field label="Card Owner" as="div">
               {isEdit ? <ReadOnlyBox>{form.cardOwner}</ReadOnlyBox> : <TextInput value={form.cardOwner} onChange={setText("cardOwner")} autoComplete="off" placeholder="ENTER CARD OWNER" className="uppercase" />}
@@ -274,9 +380,12 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
                   <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? "ON" : "OFF"} className="font-bold" />
                 )}
               </div>
-              {dayEndIsLocked ? (
-                <div title="Locked while the switch is on" className={cn(inputClass, "flex cursor-not-allowed items-center gap-2 bg-modal-off text-[#6b7280] tabular-nums")}>
-                  <span className="min-w-0 flex-1 truncate">{form.dayEnd || "DD/MM/YYYY"}</span>
+              {dayEndOff || dayEndIsLocked ? (
+                <div
+                  title={dayEndOff ? "This frequency has no Day End" : "Locked while the switch is on"}
+                  className={cn(inputClass, "flex cursor-not-allowed items-center gap-2 bg-modal-off text-[#6b7280] tabular-nums")}
+                >
+                  <span className="min-w-0 flex-1 truncate">{dayEndOff ? "Not used" : form.dayEnd || "DD/MM/YYYY"}</span>
                   <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
                 </div>
               ) : (
@@ -285,7 +394,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
             </div>
           </div>
           <Field label="Frequency">
-            <SelectField value={form.frequency} onChange={set("frequency")} options={withCurrent(BANK_MODAL_FREQUENCIES, form.frequency)} placeholder="Select Frequency" />
+            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES} placeholder="Select Frequency" />
           </Field>
         </FormCard>
 
@@ -312,7 +421,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
                 onChange={set("supplier")}
                 onClear={() => set("supplier")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.supplier, role: "SUPPLIER", apply: set("supplier") })}
-                options={accounts}
+                options={accountOptions}
                 placeholder="Select Account"
               />
             </Field>
@@ -329,7 +438,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
                 onChange={set("customer")}
                 onClear={() => set("customer")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.customer, role: "", apply: set("customer") })}
-                options={accounts}
+                options={accountOptions}
                 placeholder="Select Account"
               />
             </Field>
@@ -338,7 +447,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
             </Field>
           </div>
           <div className={pair}>
-            <Field label="Company" as="div">
+            <Field label="Company" as="div" optional>
               <SelectWithAdd
                 addLabel="Add company account"
                 editLabel="Edit company account"
@@ -346,7 +455,7 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
                 onChange={set("company")}
                 onClear={() => set("company")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.company, role: "COMPANY", apply: set("company") })}
-                options={accounts}
+                options={accountOptions}
                 placeholder="Select Account"
               />
             </Field>
@@ -356,23 +465,61 @@ export default function BankProcessFormModal({ mode = "add", process, onClose, o
           </div>
           <div className={pair}>
             <Field label="Contract" as="div">
-              <SelectField value={form.contract} onChange={set("contract")} options={withCurrent(BANK_MODAL_CONTRACTS, form.contract)} placeholder="Contract" />
+              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract)} placeholder="Contract" />
             </Field>
             <div className={pair}>
               <Field label="Insurance" optional>
                 <TextInput value={form.insurance} onChange={setMoney("insurance")} inputMode="decimal" autoComplete="off" placeholder="Enter amount" />
               </Field>
-              <Field label="Bank Balance" optional>
-                <TextInput value={form.bankBalance} onChange={setMoney("bankBalance")} inputMode="decimal" autoComplete="off" placeholder="0.00" />
-              </Field>
+              {balanceLocked ? (
+                <Field label="Bank Balance" as="div" plain>
+                  <div className={cn(inputClass, "flex items-center gap-1.5 bg-modal-off pr-1 text-[#6b7280]")}>
+                    <Lock className="size-3.5 flex-none" strokeWidth={2.2} />
+                    <span className="min-w-0 flex-1 truncate font-semibold tabular-nums text-[#374151]">{formatMoney(process?.bankBalance)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteBalanceOpen(true)}
+                      aria-label="Delete Bank Balance"
+                      title="Delete Bank Balance"
+                      className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-md border border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]"
+                    >
+                      <Trash2 className="size-3.5" strokeWidth={2.2} />
+                    </button>
+                  </div>
+                  <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8]">Settled by a Contra. Delete it to enter a new amount.</span>
+                </Field>
+              ) : (
+                <Field label="Bank Balance" optional>
+                  <TextInput value={form.bankBalance} onChange={setMoney("bankBalance")} inputMode="decimal" autoComplete="off" placeholder="0.00" />
+                </Field>
+              )}
             </div>
           </div>
         </FormCard>
 
-        <BankProfitSharing entries={sharing} onChange={setSharing} accounts={accounts} profit={profit} currency={form.country || "MYR"} onAccount={(request) => openAccount({ ...request, role: "" })} />
+        <BankProfitSharing entries={sharing} onChange={setSharing} accounts={accountOptions} profit={profit} currency={form.country || countryCode || "MYR"} onAccount={(request) => openAccount({ ...request, role: "" })} />
       </div>
-      {/* Add / Edit Account open right on top (same modal as the Account page); UI only for now: Save hands the new name back and closes. */}
-      {accountForm && <AccountFormModal mode={accountForm.mode} account={accountForm.account} defaultRole={accountForm.role} onClose={closeAccountForm} onSave={saveAccount} />}
+
+      {/* Add / Edit Account open right on top (same modal as the Account page); a new account is picked in the select it was opened from. */}
+      {accountForm && (
+        <AccountFormModal
+          mode={accountForm.mode}
+          account={accountForm.account}
+          defaultRole={accountForm.role}
+          tenantId={tenantId}
+          companyOptions={accountCompanyOptions}
+          onClose={closeAccountForm}
+          onSave={submitAccount}
+        />
+      )}
+      <DeleteDialog
+        open={deleteBalanceOpen}
+        onOpenChange={setDeleteBalanceOpen}
+        names={[formatMoney(process?.bankBalance)]}
+        noun="bank balance"
+        note="This also removes its Contra between the Supplier and the Customer."
+        onConfirm={deleteBalance}
+      />
     </FormModal>
   );
 }

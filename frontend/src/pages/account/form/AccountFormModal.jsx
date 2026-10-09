@@ -29,7 +29,7 @@ import { useAccountCurrencies } from "./useAccountCurrencies";
 
 /**
  * Add Account / Edit Account: the same modal, only the title, header icon and defaults change.
- * mode: "add" | "edit"; account: the list row being edited (edit mode).
+ * mode: "add" | "edit"; account: the list row being edited (edit mode); defaultRole: the role a new account starts with.
  * tenantId: the company picked on the Account page. companyOptions: the companies the card offers
  * ([{ value, label, tenantId }], the picked Group's companies, or just the Group itself when its own
  * view is picked).
@@ -37,12 +37,12 @@ import { useAccountCurrencies } from "./useAccountCurrencies";
  * database right away (Delete only after its confirmation). Save hands { url, body } to onSave, which
  * posts it and closes the modal; if it throws, the message is shown in the footer.
  */
-export default function AccountFormModal({ mode = "add", account, tenantId, companyOptions = [], onClose, onSave }) {
+export default function AccountFormModal({ mode = "add", account, defaultRole = "", tenantId, companyOptions = [], onClose, onSave }) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => ({
     accountId: isEdit ? (account?.accountId ?? "") : "",
     name: isEdit ? (account?.name ?? "") : "",
-    role: isEdit ? (account?.role ?? "") : "",
+    role: isEdit ? (account?.role ?? "") : defaultRole,
     password: "",
     remark: isEdit ? (account?.remark ?? "") : "",
   }));

@@ -29,7 +29,7 @@ function ColumnLabel({ children }) {
 
 /**
  * entries: [{ account, amount }] (amount as text, 2 decimals); onChange(next entries).
- * accounts: [{ value, label }] to choose from; profit: sell - buy, the base of a percentage; currency: shown before amounts.
+ * accounts: [{ value, label }] to choose from (an entry holds the account's value; the list shows its label); profit: sell - buy, the base of a percentage; currency: shown before amounts.
  * onAccount({ mode: "add" | "edit", value, apply(newValue) }): the "+" / edit button of a row asks the page to open Add / Edit Account.
  */
 export default function BankProfitSharing({ entries, onChange, accounts, profit, currency, onAccount }) {
@@ -98,6 +98,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                 <div className="min-w-[110px] flex-[1_1_140px]">
                   {i === 0 && <ColumnLabel>Account</ColumnLabel>}
                   <SelectField
+                    uppercase
                     value={row.account}
                     onChange={(account) => patch(i, { account })}
                     onClear={() => patch(i, { account: "" })}
@@ -184,23 +185,26 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
       )}
 
       {entries.length === 0 && !open && <p className="m-0 px-0.5 py-1.5 text-[12.5px] italic text-[#8a96a8]">No profit sharing selected</p>}
-      {entries.map((entry) => (
+      {entries.map((entry) => {
+        const label = accounts.find((a) => a.value === entry.account)?.label ?? entry.account;
+        return (
         <div key={entry.account} className="flex flex-none items-center gap-2.5 overflow-hidden rounded-[10px] border border-[#bfd8ff] bg-row-stripe py-1.5 pr-2 pl-0">
           <span className="w-1 flex-none self-stretch rounded-sm bg-[#3b82f6]" />
-          <b className="min-w-0 flex-1 truncate text-[13px] font-extrabold text-brand-navy">{entry.account}</b>
+          <b className="min-w-0 flex-1 truncate text-[13px] font-extrabold text-brand-navy">{label}</b>
           <span className="flex-none rounded-lg border border-[#bcd9fb] bg-white px-2.5 py-0.5 text-[13px] font-extrabold text-[#1d4ed8] tabular-nums">
             {currency} {money(Number(entry.amount) || 0)}
           </span>
           <button
             type="button"
-            aria-label={`Remove ${entry.account}`}
+            aria-label={`Remove ${label}`}
             onClick={() => onChange(entries.filter((e) => e.account !== entry.account))}
             className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca]"
           >
             <Trash2 className="size-3.5" strokeWidth={2.4} />
           </button>
         </div>
-      ))}
+        );
+      })}
     </FormCard>
   );
 }

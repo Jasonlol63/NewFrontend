@@ -6,7 +6,7 @@ import { AddButton, TextInput } from "@/components/shared/form-modal/fields.jsx"
 
 /**
  * The "+" beside Country / Bank: a small popover under the button with a box to add a new one and the existing ones as
- * chips (click x to remove). items: [string]; onAdd(name) / onRemove(name); lockedReason(item): text when an item can't be
+ * chips (click x to remove). items: [string]; onAdd(name) / onRemove(name) (async: when one throws, its message is shown in the popover); lockedReason(item): text when an item can't be
  * removed (shown as a lock in remove mode), or "". isOn(item) / onToggle(item): clicking a chip shows it in the select (blue) or hides it (grey); the Remove button switches the chips to remove mode. anchorEl: the select + button row (element), so the popup is as wide as that row. disabledReason: when set the button is greyed and shows it as its tooltip.
  */
 export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRemove, lockedReason, isOn, onToggle, disabledReason, anchorEl }) {
@@ -18,13 +18,34 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
   // The popup is as wide as the select + button row; the button is the row's right end, so it hangs from there (align end).
   const [width, setWidth] = useState(0);
 
-  const submit = () => {
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
     const next = name.trim().toUpperCase();
     if (!next) return setError("Enter a " + noun + " name");
     if (items.some((i) => i.toUpperCase() === next)) return setError("That " + noun + " already exists");
-    onAdd(next);
-    setName("");
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onAdd(next);
+      setName("");
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (item) => {
+    if (busy) return;
+    setBusy(true);
     setError("");
+    try {
+      await onRemove(item);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
   const handleOpenChange = (next) => {
     if (next && anchorEl) setWidth(anchorEl.getBoundingClientRect().width);
@@ -56,7 +77,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
           sideOffset={6}
           collisionPadding={8}
           style={width ? { width } : undefined}
-          className="z-50 max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-16px)] min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-3 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className="z-50 max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-16px)] min-w-[260px] overflow-y-auto uppercase [&_input]:uppercase rounded-xl border border-dash-line bg-white p-3 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
         >
           <p className="m-0 text-[12.5px] font-bold text-brand-navy">{title}</p>
           {hint && <p className="m-0 mt-0.5 text-[11.5px] text-dash-sub">{hint}</p>}
@@ -76,12 +97,13 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               }}
               autoComplete="off"
               placeholder={"NEW " + noun.toUpperCase()}
-              className="h-8 w-[170px] min-w-0 flex-none uppercase"
+              className="h-8 min-w-0 flex-1 uppercase"
             />
             <button
               type="button"
               onClick={submit}
-              className="h-8 flex-none cursor-pointer rounded-lg border-none bg-brand-sweep px-3 text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)] hover:brightness-105"
+              disabled={busy}
+              className="h-8 flex-none cursor-pointer rounded-lg border-none bg-brand-sweep px-3 disabled:cursor-not-allowed disabled:opacity-60 text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)] hover:brightness-105"
             >
               Add
             </button>
@@ -123,7 +145,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                       key={item}
                       type="button"
                       title={"Remove " + item}
-                      onClick={() => onRemove(item)}
+                      onClick={() => remove(item)}
                       className={cn(chip, "cursor-pointer border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]")}
                     >
                       {item}

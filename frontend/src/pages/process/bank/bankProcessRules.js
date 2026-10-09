@@ -1,45 +1,66 @@
-// Rules for the Bank Process list (Bank companies). UI only for now: the rows below are sample
-// data until the Bank Process API is wired up; the row shape is what the list needs.
+// Rules for the Bank Process list (Bank companies). The list comes from /api/bank-process/list, one BankProcessDTO per
+// process: { id, bankProcess: { dayStart, dayEnd, frequency, supplierPrice, ... }, countryCode, bankName,
+// supplierAccountCode, customerAccountCode, companyAccountCode, status, bankBalance, bankBalanceTransactionId, shares }.
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
+import { toIsoDate } from "@/lib/date";
 
-// Currency chips of the filter row (Dashboard style: "All" first, the rest draggable).
-export const BANK_CURRENCIES = ["MYR", "SGD", "AUD", "USDT", "IDR"];
+export const BANK_LIST_URL = "/api/bank-process/list";
+export const BANK_STATUS_URL = "/api/bank-process/update-status";
+export const BANK_REMARK_URL = "/api/bank-process/update-remark";
+export const BANK_DELETE_URL = "/api/bank-process/delete-bank-process";
+export const BANK_COUNTRY_LIST_URL = "/api/bank-country-option/list-country";
 
-const row = (id, supplier, country, bank, cardOwner, contract, insurance, customer, cost, price, date, flags = {}) => ({
-  id,
-  supplier,
-  country,
-  currency: country,
-  bank,
-  cardOwner,
-  contract,
-  insurance,
-  customer,
-  cost,
-  price,
-  profit: price - cost,
-  status: "ACTIVE",
-  date,
-  createdAt: date + " 11:01:31",
-  createdBy: "SH",
-  updatedAt: null,
-  updatedBy: "",
-  ...flags,
-});
+const amount = (v) => (v == null || v === "" ? null : Number(v));
 
-export const SAMPLE_BANK_PROCESSES = [
-  row(1, "BS003", "MYR", "CIMB (BUSINESS)", "LIANG FISHING SDN BHD", "6 MONTHS", 100000, "BC028", 2250, 2450, "2026-08-17", { status: "OFFICIAL" }),
-  row(2, "BS003", "MYR", "MBB (BUSINESS)", "LIANG FISHING SDN BHD", "6 MONTHS", 100000, "BC028", 2250, 2450, "2026-08-17"),
-  row(3, "BS003", "MYR", "RHB (BUSINESS)", "LIANG FISHING SDN BHD", "6 MONTHS", 100000, "BS001", 2250, 2625, "2026-09-07", { status: "E_INVOICE" }),
-  row(4, "BS005", "SGD", "OCBC (BUSINESS)", "AD VERIZON PRIVATE LIMITED", "2 MONTHS", 10000, "BC015", 2500, 3200, "2026-06-06"),
-  row(5, "BS005", "SGD", "MAYBANK (BUSINESS)", "GROWTH VAULT SG PTE LTD", "3 MONTHS", 10000, "BA020", 3150, 3900, "2026-10-06"),
-  row(6, "BS007", "MYR", "PUBLIC BANK (BUSINESS)", "SEA HARVEST TRADING SDN BHD", "12 MONTHS", 50000, "BC031", 1800, 2300, "2026-07-21"),
-  row(7, "BS007", "SGD", "UOB (BUSINESS)", "ORCHID LINK PTE LTD", "3 MONTHS", 20000, "BC044", 2900, 3500, "2026-06-12", { status: "INACTIVE" }),
-  row(8, "BS009", "AUD", "ANZ (BUSINESS)", "SOUTHERN CROSS HOLDINGS PTY LTD", "3 MONTHS", 15000, "BA051", 3300, 4100, "2026-09-25", { status: "BLOCK" }),
-  row(9, "BS011", "MYR", "HLB (BUSINESS)", "BAYU LOGISTICS SDN BHD", "1 MONTH", 8000, "BC060", 1500, 1900, "2026-08-02", { status: "WAITING" }),
-];
+// One list row of the API -> the flat row the table, filters and the edit modal work with.
+export function normalizeBankRow(dto) {
+  const bp = dto?.bankProcess ?? {};
+  const id = dto?.id ?? bp.id;
+  if (id == null) return null;
+  const cost = amount(bp.supplierPrice) ?? 0;
+  const price = amount(bp.customerPrice) ?? 0;
+  return {
+    id,
+    tenantId: bp.tenantId,
+    countryId: bp.countryId,
+    bankOptionId: bp.bankOptionId,
+    supplierAccountId: bp.supplierAccountId,
+    customerAccountId: bp.customerAccountId,
+    companyAccountId: bp.companyAccountId,
+    supplier: dto.supplierAccountCode ?? "",
+    supplierName: dto.supplierAccountName ?? "",
+    customer: dto.customerAccountCode ?? "",
+    customerName: dto.customerAccountName ?? "",
+    company: dto.companyAccountCode ?? "",
+    companyName: dto.companyAccountName ?? "",
+    country: dto.countryCode ?? "",
+    currency: dto.countryCode ?? "", // the country is the currency
+    bank: dto.bankName ?? "",
+    cardOwner: bp.cardOwner ?? "",
+    cardOwnerType: bp.cardOwnerType ?? "",
+    contract: bp.contract ?? "",
+    insurance: amount(bp.insurancePrice),
+    cost,
+    price,
+    profit: amount(bp.companyPrice) ?? price - cost,
+    frequency: bp.frequency ?? "",
+    date: bp.dayStart ?? "",
+    dayEnd: bp.dayEnd ?? null,
+    dayEndMonthlyCapEnabled: Boolean(bp.dayEndMonthlyCapEnabled),
+    sop: bp.sop ?? "",
+    remark: bp.remark ?? "",
+    status: String(dto.status ?? bp.status ?? "ACTIVE").toUpperCase(),
+    bankBalance: amount(dto.bankBalance),
+    bankBalanceTransactionId: dto.bankBalanceTransactionId ?? null,
+    shares: dto.shares ?? [],
+    createdAt: bp.createdAt ?? null,
+    createdBy: bp.createdBy ?? "",
+    updatedAt: bp.updatedAt ?? null,
+    updatedBy: bp.updatedBy ?? "",
+  };
+}
 
-const money = (key) => (a, b) => a[key] - b[key];
+const money = (key) => (a, b) => (a[key] ?? 0) - (b[key] ?? 0);
 
 const COMPARE = {
   supplier: compareText("supplier"),
@@ -89,23 +110,19 @@ export const BANK_STATUS_BADGE = {
 // What the user can set from the status picker. WAITING is set by the system, so it is only ever shown.
 export const BANK_PICKABLE_STATUSES = ["ACTIVE", "INACTIVE", "OFFICIAL", "E_INVOICE", "BLOCK"];
 
-// A contract runs from the process date for its number of months; once that is over it is expired.
-// (Sample logic for the draft: the real answer comes from the backend.)
-function contractEnd(p) {
-  const months = Number(/(\d+)/.exec(p.contract)?.[1] ?? 0);
-  const [y, m, d] = p.date.split("-").map(Number);
-  return new Date(y, m - 1 + months, d);
-}
+// The backend refuses to edit a process in these statuses (details, remark, Bank Balance): change the status first.
+const LOCKED_STATUSES = ["OFFICIAL", "E_INVOICE", "BLOCK"];
+export const isBankLocked = (p) => LOCKED_STATUSES.includes(p.status);
+export const LOCKED_TITLE = "Change the status first to edit this process";
 
+// A contract ends on its Day End. Only 1st of Every Month and Monthly have one; Once, Daily and Weekly never run out.
 export function isContractExpired(p, today = new Date()) {
-  return contractEnd(p) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Boolean(p.dayEnd) && p.dayEnd < toIsoDate(today);
 }
 
-// yyyy-mm-dd
+// yyyy-mm-dd, or "" when the contract has no end (what the edit modal shows in Day End).
 export function contractEndDate(p) {
-  const e = contractEnd(p);
-  const pad = (n) => String(n).padStart(2, "0");
-  return e.getFullYear() + "-" + pad(e.getMonth() + 1) + "-" + pad(e.getDate());
+  return p.dayEnd ?? "";
 }
 
-export const formatMoney = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const formatMoney = (n) => (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

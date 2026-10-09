@@ -67,8 +67,10 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * options: [{ value, label }]. The list is exactly as wide as the trigger, opens below it
  * (above when there's no room) and scrolls inside itself if the screen is too short.
  * onClear: while a value is chosen, a small x inside the box clears it (onClear is called).
+ * uppercase: the shown value, the placeholder and the options are all upper case (the popup is outside the modal, so it
+ * needs the class itself).
  */
-export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear }) {
+export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear, uppercase = false }) {
   const label = options.find((o) => o.value === value)?.label;
   const clearable = Boolean(onClear && value && !disabled);
   const select = (
@@ -77,6 +79,7 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
         title={label}
         className={cn(
           inputClass,
+          uppercase && "uppercase",
           "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
           "data-[state=open]:border-[#3b82f6] data-[state=open]:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] data-placeholder:text-dash-faint",
           "data-disabled:cursor-not-allowed data-disabled:bg-modal-off data-disabled:text-dash-faint data-disabled:hover:border-modal-input-line"
@@ -97,7 +100,10 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
           position="popper"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl"
+          className={cn(
+            "z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
+            uppercase && "uppercase"
+          )}
         >
           <Select.Viewport className="flex flex-col gap-0.5 p-[5px]">
             {options.map((o) => (
