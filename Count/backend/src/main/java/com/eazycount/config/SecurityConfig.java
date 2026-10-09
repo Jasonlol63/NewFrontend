@@ -4,6 +4,11 @@ import com.eazycount.handler.AccessDeniedHandlerImpl;
 import com.eazycount.handler.AuthenticationEntryPointImpl;
 import com.eazycount.jwt.JwtAuthTokenFilter;
 import com.eazycount.jwt.JwtService;
+import com.eazycount.security.LoginUserPrincipal;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +41,28 @@ public class SecurityConfig {
             "/auth/reset-password",
             "/api/announcement/getMaintenanceInLogin",
             "/api/settings/getTelegramLink",
+    };
+
+    private static final String[] C168_ONLY_URLS = {
+            "/api/domain/**",
+            "/api/auto-renew/**",
+            "/api/announcement/listAnnouncement",
+            "/api/announcement/listMaintenance",
+            "/api/announcement/addAnnouncementContent",
+            "/api/announcement/addMaintenanceContent",
+            "/api/announcement/updateAnnouncement",
+            "/api/announcement/updateMaintenance",
+            "/api/announcement/deleteAnnouncement",
+            "/api/announcement/deleteMaintenance",
+    };
+
+    /** Grants only sessions whose CURRENT company is C168 (switch-tenant rebuilds the session, so this follows the company); everyone else gets 403 via AccessDeniedHandlerImpl. */
+    private static final AuthorizationManager<RequestAuthorizationContext> C168_ONLY = (authentication, context) -> {
+        Authentication auth = authentication.get();
+        boolean granted = auth != null
+                && auth.getPrincipal() instanceof LoginUserPrincipal principal
+                && principal.user().is_current_tenant_c168;
+        return new AuthorizationDecision(granted);
     };
 
     /** Shared with {@code com.eazycount.websocket.WebSocketConfig} so the STOMP endpoint accepts the same origins. */
@@ -76,10 +103,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
+                        // C168-only: Domain / Auto Renew / Announcement management. Kept in one place so a new
+                        // endpoint under these prefixes is protected by default. The announcement endpoints
+                        // every user needs (getDashboardAnnouncements, unreadCount, markRead) are not listed.
+                        .requestMatchers(C168_ONLY_URLS).access(C168_ONLY)
                         // Defense in depth: every other endpoint at minimum requires a valid session.
                         // Role/hierarchy/read-only enforcement itself happens at the service layer
-                        // (AccessControlUtils) and via ReadOnlyGuardInterceptor for @WriteOperation
-                        // endpoints — this line only closes the "no session at all" gap.
+                        // (AccessControlUtils) — this line only closes the "no session at all" gap.
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

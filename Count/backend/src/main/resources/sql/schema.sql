@@ -151,7 +151,7 @@ INSERT INTO `feature_module` (`id`, `code`, `name`, `sort_order`, `status`) VALU
 
 -- =============================================================================
 -- Sidebar permission dictionary
--- DOMAIN / ANNOUNCEMENTS: injected at runtime for C168 (not bound to roles)
+-- DOMAIN / ANNOUNCEMENTS / AUTORENEW: injected at runtime for C168 (not bound to roles)
 -- REPORT: requires tenant GAME feature (requires_feature_id)
 -- =============================================================================
 CREATE TABLE `permission` (
@@ -173,16 +173,18 @@ INSERT INTO `permission` (`id`, `code`, `name`, `sort_order`, `requires_feature_
 ( 1, 'HOME',          'Home',          1,  NULL, 'ACTIVE'),
 ( 2, 'DOMAIN',        'Domain',        2,  NULL, 'ACTIVE'),
 ( 3, 'ANNOUNCEMENTS', 'Announcements', 3,  NULL, 'ACTIVE'),
-( 4, 'ADMIN',         'Admin',         4,  NULL, 'ACTIVE'),
-( 5, 'ACCOUNT',       'Account',       5,  NULL, 'ACTIVE'),
-( 6, 'OWNERSHIP',     'Ownership',     6,  NULL, 'ACTIVE'),
-( 7, 'PROCESS',       'Process',       7,  NULL, 'ACTIVE'),
-( 8, 'DATACAPTURE',   'Data Capture',  8,  NULL, 'ACTIVE'),
-( 9, 'PAYMENT',       'Payment',       9,  NULL, 'ACTIVE'),
-(10, 'REPORT',        'Report',        10, 1,    'ACTIVE'),
-(11, 'MAINTENANCE',   'Maintenance',   11, NULL, 'ACTIVE');
+( 12, 'AUTORENEW',    'Auto Renew',    4,  NULL, 'ACTIVE'),
+( 4, 'ADMIN',         'Admin',         5,  NULL, 'ACTIVE'),
+( 5, 'ACCOUNT',       'Account',       6,  NULL, 'ACTIVE'),
+( 6, 'OWNERSHIP',     'Ownership',     7,  NULL, 'ACTIVE'),
+( 7, 'PROCESS',       'Process',       8,  NULL, 'ACTIVE'),
+( 8, 'DATACAPTURE',   'Data Capture',  9,  NULL, 'ACTIVE'),
+( 9, 'PAYMENT',       'Payment',       10, NULL, 'ACTIVE'),
+(10, 'REPORT',        'Report',        11, 1,    'ACTIVE'),
+(11, 'MAINTENANCE',   'Maintenance',   12, NULL, 'ACTIVE');
 
--- Default sidebar per role (DOMAIN / ANNOUNCEMENTS excluded — C168 runtime only)
+
+-- Default sidebar per role (DOMAIN / ANNOUNCEMENTS / AUTORENEW excluded — C168 runtime only)
 CREATE TABLE `user_role_permission` (
     `role_id`       TINYINT UNSIGNED NOT NULL,
     `permission_id` SMALLINT UNSIGNED NOT NULL,

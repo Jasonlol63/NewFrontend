@@ -45,6 +45,7 @@ public class SessionUser implements Serializable {
     public boolean tenant_has_bank;
     public int read_only;
 
+    /** Sidebar visibility by key (role × company category), computed once at construction. */
     public Map<String, Boolean> menu;
 
     public SessionUser() {
@@ -88,21 +89,62 @@ public class SessionUser implements Serializable {
         this.tenant_has_game = tenantHasGame;
         this.tenant_has_bank = tenantHasBank;
         this.read_only = readOnly;
-        this.menu = buildMenu(this.permissions, tenantHasGame, tenantHasBank, "group".equals(loginScope));
+        this.menu = buildMenu(
+                this.permissions, tenantHasGame, tenantHasBank, "group".equals(loginScope), isCurrentTenantC168);
     }
 
     /**
-     * Empty {@code moduleKeys} means "unrestricted" (same convention as the frontend's
-     * {@code hasFullPermissions} — Owner/IT sessions carry an empty list on purpose), not
-     * "has nothing" — so an empty list must pass the report/dataCapture gates too, not fail them.
+     * Sidebar visibility = role layer × company-category layer.
+     * <ul>
+     *   <li>Role layer: {@code moduleKeys} (role defaults / CUSTOM override, already feature-gated). An empty
+     *       list means "unrestricted" (Owner/IT convention, same as the frontend's {@code hasFullPermissions}),
+     *       not "has nothing".</li>
+     *   <li>Category layer: the CURRENT company's type — Games vs Bank (a group is always treated as Games),
+     *       group or company, C168. switch-tenant rebuilds the whole SessionUser, so the menu follows the company.</li>
+     * </ul>
+     * Keys match the {@code menu} keys in the frontend's {@code sidebarConfig.js}. C168-only entries ignore the
+     * role layer on purpose — they are not bound to any role.
      */
-    private static Map<String, Boolean> buildMenu(
-            List<String> moduleKeys, boolean hasGame, boolean hasBank, boolean isGroupLogin) {
+    static Map<String, Boolean> buildMenu(
+            List<String> moduleKeys, boolean hasGame, boolean hasBank,
+            boolean currentIsGroup, boolean c168) {
         Set<String> keys = moduleKeys == null ? Set.of() : Set.copyOf(moduleKeys);
         boolean unrestricted = keys.isEmpty();
+        boolean isBank = hasBank && !currentIsGroup;
+
+        boolean report = (unrestricted || keys.contains("report")) && !isBank;
+        boolean maintenance = unrestricted || keys.contains("maintenance");
+        boolean maintenanceDataCapture = maintenance && !isBank;
+        boolean maintenanceFormula = maintenance && !isBank;
+        boolean maintenanceTransaction = maintenance;
+        boolean maintenancePayment = maintenance;
+        boolean maintenanceBankProcess = maintenance && isBank;
+        boolean dataCapture = (unrestricted || keys.contains("datacapture"))
+                && (hasGame || hasBank || currentIsGroup);
+
         Map<String, Boolean> menu = new LinkedHashMap<>();
-        menu.put("report", unrestricted || keys.contains("report"));
-        menu.put("dataCapture", (unrestricted || keys.contains("datacapture")) && (hasGame || hasBank || isGroupLogin));
+        menu.put("home", true);
+        menu.put("domain", c168);
+        menu.put("announcement", c168);
+        menu.put("autoRenew", c168);
+        menu.put("admin", unrestricted || keys.contains("admin"));
+        menu.put("account", unrestricted || keys.contains("account"));
+        menu.put("ownership", unrestricted || keys.contains("ownership"));
+        // No Process for a group, and none inside C168.
+        menu.put("process", (unrestricted || keys.contains("process")) && !currentIsGroup && !c168);
+        menu.put("dataCapture", dataCapture);
+        menu.put("transactionPayment", unrestricted || keys.contains("payment"));
+        menu.put("report", report);
+        menu.put("reportCustomer", report);
+        menu.put("reportDomain", report);
+        menu.put("maintenanceDataCapture", maintenanceDataCapture);
+        menu.put("maintenanceTransaction", maintenanceTransaction);
+        menu.put("maintenancePayment", maintenancePayment);
+        menu.put("maintenanceFormula", maintenanceFormula);
+        menu.put("maintenanceBankProcess", maintenanceBankProcess);
+        // Parent entry: shown only if at least one child is.
+        menu.put("maintenance", maintenanceDataCapture || maintenanceTransaction || maintenancePayment
+                || maintenanceFormula || maintenanceBankProcess);
         return menu;
     }
 
@@ -216,7 +258,7 @@ public class SessionUser implements Serializable {
                 "",
                 normalizeLower(Objects.toString(member.getRole(), "")),
                 Collections.emptyList(),
-                "C168".equalsIgnoreCase(companyCode),
+                permissionService.isC168Account(tenant),
                 hasGame,
                 hasBank,
                 0

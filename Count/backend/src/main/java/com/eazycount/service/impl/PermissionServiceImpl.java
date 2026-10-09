@@ -26,7 +26,7 @@ public class PermissionServiceImpl implements PermissionService {
     private static final String GAME_CODE = "GAME";
     private static final String BANK_CODE = "BANK";
     private static final String OWNER_ROLE_CODE = "OWNER";
-    private static final List<String> C168_EXTRA_PERMISSION_CODES = List.of("DOMAIN", "ANNOUNCEMENTS");
+    private static final List<String> C168_EXTRA_PERMISSION_CODES = List.of("DOMAIN", "ANNOUNCEMENTS", "AUTORENEW");
 
     @Autowired
     private PermissionDao permissionDao;
