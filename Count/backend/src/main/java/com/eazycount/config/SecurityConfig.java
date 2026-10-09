@@ -5,6 +5,7 @@ import com.eazycount.handler.AuthenticationEntryPointImpl;
 import com.eazycount.jwt.JwtAuthTokenFilter;
 import com.eazycount.jwt.JwtService;
 import com.eazycount.security.LoginUserPrincipal;
+import com.eazycount.security.SessionUser;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
@@ -43,6 +44,17 @@ public class SecurityConfig {
             "/api/settings/getTelegramLink",
     };
 
+    /**
+     * All a session may call while its secondary password is still unverified: read itself, verify, and
+     * (public) log out. Everything else needs a fully verified session, otherwise typing a URL after the
+     * first login step would skip the secondary password.
+     */
+    private static final String[] SECONDARY_PENDING_ALLOWED_URLS = {
+            "/auth/current-user",
+            "/auth/verify-owner-secondary-password",
+            "/auth/verify-user-secondary-password",
+    };
+
     private static final String[] C168_ONLY_URLS = {
             "/api/domain/**",
             "/api/auto-renew/**",
@@ -56,13 +68,20 @@ public class SecurityConfig {
             "/api/announcement/deleteMaintenance",
     };
 
+    private static SessionUser sessionUser(Authentication auth) {
+        return auth != null && auth.getPrincipal() instanceof LoginUserPrincipal principal ? principal.user() : null;
+    }
+
+    /** Any logged-in session that has finished the secondary-password step (if it has one). */
+    static final AuthorizationManager<RequestAuthorizationContext> VERIFIED = (authentication, context) -> {
+        SessionUser user = sessionUser(authentication.get());
+        return new AuthorizationDecision(user != null && !user.needsSecondary());
+    };
+
     /** Grants only sessions whose CURRENT company is C168 (switch-tenant rebuilds the session, so this follows the company); everyone else gets 403 via AccessDeniedHandlerImpl. */
-    private static final AuthorizationManager<RequestAuthorizationContext> C168_ONLY = (authentication, context) -> {
-        Authentication auth = authentication.get();
-        boolean granted = auth != null
-                && auth.getPrincipal() instanceof LoginUserPrincipal principal
-                && principal.user().is_current_tenant_c168;
-        return new AuthorizationDecision(granted);
+    static final AuthorizationManager<RequestAuthorizationContext> C168_ONLY = (authentication, context) -> {
+        SessionUser user = sessionUser(authentication.get());
+        return new AuthorizationDecision(user != null && !user.needsSecondary() && user.is_current_tenant_c168);
     };
 
     /** Shared with {@code com.eazycount.websocket.WebSocketConfig} so the STOMP endpoint accepts the same origins. */
@@ -103,14 +122,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
+                        .requestMatchers(SECONDARY_PENDING_ALLOWED_URLS).authenticated()
                         // C168-only: Domain / Auto Renew / Announcement management. Kept in one place so a new
                         // endpoint under these prefixes is protected by default. The announcement endpoints
                         // every user needs (getDashboardAnnouncements, unreadCount, markRead) are not listed.
                         .requestMatchers(C168_ONLY_URLS).access(C168_ONLY)
-                        // Defense in depth: every other endpoint at minimum requires a valid session.
+                        // Defense in depth: every other endpoint at minimum requires a valid, fully verified
+                        // session (401 with none, 403 while the secondary password is pending).
                         // Role/hierarchy/read-only enforcement itself happens at the service layer
                         // (AccessControlUtils) — this line only closes the "no session at all" gap.
-                        .anyRequest().authenticated())
+                        .anyRequest().access(VERIFIED))
                 .addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

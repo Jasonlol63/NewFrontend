@@ -31,6 +31,10 @@ public class StompSubscriptionAuthInterceptor implements ChannelInterceptor {
             throw new AccessDeniedException("No authenticated session for this WebSocket subscription");
         }
 
+        if (principal.user().needsSecondary()) {
+            throw new AccessDeniedException("Secondary password not verified");
+        }
+
         final String destination = accessor.getDestination();
         final var companyTopic = RealtimeDestinations.parseCompanyTopic(destination);
         if (companyTopic.isPresent()) {

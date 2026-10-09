@@ -148,6 +148,11 @@ public class SessionUser implements Serializable {
         return menu;
     }
 
+    /** Logged in with the primary password, but the secondary one is still to be verified. */
+    public boolean needsSecondary() {
+        return needs_owner_secondary || needs_user_secondary;
+    }
+
     public static SessionUser from(
             UserDTO dto,
             Tenant tenant,
