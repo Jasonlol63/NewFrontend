@@ -1,5 +1,5 @@
 import { addDays, parseIsoDate } from "@/lib/date";
-import { ROLE_PRIORITY } from "./accountRules";
+import { ROLE_PRIORITY } from "../accountRules";
 
 // Options and Payment Alert helpers of the Add / Edit Account modal.
 

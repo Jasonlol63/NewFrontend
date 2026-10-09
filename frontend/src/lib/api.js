@@ -52,3 +52,20 @@ export async function postJson(url, data, { signal } = {}) {
   }
   return body;
 }
+
+// Same as postJson for other verbs (PUT, DELETE). `data` is optional; DELETE endpoints take their ids in the url.
+export async function sendJson(method, url, data, { signal } = {}) {
+  const res = await fetch(url, {
+    method,
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: data === undefined ? undefined : JSON.stringify(data),
+    signal,
+  });
+  leaveIfSignedOut(res);
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
+    throw new Error(body?.message || "Network error, please try again");
+  }
+  return body;
+}

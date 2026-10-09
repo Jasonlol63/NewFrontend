@@ -11,9 +11,9 @@ Currency Setting 管理"哪些账号持有哪个币种"：选一个币种，勾�
 | 文件 | 内容 |
 |---|---|
 | `src/pages/account/AccountPage.jsx` | 入口：工具栏 **Currency Setting** 按钮（只读账号时灰掉）；控制弹窗开关 |
-| `src/pages/account/CurrencySettingModal.jsx` | 弹窗本体：Add Currency、Currency、Account 三张卡片；币种管理 `CurrencyManager`；Account 搜索 / 筛选 `AccountFilters` |
-| `src/pages/account/CurrencyChangesDialog.jsx` | 点 Save 后的"确认改动"弹窗 |
-| `src/pages/account/currencySettingRules.js` | 规则（纯函数，无界面）：持有状态、生成改动列表、筛选、占位数据 |
+| `src/pages/account/currency/CurrencySettingModal.jsx` | 弹窗本体：Add Currency、Currency、Account 三张卡片；币种管理 `CurrencyManager`；Account 搜索 / 筛选 `AccountFilters` |
+| `src/pages/account/currency/CurrencyChangesDialog.jsx` | 点 Save 后的"确认改动"弹窗 |
+| `src/pages/account/currency/currencySettingRules.js` | 规则（纯函数，无界面）：持有状态、生成改动列表、筛选、占位数据 |
 | `src/components/shared/form-modal/*`、`DeleteDialog.jsx` | 共用外壳和删除确认弹窗 |
 
 ---

@@ -1,11 +1,12 @@
 # 弹窗共用设计规格（Admin / Account 通用）
 
-Admin 的 **Add / Edit User**、Account 的 **Add / Edit Account**、Account 的 **Currency Setting** 三个全区弹窗，以及 Admin / Account 列表页的 **Delete 确认弹窗**，共用同一套外壳、卡片、输入框、颜色和动画。**下面这些尺寸在 Admin 和 Account 两边完全一样**，各页面的文档不会重复写，只写它们自己独有的部分。
+Admin 的 **Add / Edit User**、Account 的 **Add / Edit Account**、Account 的 **Currency Setting**、Account 的 **Link Account** 四个全区弹窗，以及 Admin / Account 列表页的 **Delete 确认弹窗**，共用同一套外壳、卡片、输入框、颜色和动画。**下面这些尺寸在 Admin 和 Account 两边完全一样**，各页面的文档不会重复写，只写它们自己独有的部分。
 
 - 数值取自代码，高度/宽度分档的断点在 Chrome 预览里实测过（Currency Setting 开发时逐个尺寸量过）。
 - 页面独有的设计见：
   - `account-form-modal-design.md`：Add / Edit Account
   - `currency-setting-modal-design.md`：Currency Setting
+  - `link-account-modal-design.md`：Link Account
 - 旧文档 `add-user-modal-design.md` 写的是改成"毛玻璃"风格之前的版本（那时弹窗是白底、没有卡片边框），**颜色和外壳以本文为准**；它里面 User Information 卡片、权限按钮、Account / Process 列表的细节仍可参考。
 
 | 文件 | 内容 |

@@ -10,8 +10,8 @@ Add Account 和 Edit Account 是**同一个弹窗**（`AccountFormModal.jsx`）�
 | 文件 | 内容 |
 |---|---|
 | `src/pages/account/AccountPage.jsx` | 入口：Add Account 按钮、行内编辑图标；控制弹窗开关 |
-| `src/pages/account/AccountFormModal.jsx` | 弹窗本体：5 个卡片 / 区块 |
-| `src/pages/account/accountFormOptions.js` | 角色选项、占位币种（10 个）、Payment Alert 的选项和日期工具 |
+| `src/pages/account/form/AccountFormModal.jsx` | 弹窗本体：5 个卡片 / 区块 |
+| `src/pages/account/form/accountFormOptions.js` | 角色选项、占位币种（10 个）、Payment Alert 的选项和日期工具 |
 | `src/components/shared/form-modal/*` | 共用外壳、卡片、控件 |
 
 ---

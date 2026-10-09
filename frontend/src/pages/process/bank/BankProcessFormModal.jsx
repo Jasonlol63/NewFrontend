@@ -7,7 +7,7 @@ import DateField from "@/components/shared/form-modal/DateField.jsx";
 import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
 import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import { CalendarDays } from "lucide-react";
-import AccountFormModal from "@/pages/account/AccountFormModal.jsx";
+import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
 import BankProfitSharing from "./BankProfitSharing.jsx";
 import CountryBankAdder from "./CountryBankAdder.jsx";
 import { contractEndDate } from "./bankProcessRules";

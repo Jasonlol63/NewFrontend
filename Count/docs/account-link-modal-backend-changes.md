@@ -1,6 +1,6 @@
 # Account Link 后端改动记录(Link Account 弹窗)
 
-对应前端:`frontend/src/pages/account/LinkAccountModal.jsx`、`linkAccountApi.js`。前端设计见 `frontend/docs/mockups/link-account-modal.html`。
+对应前端:`frontend/src/pages/account/link/`(`LinkAccountModal.jsx`、`linkAccountApi.js`、`linkAccountRules.js`)。前端设计见 `frontend/docs/link-account-modal-design.md`。
 
 ## 背景与规则
 

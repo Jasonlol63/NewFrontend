@@ -11,11 +11,10 @@ import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
 import { ROLE_BADGE, ROLE_BADGE_NONE, filterAccounts, normalizeAccountRow, sortAccounts } from "./accountRules";
-import AccountFormModal from "./AccountFormModal.jsx";
-import { UPDATE_URL, toLocalIsoDate } from "./accountFormRules";
-import CurrencySettingModal from "./CurrencySettingModal.jsx";
-
-const NOT_BUILT = "Not available yet";
+import AccountFormModal from "./form/AccountFormModal.jsx";
+import { UPDATE_URL, toLocalIsoDate } from "./form/accountFormRules";
+import CurrencySettingModal from "./currency/CurrencySettingModal.jsx";
+import LinkAccountModal from "./link/LinkAccountModal.jsx";
 
 // Payment alert on / off; a click switches it right away (see toggleAlert in the page).
 function AlertPill({ on, onToggle, disabled }) {
@@ -51,6 +50,8 @@ export default function AccountPage() {
   // null = closed, { mode: "add" } or { mode: "edit", account } = open
   const [accountForm, setAccountForm] = useState(null);
   const closeAccountForm = useCallback(() => setAccountForm(null), []);
+  const [linkAccount, setLinkAccount] = useState(null); // the row whose links are being edited
+  const closeLinkAccount = useCallback(() => setLinkAccount(null), []);
   const [currencySetting, setCurrencySetting] = useState(false);
   const closeCurrencySetting = useCallback(() => setCurrencySetting(false), []);
   const [alertPending, setAlertPending] = useState(() => new Set()); // account ids whose alert is being switched off
@@ -171,7 +172,13 @@ export default function AccountPage() {
             title={readOnly ? "Read-only login" : "Edit account"}
             aria-label="Edit account"
           />
-          <IconAction icon={Plus} disabled title={NOT_BUILT} aria-label="Link account" />
+          <IconAction
+            icon={Plus}
+            onClick={() => setLinkAccount(a)}
+            disabled={readOnly}
+            title={readOnly ? "Read-only login" : "Link account"}
+            aria-label="Link account"
+          />
         </>
       ),
     },
@@ -216,6 +223,10 @@ export default function AccountPage() {
       {/* Currency Setting fills the content area (sidebar stays visible). */}
       {currencySetting && (
         <CurrencySettingModal tenantId={scope.tenantId} accounts={rows} onClose={closeCurrencySetting} onSaved={closeCurrencySetting} />
+      )}
+
+      {linkAccount && (
+        <LinkAccountModal account={linkAccount} accounts={rows} tenantId={scope.tenantId} onClose={closeLinkAccount} onSaved={closeLinkAccount} />
       )}
 
       {/* Add Account and Edit Account share one modal. */}
