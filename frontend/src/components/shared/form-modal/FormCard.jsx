@@ -5,10 +5,14 @@ import { cn } from "@/lib/utils";
  * right, and a body that scrolls on its own when the screen is too short.
  * bodyClassName replaces the default body padding / scrolling when the card needs its own
  * (e.g. a search row above a list); `body={false}` renders children straight under the header.
+ * inert: the card is shown dimmed and nothing in it can be used (a form that is read-only apart from other cards).
  */
-export default function FormCard({ title, right, className, bodyClassName, body = true, children }) {
+export default function FormCard({ title, right, className, bodyClassName, body = true, inert = false, children }) {
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", className)}>
+    <section
+      inert={inert || undefined}
+      className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", inert && "opacity-60", className)}
+    >
       <div
         className={cn(
           "flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",

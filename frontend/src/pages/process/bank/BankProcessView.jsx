@@ -21,7 +21,7 @@ import { contractLabel } from "./bankFormRules";
 import {
   BANK_PICKABLE_STATUSES,
   BANK_STATUS_BADGE,
-  LOCKED_TITLE,
+  LOCKED_EDIT_TITLE,
   filterBankProcesses,
   formatMoney,
   isBankLocked,
@@ -310,15 +310,15 @@ export default function BankProcessView({ scope, readOnly }) {
         <IconAction
           icon={SquarePen}
           onClick={() => setEditRow(p)}
-          disabled={readOnly || isBankLocked(p)}
-          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_TITLE : "Edit process"}
+          disabled={readOnly}
+          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_EDIT_TITLE : "Edit process"}
           aria-label="Edit process"
         />
         <IconAction
           icon={MessageSquare}
           onClick={() => setRemarkRow(p)}
-          disabled={readOnly || isBankLocked(p)}
-          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_TITLE : p.remark ? `Remark: ${p.remark}` : "Remark"}
+          disabled={readOnly}
+          title={readOnly ? "Read-only login" : p.remark ? `Remark: ${p.remark}` : "Remark"}
           aria-label="Remark"
         />
         {p.status === "INACTIVE" ? (

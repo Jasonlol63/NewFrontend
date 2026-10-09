@@ -32,7 +32,7 @@ function ColumnLabel({ children }) {
  * accounts: [{ value, label }] to choose from (an entry holds the account's value; the list shows its label); profit: sell - buy, the base of a percentage; currency: shown before amounts.
  * onAccount({ mode: "add" | "edit", value, apply(newValue) }): the "+" / edit button of a row asks the page to open Add / Edit Account.
  */
-export default function BankProfitSharing({ entries, onChange, accounts, profit, currency, onAccount }) {
+export default function BankProfitSharing({ entries, onChange, accounts, profit, currency, onAccount, inert = false }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState(() => [blankRow()]);
 
@@ -84,6 +84,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
   return (
     <FormCard
       title="Profit Sharing"
+      inert={inert}
       className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible"
       bodyClassName="flex flex-col gap-2 @max-[899px]/main:overflow-visible"
       right={headerRight}

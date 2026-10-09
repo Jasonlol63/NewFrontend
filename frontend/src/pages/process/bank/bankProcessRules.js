@@ -84,15 +84,16 @@ export function sortBankProcesses(rows, key, dir) {
   return sortRows(rows, COMPARE[key] ?? byDefault, byDefault, dir);
 }
 
-// The status chips narrow the list to those statuses; with none ticked every row shows except Inactive.
+// With no chip ticked the list shows only Active processes. The status chips choose what else to see: each ticked one adds
+// its status (Active, Inactive, Official, E-Invoice, Blocked), and "Show All" shows every status, Waiting included.
 const CHIP_STATUS = { showActive: "ACTIVE", showInactive: "INACTIVE", showOfficial: "OFFICIAL", showEInvoice: "E_INVOICE", showBlocked: "BLOCK" };
 
 export function filterBankProcesses(rows, { search, ...chips }) {
   const picked = Object.entries(CHIP_STATUS).filter(([key]) => chips[key]).map(([, status]) => status);
+  const statusShown = (status) => chips.showAll || (picked.length ? picked.includes(status) : status === "ACTIVE");
   return rows.filter(
     (p) =>
-      matchesSearch([p.supplier, p.country, p.bank, p.cardOwner, p.contract, p.customer, p.status, p.date], search) &&
-      (picked.length ? picked.includes(p.status) : p.status !== "INACTIVE")
+      matchesSearch([p.supplier, p.country, p.bank, p.cardOwner, p.contract, p.customer, p.status, p.date], search) && statusShown(p.status)
   );
 }
 
