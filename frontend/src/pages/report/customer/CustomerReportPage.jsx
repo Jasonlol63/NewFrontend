@@ -86,7 +86,7 @@ export default function CustomerReportPage() {
                 options={currencyOptions}
                 value={currency}
                 onChange={setCurrencyPick}
-                onReorder={setCurrencyOrder}
+                wrap onReorder={setCurrencyOrder}
               />
             ) : (
               <span className="text-xs font-medium text-dash-faint">No currency available</span>

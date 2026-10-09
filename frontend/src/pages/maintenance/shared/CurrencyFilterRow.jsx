@@ -13,7 +13,7 @@ export default function CurrencyFilterRow({ filters }) {
           options={filters.currencyOptions}
           value={filters.currency}
           onChange={filters.setCurrency}
-          onReorder={filters.setCurrencyOrder}
+          wrap onReorder={filters.setCurrencyOrder}
         />
       ) : (
         <span className="text-xs font-medium text-dash-faint">No currency available</span>

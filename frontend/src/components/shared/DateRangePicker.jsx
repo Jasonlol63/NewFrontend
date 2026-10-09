@@ -48,6 +48,23 @@ const SIZE = {
 };
 // ================================================================
 
+// `small`: the same popup (presets column beside the calendar) scaled down for toolbars on smaller screens.
+// The popup is never narrower than the 268px its content needs, even when the date box is.
+const SIZE_SMALL = {
+  trigger: "w-[330px]",
+  presetColumn: "w-[84px] p-0.5",
+  presetItem: "px-1.5 py-1 text-[11px] whitespace-nowrap",
+  calendar: "p-2",
+  header: "mb-1.5",
+  headerButton: "px-1.5 py-[calc(var(--spacing)*0.8)] text-[11px]",
+  navButton: "size-5",
+  weekday: "pb-0.5 text-[10px]",
+  dayCell: "size-6 text-[11px]",
+  dayRowGap: "gap-y-1",
+  tile: "py-1.5 text-[11px]",
+  tileGap: "gap-1",
+};
+
 const tileClass = cn("cursor-pointer rounded-lg font-semibold transition-colors", SIZE.tile);
 const tileIdle = "bg-slate-50 text-[#1e3a6e] hover:bg-slate-100";
 const tileActive = "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,255,0.55)]";
@@ -58,8 +75,8 @@ const tileActive = "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,
  * that must stay on one row): the popup is the same design, but the presets sit in a dropdown above the calendar
  * instead of a column beside it.
  */
-export default function DateRangePicker({ from, to, onChange, align = "start", className, compact = false }) {
-  const S = SIZE;
+export default function DateRangePicker({ from, to, onChange, align = "start", className, compact = false, small = false }) {
+  const S = small ? SIZE_SMALL : SIZE;
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(to || toIsoDate(new Date())));
@@ -137,7 +154,8 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
           sideOffset={6}
           className={cn(
             "z-50 flex w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]",
-            compact && "flex-col"
+            compact && "flex-col",
+            small && "min-w-[268px]"
           )}
         >
           {compact ? (

@@ -367,7 +367,7 @@ export default function BankProcessView({ scope, readOnly }) {
             </FilterRow>
           )}
           <FilterRow label="Currency:">
-            <SegmentGroup leading={ALL_CURRENCIES} options={currencyOptions} value={currency} onChange={setCurrency} onReorder={setCurrencyOrder} />
+            <SegmentGroup leading={ALL_CURRENCIES} options={currencyOptions} value={currency} onChange={setCurrency} wrap onReorder={setCurrencyOrder} />
           </FilterRow>
         </div>
       </section>

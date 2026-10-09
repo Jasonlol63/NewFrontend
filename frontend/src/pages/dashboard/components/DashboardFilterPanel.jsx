@@ -53,7 +53,7 @@ export default function DashboardFilterPanel({
               options={currencyOptions}
               value={currency}
               onChange={onCurrencyChange}
-              onReorder={onCurrencyReorder}
+              wrap onReorder={onCurrencyReorder}
             />
           ) : (
             <span className="text-xs font-medium text-dash-faint">No currency available</span>

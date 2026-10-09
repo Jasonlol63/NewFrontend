@@ -18,6 +18,7 @@ import TransactionMaintenancePage from "./pages/maintenance/transaction/Transact
 import PaymentMaintenancePage from "./pages/maintenance/payment/PaymentMaintenancePage.jsx";
 import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenancePage.jsx";
 import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
+import TransactionPaymentPage from "./pages/transaction-payment/TransactionPaymentPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/process" element={<ProcessPage />} />
           <Route path="/data-capture" element={<DataCapturePage />} />
           <Route path="/data-capture/summary" element={<DataCaptureSummaryPage />} />
+          <Route path="/transaction-payment" element={<TransactionPaymentPage />} />
           <Route path="/report/customer" element={<CustomerReportPage />} />
           <Route path="/report/domain" element={<DomainReportPage />} />
           <Route path="/maintenance/data-capture" element={<CaptureMaintenancePage />} />

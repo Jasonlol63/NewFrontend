@@ -9,6 +9,7 @@ import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
+import WrappedSegmentGroup from "./WrappedSegmentGroup.jsx";
 
 // Keep the dragged chip inside the row's own box. restrictToParentElement clamps to the border
 // box, so a chip dragged to an end sticks out past the padding box by a fraction of a pixel and the
@@ -55,9 +56,15 @@ function SortableItem({ option, active, onSelect }) {
 // clicking the active chip again clears the selection (onChange(null)). With onReorder set,
 // chips can be dragged sideways; onReorder receives the option values in their new order.
 // `leading` options (e.g. "All") sit in front of the chips, selectable but never dragged or reordered.
-export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, leading = [], className }) {
+// With `wrap` the chips continue on the next line when they do not fit (each line is its own bar, still draggable
+// across lines) instead of scrolling sideways; `value` may then be an array (several chips lit). `itemClassName`
+// adjusts the chips of a wrapped group (e.g. tighter padding).
+export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, leading = [], className, wrap = false, itemClassName }) {
   // A chip must move 5px before a drag starts, so a plain click still just selects it.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  if (wrap) {
+    return <WrappedSegmentGroup options={options} value={value} onChange={onChange} onReorder={onReorder} leading={leading} className={className} itemClassName={itemClassName} />;
+  }
   const select = (opt) => onChange(opt.value === value && allowDeselect ? null : opt.value);
 
   const wrapperClass = cn(

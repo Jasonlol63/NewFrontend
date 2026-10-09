@@ -18,7 +18,7 @@ const chipClass =
 const moreChipClass =
   "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 text-[12px] font-extrabold text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
 
-export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder }) {
+export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder, className }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -85,7 +85,8 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
             inputClass,
             "relative flex h-auto min-h-9 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden py-[3px] pl-[5px] pr-16 hover:border-[#93c5fd]",
             "@min-[900px]/main:@max-[1099px]/main:min-h-8 modal-compact:min-h-[30px] modal-tiny:min-h-7",
-            open && openFieldClass
+            open && openFieldClass,
+            className
           )}
         >
           {picked.length === 0 ? (

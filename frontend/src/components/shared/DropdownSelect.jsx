@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Single-choice dropdown that looks like the DateRangePicker box. options: [{ value, label }].
- * `searchable` adds a search box on top of the list (Enter picks the first match).
+ * `searchable` adds a search box on top of the list (Enter picks the first match). `panelClassName` / `listClassName`
+ * restyle the popup / its scrolling list (e.g. a narrower popup, a shorter list).
  */
 export default function DropdownSelect({
   options,
@@ -17,6 +18,8 @@ export default function DropdownSelect({
   className = "w-[250px]",
   ariaLabel,
   clearable = false,
+  panelClassName,
+  listClassName,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -81,7 +84,7 @@ export default function DropdownSelect({
         <Popover.Content
           align="start"
           sideOffset={6}
-          className="z-50 w-(--radix-popover-trigger-width) min-w-[200px] overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className={cn("z-50 w-(--radix-popover-trigger-width) min-w-[200px] overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]", panelClassName)}
         >
           {searchable && (
             <label className="flex items-center gap-2 border-b border-dash-line px-3 py-2">
@@ -99,7 +102,7 @@ export default function DropdownSelect({
               />
             </label>
           )}
-          <div className="max-h-[260px] overflow-y-auto p-1">
+          <div className={cn("max-h-[260px] overflow-y-auto p-1", listClassName)}>
             {shown.map((option) => (
               <button
                 key={option.value}
