@@ -15,30 +15,30 @@ import {
 
 // Shared by the full sidebar and the icon rail. Submenus live only in the
 // full sidebar; the rail opens the full sidebar as a drawer for those items.
+// `menu` is the key in the backend's `menu` map (SessionUser.buildMenu); an item shows only when
+// that key is true. A parent with `children` shows when at least one child does. Numbers are
+// assigned from what is visible (see buildSidebarMenu).
 export const MENU_ITEMS = [
-  { index: 1, label: "Home", icon: Home, path: "/dashboard" },
-  { index: 2, label: "Domain", icon: Globe, path: "/domain" },
-  { index: 3, label: "Announcement", icon: Megaphone, path: "/announcement" },
-  { index: 4, label: "Auto Renew", icon: RefreshCw, path: "/auto-renew" },
-  { index: 5, label: "Admin", icon: Shield, path: "/admin" },
-  { index: 6, label: "Account", icon: User, path: "/account" },
-  { index: 7, label: "Ownership", icon: Users, path: "/ownership" },
-  { index: 8, label: "Process", icon: CheckCircle2, path: "/process" },
-  { index: 9, label: "Data Capture", icon: BarChart2, path: "/data-capture" },
-  { index: 10, label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
+  { menu: "home", label: "Home", icon: Home, path: "/dashboard" },
+  { menu: "domain", label: "Domain", icon: Globe, path: "/domain" },
+  { menu: "announcement", label: "Announcement", icon: Megaphone, path: "/announcement" },
+  { menu: "autoRenew", label: "Auto Renew", icon: RefreshCw, path: "/auto-renew" },
+  { menu: "admin", label: "Admin", icon: Shield, path: "/admin" },
+  { menu: "account", label: "Account", icon: User, path: "/account" },
+  { menu: "ownership", label: "Ownership", icon: Users, path: "/ownership" },
+  { menu: "process", label: "Process", icon: CheckCircle2, path: "/process" },
+  { menu: "dataCapture", label: "Data Capture", icon: BarChart2, path: "/data-capture" },
+  { menu: "transactionPayment", label: "Transaction Payment", icon: CreditCard, path: "/transaction-payment" },
   {
-    index: 11,
     key: "report",
     label: "Report",
     icon: FileText,
-    // `menu` is the permission key for the later Sidebar API; not used yet.
     children: [
       { label: "Customer", path: "/report/customer", menu: "reportCustomer" },
       { label: "Domain", path: "/report/domain", menu: "reportDomain" },
     ],
   },
   {
-    index: 12,
     key: "maintenance",
     label: "Maintenance",
     icon: Wrench,
@@ -51,6 +51,29 @@ export const MENU_ITEMS = [
     ],
   },
 ];
+
+// The menu the user may see, numbered 1..n. `menu` is user.menu from /auth/current-user; a missing
+// key counts as hidden, so an incomplete session never shows more than it should.
+export function buildSidebarMenu(menu) {
+  if (!menu) return [];
+  const visible = [];
+  for (const item of MENU_ITEMS) {
+    if (item.children) {
+      const children = item.children.filter((child) => menu[child.menu] === true);
+      if (children.length) visible.push({ ...item, children });
+    } else if (menu[item.menu] === true) {
+      visible.push(item);
+    }
+  }
+  return visible.map((item, i) => ({ ...item, index: i + 1 }));
+}
+
+const ROUTES = MENU_ITEMS.flatMap((item) => (item.children ?? [item]).map(({ path, menu }) => ({ path, menu })));
+
+// The menu key guarding a URL (the page itself or anything below it), or null for unguarded pages.
+export function menuKeyForPath(pathname) {
+  return ROUTES.find(({ path }) => pathname === path || pathname.startsWith(path + "/"))?.menu ?? null;
+}
 
 // Every routable page under the submenus, for the placeholder routes.
 export const SUBMENU_PAGES = MENU_ITEMS.flatMap((item) =>
@@ -72,9 +95,4 @@ export const ACTIVE_ITEM_CLASS =
 
 export const IDLE_ITEM_CLASS = "text-[#b7c9ea] hover:bg-white/5 hover:text-[#e6edfb]";
 
-export const DEFAULT_PROFILE = {
-  userName: "BOSS",
-  userRole: "Owner",
-  avatarSrc: "/images/avatar1.webp",
-  expiryLabel: "Exp: 3m 15d left",
-};
+export const DEFAULT_AVATAR = "/images/avatar1.webp";

@@ -19,7 +19,7 @@ export default function DomainReportPage() {
     return { from: today, to: today };
   });
 
-  const scope = useListScope("report.domain.scope", { onChange: () => setProcessPick("") });
+  const scope = useListScope({ onChange: () => setProcessPick("") });
   const { tenantId } = scope;
   // company null = the Group's own data.
   const isGroupOwn = Boolean(tenantId) && scope.company === null;

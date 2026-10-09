@@ -40,7 +40,7 @@ export default function FormulaMaintenancePage() {
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
 
-  const filters = useMaintenanceFilters("maintenance.formula.scope", {
+  const filters = useMaintenanceFilters({
     dated: false,
     onChange: () => setSelected(new Set()),
   });

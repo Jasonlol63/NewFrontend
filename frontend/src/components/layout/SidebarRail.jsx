@@ -4,11 +4,11 @@ import { LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   ACTIVE_ITEM_CLASS,
-  DEFAULT_PROFILE,
+  DEFAULT_AVATAR,
   IDLE_ITEM_CLASS,
-  MENU_ITEMS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
+import { useSidebarData } from "./useSidebarData";
 
 const ITEM_CLASS =
   "flex size-10 flex-none items-center justify-center rounded-xl border-none bg-transparent no-underline cursor-pointer short:size-9";
@@ -32,12 +32,8 @@ function RailTip({ label, children }) {
 
 // Icon-only sidebar used below 1200px. Items with a submenu (and the menu
 // button) open the full sidebar as a drawer instead of navigating.
-export default function SidebarRail({
-  userName = DEFAULT_PROFILE.userName,
-  avatarSrc = DEFAULT_PROFILE.avatarSrc,
-  onOpenMenu,
-  onLogout,
-}) {
+export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, onLogout }) {
+  const { loading, items, userName } = useSidebarData();
   const { pathname } = useLocation();
 
   return (
@@ -57,7 +53,7 @@ export default function SidebarRail({
           </button>
         </RailTip>
 
-        <RailTip label={userName}>
+        <RailTip label={userName || "Profile"}>
           <button
             type="button"
             onClick={onOpenMenu}
@@ -77,7 +73,14 @@ export default function SidebarRail({
         <div className="h-px w-8 flex-none bg-[linear-gradient(90deg,transparent_0%,rgba(103,232,249,0.7)_50%,transparent_100%)] shadow-[0_0_8px_1px_rgba(56,189,248,0.5)]" />
 
         <nav className="scrollbar-sidebar flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden">
-          {MENU_ITEMS.map(({ key, label, icon: Icon, path, children }) => {
+          {loading && (
+            <div className="flex animate-pulse flex-col gap-1">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="size-10 flex-none rounded-xl bg-white/10 short:size-9" />
+              ))}
+            </div>
+          )}
+          {items.map(({ key, label, icon: Icon, path, children }) => {
             const tip = children ? `${label} ›` : label;
             // Resolved here rather than via NavLink: Tooltip's asChild Slot
             // stringifies a function className.

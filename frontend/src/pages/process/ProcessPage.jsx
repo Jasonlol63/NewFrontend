@@ -42,7 +42,7 @@ export default function ProcessPage() {
   const closeAdd = useCallback(() => setAddOpen(false), []);
   const [editRow, setEditRow] = useState(null);
   const closeEdit = useCallback(() => setEditRow(null), []);
-  const scope = useListScope("process.scope", { onChange: () => view.reset() });
+  const scope = useListScope({ onChange: () => view.reset() });
   // The picked company's category decides the page: Bank companies get the Bank Process list, Game companies this one.
   const isBank = scope.company !== null && isBankCompany(scope.company);
   const { rows: allRows, error: listError, loading, toggleStatus, deleteRows } = useProcessList(isBank ? null : scope.tenantId);

@@ -2,7 +2,11 @@
 
 > 写于 2026-09-30，2026-10-04 更新。继续时先读这份文件。
 > **状态：** 前端的 Report / Maintenance 子菜单（含占位页和路由）已在 2026-10-04 完成，见第 0 节。
-> 其余部分（接 API、C168 权限检查、后端改动）仍然没做，前后端都没改。
+> **2026-10-09 更新：** 后端已改（`login_origin_scope`、`c168_access`、按角色 × 公司类别算 `menu`、C168 接口拦截、`AUTORENEW` 权限，
+> 迁移见 `Count/backend/src/main/resources/sql/migrate_add_auto_renew_permission.sql`，规则测试 `SessionUserMenuTest`）；
+> 前端已接：`src/context/session.jsx`（SessionProvider）、`sidebarConfig.js` 的 `buildSidebarMenu` / `menuKeyForPath`、
+> `useSidebarData`、`sidebarProfile.js`（角色名、到期时间）、`AuthenticatedLayout` 的登出和页面守卫。
+> **还没做真实登录验证**（5 种身份），也没做 Auto Renew 待处理数量。下文第 3、4 节描述的是原方案，以代码为准。
 > 文中的行号是写这份文件时的位置，动手前先重新核对。
 
 ---

@@ -43,7 +43,7 @@ export default function PaymentMaintenancePage() {
   const [selected, setSelected] = useState(() => new Set());
   const clearSelection = () => setSelected(new Set());
 
-  const filters = useCurrencyFilters("maintenance.payment.scope", { onChange: clearSelection });
+  const filters = useCurrencyFilters({ onChange: clearSelection });
   const { tenantId, currency, range } = filters;
 
   const request = useMemo(

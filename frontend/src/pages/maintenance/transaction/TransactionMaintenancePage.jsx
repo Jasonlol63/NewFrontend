@@ -28,7 +28,7 @@ const columns = [
 ];
 
 export default function TransactionMaintenancePage() {
-  const filters = useMaintenanceFilters("maintenance.transaction.scope");
+  const filters = useMaintenanceFilters();
   const list = useMaintenanceList(TRANSACTION_LIST_URL, filters.request, normalizeTransactionRow);
   const rows = useMemo(() => filterTransactionRows(list.rows, filters.search), [list.rows, filters.search]);
 

@@ -34,6 +34,12 @@ Target desktop viewports (CSS px, i.e. after browser chrome and Windows scaling)
    `children` has no `path` of its own: it only expands/collapses (one open at a time, collapsed on load).
    Page layouts that switch to multi-column should key off available width (`lg:` = 1024+), since
    the rail frees ~180px below 1200.
-8. **Verify** each new/changed page in the preview at the viewports above:
+8. **One current company for the whole app.** The session (/auth/current-user) is always in one
+   company; the sidebar and the route guard read `user.menu` from it (backend computes it from role ×
+   that company's category). Every Group / Company picker (`useListScope`, Dashboard) shows that
+   company, and picking another calls `switchCompany` (/auth/switch-tenant) so the sidebar and all pages
+   follow. Don't keep a separate per-page company selection. Dashboard's "All" views span several
+   tenants, so they don't switch the session.
+9. **Verify** each new/changed page in the preview at the viewports above:
    `document.documentElement.scrollHeight <= innerHeight` and `scrollWidth <= innerWidth`,
    and `<main>` has no overflow for screen-filling pages.

@@ -27,7 +27,7 @@ export default function CaptureMaintenancePage() {
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
 
-  const filters = useMaintenanceFilters("maintenance.capture.scope", { onChange: () => setSelected(new Set()) });
+  const filters = useMaintenanceFilters({ onChange: () => setSelected(new Set()) });
   const captures = useMaintenanceList(CAPTURE_LIST_URL, filters.request, normalizeCaptureRow);
   const rows = useMemo(() => filterCaptureRows(captures.rows, filters.search), [captures.rows, filters.search]);
 

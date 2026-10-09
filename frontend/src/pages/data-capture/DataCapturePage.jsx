@@ -11,7 +11,7 @@ import GameCaptureView from "./games/GameCaptureView.jsx";
  */
 export default function DataCapturePage() {
   const readOnly = Boolean(useCurrentUser()?.readOnly);
-  const scope = useListScope("dataCapture.scope");
+  const scope = useListScope();
   const isBank = scope.company !== null && isBankCompany(scope.company);
   return isBank ? <BankCaptureView scope={scope} readOnly={readOnly} /> : <GameCaptureView scope={scope} readOnly={readOnly} />;
 }

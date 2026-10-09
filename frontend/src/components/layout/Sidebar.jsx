@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
 import {
   ACTIVE_ITEM_CLASS,
-  DEFAULT_PROFILE,
+  DEFAULT_AVATAR,
   IDLE_ITEM_CLASS,
-  MENU_ITEMS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
+import { useSidebarData } from "./useSidebarData";
 
 const ITEM_CLASS =
   "flex flex-none items-center gap-2.5 rounded-[11px] px-[11px] py-[9px] text-[13px] font-semibold no-underline cursor-pointer short:py-1.5 short:text-[12.5px]";
@@ -22,15 +22,8 @@ const LANG_OPTIONS = [
 // Full sidebar. Width follows the viewport (220px on a 1366 laptop, 236px on
 // 1920) and spacing tightens on short screens via `short:`. Also rendered as
 // the drawer behind the icon rail below 1200px (onNavigate closes it).
-export default function Sidebar({
-  userName = DEFAULT_PROFILE.userName,
-  userRole = DEFAULT_PROFILE.userRole,
-  avatarSrc = DEFAULT_PROFILE.avatarSrc,
-  expiryLabel = DEFAULT_PROFILE.expiryLabel,
-  onLogout,
-  onNavigate,
-  className,
-}) {
+export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, className }) {
+  const { loading, items, userName, userRole, expiryLabel } = useSidebarData();
   const [lang, setLang] = useState("en");
   // Only one submenu open at a time; starts collapsed, even when the current page is inside one.
   const [openKey, setOpenKey] = useState(null);
@@ -86,8 +79,17 @@ export default function Sidebar({
             <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#12305f] bg-[#31d67a] short:size-2.5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[14px] font-extrabold leading-[1.25] text-white short:text-[13px]">{userName}</div>
-            <div className="mt-0.5 text-[11px] font-medium text-[#9db8e8] short:mt-px">{userRole}</div>
+            {loading ? (
+              <div className="flex animate-pulse flex-col gap-1.5">
+                <div className="h-3.5 w-24 rounded bg-white/20" />
+                <div className="h-2.5 w-16 rounded bg-white/15" />
+              </div>
+            ) : (
+              <>
+                <div className="truncate text-[14px] font-extrabold leading-[1.25] text-white short:text-[13px]">{userName}</div>
+                <div className="mt-0.5 truncate text-[11px] font-medium text-[#9db8e8] short:mt-px">{userRole}</div>
+              </>
+            )}
           </div>
         </div>
         <div className="self-center">
@@ -97,7 +99,14 @@ export default function Sidebar({
 
       {/* Menu: only this list scrolls when the screen is too short */}
       <nav className="scrollbar-sidebar z-10 -mr-1.5 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto pr-1.5 short:gap-0.5">
-        {MENU_ITEMS.map(({ index, key, label, icon: Icon, path, children }) => {
+        {loading && (
+          <div className="flex animate-pulse flex-col gap-[3px]">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="h-[38px] flex-none rounded-[11px] bg-white/10 short:h-8" />
+            ))}
+          </div>
+        )}
+        {items.map(({ index, key, label, icon: Icon, path, children }) => {
           if (!children) {
             return (
               <NavLink
@@ -160,7 +169,7 @@ export default function Sidebar({
       <div className="z-10 mt-3 flex flex-col gap-2 short:mt-2.5 short:flex-row short:items-stretch short:gap-2">
         <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[rgba(114,168,255,0.35)] bg-[rgba(79,141,255,0.16)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[#bcd3ff] short:flex-1">
           <Clock size={13} className="flex-none stroke-[#bcd3ff]" />
-          <span className="truncate">{expiryLabel}</span>
+          <span className="truncate">{loading ? "…" : expiryLabel}</span>
         </div>
         <button
           type="button"

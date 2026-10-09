@@ -20,7 +20,7 @@ export default function AdminPage() {
   // null = closed, { mode: "add" } or { mode: "edit", user } = open
   const [userForm, setUserForm] = useState(null);
   const closeUserForm = useCallback(() => setUserForm(null), []);
-  const scope = useListScope("admin.scope", { onChange: () => view.reset() });
+  const scope = useListScope({ onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/userlist", scope.tenantId, {
     normalize: normalizeUserRow,
     rowKey,

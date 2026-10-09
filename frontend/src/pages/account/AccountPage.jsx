@@ -56,7 +56,7 @@ export default function AccountPage() {
   // Payment alert switched on this page (account id -> on/off), until the update API is wired up.
   const [alertOverrides, setAlertOverrides] = useState({});
   const alertOn = (a) => alertOverrides[a.id] ?? a.paymentAlert;
-  const scope = useListScope("account.scope", { onChange: () => view.reset() });
+  const scope = useListScope({ onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/account", scope.tenantId, {
     normalize: normalizeAccountRow,
   });

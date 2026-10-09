@@ -70,6 +70,16 @@ export function loginSelection(directory) {
   return directory.groups.some((g) => g.code === code) ? { group: code } : null;
 }
 
+// The Group / Company the session is in right now (the one the sidebar follows), as a filter
+// selection. company null = a Group's own view. Null if the session tenant isn't listed.
+export function sessionSelection(directory, tenantId) {
+  if (!directory || !tenantId) return null;
+  const company = directory.companies.find((c) => c.tenantId === tenantId);
+  if (company) return { group: company.groupCode ?? INDEPENDENT, company: company.code };
+  const group = directory.groups.find((g) => g.tenantId === tenantId);
+  return group ? { group: group.code, company: null } : null;
+}
+
 // First Group this login can open (owned, or granted Group access); null when there is none.
 export function firstOpenableGroup(directory) {
   return directory?.groups.find((g) => g.tenantId)?.code ?? null;

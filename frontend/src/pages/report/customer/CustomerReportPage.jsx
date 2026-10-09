@@ -40,7 +40,7 @@ export default function CustomerReportPage() {
     return { from: today, to: today };
   });
 
-  const scope = useListScope("report.customer.scope", { onChange: () => setAccountPick("") });
+  const scope = useListScope({ onChange: () => setAccountPick("") });
   const { tenantId } = scope;
 
   const { rows: accounts } = useTenantList("/api/account", tenantId, { normalize: normalizeAccountRow });

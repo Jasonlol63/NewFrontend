@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/context/session";
 import { currentLoginStamp, useSavedState } from "@/hooks/useSavedState";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
@@ -17,6 +18,7 @@ import {
   INDEPENDENT,
   loginSelection,
   resolveScope,
+  sessionSelection,
   useCurrencyOptions,
   useDashboardData,
   useTenantDirectory,
@@ -29,13 +31,26 @@ function defaultCompany(directory, group) {
   return canViewGroupItself(directory, group) ? null : ALL;
 }
 
-// A fresh login starts from the Company / Group logged in with; within the same login the saved
-// Group / Company win (so a refresh keeps them). Either is only used while it still exists for this
-// login; otherwise the defaults apply, so a removed company or a revoked permission never leaves
-// an empty selection.
-function resolveSelection(directory, saved) {
+// The tenant a selection points at when it is one company or one Group's own data; null for the
+// "All" views, which span several tenants.
+function singleTenantId(directory, group, company) {
+  const scope = resolveScope(directory, group, company);
+  if (scope?.kind === "company") return scope.params.tenant_id;
+  if (scope?.kind === "group") return scope.params.group_tenant_id;
+  return null;
+}
+
+const isAggregate = (pick) => pick?.company === ALL || (pick?.group === ALL && pick?.company === null);
+
+// A single company / Group follows the session (the company the sidebar is in), so switching
+// company anywhere carries over here. Only an "All" view is remembered by this page, for the same
+// login (so a refresh keeps it). A pick is only used while it still exists for this login;
+// otherwise the defaults apply, so a removed company or a revoked permission never leaves an
+// empty selection.
+function resolveSelection(directory, saved, tenantId) {
   if (!directory) return { group: ALL, company: null };
-  const pick = saved && (saved.loginStamp ?? null) === currentLoginStamp() ? saved : loginSelection(directory);
+  const savedAll = saved && isAggregate(saved) && (saved.loginStamp ?? null) === currentLoginStamp();
+  const pick = savedAll ? saved : (sessionSelection(directory, tenantId) ?? loginSelection(directory));
   const savedGroupOk =
     pick?.group === ALL ||
     (pick?.group === INDEPENDENT && hasIndependentCompanies(directory)) ||
@@ -55,14 +70,20 @@ function resolveSelection(directory, saved) {
 
 export default function DashboardPage() {
   const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
+  const { user, switchCompany } = useSession();
+  const [switchError, setSwitchError] = useState("");
   const [dateRange, setDateRange] = useState(currentMonthRange);
   // Group / Company / Currency the user picked last; saved in the browser so a refresh keeps them.
   const [saved, setSaved, savedReady] = useSavedState("dashboard.filters");
 
   // Hold everything back until the saved choice has been read, so the defaults never flash
   // (or fire requests) before the restored selection takes over.
-  const directory = savedReady ? loadedDirectory : null;
-  const { group, company } = useMemo(() => resolveSelection(directory, saved), [directory, saved]);
+  const directory = savedReady && user ? loadedDirectory : null;
+  const sessionTenantId = user?.tenant_id ?? null;
+  const { group, company } = useMemo(
+    () => resolveSelection(directory, saved, sessionTenantId),
+    [directory, saved, sessionTenantId]
+  );
 
   const scope = useMemo(() => resolveScope(directory, group, company), [directory, group, company]);
   const currencyCodes = useCurrencyOptions(scope?.tenantIds);
@@ -96,8 +117,22 @@ export default function DashboardPage() {
 
   // The saved currency is only replaced when the user picks one: if a company lacks it, the page
   // shows a fallback but keeps the preference for when they switch back.
-  const save = (next) =>
-    setSaved({ group, company, currency: saved?.currency ?? currency, loginStamp: currentLoginStamp(), ...next });
+  // Picking one company / Group switches the session to it (sidebar and other pages follow);
+  // an "All" view spans several tenants, so it leaves the session where it is.
+  const save = async (next) => {
+    const target = { group, company, ...next };
+    const id = singleTenantId(directory, target.group, target.company);
+    if (id && id !== sessionTenantId) {
+      try {
+        await switchCompany(id);
+        setSwitchError("");
+      } catch (err) {
+        setSwitchError(err.message);
+        return;
+      }
+    }
+    setSaved({ currency: saved?.currency ?? currency, loginStamp: currentLoginStamp(), ...target });
+  };
   const handleGroupChange = (picked) => {
     const next = picked ?? INDEPENDENT;
     save({ group: next, company: defaultCompany(directory, next) });
@@ -124,7 +159,7 @@ export default function DashboardPage() {
       ? [{ label: "Earnings", icon: Wallet, color: "#d97706", tint: "#fff3da", value: kpi?.earnings, previous: kpi?.previousEarnings }]
       : []),
   ];
-  const pageError = directoryError || error;
+  const pageError = directoryError || switchError || error;
 
   return (
     <div className="flex flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)] lg:h-full lg:min-h-[520px]">

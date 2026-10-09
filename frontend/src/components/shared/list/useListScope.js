@@ -1,11 +1,12 @@
-import { useMemo } from "react";
-import { currentLoginStamp, useSavedState } from "@/hooks/useSavedState";
+import { useMemo, useRef, useState } from "react";
+import { useSession } from "@/context/session";
 import {
   companiesInGroup as companiesOf,
   firstOpenableGroup,
   hasIndependentCompanies,
   INDEPENDENT,
   loginSelection,
+  sessionSelection,
   useTenantDirectory,
 } from "@/pages/dashboard/useDashboardData";
 
@@ -24,11 +25,11 @@ function defaultCompany(directory, group) {
   return canUseGroupItself(directory, group) ? null : undefined;
 }
 
-// A fresh login starts from the Company / Group logged in with; within the same login the saved
-// Group / Company win. Either is used only while it still exists for this login.
-function resolveSelection(directory, saved) {
+// The selection is the company the session is in right now (the one the sidebar follows). It is
+// used only while it still exists for this login.
+function resolveSelection(directory, tenantId) {
   if (!directory) return { group: null, company: undefined };
-  const pick = saved && (saved.loginStamp ?? null) === currentLoginStamp() ? saved : loginSelection(directory);
+  const pick = sessionSelection(directory, tenantId) ?? loginSelection(directory);
   const groupCodes = [
     ...directory.groups.map((g) => g.code),
     ...(hasIndependentCompanies(directory) ? [INDEPENDENT] : []),
@@ -41,18 +42,28 @@ function resolveSelection(directory, saved) {
 }
 
 /**
- * Group / Company pickers of a list page (Admin users, Accounts) and the tenant they point at,
- * remembered per user. Clicking the active chip again switches:
+ * Group / Company pickers of a list page (Admin users, Accounts) and the tenant they point at.
+ * They show the company the session is in, and picking one switches the whole session to it
+ * (/auth/switch-tenant), so the sidebar and every other page follow. Clicking the active chip
+ * again switches:
  *  - active Group -> the independent companies (companies in no Group), when there are any;
  *  - active company in a Group -> the Group's own data;
  *  - active independent company -> the first Group this login can open, on its own data.
- * onChange runs after every pick, e.g. to reset paging and the selection.
+ * onChange runs after every successful pick, e.g. to reset paging and the selection.
  */
-export function useListScope(storageKey, { onChange } = {}) {
-  const { directory: loadedDirectory, error } = useTenantDirectory();
-  const [saved, setSaved, savedReady] = useSavedState(storageKey);
-  const directory = savedReady ? loadedDirectory : null;
-  const { group, company } = useMemo(() => resolveSelection(directory, saved), [directory, saved]);
+export function useListScope({ onChange } = {}) {
+  const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
+  const { user, switchCompany } = useSession();
+  const [switchError, setSwitchError] = useState("");
+  const switching = useRef(false);
+  // Hold back until the session (and so its company) is known, so the defaults never flash.
+  const directory = user ? loadedDirectory : null;
+  const sessionTenantId = user?.tenant_id ?? null;
+  const { group, company } = useMemo(
+    () => resolveSelection(directory, sessionTenantId),
+    [directory, sessionTenantId]
+  );
+  const error = directoryError || switchError;
 
   const tenantId = company
     ? (companiesOf(directory, group).find((c) => c.code === company)?.tenantId ?? null)
@@ -71,8 +82,28 @@ export function useListScope(storageKey, { onChange } = {}) {
     [directory, group]
   );
 
-  const save = (next) => {
-    setSaved({ group, company, loginStamp: currentLoginStamp(), ...next });
+  // Switch the session to the picked company, then let the page reset. The selection above
+  // follows the session, so it only moves once the switch has gone through.
+  const save = async (next) => {
+    const target = { group, company, ...next };
+    const id = target.company
+      ? (companiesOf(directory, target.group).find((c) => c.code === target.company)?.tenantId ?? null)
+      : target.company === null
+        ? groupTenantId(directory, target.group)
+        : null;
+    if (!id || switching.current) return;
+    if (id !== sessionTenantId) {
+      switching.current = true;
+      try {
+        await switchCompany(id);
+        setSwitchError("");
+      } catch (err) {
+        setSwitchError(err.message);
+        return;
+      } finally {
+        switching.current = false;
+      }
+    }
     onChange?.();
   };
   const pickGroup = (picked) => {

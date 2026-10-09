@@ -1,15 +1,36 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/layout/Sidebar.jsx";
 import SidebarRail from "@/components/layout/SidebarRail.jsx";
+import { menuKeyForPath } from "@/components/layout/sidebarConfig";
+import { SessionProvider, useSession } from "@/context/session";
+import { clearSession } from "@/hooks/useSavedState";
 import { cn } from "@/lib/utils";
 
 export default function AuthenticatedLayout() {
+  return (
+    <SessionProvider>
+      <Shell />
+    </SessionProvider>
+  );
+}
+
+function Shell() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { user, ready } = useSession();
   // Drawer only exists below 1200px, where the icon rail replaces the sidebar.
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = () => setDrawerOpen(false);
-  const onLogout = () => navigate("/login");
+  const onLogout = async () => {
+    try {
+      await fetch("/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // offline: still leave; the session expires on its own
+    }
+    clearSession();
+    navigate("/login");
+  };
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -19,6 +40,12 @@ export default function AuthenticatedLayout() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen]);
+
+  // A page whose menu key is not true for this user (wrong role or company type) goes back home.
+  const menuKey = menuKeyForPath(pathname);
+  if (ready && user && menuKey && user.menu?.[menuKey] !== true) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">

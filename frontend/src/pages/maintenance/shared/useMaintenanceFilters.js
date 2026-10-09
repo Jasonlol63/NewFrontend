@@ -20,7 +20,7 @@ export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId,
  * dated: false drops the Date Range (config lists such as Formula): no `range`, no dates in the request.
  * onChange runs when Group / Company, Process or the dates change, e.g. to clear a row selection.
  */
-export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {}) {
+export function useMaintenanceFilters({ onChange, dated = true } = {}) {
   // null = nothing picked yet: the user chooses All Process or one process before any list loads.
   const [processPick, setProcessPick] = useState(null);
   const [search, setSearch] = useState("");
@@ -29,7 +29,7 @@ export function useMaintenanceFilters(storageKey, { onChange, dated = true } = {
     return { from: today, to: today };
   });
 
-  const scope = useListScope(storageKey, {
+  const scope = useListScope({
     onChange: () => {
       setProcessPick(null);
       onChange?.();

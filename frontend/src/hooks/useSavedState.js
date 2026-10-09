@@ -14,6 +14,11 @@ export function loadSessionUser() {
   return sessionRequest;
 }
 
+// Called on logout so the next login doesn't see the previous user's session.
+export function clearSession() {
+  sessionRequest = null;
+}
+
 const LOGIN_STAMP_KEY = "loginStamp";
 
 // Called after a successful login: forgets the previous session and stamps this login, so

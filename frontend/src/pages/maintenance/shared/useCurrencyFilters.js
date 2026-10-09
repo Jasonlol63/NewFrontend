@@ -10,7 +10,7 @@ import { useCurrencyOptions } from "@/pages/dashboard/useDashboardData";
  * the user dragged them into (shared with the Dashboard). Starts on MYR when the company has it,
  * else its first currency. onChange runs after any filter change, e.g. to clear a row selection.
  */
-export function useCurrencyFilters(storageKey, { onChange } = {}) {
+export function useCurrencyFilters({ onChange } = {}) {
   const [currencyPick, setCurrencyPick] = useState(null);
   const [search, setSearch] = useState("");
   const [range, setRangeState] = useState(() => {
@@ -18,7 +18,7 @@ export function useCurrencyFilters(storageKey, { onChange } = {}) {
     return { from: today, to: today };
   });
 
-  const scope = useListScope(storageKey, { onChange });
+  const scope = useListScope({ onChange });
   const { tenantId } = scope;
 
   const currencyCodes = useCurrencyOptions(tenantId ? [tenantId] : []);
