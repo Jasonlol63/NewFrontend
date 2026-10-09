@@ -6,6 +6,8 @@ import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
+import ExpandableTextarea from "@/components/shared/form-modal/ExpandableTextarea.jsx";
+import TextEditorSheet from "@/components/shared/form-modal/TextEditorSheet.jsx";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
@@ -174,6 +176,8 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
   );
 
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
+  // SOP / Remark: which one is open in the big editor over the modal (null = none).
+  const [editor, setEditor] = useState(null);
   const setText = (key) => (e) => set(key)(e.target.value);
   const setMoney = (key) => (e) => set(key)(money(e.target.value));
   const pickCountry = (countryId) => setForm((f) => ({ ...f, countryId, bankId: "" }));
@@ -309,6 +313,18 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       onSave={save}
       saveDisabled={saving}
       className={UPPERCASE}
+      overlay={
+        editor && (
+          <TextEditorSheet
+            title={editor === "sop" ? "SOP" : "Remark"}
+            subtitle={isEdit ? [process.supplier, process.bank, process.cardOwner].filter(Boolean).join(" · ") : "Add Process"}
+            placeholder={editor === "sop" ? "ENTER SOP..." : "ENTER REMARKS..."}
+            value={form[editor]}
+            onChange={set(editor)}
+            onClose={() => setEditor(null)}
+          />
+        )
+      }
       // The lock notice lives in the header (a chip with the full sentence as its tooltip) so it takes no room from the cards.
       headerExtra={
         billingLocked && (
@@ -435,10 +451,10 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         <FormCard title="SOP and Remark" className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible" bodyClassName="flex flex-col @max-[899px]/main:overflow-visible">
           <div className={cn(pair, "min-h-0 flex-1")}>
             <Field label="SOP" optional className="flex min-h-[64px] flex-col">
-              <textarea value={form.sop} onChange={setText("sop")} placeholder="ENTER SOP..." className={cn(inputClass, "min-h-[40px] flex-1 resize-none py-2 uppercase leading-snug modal-compact:h-auto modal-tiny:h-auto @min-[900px]/main:@max-[1099px]/main:h-auto")} />
+              <ExpandableTextarea value={form.sop} onChange={setText("sop")} placeholder="ENTER SOP..." onExpand={() => setEditor("sop")} className="uppercase" />
             </Field>
             <Field label="Remark" optional className="flex min-h-[64px] flex-col">
-              <textarea value={form.remark} onChange={setText("remark")} placeholder="ENTER REMARKS..." className={cn(inputClass, "min-h-[40px] flex-1 resize-none py-2 uppercase leading-snug modal-compact:h-auto modal-tiny:h-auto @min-[900px]/main:@max-[1099px]/main:h-auto")} />
+              <ExpandableTextarea value={form.remark} onChange={setText("remark")} placeholder="ENTER REMARKS..." onExpand={() => setEditor("remark")} className="uppercase" />
             </Field>
           </div>
         </FormCard>

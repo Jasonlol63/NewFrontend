@@ -26,6 +26,7 @@ const openModals = [];
  * headerExtra: another button before Back (e.g. Refresh).
  * saveLabel can be a node (a label with a count); saveDisabled greys Save out.
  * className: extra classes for the dialog itself (e.g. a text-transform for everything inside).
+ * overlay: something laid over the whole dialog (a TextEditorSheet), above the body and footer.
  * compact: a small dialog centred over the page (up to 640px wide) instead of one filling the content area, for
  *   forms with only a few fields (Resend).
  * Mount it only while open so every opening starts from its initial values.
@@ -42,6 +43,7 @@ export default function FormModal({
   headerExtra,
   bodyClassName,
   className,
+  overlay,
   compact = false,
   children,
 }) {
@@ -134,6 +136,7 @@ export default function FormModal({
               {saveLabel}
             </button>
           </footer>
+          {overlay}
         </div>
       </div>
     </>
