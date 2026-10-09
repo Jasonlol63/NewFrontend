@@ -7,9 +7,9 @@ import { Badge, IconAction, StatusBadge } from "@/components/shared/list/cells.j
 import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
+import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BankProcessView from "./bank/BankProcessView.jsx";
-import { isBankCompany } from "./companyCategory";
 import ProcessFormModal from "./games/ProcessFormModal.jsx";
 import { DAYS, filterProcesses, sortProcesses } from "./games/processRules";
 import { useProcessList } from "./games/useProcessList";
@@ -44,7 +44,8 @@ export default function ProcessPage() {
   const closeEdit = useCallback(() => setEditRow(null), []);
   const scope = useListScope({ onChange: () => view.reset() });
   // The picked company's category decides the page: Bank companies get the Bank Process list, Game companies this one.
-  const isBank = scope.company !== null && isBankCompany(scope.company);
+  const { user: session } = useSession();
+  const isBank = scope.company !== null && Boolean(session?.tenant_has_bank);
   const { rows: allRows, error: listError, loading, toggleStatus, deleteRows } = useProcessList(isBank ? null : scope.tenantId);
   const rows = useMemo(() => allRows.filter((p) => p.category === "GAME"), [allRows]);
 

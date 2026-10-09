@@ -1,6 +1,6 @@
 import { useListScope } from "@/components/shared/list/useListScope";
+import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { isBankCompany } from "@/pages/process/companyCategory";
 import BankCaptureView from "./bank/BankCaptureView.jsx";
 import GameCaptureView from "./games/GameCaptureView.jsx";
 
@@ -12,6 +12,8 @@ import GameCaptureView from "./games/GameCaptureView.jsx";
 export default function DataCapturePage() {
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const scope = useListScope();
-  const isBank = scope.company !== null && isBankCompany(scope.company);
+  // The picked company is the session's company, so its category comes from the session.
+  const { user } = useSession();
+  const isBank = scope.company !== null && Boolean(user?.tenant_has_bank);
   return isBank ? <BankCaptureView scope={scope} readOnly={readOnly} /> : <GameCaptureView scope={scope} readOnly={readOnly} />;
 }

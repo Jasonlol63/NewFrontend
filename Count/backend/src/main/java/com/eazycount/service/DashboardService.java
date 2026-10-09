@@ -22,13 +22,13 @@ public interface DashboardService {
     //Trend Chart use, same rules as getKpi, one point per day in [dateFrom, dateTo].
     List<DashboardTrendPointDTO> getTrend(Integer tenantId, LocalDate dateFrom, LocalDate dateTo, String currencyCode);
 
-    // "Company: All" rollup — Profit/Expenses/NetProfit summed across every given tenant, one currency. No Earnings, no previous-period. Caller resolves which tenantIds are in scope.
+    // "Company: All" rollup — Profit/Expenses/NetProfit summed across every given tenant, one currency. Earnings = Σ each company's Net Profit × the login's own % in it (direct, else via its Group); previous-period included. Caller resolves which tenantIds are in scope.
     DashboardKpiDTO getKpiForCompanies(List<Integer> tenantIds, LocalDate dateFrom, LocalDate dateTo, String currencyCode);
 
     // "Company: All" Currency tab — same shape as getKpiCurrencyBreakdown(), but originalAmount
     // is summed across every given tenant per currency (no equity weighting, unlike the Group
-    // version) — same "just sum, no Group Cascade" rule as getKpiForCompanies(). No Earnings
-    // (same §9.1 rule as getKpiForCompanies()) — earnings/earningsConverted always null.
+    // version) — same "just sum, no Group Cascade" rule for originalAmount. earnings/earningsConverted
+    // follow the same per-company rule as getKpiForCompanies().
     List<DashboardCurrencyAmountDTO> getKpiCurrencyBreakdownForCompanies(
             List<Integer> tenantIds, LocalDate dateFrom, LocalDate dateTo, String baseCurrencyCode);
 
@@ -60,8 +60,8 @@ public interface DashboardService {
     // Group-only Currency tab: same shape/semantics as getKpiCurrencyBreakdown(), but the
     // per-currency originalAmount is this Group's own weighted Net Profit in that currency —
     // sum over member companies of (that company's Net Profit in this currency × its equity %),
-    // plus the Group's own ledger Expenses in this currency. Earnings/earningsConverted are
-    // left null for now (Group's per-currency Earning tab is a separate follow-up).
+    // plus the Group's own ledger Expenses in this currency. Earnings/earningsConverted use the
+    // login's direct ownership % in the Group (no cascade).
     List<DashboardCurrencyAmountDTO> getGroupKpiCurrencyBreakdown(
             Integer groupTenantId, List<Integer> companyTenantIds,
             LocalDate dateFrom, LocalDate dateTo, String baseCurrencyCode);
@@ -69,8 +69,7 @@ public interface DashboardService {
     // "Group: All" rollup — each given Group independently computes its own Profit (member
     // companies weighted by equity %) + Expenses (its own ledger); Profit/Expenses/NetProfit
     // are summed across every Group. Earnings = Σ each Group's own NetProfit × its own direct
-    // ownership % — Groups never cascade through another Group, unlike Company Earnings. No
-    // previous-period comparison yet (same follow-up as getKpiForCompanies()).
+    // ownership % — Groups never cascade through another Group, unlike Company Earnings.
     // groupTenantIds/companyTenantIds (union of every given Group's own member companies):
     // resolved by the caller (frontend), same convention as getKpiForGroup().
     DashboardKpiDTO getKpiForGroups(List<Integer> groupTenantIds, List<Integer> companyTenantIds,

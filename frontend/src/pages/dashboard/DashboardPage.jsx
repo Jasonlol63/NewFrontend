@@ -73,7 +73,8 @@ export default function DashboardPage() {
   const { user, switchCompany } = useSession();
   const [switchError, setSwitchError] = useState("");
   const [dateRange, setDateRange] = useState(currentMonthRange);
-  // Group / Company / Currency the user picked last; saved in the browser so a refresh keeps them.
+  // The "All" Group / Company view and the Currency the user picked last; saved in the browser so a
+  // refresh keeps them. A single company / Group is not saved here: it is the session's company.
   const [saved, setSaved, savedReady] = useSavedState("dashboard.filters");
 
   // Hold everything back until the saved choice has been read, so the defaults never flash
