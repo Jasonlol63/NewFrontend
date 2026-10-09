@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Coins, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
@@ -8,20 +8,24 @@ import { SelectField, TextInput, primaryButtonClass } from "@/components/shared/
 import CurrencyChangesDialog from "./CurrencyChangesDialog.jsx";
 import {
   FILTER_OPTIONS,
-  INITIAL_CURRENCIES,
   buildChanges,
   cloneHoldings,
   countChanges,
   holdState,
-  mockHoldings,
+  strandedAccounts,
   visibleAccounts,
 } from "./currencySettingRules";
+import { createCurrency, deleteCurrency, loadCurrencyHoldings, saveHoldings } from "./currencySettingApi";
+import { useCurrencyHoldings } from "./useCurrencyHoldings";
 
 // Which accounts hold which currency. Pick a currency, tick the accounts that hold it; edits in every currency
 // are kept until Save, which opens a confirmation listing every change grouped by currency.
 // Layout, from the screen width (@container/main): 2 columns (Add Currency + Currency | Account), below 900px one
 // column (the body scrolls). Height tiers: modal-compact <= 760, modal-tiny <= 600 (see index.css).
-// UI only for now: holdings are placeholders and Save just hands the result back through onSave.
+// Currencies and holdings come from the API. Add Currency and Delete write right away (Delete only after its
+// confirmation); the ticks are saved only by Save, after its confirmation: the changes go out per currency, all
+// additions first and then all removals (see saveHoldings).
+const NO_ACCOUNTS = new Set();
 
 const stackCard = "@max-[899px]/main:flex-none @max-[899px]/main:overflow-visible";
 const stackBody = "@max-[899px]/main:overflow-visible";
@@ -33,14 +37,30 @@ const TILE_STATE = {
   off: "border-modal-off-line bg-modal-off hover:border-[#93c5fd] hover:bg-white/80",
 };
 
-export default function CurrencySettingModal({ accounts, onClose, onSave }) {
-  const [currencies, setCurrencies] = useState(INITIAL_CURRENCIES);
-  const [orig, setOrig] = useState(() => mockHoldings(accounts, INITIAL_CURRENCIES)); // saved
-  const [draft, setDraft] = useState(() => cloneHoldings(orig)); // being edited
-  const [active, setActive] = useState(INITIAL_CURRENCIES[0]);
+export default function CurrencySettingModal({ tenantId, accounts, onClose, onSaved }) {
+  const { data, error: loadError, loading } = useCurrencyHoldings(tenantId, accounts);
+  const [currencies, setCurrencies] = useState([]); // codes, in the order shown
+  const [meta, setMeta] = useState({}); // code -> { id, deletable }
+  const [orig, setOrig] = useState({}); // saved
+  const [draft, setDraft] = useState({}); // being edited
+  const [active, setActive] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [review, setReview] = useState(null); // changes shown in the confirmation, null = closed
+  const [message, setMessage] = useState(""); // the backend's error or a problem with the changes
+  const [saving, setSaving] = useState(false);
+
+  // Fill the state once the data has arrived.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || !data) return;
+    seeded.current = true;
+    setCurrencies(data.currencies.map((c) => c.code));
+    setMeta(Object.fromEntries(data.currencies.map((c) => [c.code, { id: c.id, deletable: c.deletable }])));
+    setOrig(data.holdings);
+    setDraft(cloneHoldings(data.holdings));
+    setActive(data.currencies[0]?.code ?? "");
+  }, [data]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.accountId, a])), [accounts]);
   const changes = useMemo(() => buildChanges(accounts, orig, draft, currencies), [accounts, orig, draft, currencies]);
@@ -51,10 +71,11 @@ export default function CurrencySettingModal({ accounts, onClose, onSave }) {
     () => visibleAccounts(accounts, { query, filter, orig, draft, currency: active }),
     [accounts, query, filter, orig, draft, active]
   );
-  const activeSet = draft[active];
+  const activeSet = draft[active] ?? NO_ACCOUNTS;
   const allShownHeld = shown.length > 0 && shown.every((a) => activeSet.has(a.accountId));
 
   const edit = (fn) =>
+    active &&
     setDraft((d) => {
       const next = { ...d, [active]: new Set(d[active]) };
       fn(next[active]);
@@ -63,20 +84,39 @@ export default function CurrencySettingModal({ accounts, onClose, onSave }) {
   const toggleAccount = (id) => edit((set) => (set.has(id) ? set.delete(id) : set.add(id)));
   const toggleShown = () => edit((set) => shown.forEach((a) => (allShownHeld ? set.delete(a.accountId) : set.add(a.accountId))));
 
-  const addCurrency = (code) => {
-    if (!code || currencies.includes(code)) return;
-    setCurrencies((list) => [...list, code]);
-    setOrig((o) => ({ ...o, [code]: new Set() }));
-    setDraft((d) => ({ ...d, [code]: new Set() }));
-    setActive(code);
+  // Add Currency / Delete take effect at once; a failure (duplicate code, currency in use...) shows in the footer.
+  const addCurrency = async (code) => {
+    if (!code) return;
+    if (currencies.includes(code)) {
+      setActive(code);
+      return;
+    }
+    setMessage("");
+    try {
+      const created = await createCurrency(tenantId, code);
+      setCurrencies((list) => [...list, code]);
+      setMeta((m) => ({ ...m, [code]: { id: created.id, deletable: true } }));
+      setOrig((o) => ({ ...o, [code]: new Set() }));
+      setDraft((d) => ({ ...d, [code]: new Set() }));
+      setActive(code);
+    } catch (err) {
+      setMessage(err.message);
+    }
   };
-  const removeCurrency = (code) => {
+  const removeCurrency = async (code) => {
+    setMessage("");
+    try {
+      await deleteCurrency(tenantId, meta[code].id);
+    } catch (err) {
+      setMessage(err.message);
+      return;
+    }
     const rest = currencies.filter((c) => c !== code);
     setCurrencies(rest);
     const drop = (h) => Object.fromEntries(Object.entries(h).filter(([c]) => c !== code));
     setOrig(drop);
     setDraft(drop);
-    if (active === code) setActive(rest[0]);
+    if (active === code) setActive(rest[0] ?? "");
   };
 
   // Accounts the user undid in the confirmation go back to how they were saved.
@@ -93,23 +133,72 @@ export default function CurrencySettingModal({ accounts, onClose, onSave }) {
     });
   };
 
-  const confirm = (restored) => {
+  // Confirm & Save: send the changes. The dialog stays open (button saying "Saving…") until the answer is back.
+  const confirm = async (restored) => {
     const final = cloneHoldings(draft);
     restored.forEach(({ currency, accountId, kind }) => (kind === "removed" ? final[currency].add(accountId) : final[currency].delete(accountId)));
-    setOrig(final);
-    setDraft(cloneHoldings(final));
-    setReview(null);
-    onSave?.({ currencies, holdings: Object.fromEntries(Object.entries(final).map(([c, set]) => [c, [...set]])) });
+    const finalChanges = buildChanges(accounts, orig, final, currencies);
+
+    const stranded = strandedAccounts(finalChanges, final, currencies);
+    if (stranded.length) {
+      setDraft(final);
+      setReview(null);
+      setMessage(`Every account needs at least one currency. These would have none: ${stranded.join(", ")}`);
+      return;
+    }
+
+    setMessage("");
+    setSaving(true);
+    try {
+      await saveHoldings(
+        tenantId,
+        finalChanges,
+        Object.fromEntries(currencies.map((c) => [c, meta[c].id])),
+        new Map(accounts.map((a) => [a.accountId, a.id]))
+      );
+      setReview(null);
+      onSaved?.();
+    } catch (err) {
+      // Some currencies may already be saved (each one is its own request): take the server's state as the saved
+      // one, keep the edits, and the next Save only sends what is still different.
+      try {
+        const fresh = await loadCurrencyHoldings(tenantId, accounts);
+        setOrig(fresh.holdings);
+      } catch {
+        // the message below is what matters
+      }
+      setDraft(final);
+      setReview(null);
+      setMessage(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const footerNote = message || loadError || (loading ? "Loading…" : "");
+  const footerIsError = Boolean(message || loadError);
 
   return (
     <>
       <FormModal
         icon={Coins}
         title="Currency Setting"
-        onClose={onClose}
+        onClose={() => !saving && onClose()}
         onSave={() => setReview(changes)}
-        saveDisabled={!changeCount}
+        saveDisabled={!changeCount || loading || saving || Boolean(loadError)}
+        footerStart={
+          footerNote && (
+            <p
+              role={footerIsError ? "alert" : "status"}
+              className={cn(
+                "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+                footerIsError ? "text-[#dc2626]" : "text-dash-sub"
+              )}
+            >
+              {footerNote}
+            </p>
+          )
+        }
         saveLabel={
           <>
             Save
@@ -128,6 +217,7 @@ export default function CurrencySettingModal({ accounts, onClose, onSave }) {
             onPick={setActive}
             changed={changedCurrencies}
             counts={draft}
+            deletable={(code) => meta[code]?.deletable !== false}
             onAdd={addCurrency}
             onRemove={removeCurrency}
           />
@@ -211,7 +301,9 @@ export default function CurrencySettingModal({ accounts, onClose, onSave }) {
         <CurrencyChangesDialog
           changes={review}
           accountsById={accountsById}
+          saving={saving}
           onClose={(restored) => {
+            if (saving) return;
             applyRestored(restored);
             setReview(null);
           }}
@@ -251,14 +343,15 @@ function Tag({ className, children }) {
 }
 
 // Add Currency + the Currency list (tabs; in Delete mode a click asks to delete that currency).
-function CurrencyManager({ currencies, active, onPick, changed, counts, onAdd, onRemove }) {
+function CurrencyManager({ currencies, active, onPick, changed, counts, deletable, onAdd, onRemove }) {
   const [code, setCode] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [toDelete, setToDelete] = useState(null);
 
-  const add = () => {
+  const add = async () => {
     const c = code.trim().toUpperCase();
-    if (c) onAdd(c);
+    if (!c) return;
+    await onAdd(c);
     setCode("");
   };
 
@@ -307,11 +400,20 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, onAdd, o
               <button
                 key={c}
                 type="button"
-                onClick={() => (deleting ? setToDelete(c) : onPick(c))}
-                title={deleting ? `Delete ${c}` : changed.has(c) ? "Unsaved changes" : undefined}
+                onClick={() => (deleting ? deletable(c) && setToDelete(c) : onPick(c))}
+                disabled={deleting && !deletable(c)}
+                title={
+                  deleting
+                    ? deletable(c)
+                      ? `Delete ${c}`
+                      : "Synced from a subsidiary, can't be deleted"
+                    : changed.has(c)
+                      ? "Unsaved changes"
+                      : undefined
+                }
                 aria-pressed={deleting ? undefined : on}
                 className={cn(
-                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 text-[13px] font-extrabold transition-colors modal-compact:h-8 modal-tiny:h-[30px]",
+                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 text-[13px] font-extrabold transition-colors modal-compact:h-8 modal-tiny:h-[30px] disabled:cursor-not-allowed disabled:opacity-45",
                   deleting
                     ? "border-[#fecaca] bg-white text-[#b91c1c] hover:border-[#f87171] hover:bg-[#fef2f2]"
                     : on

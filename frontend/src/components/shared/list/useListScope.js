@@ -78,7 +78,7 @@ export function useListScope({ onChange } = {}) {
     [directory]
   );
   const companyOptions = useMemo(
-    () => companiesOf(directory, group).map((c) => ({ value: c.code, label: c.code })),
+    () => companiesOf(directory, group).map((c) => ({ value: c.code, label: c.code, tenantId: c.tenantId })),
     [directory, group]
   );
 

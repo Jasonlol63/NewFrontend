@@ -9,15 +9,15 @@ import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { postJson } from "@/lib/api";
 import { ROLE_BADGE, ROLE_BADGE_NONE, filterAccounts, normalizeAccountRow, sortAccounts } from "./accountRules";
 import AccountFormModal from "./AccountFormModal.jsx";
+import { UPDATE_URL, toLocalIsoDate } from "./accountFormRules";
 import CurrencySettingModal from "./CurrencySettingModal.jsx";
-import { MOCK_ACCOUNTS } from "./currencySettingRules";
 
 const NOT_BUILT = "Not available yet";
 
-// Payment alert on / off. Clicking it only switches it on this page for now (design preview):
-// saving goes through the full account update (with the account's linked currencies), not wired up yet.
+// Payment alert on / off; a click switches it right away (see toggleAlert in the page).
 function AlertPill({ on, onToggle, disabled }) {
   return (
     <button
@@ -53,13 +53,66 @@ export default function AccountPage() {
   const closeAccountForm = useCallback(() => setAccountForm(null), []);
   const [currencySetting, setCurrencySetting] = useState(false);
   const closeCurrencySetting = useCallback(() => setCurrencySetting(false), []);
-  // Payment alert switched on this page (account id -> on/off), until the update API is wired up.
-  const [alertOverrides, setAlertOverrides] = useState({});
-  const alertOn = (a) => alertOverrides[a.id] ?? a.paymentAlert;
+  const [alertPending, setAlertPending] = useState(() => new Set()); // account ids whose alert is being switched off
+  const [actionError, setActionError] = useState("");
   const scope = useListScope({ onChange: () => view.reset() });
-  const { rows, error: listError, loading, toggleStatus, deleteRows } = useTenantList("/api/account", scope.tenantId, {
+  const { rows, error: listError, loading, toggleStatus, deleteRows, reload } = useTenantList("/api/account", scope.tenantId, {
     normalize: normalizeAccountRow,
   });
+
+  // Companies the Add / Edit modal offers: the picked Group's companies, or just the Group when its own view is picked.
+  const modalCompanyOptions =
+    scope.company === null && scope.group
+      ? [{ value: scope.group, label: scope.group, tenantId: scope.tenantId }]
+      : scope.companyOptions;
+
+  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again.
+  // A failure is thrown back to the modal, which shows the message.
+  const submitAccount = useCallback(
+    async ({ url, body }) => {
+      await postJson(url, body);
+      closeAccountForm();
+      reload();
+    },
+    [closeAccountForm, reload]
+  );
+
+  // Alert pill: switches the alert on or off right away, keeping whatever alert settings the account already
+  // has. An account that never had any settings simply switches on with none, and the backend raises no alert
+  // until a type, start date and amount are set (Edit Account). It is a full account update (the backend replaces
+  // the account's currencies and companies with what it is sent), so both are read first and sent back unchanged.
+  const toggleAlert = async (a) => {
+    setActionError("");
+    setAlertPending((s) => new Set(s).add(a.id));
+    try {
+      const available = await postJson(
+        `/api/currency/available?tenant_id=${encodeURIComponent(scope.tenantId)}&account_id=${encodeURIComponent(a.id)}`,
+        null
+      );
+      await postJson(UPDATE_URL, {
+        id: a.id,
+        scopeTenantId: scope.tenantId,
+        name: a.name,
+        role: a.role,
+        remark: a.remark,
+        paymentAlert: a.paymentAlert ? 0 : 1,
+        alertDay: a.alertDay,
+        alertAmount: a.alertAmount,
+        alertSpecificDate: toLocalIsoDate(a.alertStartDate) || null,
+        currencyIds: (available.data || []).filter((c) => c.is_linked).map((c) => c.id),
+        tenantIds: a.tenantIds.length ? a.tenantIds : [scope.tenantId],
+      });
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setAlertPending((s) => {
+        const next = new Set(s);
+        next.delete(a.id);
+        return next;
+      });
+    }
+  };
 
   // Only inactive accounts can be deleted.
   const canSelect = useCallback((a) => !readOnly && a.status === "inactive", [readOnly]);
@@ -81,11 +134,7 @@ export default function AccountPage() {
       key: "alert",
       label: "Alert",
       render: (a) => (
-        <AlertPill
-          on={alertOn(a)}
-          disabled={readOnly}
-          onToggle={() => setAlertOverrides((o) => ({ ...o, [a.id]: !alertOn(a) }))}
-        />
+        <AlertPill on={a.paymentAlert} disabled={readOnly || alertPending.has(a.id)} onToggle={() => toggleAlert(a)} />
       ),
     },
     {
@@ -117,7 +166,7 @@ export default function AccountPage() {
       render: (a) => (
         <>
           <IconAction
-            onClick={() => setAccountForm({ mode: "edit", account: { ...a, paymentAlert: alertOn(a) } })}
+            onClick={() => setAccountForm({ mode: "edit", account: a })}
             disabled={readOnly}
             title={readOnly ? "Read-only login" : "Edit account"}
             aria-label="Edit account"
@@ -128,7 +177,7 @@ export default function AccountPage() {
     },
   ];
 
-  const pageError = scope.error || listError;
+  const pageError = scope.error || listError || actionError;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
@@ -140,7 +189,7 @@ export default function AccountPage() {
         }
         actions={
           <>
-            <SecondaryButton icon={Coins} onClick={() => setCurrencySetting(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
+            <SecondaryButton icon={Coins} onClick={() => setCurrencySetting(true)} disabled={readOnly || loading || !scope.tenantId} title={readOnly ? "Read-only login" : undefined}>
               Currency Setting
             </SecondaryButton>
             <DeleteButton count={view.selectedRows.length} onClick={() => actions.requestDelete(view.selectedRows)} />
@@ -164,20 +213,20 @@ export default function AccountPage() {
 
       {actions.dialogs}
 
-      {/* Currency Setting fills the content area (sidebar stays visible). UI only for now: the holdings are placeholders and Save just closes it. */}
+      {/* Currency Setting fills the content area (sidebar stays visible). */}
       {currencySetting && (
-        <CurrencySettingModal accounts={rows.length ? rows : MOCK_ACCOUNTS} onClose={closeCurrencySetting} onSave={closeCurrencySetting} />
+        <CurrencySettingModal tenantId={scope.tenantId} accounts={rows} onClose={closeCurrencySetting} onSaved={closeCurrencySetting} />
       )}
 
-      {/* Add Account and Edit Account share one modal. UI only for now: Save just closes it until the API is wired up. */}
+      {/* Add Account and Edit Account share one modal. */}
       {accountForm && (
         <AccountFormModal
           mode={accountForm.mode}
           account={accountForm.account}
-          companyCode={scope.company}
-          companyOptions={scope.companyOptions}
+          tenantId={scope.tenantId}
+          companyOptions={modalCompanyOptions}
           onClose={closeAccountForm}
-          onSave={closeAccountForm}
+          onSave={submitAccount}
         />
       )}
     </div>

@@ -258,7 +258,9 @@ public class UserServiceImpl implements UserService {
         try {
             User user = new User();
             user.setId(userListDTO.getId());
-            user.setName(userListDTO.getName());
+            user.setName(userListDTO.getName() == null || userListDTO.getName().isBlank()
+                    ? existing.getName()
+                    : userListDTO.getName().trim().toUpperCase());
             user.setRole(normalizeAccountLedgerRole(userListDTO.getRole()));
             if (userListDTO.getPassword() != null && !userListDTO.getPassword().isBlank()) {
                 user.setPassword(passwordEncoder.encode(userListDTO.getPassword()));

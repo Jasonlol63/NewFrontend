@@ -37,6 +37,11 @@ export function normalizeAccountRow(item) {
     status: String(item?.status || "active").toLowerCase(),
     paymentAlert: Number(item?.paymentAlert) === 1,
     remark: item?.remark ?? "",
+    // Payment Alert settings and the companies the account is in, needed to edit it.
+    alertDay: item?.alertDay ?? null,
+    alertAmount: item?.alertAmount == null ? null : Number(item.alertAmount),
+    alertStartDate: item?.alertSpecificDate ?? null,
+    tenantIds: Array.isArray(item?.tenantIds) ? item.tenantIds : [],
     lastLogin: item?.lastLogin ?? null,
     lastLogout: item?.lastLogout ?? null,
   };

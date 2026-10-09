@@ -5,9 +5,6 @@ import { ROLE_PRIORITY } from "./accountRules";
 
 export const ROLE_OPTIONS = ROLE_PRIORITY.map((role) => ({ value: role, label: role }));
 
-// Placeholder currencies until the currency API is wired up.
-export const MOCK_CURRENCIES = ["MYR", "SGD", "USD", "THB", "IDR", "VND", "PHP", "CNY", "HKD", "USDT"];
-
 /**
  * Alert Type quick picks. The value is what the backend stores in alert_day:
  * a day count ("1".."31", counted in plain days from the start date) or "monthly"

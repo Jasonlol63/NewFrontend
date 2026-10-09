@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Plus, Trash2, UserPen, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toIsoDate } from "@/lib/date";
@@ -16,13 +16,9 @@ import {
   ToggleSwitch,
   primaryButtonClass,
 } from "@/components/shared/form-modal/fields.jsx";
-import {
-  ALERT_PICKS,
-  MOCK_CURRENCIES,
-  PRESET_DAYS,
-  ROLE_OPTIONS,
-  normalizeAlertAmount,
-} from "./accountFormOptions";
+import { ALERT_PICKS, PRESET_DAYS, ROLE_OPTIONS, normalizeAlertAmount } from "./accountFormOptions";
+import { ADD_URL, UPDATE_URL, alertFromRow, buildAccountPayload, validateAccountForm } from "./accountFormRules";
+import { useAccountCurrencies } from "./useAccountCurrencies";
 
 // Layout, from the content area width (@container/main = screen minus sidebar):
 //   >= 1210px (1440+ screens): 3 columns, Account Information + Payment Alert | Currency | Company box
@@ -33,49 +29,114 @@ import {
 
 /**
  * Add Account / Edit Account: the same modal, only the title, header icon and defaults change.
- * mode: "add" | "edit"; account: the list row being edited (edit mode); defaultRole: the role a new account starts with.
- * companyCode: the company picked on the Account page; companyOptions: the companies of the
- * picked Group ([{ value, label }]).
- * UI only for now: currencies are placeholders and Save just hands the draft back through onSave.
+ * mode: "add" | "edit"; account: the list row being edited (edit mode).
+ * tenantId: the company picked on the Account page. companyOptions: the companies the card offers
+ * ([{ value, label, tenantId }], the picked Group's companies, or just the Group itself when its own
+ * view is picked).
+ * Currencies come from /api/currency/available; Create and Delete in the Currency card write to the
+ * database right away (Delete only after its confirmation). Save hands { url, body } to onSave, which
+ * posts it and closes the modal; if it throws, the message is shown in the footer.
  */
-export default function AccountFormModal({ mode = "add", account, defaultRole = "", companyCode, companyOptions = [], onClose, onSave }) {
+export default function AccountFormModal({ mode = "add", account, tenantId, companyOptions = [], onClose, onSave }) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => ({
     accountId: isEdit ? (account?.accountId ?? "") : "",
     name: isEdit ? (account?.name ?? "") : "",
-    role: isEdit ? (account?.role ?? "") : defaultRole,
+    role: isEdit ? (account?.role ?? "") : "",
     password: "",
     remark: isEdit ? (account?.remark ?? "") : "",
   }));
-  const [alert, setAlert] = useState(() => ({
-    on: isEdit ? Boolean(account?.paymentAlert) : false,
-    type: 7, // a day count (1-31) or "monthly"
-    custom: false, // the Custom day grid is open
-    startDate: toIsoDate(new Date()),
-    amount: "",
-  }));
-  const [currencies, setCurrencies] = useState(MOCK_CURRENCIES);
-  const [pickedCurrencies, setPickedCurrencies] = useState(() => new Set(["MYR"]));
-  const [companies, setCompanies] = useState(() => new Set(companyCode ? [companyCode] : []));
+  const [alert, setAlert] = useState(() => alertFromRow(isEdit ? account : null));
+  const [message, setMessage] = useState(""); // validation problem or the backend's error
+  const [saving, setSaving] = useState(false);
 
-  const companyItems = (companyOptions.length ? companyOptions : companyCode ? [{ value: companyCode, label: companyCode }] : []).map((c) => ({
-    value: c.value,
-    label: c.label,
-    tag: c.value === companyCode ? "CURRENT" : undefined,
-  }));
+  const { currencies, error: currencyError, loading: currenciesLoading, create, remove } = useAccountCurrencies(
+    tenantId,
+    isEdit ? account?.id : null
+  );
+  const [pickedCurrencies, setPickedCurrencies] = useState(() => new Set());
+  // Tick once the list has arrived: what the account already holds (Edit), else MYR when the company has it.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || currenciesLoading || currencyError) return;
+    seeded.current = true;
+    const start = isEdit ? currencies.filter((c) => c.linked) : currencies.filter((c) => c.code === "MYR");
+    setPickedCurrencies(new Set(start.map((c) => c.id)));
+  }, [currenciesLoading, currencyError, currencies, isEdit]);
+
+  const companyItems = companyOptions.map((c) => ({ ...c, tag: c.tenantId === tenantId ? "CURRENT" : undefined }));
+  // The account's own companies; an account the list doesn't say anything about starts from the current one.
+  const ownTenantIds = isEdit && account?.tenantIds?.length ? account.tenantIds : [tenantId];
+  const [companies, setCompanies] = useState(
+    () => new Set(companyOptions.filter((c) => ownTenantIds.includes(c.tenantId)).map((c) => c.value))
+  );
+  // Companies the account is in that the card doesn't list (another Group's): the backend replaces the
+  // whole list, so they are sent back untouched instead of being unbound.
+  const hiddenTenantIds = isEdit ? ownTenantIds.filter((id) => !companyOptions.some((c) => c.tenantId === id)) : [];
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  // Account IDs are always upper case: converted as they are typed, keeping the cursor where it was.
+  const setAccountId = (e) => {
+    const input = e.target;
+    const { selectionStart, selectionEnd } = input;
+    setForm((f) => ({ ...f, accountId: input.value.toUpperCase() }));
+    requestAnimationFrame(() => input.setSelectionRange(selectionStart, selectionEnd));
+  };
 
-  const save = () =>
-    onSave?.({
-      ...form,
-      paymentAlert: alert.on,
-      alertDay: alert.on ? String(alert.type) : null,
-      alertStartDate: alert.on ? alert.startDate : null,
-      alertAmount: alert.on ? alert.amount : null,
-      currencies: [...pickedCurrencies],
-      companies: [...companies],
+  // Currency Create / Delete take effect immediately; a failure (duplicate code, currency in use...) shows in the footer.
+  const createCurrency = async (code) => {
+    setMessage("");
+    try {
+      const id = await create(code);
+      if (id != null) setPickedCurrencies((s) => new Set(s).add(id));
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+  const deleteCurrency = async (currency) => {
+    setMessage("");
+    try {
+      await remove(currency.id);
+      setPickedCurrencies((s) => {
+        const next = new Set(s);
+        next.delete(currency.id);
+        return next;
+      });
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
+  const save = async () => {
+    if (saving || currenciesLoading) return;
+    const tenantIds = [...companyItems.filter((c) => companies.has(c.value)).map((c) => c.tenantId), ...hiddenTenantIds];
+    const problem = validateAccountForm({ mode, form, pickedCount: pickedCurrencies.size, tenantIds, scopeTenantId: tenantId });
+    if (problem) {
+      setMessage(problem);
+      return;
+    }
+    setMessage("");
+    setSaving(true);
+    const body = buildAccountPayload({
+      mode,
+      accountId: account?.id,
+      scopeTenantId: tenantId,
+      form,
+      alert,
+      currencyIds: [...pickedCurrencies],
+      tenantIds,
+      keepAlertConfig: isEdit && account?.alertDay != null,
     });
+    try {
+      await onSave({ url: isEdit ? UPDATE_URL : ADD_URL, body }); // closes the modal on success
+    } catch (err) {
+      setMessage(err.message);
+      setSaving(false);
+    }
+  };
+
+  const footerNote = message || currencyError || (currenciesLoading ? "Loading…" : "");
+  const footerIsError = Boolean(message || currencyError);
 
   return (
     <FormModal
@@ -83,6 +144,20 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
       title={isEdit ? "Edit Account" : "Add Account"}
       onClose={onClose}
       onSave={save}
+      saveDisabled={currenciesLoading || saving}
+      footerStart={
+        footerNote && (
+          <p
+            role={footerIsError ? "alert" : "status"}
+            className={cn(
+              "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+              footerIsError ? "text-[#dc2626]" : "text-dash-sub"
+            )}
+          >
+            {footerNote}
+          </p>
+        )
+      }
       bodyClassName={cn(
         "grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]",
         "@min-[1210px]/main:grid-cols-3",
@@ -90,11 +165,11 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <AccountInfoCard form={form} setField={setField} setForm={setForm} isEdit={isEdit} />
+        <AccountInfoCard form={form} setField={setField} setAccountId={setAccountId} setForm={setForm} isEdit={isEdit} />
         <PaymentAlertCard alert={alert} setAlert={setAlert} />
       </div>
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <CurrencyCard currencies={currencies} setCurrencies={setCurrencies} picked={pickedCurrencies} setPicked={setPickedCurrencies} />
+        <CurrencyCard currencies={currencies} picked={pickedCurrencies} setPicked={setPickedCurrencies} onCreate={createCurrency} onDelete={deleteCurrency} />
         <CompanyChipsBox items={companyItems} selected={companies} onChange={setCompanies} />
       </div>
       <div className="hidden min-h-0 min-w-0 flex-col @min-[1210px]/main:flex">
@@ -109,13 +184,21 @@ const stackCard = "@max-[899px]/main:flex-none @max-[899px]/main:overflow-visibl
 const stackBody = "@max-[899px]/main:overflow-visible";
 
 // Never shrinks, so no field hides behind a scroll; Payment Alert under it takes what is left.
-function AccountInfoCard({ form, setField, setForm, isEdit }) {
+function AccountInfoCard({ form, setField, setAccountId, setForm, isEdit }) {
   return (
     <FormCard title="Account Information" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
       {/* 3 per row (ID | Name | Role, Password | Remark); 2 per row on 1440+ screens. */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[1210px]/main:grid-cols-2">
         <Field label="Account ID">
-          <TextInput value={form.accountId} onChange={setField("accountId")} autoComplete="off" className="uppercase" />
+          {/* The backend never changes an Account ID once it is created. */}
+          <TextInput
+            value={form.accountId}
+            onChange={setAccountId}
+            autoComplete="off"
+            autoCapitalize="characters"
+            disabled={isEdit}
+            className="uppercase disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint"
+          />
         </Field>
         <Field label="Name">
           <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
@@ -135,26 +218,30 @@ function AccountInfoCard({ form, setField, setForm, isEdit }) {
   );
 }
 
-function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
+function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
   const [code, setCode] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [toDelete, setToDelete] = useState(null); // currency code awaiting confirmation
+  const [toDelete, setToDelete] = useState(null); // currency awaiting confirmation
 
-  const create = () => {
+  // An existing code is just ticked; a new one is created in the database, then ticked.
+  const create = async () => {
     const c = code.trim().toUpperCase();
     if (!c) return;
-    if (!currencies.includes(c)) setCurrencies((list) => [...list, c]);
-    setPicked((s) => new Set(s).add(c));
+    const existing = currencies.find((x) => x.code === c);
+    if (existing) setPicked((s) => new Set(s).add(existing.id));
+    else await onCreate(c);
     setCode("");
   };
   // Delete mode: clicking an unticked currency asks to confirm (same dialog as the list pages); ticked ones are locked.
+  // Nothing is deleted before the confirmation.
   const clickTile = (c) => {
-    if (!deleting) setPicked((s) => toggleIn(s, c));
-    else if (!picked.has(c)) setToDelete(c);
+    if (!deleting) setPicked((s) => toggleIn(s, c.id));
+    else if (!picked.has(c.id) && c.deletable) setToDelete(c);
   };
-  const confirmDelete = () => {
-    setCurrencies((list) => list.filter((x) => x !== toDelete));
+  const confirmDelete = async () => {
+    const currency = toDelete;
     setToDelete(null);
+    if (currency) await onDelete(currency);
   };
 
   return (
@@ -193,16 +280,16 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
 
       <div className="mt-2.5 grid max-w-[700px] grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 @max-[1209px]/main:grid-cols-[repeat(auto-fill,minmax(72px,1fr))] @max-[1209px]/main:gap-1.5 modal-compact:mt-2 modal-compact:gap-1.5">
         {currencies.map((c) => {
-          const on = picked.has(c);
-          const removable = deleting && !on;
+          const on = picked.has(c.id);
+          const removable = deleting && !on && c.deletable;
           return (
             <button
-              key={c}
+              key={c.id}
               type="button"
               onClick={() => clickTile(c)}
-              disabled={deleting && on}
+              disabled={deleting && (on || !c.deletable)}
               aria-pressed={on}
-              title={removable ? `Delete ${c}` : undefined}
+              title={removable ? `Delete ${c.code}` : undefined}
               className={cn(
                 "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
                 // Below 1440 the tiles are plain (no tick circle): selected = blue, about 5 per row.
@@ -215,7 +302,7 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
                     : "border-modal-off-line bg-white/60 text-[#374151] hover:border-[#93c5fd]"
               )}
             >
-              {c}
+              {c.code}
               {removable ? (
                 <X className="absolute right-3 top-1/2 size-3 -translate-y-1/2 text-[#ef4444]" strokeWidth={3.2} />
               ) : (
@@ -232,12 +319,12 @@ function CurrencyCard({ currencies, setCurrencies, picked, setPicked }) {
           );
         })}
       </div>
-      {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">Click × to delete an unticked currency. Ticked currencies can&apos;t be deleted.</p>}
+      {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">Click × to delete an unticked currency. Ticked currencies, and ones synced from a subsidiary, can&apos;t be deleted.</p>}
 
       <DeleteDialog
         open={toDelete !== null}
         onOpenChange={(open) => !open && setToDelete(null)}
-        names={toDelete ? [toDelete] : []}
+        names={toDelete ? [toDelete.code] : []}
         noun="currency"
         onConfirm={confirmDelete}
       />
@@ -428,7 +515,7 @@ function CompanyChipsBox({ items, selected, onChange }) {
                   : "border-modal-off-line bg-modal-off text-[#374151] hover:border-[#93c5fd] hover:bg-white/85"
               )}
             >
-              {it.value}
+              {it.label}
             </button>
           );
         })}

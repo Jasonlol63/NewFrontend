@@ -37,10 +37,10 @@ const pillClass = {
  * changes: [{ currency, removed: [accountId], added: [accountId] }] (what Save would do)
  * accountsById: Map accountId -> { name }
  * onClose(restored): Back to edit / Esc; restored = [{ currency, accountId, kind }] the user undid (kind: "removed" | "added")
- * onConfirm(restored): Confirm & Save
+ * onConfirm(restored): Confirm & Save; saving: the request is running (the button is disabled and says so)
  * Mount it only while open so every opening starts fresh.
  */
-export default function CurrencyChangesDialog({ changes, accountsById, onClose, onConfirm }) {
+export default function CurrencyChangesDialog({ changes, accountsById, saving = false, onClose, onConfirm }) {
   const [restored, setRestored] = useState(() => new Set());
   const [currency, setCurrency] = useState(changes[0]?.currency);
   const [tab, setTab] = useState(changes[0]?.removed.length ? "removed" : "added");
@@ -192,11 +192,11 @@ export default function CurrencyChangesDialog({ changes, accountsById, onClose, 
             </Dialog.Close>
             <button
               type="button"
-              disabled={!total}
+              disabled={!total || saving}
               onClick={() => onConfirm(restoredList())}
               className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:bg-[#e5484d]"
             >
-              {total ? `Confirm & Save (${total})` : "Nothing to save"}
+              {saving ? "Saving…" : total ? `Confirm & Save (${total})` : "Nothing to save"}
             </button>
           </div>
         </Dialog.Content>
