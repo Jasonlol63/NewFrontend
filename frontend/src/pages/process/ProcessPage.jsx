@@ -9,6 +9,7 @@ import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { postJson } from "@/lib/api";
 import BankProcessView from "./bank/BankProcessView.jsx";
 import ProcessFormModal from "./games/ProcessFormModal.jsx";
 import { DAYS, filterProcesses, sortProcesses } from "./games/processRules";
@@ -46,8 +47,33 @@ export default function ProcessPage() {
   // The picked company's category decides the page: Bank companies get the Bank Process list, Game companies this one.
   const { user: session } = useSession();
   const isBank = scope.company !== null && Boolean(session?.tenant_has_bank);
-  const { rows: allRows, error: listError, loading, toggleStatus, deleteRows } = useProcessList(isBank ? null : scope.tenantId);
+  const { rows: allRows, error: listError, loading, toggleStatus, deleteRows, reload } = useProcessList(isBank ? null : scope.tenantId);
   const rows = useMemo(() => allRows.filter((p) => p.category === "GAME"), [allRows]);
+
+  // Sends what the modal built ([{ url, code, body }], several with Multi-Process) one after another; on success
+  // the modal closes and the list is fetched again. A failure goes back to the modal: with Multi-Process it says how
+  // many were created before it (they stay created) and carries their codes in err.createdCodes.
+  const submitProcess = useCallback(
+    async (requests) => {
+      const created = [];
+      for (const r of requests) {
+        try {
+          await postJson(r.url, r.body);
+          created.push(r.code);
+        } catch (err) {
+          if (!created.length) throw err;
+          reload();
+          const failure = new Error(`Created ${created.length} of ${requests.length} (${created.join(", ")}). ${r.code} failed: ${err.message}`);
+          failure.createdCodes = created;
+          throw failure;
+        }
+      }
+      closeAdd();
+      closeEdit();
+      reload();
+    },
+    [closeAdd, closeEdit, reload]
+  );
 
   // Only inactive processes can be deleted.
   const canSelect = useCallback((p) => !readOnly && p.status === "inactive", [readOnly]);
@@ -120,9 +146,8 @@ export default function ProcessPage() {
 
       {actions.dialogs}
 
-      {/* UI only for now: Save just closes the modal until the add / update API is wired up. */}
-      {editRow && <ProcessFormModal mode="edit" process={editRow} tenantId={scope.tenantId} processes={rows} onClose={closeEdit} onSave={closeEdit} />}
-      {addOpen && <ProcessFormModal tenantId={scope.tenantId} processes={rows} onClose={closeAdd} onSave={closeAdd} />}
+      {editRow && <ProcessFormModal mode="edit" process={editRow} tenantId={scope.tenantId} processes={rows} onClose={closeEdit} onSave={submitProcess} />}
+      {addOpen && <ProcessFormModal tenantId={scope.tenantId} processes={rows} onClose={closeAdd} onSave={submitProcess} />}
     </div>
   );
 }

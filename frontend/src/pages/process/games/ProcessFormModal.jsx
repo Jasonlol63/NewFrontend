@@ -8,7 +8,8 @@ import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelect
 import { ByTag } from "@/components/shared/form-modal/RecordBar.jsx";
 import { formatRecordTime } from "@/components/shared/form-modal/recordTime.js";
 import { DAYS } from "./processRules";
-import { MOCK_CURRENCIES } from "./processFormOptions";
+import { buildProcessRequest, findProcessIdInUse, validateProcessForm } from "./processFormRules";
+import { useProcessCurrencies } from "./useProcessCurrencies";
 import { useProcessDescriptions } from "./useProcessDescriptions";
 import DescriptionPickerModal from "./DescriptionPickerModal.jsx";
 
@@ -23,14 +24,18 @@ const ALL_DAYS = DAYS.map((d) => d.day);
  * Add Process / Edit Process: same modal shell as Add Account, with the Information / Text & Replacement / Schedule cards.
  * mode: "add" | "edit"; process: the list row being edited (edit mode, adds the Record section and hides Copy From / Multi-Process).
  * processes: the list rows of the picked company, for "Copy From".
- * Descriptions come from the process description API; currencies are placeholders and Save just hands the draft back through onSave (UI only for now).
+ * Currencies and descriptions come from the company's own lists. Copy From fills the form with the picked process's
+ * values; everything stays editable and what is in the form on Save is what the new process gets (the backend only
+ * adds the source's formulas). Multi-Process adds one process per picked Process ID, one request each.
+ * Save hands the requests [{ url, code, body }] to onSave, which sends them and closes the modal; if it throws, the
+ * message is shown in the footer (err.createdCodes: Multi-Process IDs that already went through).
  */
 export default function ProcessFormModal({ mode = "add", process, tenantId, processes = [], onClose, onSave }) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState({
     copyFrom: "",
     code: isEdit ? (process?.code ?? "") : "",
-    currency: isEdit ? (process?.currency ?? "") : "",
+    currency: isEdit ? String(process?.currencyId ?? "") : "", // currency id
     saveDataCapture: isEdit ? Boolean(process?.enableSaveDraft) : false,
     removeWord: isEdit ? (process?.removeWord ?? "") : "",
     replaceFrom: isEdit ? (process?.replaceFrom ?? "") : "",
@@ -40,6 +45,10 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
   const [descriptions, setDescriptions] = useState(() => new Set(isEdit ? (process?.descriptionIds ?? []) : []));
   const [days, setDays] = useState(() => new Set(isEdit ? (process?.days ?? []) : []));
   const descriptionList = useProcessDescriptions(tenantId);
+  const currencies = useProcessCurrencies(tenantId);
+  const [message, setMessage] = useState(""); // validation problem or the backend's error
+  const [saving, setSaving] = useState(false);
+  const labelById = useMemo(() => new Map(descriptionList.items.map((it) => [it.value, it.label])), [descriptionList.items]);
   const [picker, setPicker] = useState(false);
   // Multi-Process (Add only): pick existing process IDs instead of typing one.
   const [multi, setMulti] = useState(false);
@@ -49,9 +58,68 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
   const existingCodes = useMemo(() => [...new Set(processes.map((p) => p.code).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).map((code) => ({ value: code, label: code })), [processes]);
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const copyOptions = processes.map((p) => ({ value: String(p.id), label: p.description ? `${p.code} (${p.description})` : p.code }));
+  // Only active processes can be copied.
+  const copyOptions = processes.filter((p) => p.status === "active").map((p) => ({ value: String(p.id), label: p.description ? `${p.code} (${p.description})` : p.code }));
 
-  const save = () => onSave?.({ ...form, multiCodes: multi ? [...multiCodes] : [], descriptions: [...descriptions], days: [...days].sort((a, b) => a - b) });
+  // Process IDs are always upper case: converted as they are typed, keeping the cursor where it was.
+  const setCode = (e) => {
+    const input = e.target;
+    const { selectionStart, selectionEnd } = input;
+    setForm((f) => ({ ...f, code: input.value.toUpperCase() }));
+    requestAnimationFrame(() => input.setSelectionRange(selectionStart, selectionEnd));
+  };
+
+  // Copy From: fill the form with the picked process's values. Clearing the pick keeps what is in the form.
+  const pickCopyFrom = (copyFrom) => {
+    const source = processes.find((p) => String(p.id) === copyFrom);
+    setForm((f) => ({
+      ...f,
+      copyFrom,
+      ...(source && {
+        currency: String(source.currencyId ?? ""),
+        saveDataCapture: source.enableSaveDraft,
+        removeWord: source.removeWord,
+        replaceFrom: source.replaceFrom,
+        replaceTo: source.replaceTo,
+        remark: source.remark,
+      }),
+    }));
+    if (source) {
+      setDescriptions(new Set(source.descriptionIds));
+      setDays(new Set(source.days));
+    }
+  };
+
+  const save = async () => {
+    if (saving) return;
+    const codes = isEdit ? [process.code] : multi ? [...multiCodes] : [form.code.trim().toUpperCase()].filter(Boolean);
+    const problem = validateProcessForm({ isEdit, multi, codes, currencyId: form.currency, descriptionCount: descriptions.size });
+    if (problem) {
+      setMessage(problem);
+      return;
+    }
+    // Same Process ID + same description twice is refused by the backend; say which one here, before sending.
+    for (const code of codes) {
+      const inUse = findProcessIdInUse(processes, code.toUpperCase(), descriptions, isEdit ? process.id : null, labelById);
+      if (inUse) {
+        setMessage(inUse);
+        return;
+      }
+    }
+    setMessage("");
+    setSaving(true);
+    const requests = codes.map((code) => buildProcessRequest({ isEdit, id: process?.id, code, tenantId, form, descriptions, days }));
+    try {
+      await onSave(requests); // closes the modal on success
+    } catch (err) {
+      // Multi-Process IDs that already went through are not picked again for a retry.
+      if (err.createdCodes?.length) setMultiCodes((prev) => new Set([...prev].filter((c) => !err.createdCodes.includes(c))));
+      setMessage(err.message);
+      setSaving(false);
+    }
+  };
+
+  const footerNote = message || currencies.error || descriptionList.error;
 
   return (
     <FormModal
@@ -60,6 +128,14 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
       saveLabel={isEdit ? "Update Process" : "Add Process"}
       onClose={onClose}
       onSave={save}
+      saveDisabled={saving || currencies.loading}
+      footerStart={
+        footerNote && (
+          <p role="alert" className="m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight text-[#dc2626] @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]">
+            {footerNote}
+          </p>
+        )
+      }
       bodyClassName={cn(
         "grid grid-cols-2 grid-rows-1",
         "@max-[899px]/main:flex @max-[899px]/main:flex-col @max-[899px]/main:overflow-y-auto @max-[899px]/main:[scrollbar-width:thin]"
@@ -70,7 +146,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
         <div className="flex min-h-0 flex-1 flex-col gap-3 modal-compact:gap-2 modal-tiny:gap-1.5">
           {!isEdit && (
             <Field label="Copy From" optional>
-              <SelectField value={form.copyFrom} onChange={(copyFrom) => setForm((f) => ({ ...f, copyFrom }))} options={copyOptions} placeholder="Select Process to Copy From" />
+              <SelectField value={form.copyFrom} onChange={pickCopyFrom} onClear={() => setForm((f) => ({ ...f, copyFrom: "" }))} options={copyOptions} placeholder="Select Process to Copy From" />
             </Field>
           )}
 
@@ -79,7 +155,16 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
           ) : (
             <Field label="Process ID">
               <div className="flex items-center gap-2">
-                <TextInput value={form.code} onChange={setField("code")} autoComplete="off" placeholder="ENTER PROCESS ID" className="min-w-0 flex-1 uppercase" />
+                {/* The backend never changes a Process ID once it is created. */}
+                <TextInput
+                  value={form.code}
+                  onChange={setCode}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  disabled={isEdit}
+                  placeholder="ENTER PROCESS ID"
+                  className="min-w-0 flex-1 uppercase disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint"
+                />
                 {!isEdit && (
                   <MultiButton
                     onClick={() => {
@@ -93,7 +178,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
           )}
 
           <Field label="Currency">
-            <SelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={MOCK_CURRENCIES} placeholder="Select Currency" />
+            <SelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={currencies.options} placeholder="Select Currency" />
           </Field>
 
         <div>

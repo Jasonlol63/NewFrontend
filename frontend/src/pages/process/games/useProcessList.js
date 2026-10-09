@@ -8,6 +8,9 @@ import { PROCESS_DELETE_URL, PROCESS_LIST_URL, PROCESS_STATUS_URL, normalizeProc
  */
 export function useProcessList(tenantId) {
   const [state, setState] = useState({ tenantId: null, rows: [], error: "" });
+  // Bumped by reload() to fetch the same tenant again (after an add / edit).
+  const [version, setVersion] = useState(0);
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
     if (!tenantId) return undefined;
@@ -18,7 +21,7 @@ export function useProcessList(tenantId) {
         if (err.name !== "AbortError") setState({ tenantId, rows: [], error: err.message });
       });
     return () => controller.abort();
-  }, [tenantId]);
+  }, [tenantId, version]);
 
   const toggleStatus = useCallback(
     async (row) => {
@@ -52,5 +55,6 @@ export function useProcessList(tenantId) {
     loading: Boolean(tenantId) && !current,
     toggleStatus,
     deleteRows,
+    reload,
   };
 }

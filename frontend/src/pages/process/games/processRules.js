@@ -4,6 +4,8 @@
 import { compareText, matchesSearch, matchesStatusChips, sortRows } from "@/components/shared/list/listFormat";
 
 export { PROCESS_LIST_URL } from "@/pages/report/domain/domainReportRules";
+export const PROCESS_ADD_URL = "/api/process/add-process";
+export const PROCESS_UPDATE_URL = "/api/process/update-process";
 export const PROCESS_STATUS_URL = "/api/process/update-status";
 export const PROCESS_DELETE_URL = "/api/process/delete-process";
 
@@ -29,6 +31,7 @@ export function normalizeProcessRow(dto) {
     description: (dto.processDescriptions ?? []).map((d) => d?.name).filter(Boolean).join(", "),
     status: String(process.status || "active").toLowerCase(),
     currency: String(dto.currencyCode ?? "").trim(),
+    currencyId: process.currencyId ?? null,
     descriptionIds: (dto.processDescriptions ?? []).map((d) => d?.id).filter((id) => id != null),
     enableSaveDraft: Boolean(process.enableSaveDraft),
     removeWord: process.removeWord ?? "",
