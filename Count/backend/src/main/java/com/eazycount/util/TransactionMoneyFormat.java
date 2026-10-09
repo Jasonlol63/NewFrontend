@@ -19,6 +19,9 @@ public final class TransactionMoneyFormat {
     public static final int NORMAL_AMOUNT_SCALE = 6;
     /* RATE 金额与汇率的最大小数位数。 */
     public static final int RATE_AMOUNT_SCALE = 8;
+    /* 手动交易金额（PAYMENT / CONTRA / CLAIM / CLEAR / PROFIT / ADJUSTMENT）的最大小数位数。
+     * 点 Balance 带入的是完整精度余额（可能含 RATE 产生的 8 位小数），需能原样清零，故与列精度一致。 */
+    public static final int MANUAL_TX_AMOUNT_SCALE = 8;
 
     private TransactionMoneyFormat() {
     }
@@ -75,6 +78,10 @@ public final class TransactionMoneyFormat {
 
     public static BigDecimal requireNormalAmount(BigDecimal raw, String label) {
         return requireMaxScale(raw, NORMAL_AMOUNT_SCALE, label);
+    }
+
+    public static BigDecimal requireManualTxAmount(BigDecimal raw, String label) {
+        return requireMaxScale(raw, MANUAL_TX_AMOUNT_SCALE, label);
     }
 
     public static BigDecimal requireRateAmount(BigDecimal raw, String label) {

@@ -136,12 +136,20 @@ public class BankProcessServiceImpl implements BankProcessService {
                 AuditSnapshots.bankProcess(updateResult.before()), AuditSnapshots.bankProcess(updated));
         AuditContext.captureSummary(updated.getId(),
                 AuditLabels.updateWithDiff("合同", contractIdentity(updated), diff));
-        deleteBankProcessShareBatch(updated.getId());
-        List<BankProcessShare> shares = insertProfitSharing(updated.getId(), bankProcessDTO.getShares());
+        boolean billingLocked = isBillingLocked(updateResult.before());
+        List<BankProcessShare> shares;
+        if (billingLocked) {
+            // Profit sharing is billing data: keep the stored rows untouched.
+            shares = bankProcessDao.findSharesByBankProcessId(updated.getId());
+        } else {
+            deleteBankProcessShareBatch(updated.getId());
+            shares = insertProfitSharing(updated.getId(), bankProcessDTO.getShares());
+        }
 
         // Bank Balance: only ever create when this process doesn't already have one linked — once
         // locked, the frontend field is read-only, but re-validate here too rather than trust it blindly.
-        BigDecimal bankBalance = normalizeBankBalanceAmount(bankProcessDTO.getBankBalance());
+        // Billing-locked statuses never create a new Bank Balance Contra through Edit.
+        BigDecimal bankBalance = billingLocked ? null : normalizeBankBalanceAmount(bankProcessDTO.getBankBalance());
         if (bankBalance != null && transactionDao.findLinkedBankBalanceTransaction(updated.getTenantId(), updated.getId()) == null) {
             createBankBalanceContra(updated, bankBalance);
         }
@@ -234,7 +242,6 @@ public class BankProcessServiceImpl implements BankProcessService {
 
         BankProcess existing = AssertUtils.requireFound(
                 bankProcessDao.findBKProcessByIdAndTenantId(id, tenantId), "Bank process not found!");
-        assertEditable(existing);
         AuditContext.captureBefore(id, AuditSnapshots.bankProcess(existing));
 
         try {
@@ -380,7 +387,13 @@ public class BankProcessServiceImpl implements BankProcessService {
         return bankProcess;
     }
 
-    /* OFFICIAL / E_INVOICE / BLOCK are locked from edits; only the status control can move them out. */
+    /* OFFICIAL / E_INVOICE / BLOCK: billing fields (dates, frequency, contract, prices, accounts, profit sharing)
+     * are frozen — Edit only saves SOP / Remark / Insurance and silently keeps the stored billing values. */
+    private static boolean isBillingLocked(BankProcess existing) {
+        return existing.getStatus() != null && EDIT_LOCKED_STATUS.contains(existing.getStatus());
+    }
+
+    /* Used by Bank Balance delete, which stays blocked for these statuses. */
     private static void assertEditable(BankProcess existing) {
         if (existing.getStatus() != null && EDIT_LOCKED_STATUS.contains(existing.getStatus())) {
             throw new BusinessException("Bank process is " + existing.getStatus()
@@ -395,10 +408,11 @@ public class BankProcessServiceImpl implements BankProcessService {
         BankProcess existing = AssertUtils.requireFound(
                 bankProcessDao.findBKProcessByIdAndTenantId(bankProcessDTO.getId(), bankProcessDTO.getTenantId()),
                 "Bank process not found!");
-        assertEditable(existing);
+        boolean billingLocked = isBillingLocked(existing);
         AuditContext.captureBefore(existing.getId(), AuditSnapshots.bankProcess(existing));
 
-        BankProcess.Frequency frequency = parseFrequency(bankProcessDTO.getFrequency());
+        BankProcess.Frequency frequency = billingLocked
+                ? existing.getFrequency() : parseFrequency(bankProcessDTO.getFrequency());
 
         BankProcess bankProcess = new BankProcess();
         bankProcess.setId(existing.getId());
@@ -407,17 +421,31 @@ public class BankProcessServiceImpl implements BankProcessService {
         bankProcess.setBankOptionId(existing.getBankOptionId());
         bankProcess.setCardOwner(existing.getCardOwner());
         bankProcess.setCardOwnerType(existing.getCardOwnerType());
-        bankProcess.setDayStart(bankProcessDTO.getDayStart());
-        bankProcess.setDayEnd(bankProcessDTO.getDayEnd());
-        bankProcess.setDayEndMonthlyCapEnabled(resolveDayEndMonthlyCapEnabled(frequency, bankProcessDTO.getDayEndMonthlyCapEnabled()));
-        bankProcess.setFrequency(frequency);
-        bankProcess.setSupplierAccountId(bankProcessDTO.getSupplierAccountId());
-        bankProcess.setSupplierPrice(bankProcessDTO.getSupplierPrice());
-        bankProcess.setCustomerAccountId(bankProcessDTO.getCustomerAccountId());
-        bankProcess.setCustomerPrice(bankProcessDTO.getCustomerPrice());
-        bankProcess.setCompanyAccountId(bankProcessDTO.getCompanyAccountId());
-        bankProcess.setCompanyPrice(bankProcessDTO.getCompanyPrice());
-        bankProcess.setContract(bankProcessDTO.getContract());
+        if (billingLocked) {
+            bankProcess.setDayStart(existing.getDayStart());
+            bankProcess.setDayEnd(existing.getDayEnd());
+            bankProcess.setDayEndMonthlyCapEnabled(existing.getDayEndMonthlyCapEnabled());
+            bankProcess.setFrequency(existing.getFrequency());
+            bankProcess.setSupplierAccountId(existing.getSupplierAccountId());
+            bankProcess.setSupplierPrice(existing.getSupplierPrice());
+            bankProcess.setCustomerAccountId(existing.getCustomerAccountId());
+            bankProcess.setCustomerPrice(existing.getCustomerPrice());
+            bankProcess.setCompanyAccountId(existing.getCompanyAccountId());
+            bankProcess.setCompanyPrice(existing.getCompanyPrice());
+            bankProcess.setContract(existing.getContract());
+        } else {
+            bankProcess.setDayStart(bankProcessDTO.getDayStart());
+            bankProcess.setDayEnd(bankProcessDTO.getDayEnd());
+            bankProcess.setDayEndMonthlyCapEnabled(resolveDayEndMonthlyCapEnabled(frequency, bankProcessDTO.getDayEndMonthlyCapEnabled()));
+            bankProcess.setFrequency(frequency);
+            bankProcess.setSupplierAccountId(bankProcessDTO.getSupplierAccountId());
+            bankProcess.setSupplierPrice(bankProcessDTO.getSupplierPrice());
+            bankProcess.setCustomerAccountId(bankProcessDTO.getCustomerAccountId());
+            bankProcess.setCustomerPrice(bankProcessDTO.getCustomerPrice());
+            bankProcess.setCompanyAccountId(bankProcessDTO.getCompanyAccountId());
+            bankProcess.setCompanyPrice(bankProcessDTO.getCompanyPrice());
+            bankProcess.setContract(bankProcessDTO.getContract());
+        }
         bankProcess.setInsurancePrice(bankProcessDTO.getInsurancePrice());
         bankProcess.setSop(bankProcessDTO.getSop());
         bankProcess.setRemark(bankProcessDTO.getRemark());

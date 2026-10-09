@@ -656,7 +656,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
     }
 
     private static BigDecimal parsePositiveAmount(BigDecimal raw, String label) {
-        BigDecimal amount = TransactionMoneyFormat.requireNormalAmount(raw, label);
+        BigDecimal amount = TransactionMoneyFormat.requireManualTxAmount(raw, label);
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException(label + " must be greater than zero");
         }
@@ -681,7 +681,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
     }
 
     private static BigDecimal parseSignedNonZeroAmount(BigDecimal raw) {
-        BigDecimal amount = TransactionMoneyFormat.requireNormalAmount(raw, "Amount");
+        BigDecimal amount = TransactionMoneyFormat.requireManualTxAmount(raw, "Amount");
         if (amount.compareTo(BigDecimal.ZERO) == 0) {
             throw new BusinessException("Adjustment amount must be non-zero");
         }
