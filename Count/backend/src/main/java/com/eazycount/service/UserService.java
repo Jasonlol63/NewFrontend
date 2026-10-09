@@ -31,4 +31,6 @@ public interface UserService {
     Map<String, Object> getLinkedAccounts(int accountId, int tenantId);
 
     List<UserListDTO> getAllLinkedAccounts(int accountId, int tenantId);
+
+    Map<String, Object> getLinksForManage(int accountId, int tenantId);
 }

@@ -442,6 +442,7 @@ public class UserServiceImpl implements UserService {
 
     /* Account Link Side */
     @Override
+    @Transactional
     @Audited(module = "ACCOUNT", action = AuditLog.Action.CREATE,
             entityIdExpr = "#userLink.id", sourceTable = "account_link")
     public void insertAccountLink(UserLink userLink) {
@@ -488,9 +489,28 @@ public class UserServiceImpl implements UserService {
             source = null; // 双向时应为 null
         }
 
+        // A pair has one row. Adding to a pair that is already linked merges instead of failing, and never
+        // weakens what is there: asking for both ways, or for the opposite direction of a one-way link
+        // (each account can then see the other), makes it bidirectional; asking for what already exists
+        // changes nothing. Turning a link into something weaker is what updateAccountLink is for.
         List<UserLink> existing = userDao.findByPair(a1, a2, tenantId);
         if (existing != null && !existing.isEmpty()) {
-            throw new BusinessException("Accounts are already linked in this tenant");
+            UserLink current = existing.get(0);
+            boolean currentBi = current.getLinkType() == UserLink.LinkType.BIDIRECTIONAL;
+            boolean sameLink = currentBi
+                    || (linkType == UserLink.LinkType.UNIDIRECTIONAL && source.equals(current.getSourceAccountId()));
+            if (sameLink) {
+                userLink.setId(current.getId());
+                AuditContext.captureAfter(current.getId(), new LinkedHashMap<>(AuditSnapshots.userLink(current)));
+                return;
+            }
+            try {
+                userDao.deleteById(current.getId(), tenantId);
+            } catch (Exception e) {
+                throw new BusinessException("Update Account Link failed (delete step)!");
+            }
+            linkType = UserLink.LinkType.BIDIRECTIONAL;
+            source = null;
         }
 
         UserLink accLink = new UserLink();
@@ -673,5 +693,42 @@ public class UserServiceImpl implements UserService {
         }
 
         return accounts;
+    }
+
+    // For the Link Account modal only. Unlike getLinkedAccounts (which decides who may see whose data, and
+    // hides a one-way link from the account it points to), this lists every link the account is part of;
+    // `incoming_ids` are the one-way links that point at it, so the modal can show them as "from the other account".
+    @Override
+    public Map<String, Object> getLinksForManage(int accountId, int tenantId) {
+        SessionUser session = SecurityUtils.currentUser();
+        if (session == null)
+            throw new BusinessException("Not logged in");
+        if (tenantId != session.tenant_id)
+            throw new BusinessException("Unauthorized tenant access");
+
+        List<UserListDTO> accounts = new ArrayList<>();
+        Map<Integer, String> linkTypesMap = new HashMap<>();
+        List<Integer> incomingIds = new ArrayList<>();
+
+        for (UserLink link : userDao.findByAccountId(accountId, session.tenant_id)) {
+            int otherId = (link.getAccountId1() == accountId) ? link.getAccountId2() : link.getAccountId1();
+            UserListDTO other = userDao.findUserByIdAndTenantId(otherId, session.tenant_id);
+            if (other == null) {
+                continue;
+            }
+            accounts.add(other);
+            linkTypesMap.put(otherId, link.getLinkType().name().toLowerCase());
+            if (link.getLinkType() == UserLink.LinkType.UNIDIRECTIONAL
+                    && link.getSourceAccountId() != null && link.getSourceAccountId() != accountId) {
+                incomingIds.add(otherId);
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("accounts", accounts);
+        result.put("link_types_map", linkTypesMap);
+        result.put("incoming_ids", incomingIds);
+        result.put("tenant_id", session.tenant_id);
+        return result;
     }
 }

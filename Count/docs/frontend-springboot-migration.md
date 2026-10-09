@@ -6259,6 +6259,7 @@ flowchart LR
 | DELETE | `/link/pair` | 按 pair 删 link |
 | GET | `/link/list` | 某账户的关联账户 |
 | GET | `/link/all` | 含自身的关联列表 |
+| GET | `/link/manage` | Link Account 弹窗专用：含指向本账号的单向链接（`incoming_ids`），不影响 `/link/list` 的可见性规则 |
 | PUT | `/link` | 更新 link（先删后建） |
 
 #### 6.2 账户模型要点
@@ -6284,6 +6285,8 @@ flowchart LR
 - 支持 **BIDIRECTIONAL** / **UNIDIRECTIONAL**
 - 同一租户内、两端账户须存在
 - 不能 link 自己
+- 一对账户只存一行；`POST /link` 遇到已存在的一对时合并而不报错：要双向、或与已有单向相反方向 → 升级为双向；相同 → 不变（降级用 `PUT /link`）
+- 详细改动记录：[`account-link-modal-backend-changes.md`](account-link-modal-backend-changes.md)
 
 ---
 

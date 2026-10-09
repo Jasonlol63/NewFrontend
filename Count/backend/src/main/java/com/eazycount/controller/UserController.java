@@ -194,6 +194,24 @@ public class UserController {
         }
     }
 
+    @GetMapping("/link/manage")
+    public ResponseEntity<Map<String, Object>> getLinksForManage(
+            @RequestParam("account_id") int accountId,
+            @RequestParam("tenant_id") int tenantId) {
+        try {
+            Map<String, Object> data = userService.getLinksForManage(accountId, tenantId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Account links retrieved successfully",
+                    "data", data));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "data", null));
+        }
+    }
+
     @GetMapping("/link/all")
     public ResponseEntity<Map<String, Object>> getAllLinkedAccounts(
             @RequestParam("account_id") int accountId,
