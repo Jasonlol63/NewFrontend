@@ -11,7 +11,21 @@ export async function fetchAnnouncements() {
   return (data ?? []).map(toAnnouncement);
 }
 
-export const createAnnouncement = ({ title, listTitle, content }) =>
+// The bell's calls: open to every signed-in user of every company (the list above is C168-only). The read state lives on the
+// backend per login account: a count of the announcements newer than the account's last "mark all read".
+export async function fetchBellAnnouncements() {
+  const { data } = await getJson(`${ANNOUNCEMENT}/getDashboardAnnouncements`);
+  return (data ?? []).map(toAnnouncement);
+}
+
+export async function fetchUnreadCount() {
+  const { data } = await getJson(`${ANNOUNCEMENT}/unreadCount`);
+  return Number(data?.unreadCount) || 0;
+}
+
+export const markAnnouncementsRead = () => postJson(`${ANNOUNCEMENT}/markRead`, {});
+
+export const createAnnouncement =({ title, listTitle, content }) =>
   postJson(`${ANNOUNCEMENT}/addAnnouncementContent`, { title, content: joinContent(listTitle, content) });
 
 export const updateAnnouncement = (id, { title, listTitle, content }) =>

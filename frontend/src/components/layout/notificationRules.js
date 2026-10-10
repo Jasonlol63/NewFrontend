@@ -1,43 +1,19 @@
-// Rules for the bell's notification panel (the announcements users see). An announcement is unread when its id is higher than
-// the last one the user marked as read; that id is kept in this browser, per account (the backend has no read state).
-
-const storageKey = (user) => `count.notifications.lastRead.${user.isOwner ? "owner" : "user"}.${user.id}`;
-
-/** The newest announcement id this account has read, or null when nothing was stored yet. */
-export function loadLastRead(user) {
-  try {
-    const raw = window.localStorage.getItem(storageKey(user));
-    return raw === null ? null : Number(raw);
-  } catch {
-    return null;
-  }
-}
-
-export function saveLastRead(user, id) {
-  try {
-    window.localStorage.setItem(storageKey(user), String(id));
-  } catch {
-    // storage blocked: everything just shows as unread again next time
-  }
-}
+// Rules for the bell's notification panel (the announcements users see). What is unread is decided by the backend, per login
+// account: the unread count is the number of announcements newer than the account's last "mark all as read".
 
 /** Newest first. */
 export const newestFirst = (list) => [...list].sort((a, b) => b.id - a.id);
 
 /**
- * "Today 14:51", "Yesterday 09:30" or "11/09/2026 14:31" from "2026-09-11 14:31" (what the announcements carry); anything
- * else is returned as it is.
+ * The ids of the unread announcements. The list is newest first and the count covers every announcement newer than the last
+ * read, so the unread ones are the first `count` of the list (the list itself is capped, hence the min).
  */
-export function formatNotificationTime(createdAt, now = new Date()) {
+export const unreadIdsOf = (items, count) => new Set(items.slice(0, Math.max(0, count)).map((a) => a.id));
+
+/** "11/09/2026 06:31" from "2026-09-11 06:31" (what the announcements carry); anything else is returned as it is. */
+export function formatNotificationDate(createdAt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(createdAt ?? "");
-  if (!m) return createdAt ?? "";
-  const [, y, mo, d, time] = m;
-  const day = new Date(Number(y), Number(mo) - 1, Number(d));
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffDays = Math.round((today - day) / 86400000);
-  if (diffDays === 0) return `Today ${time}`;
-  if (diffDays === 1) return `Yesterday ${time}`;
-  return `${d}/${mo}/${y} ${time}`;
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : (createdAt ?? "");
 }
 
 export const unreadLabel = (n) => (n > 99 ? "99+" : String(n));

@@ -3,7 +3,7 @@ import { Bell, CheckCheck, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichContent } from "@/pages/announcement/RichText.jsx";
 import { DEFAULT_LIST_TITLE, THANKS_LINE, versionOf } from "@/pages/announcement/announcementRules";
-import { formatNotificationTime } from "./notificationRules";
+import { formatNotificationDate } from "./notificationRules";
 
 const iconButton =
   "flex size-8 flex-none cursor-pointer items-center justify-center rounded-[10px] border border-white/90 bg-white/60 text-brand-navy transition-colors hover:bg-white/85";
@@ -105,16 +105,13 @@ function NotificationCard({ item, unread }) {
         <b className="min-w-0 break-words text-[14px] font-extrabold text-brand-navy">{item.title}</b>
         {version && <span className="inline-flex h-[18px] flex-none items-center rounded-full bg-[#e8f1ff] px-[7px] text-[10.5px] font-extrabold text-[#1d4ed8]">Version {version}</span>}
         {unread && <i aria-label="Unread" className="size-2 flex-none rounded-full bg-[#3b82f6] shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />}
-        <time title={item.createdAt} className="ml-auto flex-none whitespace-nowrap text-[10.5px] text-dash-faint">
-          {formatNotificationTime(item.createdAt)}
-        </time>
       </div>
       <div className="mb-1 text-[13px] font-extrabold text-brand-navy">{item.listTitle || DEFAULT_LIST_TITLE}</div>
       <ClampedContent html={item.content} />
       <p className="m-0 mt-1.5 text-[11.5px] text-[#5b74a3]">{THANKS_LINE}</p>
       <div className="mt-2 flex justify-between gap-2 border-t border-dashed border-[#e3ebf8] pt-[7px] text-[10.5px] text-dash-faint">
         <b className="font-extrabold tracking-[0.3px] text-[#64748b]">EAZY COUNT TEAM</b>
-        <span>{item.createdAt}</span>
+        <time>{formatNotificationDate(item.createdAt)}</time>
       </div>
     </article>
   );
