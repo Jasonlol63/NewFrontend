@@ -67,8 +67,8 @@ function Pill({ label, checked, onChange }) {
 }
 
 /** Left top card: Category + Capture Date, the Show toggles, then Group ID / Company / Currency. */
-export default function FilterCard({ filters, onChange, currency }) {
-  const { categories, range, pills, group, company } = filters;
+export default function FilterCard({ filters, onChange, scope, currency }) {
+  const { categories, range, pills } = filters;
   const wide = useMediaQuery("(min-width: 1700px)");
   return (
     <section className={cn("@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
