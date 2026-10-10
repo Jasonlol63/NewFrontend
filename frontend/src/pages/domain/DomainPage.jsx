@@ -17,6 +17,7 @@ import {
   EMPTY_PRICES,
   MAX_COMPANIES,
   MAX_GROUPS,
+  canChangeSecondaryPassword,
   canDeleteDomain,
   canSetPermanent,
   filterDomains,
@@ -281,6 +282,7 @@ export default function DomainPage() {
           prices={prices}
           accounts={accounts}
           canPermanent={canSetPermanent(viewer)}
+          canEditSecondary={canChangeSecondaryPassword(viewer)}
           readOnly={readOnly}
           saving={busy}
           onClose={closeDomainForm}

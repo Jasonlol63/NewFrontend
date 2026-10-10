@@ -23,7 +23,7 @@ const PERMANENT_OPTION = { value: NO_EXPIRY, label: "No Expiry Date" };
  * kind: "company" | "group"; code: its ID
  * saved: the starting settings (from the saved tenant, or from an earlier Set in this modal; null = defaults);
  * fallbackDate: the expiry date the row shows now
- * prices: { company, group } amounts per period from the Price dialog; accounts: the account codes that can take a share
+ * prices: { company, group } amounts per period from the Price dialog; accounts: the account codes that can take a share (STAFF / AGENT)
  * canPermanent: may pick No Expiry
  * onSave(settings, expiryDate) / onClose(). Mount it only while open.
  */
@@ -44,6 +44,8 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
   const expiry = expiryOf(s) || fallbackDate || "-";
   const problem = settingsProblem(kind, s, summary, price);
   const periodOptions = canPermanent ? [...PERIOD_OPTIONS, PERMANENT_OPTION] : PERIOD_OPTIONS;
+  // The eligible accounts, plus any already on a row (so a saved share never loses its account from the list).
+  const shareAccounts = [...new Set([...accounts, ...Object.values(s.departments).flat().map((r) => r.account).filter(Boolean)])];
 
   return (
     <FormModal
@@ -137,7 +139,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
         bodyClassName="flex flex-col overflow-hidden"
       >
         <fieldset disabled={!s.shareOn} className={cn("m-0 flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0 transition-opacity", !s.shareOn && "opacity-50")}>
-          <SharePanel kindLabel={kindLabel} period={period} price={price} departments={s.departments} summary={summary} accounts={accounts} onChange={setDepartment} />
+          <SharePanel kindLabel={kindLabel} period={period} price={price} departments={s.departments} summary={summary} accounts={shareAccounts} onChange={setDepartment} />
         </fieldset>
       </FormCard>
     </FormModal>

@@ -100,12 +100,12 @@ Domain 页列出每个 Owner（域名主）和它名下的 Group / Company，可
 
 | 卡片 | 内容 |
 |---|---|
-| Domain Information（整行） | Add：Owner Code、Name、Email、Password、Secondary Password 一排五个；Edit：Owner Code、Name、Email、Password(选填) 一排四个，没有 Secondary Password |
+| Domain Information（整行） | Add：Owner Code、Name、Email、Password、Secondary Password 一排五个；Edit：Owner Code、Name、Email、Password(选填)，再加 Secondary Password(选填，仅 Owner / Partnership / Admin 可见) |
 | Groups（左） | `Group ID` 输入 + `Add`，下面是已添加列表，右上角 `N added` |
 | Companies（右） | `Company ID` 输入、`Group (opt.)` 下拉、`Add`，下面是列表，右上角 `N added` 和 `Multiple Choice` |
 
-- Secondary Password：只能输数字、最多 6 位，不足 6 位红框提示（Add 模式）。
-- `Save` 的条件：Add 要五个字段齐全且 Secondary Password 是 6 位；Edit 只要 Owner Code、Name、Email 有值。
+- Secondary Password：只能输数字、最多 6 位，不足 6 位红框提示（Add 和 Edit 都一样）。
+- `Save` 的条件：Add 要五个字段齐全且 Secondary Password 是 6 位；Edit 只要 Owner Code、Name、Email 有值（填了 Secondary Password 的话必须是 6 位）。
 - 新增 Group / Company 会转大写，重复或空值有红色提示；删除一个 Group，属于它的公司自动变成 `No group`。
 
 ### 5.2 列表行（`MemberRow`）
@@ -134,12 +134,14 @@ Domain 页列出每个 Owner（域名主）和它名下的 Group / Company，可
 ## 6. 接 API 后的行为
 
 - **保存顺序**：先 `/add` 或 `/update`（owner + Group + Company），成功后拿到每个 tenant 的 id，再对 Set 过的 Group / Company 逐个 `PUT /update-setting`。owner 保存失败：弹窗保持打开；设置失败：owner 已保存，弹窗关闭并列出失败的代码，需重新 Set。
-- **Owner Code** 编辑时只读（后端更新时不改它）。Password 留空 = 不改。
+- **Owner Code** 编辑时只读（后端更新时不改它）。**Name 输入时自动转大写**（保存时也转一次）。Password 留空 = 不改。
+- **Secondary Password**：Add 必填（6 位数字）；**Edit 里是可选的，只有 Owner / Partnership / Admin 看得到**（其他角色没有这一栏；后端本身不检查角色，只在前端限制），留空 = 不改，填了必须是 6 位数字。
 - **Set 弹窗**：到期日 = Start Date + Period；后端只存到期日，所以重新打开时 Start Date / Period 为空，已有到期日时 Period 可以不选（到期日不变）。**Category（Company type）只能单选一个**，对应后端的 feature module（Games 1、Bank 2、Loan 3、Rate 4、Money 5）；Group 不发，后端默认 Games。
 - **Share 开关 = 保存时收费（Charge on Save）**：开 = 发送分成行（Profit 为 C168 账号，其余 Sales / CS / IT）并让后端按所选 Period 的价格记账；关 = 不发分成行也不收费，已保存的分成保持不变。后端不保存开关，重新打开永远是关，已保存的分成行会显示出来。开启要求选了 Period、该 Period 价格大于 0、每行都选了账号、分成不超过 100%。
 - **No Expiry Date**：Period 里多一项，只有 Owner / Partnership / Admin 看得到，保存为 `9999-12-31`，显示 `No Expiry`；选了之后 Share 开关自动关闭且不可开。
 - **删除**：勾选的 owner 逐个 `POST /delete`，遇到第一个失败就停（例如 C168 下有交易记录），然后重新读取列表。
 - **× 移除 Group / Company**：已保存的会先确认，说明 **C168 里的对应账号会保留**（`/update` 只删 tenant；只有删除整个 Domain 才会连 C168 账号一起清理，之前移除的公司不会被清掉）。
+- **Share 的账号下拉**（和旧版一样）：只取 Active 的账号；Sales、CS、IT 只能选角色 STAFF / AGENT；Profit 只取角色 PROFIT（或账号就叫 PROFIT）的账号，默认 C168，其次 PROFIT，再其次第一个；已保存的分成行用到的账号不符合规则时仍保留在下拉里。
 - 只读登录：Add、Delete、弹窗 Save 都不可用。
 
 ## 7. 仍然没做

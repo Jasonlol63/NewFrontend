@@ -18,7 +18,7 @@ import {
   normalizeCode,
   snapshotOf,
 } from "./domainFormRules";
-import { settingsFromTenant } from "./domainSettingsRules";
+import { isShareAccount, settingsFromTenant } from "./domainSettingsRules";
 
 // The Owner Code can't change once the domain exists (the back end ignores it on update).
 const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
@@ -48,10 +48,11 @@ const addButton = cn(
  *  - Multiple Choice: tick companies, pick a target group, Done.
  * Removing a group / company that is already saved asks first: its account under C168 is kept.
  *
- * prices: { company, group } from the Price dialog; accounts: [{ id, code }] of C168; canPermanent: may pick No Expiry
+ * prices: { company, group } from the Price dialog; accounts: [{ id, code, role, status }] of C168; canPermanent: may pick No Expiry
+ * canEditSecondary: Edit shows the (optional) Secondary Password box; Add always has it
  * readOnly: a read-only login (Save is off); saving: a save is running
  */
-export default function DomainFormModal({ mode = "add", domain, prices, accounts, canPermanent, readOnly, saving, onClose, onSave }) {
+export default function DomainFormModal({ mode = "add", domain, prices, accounts, canPermanent, canEditSecondary, readOnly, saving, onClose, onSave }) {
   const isEdit = mode === "edit";
   const [initial] = useState(() => buildDraft(isEdit ? domain : null));
   const [owner, setOwner] = useState(initial.owner);
@@ -87,7 +88,10 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   const setField = (key) => (e) => setOwner((o) => ({ ...o, [key]: e.target.value }));
   const setSecondary = (e) =>
     setOwner((o) => ({ ...o, secondaryPassword: e.target.value.replace(/\D/g, "").slice(0, SECONDARY_PASSWORD_LENGTH) }));
-  const secondaryBad = !isEdit && owner.secondaryPassword.length > 0 && !isSecondaryPasswordValid(owner.secondaryPassword);
+  // Names are always upper case, as they are typed.
+  const setName = (e) => setOwner((o) => ({ ...o, name: e.target.value.toUpperCase() }));
+  const showSecondary = !isEdit || Boolean(canEditSecondary);
+  const secondaryBad = showSecondary && owner.secondaryPassword.length > 0 && !isSecondaryPasswordValid(owner.secondaryPassword);
 
   const groupOptions = groups.length
     ? [{ value: NO_GROUP, label: "No group" }, ...groups.map((g) => ({ value: g.code, label: g.code }))]
@@ -213,9 +217,9 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
         <div
           className={cn(
             "grid gap-3 modal-compact:gap-2.5 modal-tiny:gap-2",
-            isEdit
-              ? "grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.7fr)_minmax(0,1.3fr)]"
-              : "grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.7fr)_minmax(0,1.2fr)_minmax(0,1.2fr)]",
+            showSecondary
+              ? "grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.7fr)_minmax(0,1.2fr)_minmax(0,1.2fr)]"
+              : "grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.7fr)_minmax(0,1.3fr)]",
             "@max-[899px]/main:grid-cols-2"
           )}
         >
@@ -230,7 +234,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
             />
           </Field>
           <Field label="Name">
-            <TextInput value={owner.name} onChange={setField("name")} autoComplete="off" />
+            <TextInput value={owner.name} onChange={setName} autoComplete="off" className="uppercase" />
           </Field>
           <Field label="Email">
             <TextInput type="email" inputMode="email" value={owner.email} onChange={setField("email")} autoComplete="off" />
@@ -238,8 +242,8 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
           <Field label="Password" optional={isEdit}>
             <PasswordInput value={owner.password} onChange={setField("password")} />
           </Field>
-          {!isEdit && (
-            <Field label="Secondary Password" as="div">
+          {showSecondary && (
+            <Field label="Secondary Password" optional={isEdit} as="div">
               <PasswordInput
                 value={owner.secondaryPassword}
                 onChange={setSecondary}
@@ -373,7 +377,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
           saved={settingsStart}
           fallbackDate={settingsItem?.date}
           prices={prices}
-          accounts={accounts.map((a) => a.code)}
+          accounts={accounts.filter(isShareAccount).map((a) => a.code)}
           canPermanent={canPermanent}
           onClose={closeSettings}
           onSave={saveSettings}

@@ -19,8 +19,10 @@ export const PRICE_PERIODS = [
 // "No Expiry" is not a price period: the back end stores the date 9999-12-31 for it (Owner / Partnership / Admin only).
 export const NO_EXPIRY = "noExpiry";
 export const PERMANENT_EXPIRY = "9999-12-31";
-const PERMANENT_ROLES = ["owner", "partnership", "admin"];
-export const canSetPermanent = (viewer) => PERMANENT_ROLES.includes(viewer?.role);
+const PRIVILEGED_ROLES = ["owner", "partnership", "admin"];
+export const canSetPermanent = (viewer) => PRIVILEGED_ROLES.includes(viewer?.role);
+// Edit Domain only shows the Secondary Password box to these roles (the back end itself does not check the role).
+export const canChangeSecondaryPassword = (viewer) => PRIVILEGED_ROLES.includes(viewer?.role);
 
 /** The date part ("2027-09-08") of what the back end sends for a date: a string or [y, m, d]; "" when there is none. */
 export function isoOf(value) {

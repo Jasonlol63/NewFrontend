@@ -15,7 +15,7 @@ export const normalizeCode = (value) => value.trim().toUpperCase();
 export function buildDraft(domain) {
   const owner = {
     ownerCode: domain?.ownerCode ?? "",
-    name: domain?.name ?? "",
+    name: (domain?.name ?? "").toUpperCase(),
     email: domain?.email ?? "",
     password: "",
     secondaryPassword: "",
@@ -34,20 +34,21 @@ export function buildDraft(domain) {
 
 /**
  * The body of POST /api/domain/add or PUT /api/domain/update. Owner fields are snake_case, the tenants camelCase.
- * Edit sends the password only when one was typed (the back end keeps the old one otherwise, and the Owner Code never changes).
+ * Edit sends the password and the Secondary Password only when one was typed (the back end keeps the old ones otherwise, and the
+ * Owner Code never changes). The name is always upper case.
  * A company's group travels as the group's code (parentGroupCode); "" takes it out of its group.
  */
 export function domainBody(isEdit, id, { owner, groups, companies }) {
   const body = {
     owner_code: normalizeCode(owner.ownerCode),
-    name: owner.name.trim(),
+    name: owner.name.trim().toUpperCase(),
     email: owner.email.trim(),
     groups: groups.map((g) => ({ code: g.code })),
     companies: companies.map((c) => ({ code: c.code, parentGroupCode: c.group || "" })),
   };
   if (isEdit) body.id = id;
   if (owner.password) body.password = owner.password;
-  if (!isEdit) body.secondary_password = owner.secondaryPassword;
+  if (owner.secondaryPassword) body.secondary_password = owner.secondaryPassword;
   return body;
 }
 
@@ -79,8 +80,10 @@ export function countChanges(base, { groups, companies }) {
 
 export const isSecondaryPasswordValid = (value) => value.length === SECONDARY_PASSWORD_LENGTH;
 
-// Add needs every field and a 6 digit secondary password; Edit only the owner's name fields (password stays as is when empty).
+// Add needs every field and a 6 digit secondary password; Edit only the owner's name fields (both passwords stay as they are when
+// empty; a Secondary Password that is typed must still be 6 digits).
 export function canSave(isEdit, owner) {
   const base = owner.ownerCode.trim() && owner.name.trim() && owner.email.trim();
-  return Boolean(isEdit ? base : base && owner.password && isSecondaryPasswordValid(owner.secondaryPassword));
+  if (isEdit) return Boolean(base && (!owner.secondaryPassword || isSecondaryPasswordValid(owner.secondaryPassword)));
+  return Boolean(base && owner.password && isSecondaryPasswordValid(owner.secondaryPassword));
 }

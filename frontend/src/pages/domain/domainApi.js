@@ -38,8 +38,8 @@ export async function savePrices(body) {
   return data;
 }
 
-/** The accounts of the C168 ledger as { id, code }: who can take a share, and the Profit account itself. */
+/** The accounts of the C168 ledger as { id, code, role, status }; domainSettingsRules picks who may take a share. */
 export async function fetchAccounts(tenantId) {
   const { data } = await postJson(`/api/account/list?tenant_id=${encodeURIComponent(tenantId)}`, null);
-  return (data ?? []).map(normalizeAccountRow).map((a) => ({ id: a.id, code: a.accountId }));
+  return (data ?? []).map(normalizeAccountRow).map((a) => ({ id: a.id, code: a.accountId, role: a.role, status: a.status }));
 }

@@ -132,13 +132,20 @@ export function splitEqually(rows) {
   return rows.map((r, i) => ({ ...r, pct: i === rows.length - 1 ? lastPct : each }));
 }
 
-/** The C168 account that takes the Profit share (C168, or PROFIT), or undefined. */
+// Who can take a share (the same rule as the old Domain page): only Active accounts. Sales, CS and IT take STAFF and AGENT accounts;
+// Profit takes the PROFIT role (or an account called PROFIT). Accounts: [{ id, code, role, status }] of the C168 ledger.
+const SHARE_ROLES = ["STAFF", "AGENT"];
+export const isShareAccount = (a) => a.status === "active" && SHARE_ROLES.includes(a.role);
+const isProfitAccount = (a) => a.status === "active" && (a.role === "PROFIT" || String(a.code).trim().toUpperCase() === "PROFIT");
+
+/** The account that takes the Profit share: C168 first, then PROFIT, then the first Profit account; undefined when there is none. */
 export const profitAccountOf = (accounts) => {
+  const list = accounts.filter(isProfitAccount);
   for (const code of PROFIT_ACCOUNT_CODES) {
-    const found = accounts.find((a) => a.code === code);
+    const found = list.find((a) => String(a.code).trim().toUpperCase() === code);
     if (found) return found;
   }
-  return undefined;
+  return list[0];
 };
 
 /**
@@ -154,7 +161,7 @@ export function tenantSettingBody({ ownerId, tenantId, kind, code, settings, acc
 
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
   const profit = profitAccountOf(accounts);
-  if (!profit) throw new Error(`The ${PROFIT_ACCOUNT} account was not found, so the share cannot be saved`);
+  if (!profit) throw new Error("No active Profit account (role PROFIT) was found, so the share cannot be saved");
 
   const rows = [];
   let taken = 0;
