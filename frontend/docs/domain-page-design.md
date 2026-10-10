@@ -2,7 +2,7 @@
 
 Domain 页列出每个 Owner（域名主）和它名下的 Group / Company，可以新增、编辑。
 
-- 当前是**纯设计版**：没有接 API，数据是占位数据，所有操作只改页面自己的状态，刷新即还原。
+- 已接 Spring Boot API（`domainApi.js`，仅 C168 能访问）：列表、新增、编辑、Set 设置、价格、删除都走后端，每次改动后重新读取列表。
 - 页面外壳、弹窗外壳、颜色 token 都沿用 Admin / Account，共用部分见 `admin-account-list-specs.md` 和 `form-modal-shared-design.md`，这里只记 Domain 独有的部分。
 - 所有蓝色都是项目的蓝渐变（`bg-brand-sweep`、`bg-seg-active`）；Groups、Companies 的标签是同一色相的深浅，不引入别的颜色。
 
@@ -14,10 +14,12 @@ Domain 页列出每个 Owner（域名主）和它名下的 Group / Company，可
 |---|---|
 | `src/pages/domain/DomainPage.jsx` | 列表页：工具栏 + 卡片行列表，打开 Add / Edit 弹窗 |
 | `src/pages/domain/CodeChips.jsx` | Groups / Companies 的标签和 `+N` |
-| `src/pages/domain/domainRules.js` | 占位数据、搜索、排序、折叠数量、删除资格 |
+| `src/pages/domain/domainApi.js` | 接口调用：list / add / update / update-setting / delete / list-fee / add-fee、C168 账号列表 |
+| `src/pages/domain/domainRules.js` | 把平铺行合并成 owner 行、价格转换、到期日格式、搜索、排序、折叠数量、删除资格 |
 | `src/pages/domain/DomainFormModal.jsx` | Add Domain / Edit Domain 弹窗（同一个组件） |
 | `src/pages/domain/MemberRow.jsx` | 弹窗里的一行 Group 或 Company，和公司的 Group 快捷菜单 |
-| `src/pages/domain/domainFormRules.js` | 弹窗的占位数据、未保存改动统计、保存条件 |
+| `src/pages/domain/domainFormRules.js` | 弹窗的草稿、未保存改动统计、保存条件、`/add`、`/update` 的请求体 |
+| `src/pages/domain/domainSettingsRules.js` | Set 弹窗的规则、`/update-setting` 的请求体 |
 | `src/components/shared/list/DataTable.jsx` | 新增 `variant="cards"` 和 `boxedPager`（见第 3、4 节） |
 | `src/components/shared/list/useListView.js` | 新增 `rowGap` |
 | `src/pages/admin/AdminPage.jsx`、`src/pages/account/AccountPage.jsx` | 传了 `boxedPager`，用同一个分页条 |
@@ -129,31 +131,19 @@ Domain 页列出每个 Owner（域名主）和它名下的 Group / Company，可
 
 ---
 
-## 6. 当前是占位的部分
+## 6. 接 API 后的行为
 
-| 项目 | 状态 |
-|---|---|
-| 列表数据 | `domainRules.js` 的 15 行占位数据；K、DEMO、TEST001 额外给了多个 Group / Company 用来展示 `+N`（`AB1`、`G1`、`MX` 等名字是编的） |
-| Edit 里的日期和公司所属 Group | 从列表行自动生成的占位值（第一个 Group 的日期 `08-09-2027`；前两家公司进第一个 Group） |
-| `Add Domain` 弹窗的 `Save` / `Edit` 的 `Save` | 只关闭弹窗，没有保存 |
-| `Price`、`Delete`、`Set` | 点了没有动作 |
-| `+N` | 只有悬停提示，点了没有展开 |
+- **保存顺序**：先 `/add` 或 `/update`（owner + Group + Company），成功后拿到每个 tenant 的 id，再对 Set 过的 Group / Company 逐个 `PUT /update-setting`。owner 保存失败：弹窗保持打开；设置失败：owner 已保存，弹窗关闭并列出失败的代码，需重新 Set。
+- **Owner Code** 编辑时只读（后端更新时不改它）。Password 留空 = 不改。
+- **Set 弹窗**：到期日 = Start Date + Period；后端只存到期日，所以重新打开时 Start Date / Period 为空，已有到期日时 Period 可以不选（到期日不变）。**Category（Company type）只能单选一个**，对应后端的 feature module（Games 1、Bank 2、Loan 3、Rate 4、Money 5）；Group 不发，后端默认 Games。
+- **Share 开关 = 保存时收费（Charge on Save）**：开 = 发送分成行（Profit 为 C168 账号，其余 Sales / CS / IT）并让后端按所选 Period 的价格记账；关 = 不发分成行也不收费，已保存的分成保持不变。后端不保存开关，重新打开永远是关，已保存的分成行会显示出来。开启要求选了 Period、该 Period 价格大于 0、每行都选了账号、分成不超过 100%。
+- **No Expiry Date**：Period 里多一项，只有 Owner / Partnership / Admin 看得到，保存为 `9999-12-31`，显示 `No Expiry`；选了之后 Share 开关自动关闭且不可开。
+- **删除**：勾选的 owner 逐个 `POST /delete`，遇到第一个失败就停（例如 C168 下有交易记录），然后重新读取列表。
+- **× 移除 Group / Company**：已保存的会先确认，说明 **C168 里的对应账号会保留**（`/update` 只删 tenant；只有删除整个 Domain 才会连 C168 账号一起清理，之前移除的公司不会被清掉）。
+- 只读登录：Add、Delete、弹窗 Save 都不可用。
 
----
+## 7. 仍然没做
 
-## 7. 接 API 前要知道的后端情况（读自 `Count/backend`）
-
-- **列表** `POST /api/domain/list`（`ownerId` 可选）返回 `owner × tenant` 的**平铺行**（`owner left join tenant`），每行 `{ owner, tenant }`，字段是驼峰（`ownerCode`、`createdBy` 等）。要按 `owner.id` 合并成一行：`tenant.tenantType` 为 `GROUP` 的进 Groups，`COMPANY` 的进 Companies；owner 没有任何 tenant 时 tenant 是空的。没有分页、没有按登录人过滤。
-- **删除** `POST /api/domain/delete`，请求体是 owner（`{ id }`）：一次一个 owner，会连带删掉它名下所有 Group / Company 和 C168 里对应的账户；如果其中任何一个 C168 账户有交易记录，整个删除被拒绝（报错信息里带公司代码）；需要可写权限，只读登录会被拒绝；有审计日志。`SYSTEM` 行不能删只是前端规则。
-- 新增 `/add`、编辑 `/update`、单个设置 `/update-setting`、价格 `/list-fee`、`/add-fee` 也都在 `DomainController`；成功判断用返回体的 `success: true`（`postJson` 已支持）。
-- **安全提示**：列表接口返回的 `owner` 带着 `password` 和 `secondaryPassword`（加密值），会随 JSON 到浏览器；前端不用，建议后端返回前置空或换一个不含密码的返回对象。
-
----
-
-## 8. 还没做 / 还没定
-
-- `+N` 点开怎么展示（弹窗 / 展开成多行）
-- `Price` 点开是弹窗还是跳页
-- `Set` 点开的设置弹窗（到期日、分成、模块）
-- 平板（内容区 < 900px）和手机的专门布局
-- 删除 Group / Company 是否要加确认（`×` 比文字按钮小，建议加行内确认）
+- `+N` 点开怎么展示、平板和手机布局。
+- 列表接口返回的 owner 带着加密后的 password / secondaryPassword（后端没有过滤），前端不用。
+- 新建的 Group / Company 没设置 Set 就保存的话，到期日是空（NO SET），目前不拦截。

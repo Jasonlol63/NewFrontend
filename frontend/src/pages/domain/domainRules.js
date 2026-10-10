@@ -1,58 +1,90 @@
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
+import { formatDisplayDate } from "@/lib/date";
 
 // Most names a row shows before the rest collapse into one "+N" chip.
 export const MAX_GROUPS = 2;
 export const MAX_COMPANIES = 3;
 
 // Periods the Price dialog sets an amount for (and the Set dialog picks from), in display order.
-// `days` is how far a start date runs on to the expiry date (same lengths as the Auto Renew periods).
+// `days` is how far a start date runs on to the expiry date (same lengths as the Auto Renew periods);
+// `api` is the period code the back end uses.
 export const PRICE_PERIODS = [
-  { key: "days7", label: "7 Days", days: 7 },
-  { key: "month1", label: "1 Month", days: 30 },
-  { key: "months3", label: "3 Months", days: 91 },
-  { key: "months6", label: "6 Months", days: 182 },
-  { key: "year1", label: "1 Year", days: 365 },
+  { key: "days7", api: "7days", label: "7 Days", days: 7 },
+  { key: "month1", api: "1month", label: "1 Month", days: 30 },
+  { key: "months3", api: "3months", label: "3 Months", days: 91 },
+  { key: "months6", api: "6months", label: "6 Months", days: 182 },
+  { key: "year1", api: "1year", label: "1 Year", days: 365 },
 ];
 
-// Placeholder prices for the design preview; the real ones come with the API.
-export const MOCK_PRICES = {
-  company: { days7: "0", month1: "0", months3: "0", months6: "1200", year1: "2400" },
-  group: { days7: "0", month1: "0", months3: "0", months6: "0", year1: "1200" },
-};
+// "No Expiry" is not a price period: the back end stores the date 9999-12-31 for it (Owner / Partnership / Admin only).
+export const NO_EXPIRY = "noExpiry";
+export const PERMANENT_EXPIRY = "9999-12-31";
+const PERMANENT_ROLES = ["owner", "partnership", "admin"];
+export const canSetPermanent = (viewer) => PERMANENT_ROLES.includes(viewer?.role);
 
-// Rows created by the system can't be deleted.
+/** The date part ("2027-09-08") of what the back end sends for a date: a string or [y, m, d]; "" when there is none. */
+export function isoOf(value) {
+  if (!value) return "";
+  if (Array.isArray(value)) {
+    const [y, m, d] = value;
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  return /^(\d{4}-\d{2}-\d{2})/.exec(String(value))?.[1] ?? "";
+}
+
+/** "08-09-2027", or "No Expiry" for the permanent date; "" when there is none. */
+export const formatExpiry = (iso) => (iso === PERMANENT_EXPIRY ? "No Expiry" : formatDisplayDate(iso, "-"));
+
+// ===== Prices (Price dialog <-> /api/domain/list-fee, /add-fee) =====
+const priceSection = (source) => Object.fromEntries(PRICE_PERIODS.map((p) => [p.key, source?.[p.api] == null ? "0" : String(source[p.api])]));
+const priceBody = (values) => Object.fromEntries(PRICE_PERIODS.map((p) => [p.api, Number(values?.[p.key]) || 0]));
+
+export const EMPTY_PRICES = { company: priceSection(null), group: priceSection(null) };
+
+/** { company, group } amounts per period (strings, as the dialog edits them) from the back end's fee settings. */
+export const toPrices = (data) => ({ company: priceSection(data?.company_period_prices), group: priceSection(data?.group_period_prices) });
+
+export const toPriceBody = (prices) => ({ company_period_prices: priceBody(prices.company), group_period_prices: priceBody(prices.group) });
+
+// Rows created by the system can't be deleted (a front end rule only).
 export const SYSTEM_OWNER = "SYSTEM";
 export const canDeleteDomain = (row) => row.createdBy !== SYSTEM_OWNER;
 
-// Placeholder rows for the design preview; the real list comes with the API.
-// Groups / Companies hold the codes of the owner's tenants of that type.
-const row = (ownerCode, name, email, groups, companies, createdBy) => ({
-  id: ownerCode,
-  ownerCode,
-  name,
-  email,
-  groups,
-  companies,
-  createdBy,
-});
-
-export const MOCK_DOMAINS = [
-  row("5899", "GU LAI XIONG", "happylele6688@gmail.com", [], ["58"], "K"),
-  row("BT", "BOTAK", "terryjaixun@yahoo.com", [], ["72"], "K"),
-  row("DEMO", "MODE", "modeid@gmail.com", ["MG", "MX"], ["M1", "M2"], "K"),
-  row("JX17", "JX", "dasmond089@gmail.com", [], ["X17"], "K"),
-  row("K", "BOSS", "nakazz999@gmail.com", ["AP", "IG", "G3", "G4"], ["95", "AG", "C168", "AB1", "AB2", "AB3"], SYSTEM_OWNER),
-  row("K23", "GODZILLA", "zoeypipu88@gmail.com", [], ["23"], "K"),
-  row("MA", "UNIPAY HAO", "ug123@gmail.com", [], ["UG"], "K"),
-  row("MAC", "MUAR MACHI", "machi1@gmail.com", [], ["MAC999"], "JACKSEE"),
-  row("MHMG", "HE QI", "myself4253@gmail.com", [], ["SABAH"], "K"),
-  row("SUPER66", "QI YE", "qygan@gmail.com", [], ["G66"], "K"),
-  row("TEST001", "IT01 KUNZZIT", "kunzzit01111@gmail.com", ["LOL", "G1", "G2"], ["1039", "BK1"], "JK"),
-  row("WCC", "WCC", "wcc123@gmail.com", [], ["WCC"], "K"),
-  row("WS", "WEI SONG", "weisong_tan@hotmail.com", [], ["WSMT"], "K"),
-  row("WUMING001", "WUMING", "msi977gaming@gmail.com", [], ["977"], "JK"),
-  row("ZX", "PAGOH XIAN", "xian1@gmail.com", [], ["TZX"], "JACKSEE"),
-];
+/**
+ * The back end lists one row per owner x tenant ({ owner, tenant }, tenant null for an owner without any); this folds them
+ * into one row per owner. `groups` / `companies` are the codes the table shows; `groupItems` / `companyItems` keep each
+ * tenant's id, parent, expiry, share rows and modules for the Edit modal.
+ */
+export function toDomains(flatRows) {
+  const byOwner = new Map();
+  for (const { owner, tenant } of flatRows ?? []) {
+    if (!owner) continue;
+    let domain = byOwner.get(owner.id);
+    if (!domain) {
+      domain = {
+        id: owner.id,
+        ownerCode: owner.ownerCode ?? "",
+        name: owner.name ?? "",
+        email: owner.email ?? "",
+        createdBy: owner.createdBy ?? "",
+        groupItems: [],
+        companyItems: [],
+      };
+      byOwner.set(owner.id, domain);
+    }
+    if (!tenant?.id) continue;
+    const item = {
+      id: tenant.id,
+      code: tenant.code ?? "",
+      parentId: tenant.parentId ?? null,
+      expiry: isoOf(tenant.expirationDate),
+      shares: tenant.feeShareAllocations ?? [],
+      modules: tenant.featureModules ?? [],
+    };
+    (tenant.tenantType === "GROUP" ? domain.groupItems : domain.companyItems).push(item);
+  }
+  return [...byOwner.values()].map((d) => ({ ...d, groups: d.groupItems.map((g) => g.code), companies: d.companyItems.map((c) => c.code) }));
+}
 
 // ===== Search / sort =====
 export function filterDomains(rows, { search }) {

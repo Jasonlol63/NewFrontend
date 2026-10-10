@@ -1,4 +1,5 @@
-// Rules and placeholder data of the Add / Edit Domain modal. Nothing here talks to the API yet.
+// Rules of the Add / Edit Domain modal.
+import { formatExpiry } from "./domainRules";
 
 // Radix Select can't use "" as an item value, so "no group" travels as this word.
 export const NO_GROUP = "none";
@@ -6,13 +7,10 @@ export const SECONDARY_PASSWORD_LENGTH = 6;
 
 export const normalizeCode = (value) => value.trim().toUpperCase();
 
-// Expiry dates of the placeholder rows (dd-mm-yyyy); the real ones come from the API.
-const PLACEHOLDER_DATES = ["08-09-2027", "01-01-2027", "20-03-2027", "08-03-2027"];
-
 /**
- * The starting values of the modal. Add: everything empty. Edit: the owner's own fields plus
- * placeholder groups / companies built from the list row (the first two companies sit in the first group).
- * A company's group is "" when it is in no group.
+ * The starting values of the modal. Add: everything empty. Edit: the owner's own fields plus the owner's groups and
+ * companies as the list holds them. `saved` is the tenant as it was loaded (its share rows and modules start the Set dialog);
+ * a company's group is "" when it is in no group; `date` is the expiry as the row shows it.
  */
 export function buildDraft(domain) {
   const owner = {
@@ -23,13 +21,34 @@ export function buildDraft(domain) {
     secondaryPassword: "",
   };
   if (!domain) return { owner, groups: [], companies: [] };
-  const groups = domain.groups.map((code) => ({ code, date: PLACEHOLDER_DATES[0] }));
-  const companies = domain.companies.map((code, i) => ({
-    code,
-    group: i < 2 && groups[0] ? groups[0].code : "",
-    date: PLACEHOLDER_DATES[(i + 1) % PLACEHOLDER_DATES.length],
+  const groups = domain.groupItems.map((g) => ({ code: g.code, date: formatExpiry(g.expiry), saved: g }));
+  const groupCodeById = new Map(domain.groupItems.map((g) => [g.id, g.code]));
+  const companies = domain.companyItems.map((c) => ({
+    code: c.code,
+    group: groupCodeById.get(c.parentId) ?? "",
+    date: formatExpiry(c.expiry),
+    saved: c,
   }));
   return { owner, groups, companies };
+}
+
+/**
+ * The body of POST /api/domain/add or PUT /api/domain/update. Owner fields are snake_case, the tenants camelCase.
+ * Edit sends the password only when one was typed (the back end keeps the old one otherwise, and the Owner Code never changes).
+ * A company's group travels as the group's code (parentGroupCode); "" takes it out of its group.
+ */
+export function domainBody(isEdit, id, { owner, groups, companies }) {
+  const body = {
+    owner_code: normalizeCode(owner.ownerCode),
+    name: owner.name.trim(),
+    email: owner.email.trim(),
+    groups: groups.map((g) => ({ code: g.code })),
+    companies: companies.map((c) => ({ code: c.code, parentGroupCode: c.group || "" })),
+  };
+  if (isEdit) body.id = id;
+  if (owner.password) body.password = owner.password;
+  if (!isEdit) body.secondary_password = owner.secondaryPassword;
+  return body;
 }
 
 // What the modal was opened with, to tell later what is still unsaved.

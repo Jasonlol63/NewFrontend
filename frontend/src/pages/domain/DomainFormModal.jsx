@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Building2, Check, Globe, Layers, ListChecks, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
+import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, PasswordInput, SelectField, SoftButton, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import MemberRow from "./MemberRow.jsx";
@@ -17,6 +18,10 @@ import {
   normalizeCode,
   snapshotOf,
 } from "./domainFormRules";
+import { settingsFromTenant } from "./domainSettingsRules";
+
+// The Owner Code can't change once the domain exists (the back end ignores it on update).
+const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
 
 // Width tiers come from the content area (@container/main = screen minus sidebar), height tiers are the
 // modal-compact / modal-short / modal-tiny variants of index.css; class names are written out in full so
@@ -38,11 +43,15 @@ const addButton = cn(
  * this draft and shows the expiry date on the row.
  *
  * Joining / leaving a group, adding and removing only change this draft; the database is only touched
- * by Save (UI only for now: Save just hands the draft back through onSave).
+ * by Save, which hands the draft (owner, groups, companies and the settings set in this modal) to onSave.
  *  - Quick: click the group chip of a company and pick a group (or "No group").
  *  - Multiple Choice: tick companies, pick a target group, Done.
+ * Removing a group / company that is already saved asks first: its account under C168 is kept.
+ *
+ * prices: { company, group } from the Price dialog; accounts: [{ id, code }] of C168; canPermanent: may pick No Expiry
+ * readOnly: a read-only login (Save is off); saving: a save is running
  */
-export default function DomainFormModal({ mode = "add", domain, prices, onClose, onSave }) {
+export default function DomainFormModal({ mode = "add", domain, prices, accounts, canPermanent, readOnly, saving, onClose, onSave }) {
   const isEdit = mode === "edit";
   const [initial] = useState(() => buildDraft(isEdit ? domain : null));
   const [owner, setOwner] = useState(initial.owner);
@@ -62,6 +71,8 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
   const [settingsFor, setSettingsFor] = useState(null);
   const [settings, setSettings] = useState({});
   const closeSettings = useCallback(() => setSettingsFor(null), []);
+  // A saved group / company about to be removed ({ kind, code } or null): confirmed first.
+  const [removeAsk, setRemoveAsk] = useState(null);
 
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState(() => new Set());
@@ -98,14 +109,22 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
     setCompanies((list) => [...list, { code, group: companyGroup === NO_GROUP ? "" : companyGroup, date: "" }]);
     setCompanyInput("");
   };
+  const dropSettings = (kind, code) =>
+    setSettings((all) => {
+      const next = { ...all };
+      delete next[`${kind}:${code}`];
+      return next;
+    });
   // A removed group lets go of its companies: they stay, but in no group.
   const removeGroup = (code) => {
+    dropSettings("group", code);
     setGroups((list) => list.filter((g) => g.code !== code));
     setCompanies((list) => list.map((c) => (c.group === code ? { ...c, group: "" } : c)));
     if (companyGroup === code) setCompanyGroup(NO_GROUP);
     if (target === code) setTarget("");
   };
   const removeCompany = (code) => {
+    dropSettings("company", code);
     setCompanies((list) => list.filter((c) => c.code !== code));
     setPicked((set) => {
       const next = new Set(set);
@@ -148,8 +167,25 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
     setSettingsFor(null);
   };
 
+  // One that is not saved yet just goes; a saved one asks first (Save is what removes it from the database).
+  const askRemove = (kind, code) => {
+    const item = (kind === "group" ? groups : companies).find((i) => i.code === code);
+    if (item?.saved) setRemoveAsk({ kind, code });
+    else if (kind === "group") removeGroup(code);
+    else removeCompany(code);
+  };
+  const confirmRemove = () => {
+    if (removeAsk.kind === "group") removeGroup(removeAsk.code);
+    else removeCompany(removeAsk.code);
+    setRemoveAsk(null);
+  };
+
+  // The Set dialog starts from what was set in this modal, else from the saved tenant, else from the defaults.
+  const settingsItem = settingsFor && (settingsFor.kind === "group" ? groups : companies).find((i) => i.code === settingsFor.code);
+  const settingsStart = settingsFor && (settings[`${settingsFor.kind}:${settingsFor.code}`] ?? (settingsItem?.saved ? settingsFromTenant(settingsFor.kind, settingsItem.saved, accounts) : null));
+
   const changes = countChanges(base, { groups, companies });
-  const save = () => onSave?.({ owner, groups, companies });
+  const save = () => onSave?.({ owner, groups, companies, settings });
 
   return (
     <FormModal
@@ -157,7 +193,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
       title={isEdit ? "Edit Domain" : "Add Domain"}
       onClose={onClose}
       onSave={save}
-      saveDisabled={!canSave(isEdit, owner)}
+      saveDisabled={!canSave(isEdit, owner) || readOnly || saving}
       footerStart={
         isEdit &&
         changes > 0 && (
@@ -184,7 +220,14 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
           )}
         >
           <Field label="Owner Code">
-            <TextInput value={owner.ownerCode} onChange={setField("ownerCode")} autoComplete="off" className="uppercase" />
+            <TextInput
+              value={owner.ownerCode}
+              onChange={setField("ownerCode")}
+              autoComplete="off"
+              readOnly={isEdit}
+              tabIndex={isEdit ? -1 : undefined}
+              className={cn("uppercase", isEdit && readOnlyClass)}
+            />
           </Field>
           <Field label="Name">
             <TextInput value={owner.name} onChange={setField("name")} autoComplete="off" />
@@ -225,7 +268,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
         <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {groups.length ? (
             groups.map((g) => (
-              <MemberRow key={g.code} code={g.code} date={g.date} onSet={() => setSettingsFor({ kind: "group", code: g.code })} onRemove={() => removeGroup(g.code)} />
+              <MemberRow key={g.code} code={g.code} date={g.date} onSet={() => setSettingsFor({ kind: "group", code: g.code })} onRemove={() => askRemove("group", g.code)} />
             ))
           ) : (
             <EmptyList icon={Layers} text="No groups added yet" />
@@ -315,7 +358,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
                 picked={picked.has(c.code)}
                 onPick={() => togglePick(c.code)}
                 onSet={() => setSettingsFor({ kind: "company", code: c.code })}
-                onRemove={() => removeCompany(c.code)}
+                onRemove={() => askRemove("company", c.code)}
               />
             ))
           ) : (
@@ -327,13 +370,29 @@ export default function DomainFormModal({ mode = "add", domain, prices, onClose,
         <SettingsModal
           kind={settingsFor.kind}
           code={settingsFor.code}
-          saved={settings[`${settingsFor.kind}:${settingsFor.code}`]}
-          fallbackDate={(settingsFor.kind === "group" ? groups : companies).find((i) => i.code === settingsFor.code)?.date}
+          saved={settingsStart}
+          fallbackDate={settingsItem?.date}
           prices={prices}
+          accounts={accounts.map((a) => a.code)}
+          canPermanent={canPermanent}
           onClose={closeSettings}
           onSave={saveSettings}
         />
       )}
+      <StatusDialog
+        open={Boolean(removeAsk)}
+        onOpenChange={(open) => !open && setRemoveAsk(null)}
+        type="warning"
+        title={removeAsk ? `Remove ${removeAsk.code}?` : ""}
+        description={
+          removeAsk?.kind === "group"
+            ? "It is removed from this domain when you press Save. Its companies stay, in no group. Its account under C168 is kept."
+            : "It is removed from this domain when you press Save. Its account under C168 is kept."
+        }
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={confirmRemove}
+      />
     </FormModal>
   );
 }

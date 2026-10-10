@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CalendarDays, Lock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
-import { ACCOUNTS, AMOUNT_PATTERN, DEPARTMENTS, PROFIT_ACCOUNT, amountOf, fmt, newRowId, pctOf, round2, splitEqually } from "./domainSettingsRules";
+import { AMOUNT_PATTERN, DEPARTMENTS, PROFIT_ACCOUNT, amountOf, fmt, newRowId, pctOf, round2, splitEqually } from "./domainSettingsRules";
 
 // Share % of a company / group: the price of the picked period is 100%, Sales / CS / IT take part of it and
 // Profit (C168, locked) is what is left. Everything is visible at once: the price line, the Profit card (with a
@@ -12,22 +12,22 @@ import { ACCOUNTS, AMOUNT_PATTERN, DEPARTMENTS, PROFIT_ACCOUNT, amountOf, fmt, n
 // (modal-compact / default / modal-roomy / modal-tall); only a long account list scrolls on its own.
 
 const pct2 = (n) => `${round2(n).toFixed(2)}%`;
-const unusedAccounts = (rows) => ACCOUNTS.filter((a) => !rows.some((r) => r.account === a));
 const PROFIT_COLOR = "#2f6fef";
 
 /**
  * kindLabel: "Company" | "Group"; period: { label } or null; price: the 100% amount (0 = no period yet)
  * departments: { sales: rows, cs: rows, it: rows } with rows = [{ id, account, pct }]
- * summary: shareSummary(price, departments); onChange(departmentKey, rows)
+ * summary: shareSummary(price, departments); accounts: the account codes that can take a share; onChange(departmentKey, rows)
  * The panel is disabled while Share is off (wrap it in a disabled fieldset).
  */
-export default function SharePanel({ kindLabel, period, price, departments, summary, onChange }) {
+export default function SharePanel({ kindLabel, period, price, departments, summary, accounts, onChange }) {
   const [active, setActive] = useState(DEPARTMENTS[0].key);
   const activeIndex = DEPARTMENTS.findIndex((d) => d.key === active);
   const department = DEPARTMENTS[activeIndex];
   const rows = departments[active];
   const noPrice = price <= 0;
   const spent = summary.departments[active];
+  const unusedAccounts = (list) => accounts.filter((a) => !list.some((r) => r.account === a));
 
   const patchRow = (id, next) =>
     onChange(
@@ -143,7 +143,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
               row={row}
               price={price}
               noPrice={noPrice}
-              options={ACCOUNTS.filter((a) => a === row.account || !rows.some((r) => r.account === a)).map((a) => ({ value: a, label: a }))}
+              options={accounts.filter((a) => a === row.account || !rows.some((r) => r.account === a)).map((a) => ({ value: a, label: a }))}
               onChange={(next) => patchRow(row.id, next)}
               onRemove={() => removeRow(row.id)}
             />

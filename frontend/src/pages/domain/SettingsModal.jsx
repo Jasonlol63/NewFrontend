@@ -6,24 +6,28 @@ import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import { Field, SelectField, SoftButton, TextInput, ToggleSwitch } from "@/components/shared/form-modal/fields.jsx";
 import SharePanel from "./SharePanel.jsx";
-import { PRICE_PERIODS } from "./domainRules";
+import { NO_EXPIRY, PRICE_PERIODS } from "./domainRules";
 import { COMPANY_TYPES, buildSettings, expiryOf, periodOf, priceFor, settingsProblem, shareSummary } from "./domainSettingsRules";
 
 // Company Settings / Group Settings: one dialog, only the title, the ID label and the Company type block differ
-// (a group has no Company type: the back end defaults it to Games). Left card: validity of the company / group;
+// (a group has no Company type: the back end defaults it to Games; a company has exactly one). Left card: validity of the company / group;
 // right card: the Share split (4 : 6). It fills the content area like the other form modals (the Add / Edit Domain modal
 // stays behind it) and only the layout below 700px wide stacks the two cards.
 
 const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
 const PERIOD_OPTIONS = PRICE_PERIODS.map((p) => ({ value: p.key, label: p.label }));
+// Only Owner / Partnership / Admin may pick No Expiry (the back end checks it too).
+const PERMANENT_OPTION = { value: NO_EXPIRY, label: "No Expiry Date" };
 
 /**
  * kind: "company" | "group"; code: its ID
- * saved: the settings saved earlier in this session (or null = defaults); fallbackDate: the expiry date the row shows now
- * prices: { company, group } amounts per period from the Price dialog
+ * saved: the starting settings (from the saved tenant, or from an earlier Set in this modal; null = defaults);
+ * fallbackDate: the expiry date the row shows now
+ * prices: { company, group } amounts per period from the Price dialog; accounts: the account codes that can take a share
+ * canPermanent: may pick No Expiry
  * onSave(settings, expiryDate) / onClose(). Mount it only while open.
  */
-export default function SettingsModal({ kind, code, saved, fallbackDate, prices, onClose, onSave }) {
+export default function SettingsModal({ kind, code, saved, fallbackDate, prices, accounts, canPermanent, onClose, onSave }) {
   const isCompany = kind === "company";
   const kindLabel = isCompany ? "Company" : "Group";
   const [initial] = useState(() => saved ?? buildSettings(kind));
@@ -31,20 +35,22 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
 
   const set = (patch) => setS((cur) => ({ ...cur, ...patch }));
   const setDepartment = (key, rows) => setS((cur) => ({ ...cur, departments: { ...cur.departments, [key]: rows } }));
-  const toggleType = (type) => set({ types: s.types.includes(type) ? s.types.filter((t) => t !== type) : [...s.types, type] });
+  // No Expiry has no price, so it cannot charge: the Share switch goes off with it.
+  const setPeriod = (value) => set(value === NO_EXPIRY ? { period: value, shareOn: false } : { period: value });
 
   const period = periodOf(s.period);
   const price = priceFor(prices, kind, s.period);
   const summary = shareSummary(price, s.departments);
-  const expiry = expiryOf(s.startDate, s.period) || fallbackDate || "-";
-  const problem = settingsProblem(kind, s, summary);
+  const expiry = expiryOf(s) || fallbackDate || "-";
+  const problem = settingsProblem(kind, s, summary, price);
+  const periodOptions = canPermanent ? [...PERIOD_OPTIONS, PERMANENT_OPTION] : PERIOD_OPTIONS;
 
   return (
     <FormModal
       icon={isCompany ? Building2 : Layers}
       title={`${kindLabel} Settings`}
       onClose={onClose}
-      onSave={() => onSave(s, expiryOf(s.startDate, s.period) || fallbackDate || "")}
+      onSave={() => onSave(s, expiryOf(s) || fallbackDate || "")}
       saveDisabled={Boolean(problem)}
       footerStart={
         problem && (
@@ -78,7 +84,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
             <DateField value={s.startDate} onChange={(startDate) => set({ startDate })} />
           </Field>
           <Field label="Period" as="div">
-            <SelectField value={s.period ?? ""} onChange={(p) => set({ period: p })} options={PERIOD_OPTIONS} placeholder="Select Period" />
+            <SelectField value={s.period ?? ""} onChange={setPeriod} options={periodOptions} placeholder={s.currentExpiry ? "Keep expiry" : "Select Period"} />
           </Field>
         </div>
         <p className="m-0 -mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">Select the start date for calculating the expiration date.</p>
@@ -91,13 +97,13 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
           <Field label="Company type (Process List and Data Capture)" plain as="div">
             <div className="flex gap-1.5">
               {COMPANY_TYPES.map((type) => {
-                const on = s.types.includes(type);
+                const on = s.type === type;
                 return (
                   <button
                     key={type}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => toggleType(type)}
+                    onClick={() => set({ type })}
                     className={cn(
                       "min-w-0 flex-1 cursor-pointer rounded-full border py-1 text-[clamp(11px,1.6dvh,12.5px)] font-semibold whitespace-nowrap transition-colors",
                       on
@@ -111,7 +117,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
               })}
             </div>
             <p className="m-0 mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">
-              Select which options this company can access in Process List and Data Capture.
+              Select the one option this company can access in Process List and Data Capture.
             </p>
           </Field>
         )}
@@ -119,11 +125,19 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
 
       <FormCard
         title="Share"
-        right={<ToggleSwitch on={s.shareOn} onToggle={() => set({ shareOn: !s.shareOn })} label={s.shareOn ? "On" : "Off"} className="flex-row-reverse" />}
+        right={
+          <ToggleSwitch
+            on={s.shareOn}
+            onToggle={() => set({ shareOn: !s.shareOn })}
+            disabled={s.period === NO_EXPIRY}
+            label={s.shareOn ? "On" : "Off"}
+            className="flex-row-reverse"
+          />
+        }
         bodyClassName="flex flex-col overflow-hidden"
       >
         <fieldset disabled={!s.shareOn} className={cn("m-0 flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0 transition-opacity", !s.shareOn && "opacity-50")}>
-          <SharePanel kindLabel={kindLabel} period={period} price={price} departments={s.departments} summary={summary} onChange={setDepartment} />
+          <SharePanel kindLabel={kindLabel} period={period} price={price} departments={s.departments} summary={summary} accounts={accounts} onChange={setDepartment} />
         </fieldset>
       </FormCard>
     </FormModal>
