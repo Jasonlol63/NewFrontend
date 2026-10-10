@@ -38,8 +38,9 @@ function TrashIcon() {
  *  - names: labels of the items to delete (string[])
  *  - noun: singular noun ("user", "account")
  *  - note: optional extra line under the warning
+ *  - verb / verbPast: the action when it isn't a plain delete ("Reject" / "rejected"); default "Delete" / "deleted"
  */
-export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, onConfirm }) {
+export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, verb = "Delete", verbPast = "deleted", onConfirm }) {
   const count = names.length;
   const single = count === 1;
 
@@ -53,15 +54,15 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
         >
           <TrashIcon />
           <Dialog.Title className="m-0 mb-1.5 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">
-            {single ? `Delete ${noun}?` : `Delete ${count} ${noun}s?`}
+            {single ? `${verb} ${noun}?` : `${verb} ${count} ${noun}s?`}
           </Dialog.Title>
           <Dialog.Description className="m-0 break-words text-[clamp(13px,1.8dvh,14px)] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
             {single ? (
               <>
-                Are you sure you want to delete <b>{names[0]}</b>?
+                Are you sure you want to {verb.toLowerCase()} <b>{names[0]}</b>?
               </>
             ) : (
-              <>The {count} selected {noun}s will be deleted.</>
+              <>The {count} selected {noun}s will be {verbPast}.</>
             )}
             <br />
             This action can't be undone.
@@ -81,7 +82,7 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
               onClick={onConfirm}
               className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2"
             >
-              Delete
+              {verb}
             </button>
           </div>
         </Dialog.Content>
