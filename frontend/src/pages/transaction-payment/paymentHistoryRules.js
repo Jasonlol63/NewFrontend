@@ -32,14 +32,16 @@ export const HISTORY_ROWS = SAMPLE.map(([crdr, balance, description], i) => ({
 
 // Opens the history of one account in its own browser window (a popup window, not a tab), about 85% of the screen and
 // centred. Clicking the same account again brings its window to the front instead of opening another one.
-export function openPaymentHistory(account) {
+// The company, account and period go along in the address for the history to load with.
+export function openPaymentHistory({ account, accountDbId, tenantId, range }) {
   const w = Math.min(1360, Math.round(window.screen.availWidth * 0.85));
   const h = Math.min(900, Math.round(window.screen.availHeight * 0.85));
   const left = Math.round((window.screen.availWidth - w) / 2);
   const top = Math.round((window.screen.availHeight - h) / 2);
+  const query = new URLSearchParams({ tenant: tenantId, id: accountDbId, from: range.from, to: range.to });
   const win = window.open(
-    `/transaction-payment/history/${encodeURIComponent(account)}`,
-    `payment-history-${account}`,
+    `/transaction-payment/history/${encodeURIComponent(account)}?${query}`,
+    `payment-history-${tenantId}-${accountDbId}`,
     `popup=yes,width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`
   );
   win?.focus();

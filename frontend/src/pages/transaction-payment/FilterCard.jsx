@@ -5,23 +5,24 @@ import MultiSelectField from "@/components/shared/form-modal/MultiSelectField.js
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { LABEL } from "./fields.jsx";
-import { CATEGORY_ITEMS, COMPANIES, GROUPS, PILLS } from "./transactionPaymentRules";
+import { CATEGORY_ITEMS, PILLS } from "./transactionPaymentRules";
 
-// Joined row of text chips (Group ID / Company), single choice.
-function Seg({ options, value, onChange }) {
+// Joined row of text chips (Group ID / Company), single choice. With allowDeselect, clicking the active chip again
+// sends null (the Group's own data / the independent companies), like the other pages.
+function Seg({ options, value, onChange, allowDeselect }) {
   return (
     <div className="inline-flex max-w-full overflow-x-auto rounded-[10px] border border-dash-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
-      {options.map((v) => (
+      {options.map(({ value: v, label }) => (
         <button
           key={v}
           type="button"
-          onClick={() => onChange(v)}
+          onClick={() => onChange(allowDeselect && v === value ? null : v)}
           className={cn(
             "flex-none cursor-pointer border-r border-dash-line px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap transition-colors last:border-r-0",
             v === value ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
           )}
         >
-          {v}
+          {label}
         </button>
       ))}
     </div>
@@ -70,7 +71,7 @@ export default function FilterCard({ filters, onChange, currency }) {
   const { categories, range, pills, group, company } = filters;
   const wide = useMediaQuery("(min-width: 1700px)");
   return (
-    <section className="@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter">
+    <section className={cn("@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
       {/* Category and Capture Date always share one row. Big screens: the 330px date box with the preset column; below
           1700px the date box and its popup shrink (same layout, smaller). */}
       <div className="flex items-end gap-2.5">
@@ -105,22 +106,30 @@ export default function FilterCard({ filters, onChange, currency }) {
       </div>
       <div className="my-0.5 h-px bg-[rgba(130,155,195,0.3)]" />
 
-      <Row label="Group ID:">
-        <Seg options={GROUPS} value={group} onChange={(v) => onChange({ group: v })} />
-      </Row>
-      <Row label="Company:">
-        <Seg options={COMPANIES[group]} value={company[group]} onChange={(v) => onChange({ company: { ...company, [group]: v } })} />
-      </Row>
+      {scope.showGroups && (
+        <Row label="Group ID:">
+          <Seg options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
+        </Row>
+      )}
+      {scope.companyOptions.length > 0 && (
+        <Row label="Company:">
+          <Seg options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
+        </Row>
+      )}
       <Row label="Currency:" grow>
-        <SegmentGroup
-          wrap
-          itemClassName="px-[11px] py-1"
-          leading={currency.fixed ? [] : [{ value: "ALL", label: "ALL" }]}
-          options={currency.order.map((c) => ({ value: c, label: c }))}
-          value={currency.allOn ? ["ALL", ...currency.selected] : currency.selected}
-          onChange={(v) => (v === "ALL" ? currency.onAll() : currency.onToggle(v))}
-          onReorder={currency.fixed ? undefined : currency.onReorder}
-        />
+        {currency.options.length ? (
+          <SegmentGroup
+            wrap
+            itemClassName="px-[11px] py-1"
+            leading={currency.options.length > 1 ? [{ value: "ALL", label: "ALL" }] : []}
+            options={currency.options}
+            value={currency.allOn ? ["ALL", ...currency.selected] : currency.selected}
+            onChange={(v) => (v === "ALL" ? currency.onAll() : currency.onToggle(v))}
+            onReorder={currency.onReorder}
+          />
+        ) : (
+          <span className="text-xs font-medium text-dash-faint">No currency available</span>
+        )}
       </Row>
     </section>
   );

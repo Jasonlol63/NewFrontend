@@ -1,39 +1,35 @@
 import { useCallback, useMemo, useState } from "react";
 import { Inbox } from "lucide-react";
+import { useListScope } from "@/components/shared/list/useListScope";
+import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
+import { cn } from "@/lib/utils";
+import { normalizeAccountRow } from "@/pages/account/accountRules";
 import ContraInboxModal from "./contra-inbox/ContraInboxModal.jsx";
 import { canApproveContra } from "./contra-inbox/contraInboxRules";
 import { useContraInbox } from "./contra-inbox/useContraInbox";
 import FilterCard from "./FilterCard.jsx";
 import ManualForm from "./ManualForm.jsx";
+import { openPaymentHistory } from "./paymentHistoryRules";
 import ReportBlocks from "./ReportBlocks.jsx";
-import { ALL_CUR, DEFAULT_COMPANY, accountOptions, setFor } from "./transactionPaymentRules";
-
-const ORDER_KEY = "tx-cur-order";
-const loadOrder = () => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(ORDER_KEY));
-    if (Array.isArray(saved) && saved.length === ALL_CUR.length && ALL_CUR.every((c) => saved.includes(c))) return saved;
-  } catch {
-    // no saved order, or storage is blocked: fall back to the default
-  }
-  return ALL_CUR;
-};
+import { buildBlocks, buildSearchRequest } from "./transactionPaymentRules";
+import { useTenantCurrencies, useTransactionSearch } from "./useTransactionData";
 
 /**
  * Transaction Payment (design B): two cards on top (filters, manual transaction form), then one block per selected
  * currency with the two account tables. The page itself scrolls (the layout's main), there is no outer frame.
- * UI only for now: sample data, nothing is loaded or saved on the server.
+ * The list comes from /api/transaction/search (all currencies at once, the chips filter on the client); the form posts
+ * to /api/transaction/submit and the list reloads after it.
  */
 export default function TransactionPaymentPage() {
   const [filters, setFilters] = useState(() => {
     const today = toIsoDate(new Date());
-    return { categories: new Set(), range: { from: today, to: today }, pills: {}, group: "IG", company: DEFAULT_COMPANY };
+    return { categories: new Set(), range: { from: today, to: today }, pills: {} };
   });
-  const [sel, setSel] = useState(["MYR"]);
-  const [order, setOrder] = useState(loadOrder);
+  const [sel, setSel] = useState([]);
   const [shut, setShut] = useState({});
 
   // Contra Inbox: only Owner / Admin / Manager get it. The session is always in one company, which is the inbox's company.
@@ -43,32 +39,50 @@ export default function TransactionPaymentPage() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const closeInbox = useCallback(() => setInboxOpen(false), []);
 
-  const { group, company } = filters;
-  const fullSet = setFor(group, company[group]);
-  // Category: only the accounts of the picked roles (none picked = all).
-  const set = useMemo(() => {
-    if (!filters.categories.size) return fullSet;
-    const keep = (rows) => rows.filter(([, role]) => filters.categories.has(role));
-    return { left: keep(fullSet.left), right: keep(fullSet.right) };
-  }, [fullSet, filters.categories]);
-  const accounts = useMemo(() => accountOptions(set), [set]);
+  const scope = useListScope();
+  const { tenantId } = scope;
+  const { currencies, error: currencyError } = useTenantCurrencies(tenantId);
+  const { rows: accountRows, error: accountError } = useTenantList("/api/account", tenantId, { normalize: normalizeAccountRow });
+  const accounts = useMemo(() => accountRows.filter((a) => a.status === "active"), [accountRows]);
 
-  // AP only has MYR. Otherwise the shown currencies keep the chip order.
-  const fixed = group === "AP";
-  const selected = fixed ? ["MYR"] : order.filter((c) => sel.includes(c));
-  const shown = selected.length ? selected : ["MYR"];
-  const allOn = !fixed && shown.length === order.length;
+  // Chips in the order the user dragged them into (shared with the Dashboard); the default is MYR, else the first currency.
+  const codes = useMemo(() => currencies.map((c) => c.code), [currencies]);
+  const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(codes);
+  const orderKey = currencyOptions.map((o) => o.value).join(",");
+  const selKey = sel.join(",");
+  const shown = useMemo(() => {
+    const ordered = orderKey ? orderKey.split(",") : [];
+    const chosen = ordered.filter((c) => selKey.split(",").includes(c));
+    if (chosen.length) return chosen;
+    const fallback = ordered.includes("MYR") ? "MYR" : ordered[0];
+    return fallback ? [fallback] : [];
+  }, [orderKey, selKey]);
+  const allOn = codes.length > 1 && shown.length === codes.length;
 
   const toggleCur = (c) => setSel(shown.includes(c) ? (shown.length > 1 ? shown.filter((x) => x !== c) : shown) : [...shown, c]);
-  const pickAll = () => setSel(allOn ? ["MYR"] : [...order]);
-  const reorder = (next) => {
-    setOrder(next);
-    try {
-      localStorage.setItem(ORDER_KEY, JSON.stringify(next));
-    } catch {
-      // storage blocked: the order just won't be remembered
-    }
-  };
+  const pickAll = () => setSel(allOn ? [] : codes);
+
+  const request = useMemo(
+    () => (tenantId ? buildSearchRequest({ tenantId, range: filters.range, categories: filters.categories, showZero: filters.pills.zero }) : null),
+    [tenantId, filters.range, filters.categories, filters.pills.zero]
+  );
+  const search = useTransactionSearch(request);
+  const today = toIsoDate(new Date());
+  const todayOnly = filters.range.from === today && filters.range.to === today;
+  const blocks = useMemo(() => buildBlocks(search.rows, shown, filters.pills, todayOnly), [search.rows, shown, filters.pills, todayOnly]);
+
+  const { reload: reloadSearch } = search;
+  const { reload: reloadInbox } = inbox;
+  const onSubmitted = useCallback(
+    (status) => {
+      reloadSearch();
+      if (status === "PENDING") reloadInbox();
+    },
+    [reloadSearch, reloadInbox]
+  );
+  const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range });
+
+  const pageError = scope.error || currencyError || accountError || search.error;
 
   return (
     <div className="flex min-h-full flex-col gap-(--gap) p-[clamp(10px,2dvh,18px)] [--gap:clamp(8px,1.5dvh,14px)]">
@@ -91,11 +105,17 @@ export default function TransactionPaymentPage() {
         <FilterCard
           filters={filters}
           onChange={(patch) => setFilters((cur) => ({ ...cur, ...patch }))}
-          currency={{ order: fixed ? ["MYR"] : order, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: reorder, fixed }}
+          scope={scope}
+          currency={{ options: currencyOptions, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: setCurrencyOrder }}
         />
-        <ManualForm accounts={accounts} currencies={shown} accountsKey={`${group}/${company[group]}`} />
+        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} />
       </div>
-      <ReportBlocks set={set} currencies={shown} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} />
+      {pageError && (
+        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>
+      )}
+      <div className={cn("transition-opacity", search.loading && "opacity-60")}>
+        <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} />
+      </div>
       {inboxOpen && <ContraInboxModal inbox={inbox} onClose={closeInbox} />}
     </div>
   );

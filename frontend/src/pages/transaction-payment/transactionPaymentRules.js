@@ -1,14 +1,7 @@
-// Transaction Payment: sample data and small helpers. UI only for now: nothing here talks to the backend.
+// Transaction Payment: constants, the Search request / rows, the display filters and the Submit payloads.
 
-export const GROUPS = ["AP", "IG"];
-export const COMPANIES = { AP: ["C168"], IG: ["95", "AG", "CX", "RS", "VG"] };
-export const ALL_CUR = ["MYR", "SGD", "USD", "CNY", "EUR", "HKD", "IDR", "THB", "NPR", "AUD", "USDT", "PGK"];
-export const DEFAULT_COMPANY = { AP: "C168", IG: "95" };
-
-// Sample conversion from MYR, only so each currency block shows different numbers.
-export const RATE = { MYR: 1, SGD: 0.31, USD: 0.23, CNY: 1.6, EUR: 0.2, HKD: 1.8, IDR: 3600, THB: 7.6, NPR: 30, AUD: 0.35, USDT: 0.23, PGK: 0.9 };
-
-
+export const SEARCH_URL = "/api/transaction/search";
+export const SUBMIT_URL = "/api/transaction/submit";
 
 // Show toggles under Category / Capture Date.
 export const PILLS = [
@@ -39,33 +32,177 @@ export const ROLE_COLORS = {
   DEBTOR: ["#f1f5f9", "#475569"],
 };
 
-// [account, role, balance]; B/F = Balance in this sample (no win/loss, no cr/dr yet).
-export const SETS = {
-  "AP/C168": {
-    left: [["C168", "COMPANY", 19440], ["AG", "COMPANY", 13451.35], ["APPLE", "STAFF", 1380], ["BEE", "STAFF", 1500], ["WINE", "STAFF", 1380], ["ZERO", "STAFF", 1500], ["BANG", "AGENT", 480], ["DARREN", "AGENT", 1440], ["JK", "SUPPLIER", 78.19], ["K", "SUPPLIER", 480]],
-    right: [["EXPENSES", "EXPENSES", -38729.54], ["UG", "STAFF", -2400]],
-  },
-  "IG/95": {
-    left: [["CAPITAL", "CAPITAL", 796566.26], ["XE", "CAPITAL", 37036.41], ["1SLOT", "PROFIT", 9.41], ["28WIN", "PROFIT", 2267.45], ["777MINION", "PROFIT", 32.39], ["918KAYA", "PROFIT", 33.11], ["918KISS", "PROFIT", 1181.83], ["918UMOBILE", "PROFIT", 18.59], ["AP95", "PROFIT", 3.6], ["API 3WIN8", "PROFIT", 0.01], ["API 918H5", "PROFIT", 177.9], ["API 918KAYA", "PROFIT", 290.93], ["API 918KISS", "PROFIT", 10.65], ["API BIGWIN", "PROFIT", 55.2], ["API JOKER", "PROFIT", 402.1]],
-    right: [["3WIN8", "PROFIT", -2.35], ["ACE333", "PROFIT", -2.4], ["API CT855", "PROFIT", -40.33], ["LIVE22", "PROFIT", -4.53], ["717A", "SUPPLIER", -4238.67], ["717A-API-GP", "SUPPLIER", -3000], ["717A-API-P", "SUPPLIER", -9564.13], ["API-BG-SGD-ROYAL", "SUPPLIER", -316.06], ["API-HELEN", "SUPPLIER", -55656.42], ["API-LFC888", "SUPPLIER", -2387.19], ["API-LW-AE", "SUPPLIER", -890.03], ["BZ-029", "SUPPLIER", -1.11]],
-  },
-};
-const EMPTY_SET = { left: [], right: [] };
-export const setFor = (group, company) => SETS[`${group}/${group === "AP" ? "C168" : company}`] ?? EMPTY_SET;
+// Category filter: the account roles (a Set of them can be picked; none = every role).
+export const CATEGORY_ITEMS = Object.keys(ROLE_COLORS).map((v) => ({ value: v, label: v }));
 
 export const fmt = (n) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const tone = (n) => (n > 0 ? "pos" : n < 0 ? "neg" : "");
-// Sample amounts converted into the shown currency, to cents.
-export const convert = (n, currency) => Math.round(n * (RATE[currency] ?? 1) * 100) / 100;
-
-// "CAPITAL[CAPITAL]": account id and name; the sample data has no separate name yet.
-export const accountOptions = (set) => [...set.left, ...set.right].map(([id]) => ({ value: id, label: `${id}[${id}]` }));
 
 export const todayDisplay = () => {
   const d = new Date();
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 };
-export const positive = (value) => parseFloat(String(value).replace(/,/g, "")) > 0;
 
-// Category filter: the account roles (a Set of them can be picked; none = every role).
-export const CATEGORY_ITEMS = Object.keys(ROLE_COLORS).map((v) => ({ value: v, label: v }));
+export const toNumber = (value) => parseFloat(String(value ?? "").replace(/,/g, ""));
+export const positive = (value) => toNumber(value) > 0;
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+// The backend returns every currency of the company at once; the currency chips filter on the client.
+export function buildSearchRequest({ tenantId, range, categories, showZero }) {
+  return {
+    tenantId,
+    dateFrom: range.from,
+    dateTo: range.to,
+    currencyCodes: [],
+    categories: [...categories],
+    showAllZeroBalance: Boolean(showZero),
+  };
+}
+
+export function normalizeSearchRow(dto) {
+  return {
+    key: `${dto.accountId}|${dto.currencyCode}`,
+    id: dto.accountId,
+    accountId: String(dto.accountCode ?? "").trim(),
+    name: String(dto.accountName ?? "").trim(),
+    role: String(dto.role ?? "").trim().toUpperCase(),
+    currency: String(dto.currencyCode ?? "").trim().toUpperCase(),
+    bf: toNumber(dto.bf) || 0,
+    winLoss: toNumber(dto.winLoss) || 0,
+    crDr: toNumber(dto.crDr) || 0,
+    balance: toNumber(dto.balance) || 0,
+    hasWinLoss: Boolean(dto.hasWinLossInPeriod),
+    hasCrDr: Boolean(dto.hasCrDrInPeriod),
+    alert: Boolean(dto.alertActive),
+  };
+}
+
+// Whole cents, so sums of many rows never drift.
+const cents = (n) => Math.round(n * 100);
+const sum = (rows, key) => rows.reduce((a, r) => a + cents(r[key]), 0) / 100;
+const isZero = (n) => cents(n) === 0;
+const hasCrDr = (r) => !isZero(r.crDr) || r.hasCrDr;
+const hasWinLoss = (r) => !isZero(r.winLoss) || r.hasWinLoss;
+
+// Win/Loss Only / Payment Only keep the rows with that activity in the period; a row that nets to 0.00 stays hidden
+// unless "All 0 balance" is on, or it is today's own activity (e.g. a CONTRA that cancels out).
+function passes(row, { zero, payment, winLoss, today }) {
+  if (payment || winLoss) {
+    const active = (payment && hasCrDr(row)) || (winLoss && hasWinLoss(row));
+    if (!(zero ? isZero(row.balance) || active : active)) return false;
+  }
+  if (zero || !isZero(row.balance)) return true;
+  if (payment && hasCrDr(row)) return true;
+  if (winLoss && hasWinLoss(row)) return true;
+  return today && (hasCrDr(row) || hasWinLoss(row));
+}
+
+const totalsOf = (rows) => ({ bf: sum(rows, "bf"), winLoss: sum(rows, "winLoss"), crDr: sum(rows, "crDr"), balance: sum(rows, "balance") });
+
+/** The rows of every shown currency, split into the left (Balance >= 0) and right (Balance < 0) tables, with their totals. */
+export function buildBlocks(rows, currencies, pills, today) {
+  const options = { zero: Boolean(pills.zero), payment: Boolean(pills.payment), winLoss: Boolean(pills.winLoss), today };
+  return Object.fromEntries(
+    currencies.map((code) => {
+      const shown = rows.filter((r) => r.currency === code && passes(r, options));
+      const left = shown.filter((r) => r.balance >= 0);
+      const right = shown.filter((r) => r.balance < 0);
+      return [code, { left, right, totals: totalsOf(shown), leftTotals: totalsOf(left), rightTotals: totalsOf(right) }];
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Submit
+// ---------------------------------------------------------------------------
+
+export const accountLabel = (a) => `${a.accountId}[${a.name || a.accountId}]`;
+export const accountOptions = (accounts) => accounts.map((a) => ({ value: String(a.id), label: accountLabel(a) }));
+
+const plain = (value) => String(value ?? "").replace(/,/g, "").trim();
+const idOf = (value) => (value ? Number(value) : null);
+
+// "/1.5" (divide) or a plain number -> the multiplier, at most 8 decimals like the backend column.
+export function parseRate(raw) {
+  const text = plain(raw).replace("÷", "/");
+  if (/^\/\d*\.?\d+$/.test(text)) {
+    const divisor = parseFloat(text.slice(1));
+    return divisor > 0 ? { divisor, value: Math.round((1 / divisor) * 1e8) / 1e8 } : null;
+  }
+  if (/^\d*\.?\d+$/.test(text) && parseFloat(text) > 0) return { divisor: null, value: parseFloat(text) };
+  return null;
+}
+
+export const trim8 = (n) => String(Math.round(n * 1e8) / 1e8);
+
+// Amount 2 follows Amount 1 x Rate (the backend recomputes it the same way).
+export const rateAmount2 = (amount1, rate) => {
+  const parsed = parseRate(rate);
+  return parsed && positive(amount1) ? trim8(toNumber(amount1) * parsed.value) : "";
+};
+
+// Middle-Man total shown in the Amount box: the Rate-Mul commission plus the Fee net of PT-Fee (each only when above 0).
+// Same formulas as the backend's RateMulCalculator.computeCommission.
+export function middleManTotal({ amount1, rate, mul, fee, pt }) {
+  const from = toNumber(amount1);
+  const fx = parseRate(rate);
+  let commission = 0;
+  const text = plain(mul).replace("÷", "/");
+  if (from > 0 && fx && text) {
+    if (/^\/\d*\.?\d+$/.test(text)) {
+      const divisor = parseFloat(text.slice(1));
+      if (fx.divisor && divisor > 0) commission = from / fx.divisor - from / divisor;
+    } else if (/^\d*\.?\d+$/.test(text) && parseFloat(text) > 0) {
+      commission = fx.divisor ? parseFloat(text) * 1000 : from * (fx.value - parseFloat(text));
+    }
+  }
+  const feeNet = (toNumber(fee) || 0) - (toNumber(pt) || 0);
+  const total = (commission > 0 ? commission : 0) + (feeNet > 0 ? feeNet : 0);
+  return total > 0 ? String(Math.round(total * 100) / 100) : "";
+}
+
+/** The /api/transaction/submit body of the form, or throws the message to show. `f` is the form state, `cur` the resolved currencies. */
+export function buildSubmitRequest({ tenantId, type, f, cur }) {
+  const base = { tenantId, transactionType: type };
+  if (type === "RATE") {
+    const rate = parseRate(f.rRate);
+    if (!f.rTo1 || !f.rFrom1) throw new Error("Select the To and From account of the first currency");
+    if (!f.rTo2 || !f.rFrom2) throw new Error("Select the To and From account of the second currency");
+    if (cur.rate1 === cur.rate2) throw new Error("The two currencies must be different");
+    if (!positive(f.rAmt1)) throw new Error("Enter the amount");
+    if (!rate) throw new Error("Enter a valid rate");
+    const mul = plain(f.rMul);
+    const fee = plain(f.rFee);
+    const pt = plain(f.rPT);
+    if ((mul || fee || pt) && !f.rMid) throw new Error("Select the Middle-Man account");
+    if (f.rMid && !mul && !fee && !pt) throw new Error("Enter the Middle-Man Rate-Mul, Fee or PT-Fee");
+    return {
+      ...base,
+      leg1ToAccountId: idOf(f.rTo1),
+      leg1FromAccountId: idOf(f.rFrom1),
+      leg1CurrencyCode: cur.rate1,
+      leg1Amount: plain(f.rAmt1),
+      leg2ToAccountId: idOf(f.rTo2),
+      leg2FromAccountId: idOf(f.rFrom2),
+      leg2CurrencyCode: cur.rate2,
+      exchangeRate: rate.value,
+      rateExpression: plain(f.rRate).replace("÷", "/"),
+      ...(f.rMid ? { middlemanAccountId: idOf(f.rMid) } : {}),
+      ...(mul ? { middlemanRateExpression: mul } : {}),
+      ...(positive(fee) ? { middlemanAmount: fee } : {}),
+      ...(positive(pt) ? { platformFeeAmount: pt } : {}),
+    };
+  }
+  if (type === "ADJUSTMENT") {
+    const amount = toNumber(f.aAmt);
+    if (!f.aAcc) throw new Error("Select the account");
+    if (!Number.isFinite(amount) || amount === 0) throw new Error("Enter a non-zero amount");
+    return { ...base, toAccountId: idOf(f.aAcc), currencyCode: cur.adj, amount: plain(f.aAmt), remark: f.aRemark.trim() || null };
+  }
+  if (!f.to || !f.from) throw new Error("Select the To and From account");
+  if (f.to === f.from) throw new Error("The To and From account must be different");
+  if (!positive(f.amount)) throw new Error("Enter an amount above 0");
+  return { ...base, toAccountId: idOf(f.to), fromAccountId: idOf(f.from), currencyCode: cur.std, amount: plain(f.amount), remark: f.remark.trim() || null };
+}
