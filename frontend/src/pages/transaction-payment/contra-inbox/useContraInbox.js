@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { postJson } from "@/lib/api";
+import { touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { APPROVE_URL, normalizePending, PENDING_URL, REJECT_URL, sortPending } from "./contraInboxRules";
 
-const POLL_MS = 45000;
+// The backend pushes ledger changes (useRealtime below); the poll is only the fallback for a dropped connection.
+const POLL_MS = 3 * 60_000;
 
 /**
  * The pending manual transactions of the current company (the Contra Inbox). It loads when `enabled` and the company are
- * known, again every 45s while the tab is visible and after every approve / reject; reload() asks right away.
+ * known, again every 3 min and on the backend's ledger news while the tab is visible and after every approve / reject; reload() asks right away.
  * approve / reject take rows of `rows`, send them one after another and reload; they throw the backend's message on
  * failure (saying how many went through first when some did).
  */
@@ -35,6 +37,7 @@ export function useContraInbox(tenantId, enabled) {
   }, [active]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  useRealtime(touchesLedger, () => active && reload());
 
   const decide = useCallback(
     async (url, rows) => {

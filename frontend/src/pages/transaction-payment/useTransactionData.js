@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "@/lib/api";
+import { touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { HISTORY_URL, normalizeHistoryRow } from "./paymentHistoryRules";
 import { SEARCH_URL, normalizeSearchRow } from "./transactionPaymentRules";
 
@@ -34,6 +35,8 @@ export function useTenantCurrencies(tenantId) {
 export function useTransactionSearch(request) {
   const requestKey = request ? JSON.stringify(request) : "";
   const [version, setVersion] = useState(0);
+  // Bumped by the backend's ledger news: loads again without dimming the rows (it is not part of the key below).
+  const [pushed, setPushed] = useState(0);
   const [state, setState] = useState({ key: "", rows: [], error: "" });
 
   useEffect(() => {
@@ -45,7 +48,8 @@ export function useTransactionSearch(request) {
         if (err.name !== "AbortError") setState({ key: `${requestKey}#${version}`, rows: [], error: err.message });
       });
     return () => controller.abort();
-  }, [requestKey, version]);
+  }, [requestKey, version, pushed]);
+  useRealtime(touchesLedger, () => requestKey && setPushed((n) => n + 1));
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
   if (!requestKey) return { rows: [], loading: false, error: "", reload };
@@ -105,6 +109,7 @@ export function useLinkedAccounts(tenantId, currencyIds) {
  */
 export function useHistory(request) {
   const requestKey = request ? JSON.stringify(request) : "";
+  const [pushed, setPushed] = useState(0); // bumped by the backend's ledger news: loads again without dimming the rows
   const [state, setState] = useState({ key: "", account: null, rows: [], error: "" });
 
   useEffect(() => {
@@ -118,7 +123,8 @@ export function useHistory(request) {
         if (err.name !== "AbortError") setState({ key: requestKey, account: null, rows: [], error: err.message });
       });
     return () => controller.abort();
-  }, [requestKey]);
+  }, [requestKey, pushed]);
+  useRealtime(touchesLedger, () => requestKey && setPushed((n) => n + 1));
 
   const current = state.key === requestKey;
   return { account: current ? state.account : null, rows: current ? state.rows : [], loading: Boolean(requestKey) && !current, error: current ? state.error : "" };

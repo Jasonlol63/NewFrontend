@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson, postJson } from "@/lib/api";
+import { touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { BALANCES_URL, CURRENCIES_URL, HISTORY_URL, PROFILE_URL, balanceMap, currencyUnion, normalizeProfile } from "./memberRules";
 
 /** The member's profile: { profile, error }. profile is null while loading. */
@@ -16,9 +17,10 @@ export function useMemberProfile() {
 }
 
 // One POST whose result follows `request` (null = nothing to ask). The old result stays while a new one loads.
-function usePost(url, request, pick, empty) {
+function usePost(url, request, pick, empty, { live = false } = {}) {
   const key = request ? JSON.stringify(request) : "";
   const [state, setState] = useState({ key: "", value: empty, error: "" });
+  const [pushed, setPushed] = useState(0); // bumped by the backend's ledger news: loads again without dimming the report
   useEffect(() => {
     if (!key) return undefined;
     const controller = new AbortController();
@@ -26,7 +28,8 @@ function usePost(url, request, pick, empty) {
       .then((body) => setState({ key, value: pick(body.data), error: "" }))
       .catch((err) => err.name !== "AbortError" && setState({ key, value: empty, error: err.message }));
     return () => controller.abort();
-  }, [url, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [url, key, pushed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useRealtime(live ? touchesLedger : [], () => key && setPushed((n) => n + 1), { delay: 800 });
   const current = state.key === key;
   return { value: state.value, loading: Boolean(key) && !current, error: current ? state.error : "" };
 }
@@ -42,10 +45,10 @@ export function useLinkedCurrencies(accountIds, enabled) {
 
 /** Closing balance of every account per currency, for the table on the right. */
 export function useMiniBalances(request) {
-  return usePost(BALANCES_URL, request, balanceMap, EMPTY_MAP);
+  return usePost(BALANCES_URL, request, balanceMap, EMPTY_MAP, { live: true });
 }
 
 /** The statement rows of one account for the shown currencies. */
 export function useMemberHistory(request) {
-  return usePost(HISTORY_URL, request, (data) => data?.history ?? [], EMPTY_LIST);
+  return usePost(HISTORY_URL, request, (data) => data?.history ?? [], EMPTY_LIST, { live: true });
 }
