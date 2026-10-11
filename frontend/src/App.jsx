@@ -23,6 +23,7 @@ import PaymentHistoryPage from "./pages/transaction-payment/PaymentHistoryPage.j
 import MemberWinLossPage from "./pages/member/MemberWinLossPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
+import RealtimeConnection from "./lib/realtime/RealtimeConnection.jsx";
 import { RequireSession } from "./context/session";
 import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
 import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
@@ -44,6 +45,7 @@ export default function App() {
           path="/transaction-payment/history/:account"
           element={
             <RequireSession>
+              <RealtimeConnection />
               <PaymentHistoryPage />
             </RequireSession>
           }

@@ -8,6 +8,7 @@ import { homePath, menuKeyForPath } from "@/components/layout/sidebarConfig";
 import { useNotifications } from "@/components/layout/useNotifications";
 import { SessionProvider, useSession } from "@/context/session";
 import { clearSession } from "@/hooks/useSavedState";
+import RealtimeConnection from "@/lib/realtime/RealtimeConnection.jsx";
 import { cn } from "@/lib/utils";
 
 export default function AuthenticatedLayout() {
@@ -66,6 +67,7 @@ function Shell() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">
+      {ready && <RealtimeConnection />}
       <div className="hidden h-full nav:flex">
         <Sidebar onLogout={onLogout} onOpenNotifications={openPanel} unreadCount={notifications.unreadCount} />
       </div>
