@@ -66,7 +66,7 @@
 
 - **权限是登录时的快照。** 管理员改了某人的角色或权限，对方要重新登录或切换一次公司才生效；
   旧格式的 session（没有 `menu`）会被送回登录页。
-- **Member 账号权限列表为空，会看到全部菜单**（暂时不管）。
+- **Member 账号只看到 Win/Loss 一个入口**（`menu.winLoss`，`SessionUser.buildMemberMenu()`）：登录后进 `/member/win-loss`，访问别的页面也回到这里；铃铛和公告照常。
 - **只隐藏了 Process 的入口和页面，`/api/process/**` 接口 C168 仍然可以调用。**
 - 角色层的权限只控制菜单，服务层的角色、层级检查仍在 `AccessControlUtils`。
 - 通知铃铛的数字、语言切换、头像还是写死的，后端没有对应数据。

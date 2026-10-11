@@ -12,6 +12,7 @@ import { getJson, postForm } from "@/lib/api";
 import { noticeLine, toNotice } from "@/pages/announcement/announcementRules";
 import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
 import { loadSessionUser, markLogin } from "@/hooks/useSavedState";
+import { homePath } from "@/components/layout/sidebarConfig";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -71,7 +72,7 @@ export default function LoginPage() {
     let cancelled = false;
     loadSessionUser().then((user) => {
       if (!cancelled && user?.menu && !user.needs_owner_secondary && !user.needs_user_secondary) {
-        navigate("/dashboard", { replace: true });
+        navigate(homePath(user), { replace: true });
       }
     });
     return () => {
@@ -128,7 +129,7 @@ export default function LoginPage() {
       if (secondaryFor) {
         navigate("/secondary-password", { state: { userType: secondaryFor, lang } });
       } else {
-        navigate("/dashboard");
+        navigate(role === "member" ? "/member/win-loss" : "/dashboard");
       }
     } catch (err) {
       setErrorTitle(ERROR_TITLES[err.message] ?? err.message);

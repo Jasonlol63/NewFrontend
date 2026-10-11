@@ -89,8 +89,9 @@ public class SessionUser implements Serializable {
         this.tenant_has_game = tenantHasGame;
         this.tenant_has_bank = tenantHasBank;
         this.read_only = readOnly;
-        this.menu = buildMenu(
-                this.permissions, tenantHasGame, tenantHasBank, "group".equals(loginScope), isCurrentTenantC168);
+        this.menu = "member".equals(userType)
+                ? buildMemberMenu()
+                : buildMenu(this.permissions, tenantHasGame, tenantHasBank, "group".equals(loginScope), isCurrentTenantC168);
     }
 
     /**
@@ -124,6 +125,7 @@ public class SessionUser implements Serializable {
 
         Map<String, Boolean> menu = new LinkedHashMap<>();
         menu.put("home", true);
+        menu.put("winLoss", false);
         menu.put("domain", c168);
         menu.put("announcement", c168);
         menu.put("autoRenew", c168);
@@ -145,6 +147,14 @@ public class SessionUser implements Serializable {
         // Parent entry: shown only if at least one child is.
         menu.put("maintenance", maintenanceDataCapture || maintenanceTransaction || maintenancePayment
                 || maintenanceFormula || maintenanceBankProcess);
+        return menu;
+    }
+
+    /** A Member (the account holder, not staff) sees one entry only: Win/Loss. Every staff key is off. */
+    static Map<String, Boolean> buildMemberMenu() {
+        Map<String, Boolean> menu = new LinkedHashMap<>(buildMenu(List.of("none"), false, false, false, false));
+        menu.replaceAll((key, value) -> false);
+        menu.put("winLoss", true);
         return menu;
     }
 

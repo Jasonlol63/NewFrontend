@@ -11,6 +11,7 @@ import {
   Globe,
   Megaphone,
   RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 
 // Shared by the full sidebar and the icon rail. Submenus live only in the
@@ -20,6 +21,7 @@ import {
 // assigned from what is visible (see buildSidebarMenu).
 export const MENU_ITEMS = [
   { menu: "home", label: "Home", icon: Home, path: "/dashboard" },
+  { menu: "winLoss", label: "Win/Loss", icon: TrendingUp, path: "/member/win-loss" },
   { menu: "domain", label: "Domain", icon: Globe, path: "/domain" },
   { menu: "announcement", label: "Announcement", icon: Megaphone, path: "/announcement" },
   { menu: "autoRenew", label: "Auto Renew", icon: RefreshCw, path: "/auto-renew" },
@@ -51,6 +53,9 @@ export const MENU_ITEMS = [
     ],
   },
 ];
+
+// Where a user lands after login and when a page is not theirs: a Member has only Win/Loss, everyone else the Dashboard.
+export const homePath = (user) => (user?.menu?.winLoss === true ? "/member/win-loss" : "/dashboard");
 
 // The menu the user may see, numbered 1..n. `menu` is user.menu from /auth/current-user; a missing
 // key counts as hidden, so an incomplete session never shows more than it should.

@@ -6,6 +6,7 @@ import { postJson } from "@/lib/api";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { HISTORY_URL, normalizeHistoryRow } from "./paymentHistoryRules";
+import { HISTORY_URL as MEMBER_HISTORY_URL } from "../member/memberRules";
 import { buildHistoryPdf, pdfFilename } from "./paymentHistoryPdf";
 
 const LABEL = "mb-1 block text-[12.5px] font-bold text-[#374151]";
@@ -17,13 +18,16 @@ const SOLID =
   "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none bg-[#1d4ed8] px-3.5 text-[13px] font-semibold text-white outline-none transition-colors hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60";
 
 /** The accounts' currencies of the company: the ones the account holds (all of them when it holds none). */
-function useAccountCurrencies(open, tenantId, accountId) {
+function useAccountCurrencies(open, tenantId, accountId, member) {
   const [state, setState] = useState({ key: "", codes: [], error: "" });
   const key = `${tenantId}:${accountId}`;
   useEffect(() => {
     if (!open) return undefined;
     const controller = new AbortController();
-    postJson(`/api/currency/available?tenant_id=${encodeURIComponent(tenantId)}&account_id=${encodeURIComponent(accountId)}`, null, { signal: controller.signal })
+    const ask = member
+      ? postJson("/api/member/account-currencies", accountId, { signal: controller.signal })
+      : postJson(`/api/currency/available?tenant_id=${encodeURIComponent(tenantId)}&account_id=${encodeURIComponent(accountId)}`, null, { signal: controller.signal });
+    ask
       .then((body) => {
         const rows = (body.data || []).map((c) => ({ code: String(c.code ?? "").toUpperCase(), linked: Boolean(c.is_linked) })).filter((c) => c.code);
         const held = rows.filter((c) => c.linked);
@@ -33,7 +37,7 @@ function useAccountCurrencies(open, tenantId, accountId) {
         if (err.name !== "AbortError") setState({ key, codes: [], error: err.message });
       });
     return () => controller.abort();
-  }, [open, tenantId, accountId, key]);
+  }, [open, tenantId, accountId, member, key]);
   const current = state.key === key;
   return { codes: current ? state.codes : [], loading: open && !current, error: current ? state.error : "" };
 }
@@ -44,10 +48,11 @@ const dmy = (iso) => iso.split("-").reverse().join("/");
 /**
  * Export PDF dialog of the Payment History: pick the period and currencies, then Preview the report in the dialog or
  * Export it straight away. The preview is the PDF itself, so Download saves exactly what was shown.
+ * member: the Member page's own endpoints (/api/member/*, no tenantId, the backend takes the company from the session).
  * request: { tenantId, accountId, dateFrom, dateTo, currencyCodes } of the history page; account: { code, name }.
  */
-export default function ExportPdfModal({ open, onClose, request, account }) {
-  const { codes: available, loading: loadingCurrencies, error: currencyError } = useAccountCurrencies(open, request.tenantId, request.accountId);
+export default function ExportPdfModal({ open, onClose, request, account, member = false }) {
+  const { codes: available, loading: loadingCurrencies, error: currencyError } = useAccountCurrencies(open, request.tenantId, request.accountId, member);
   const [range, setRange] = useState({ from: request.dateFrom, to: request.dateTo });
   // null = the history's own currencies until the user picks; then the list of picked codes.
   const [picked, setPicked] = useState(null);
@@ -91,8 +96,8 @@ export default function ExportPdfModal({ open, onClose, request, account }) {
   const generate = async () => {
     if (!range.from || !range.to) throw new Error("Select a date range.");
     if (!selected.length) throw new Error("Select at least one currency.");
-    const body = await postJson(HISTORY_URL, {
-      tenantId: request.tenantId,
+    const body = await postJson(member ? MEMBER_HISTORY_URL : HISTORY_URL, {
+      ...(member ? {} : { tenantId: request.tenantId }),
       accountId: request.accountId,
       dateFrom: range.from,
       dateTo: range.to,

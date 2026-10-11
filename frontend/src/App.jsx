@@ -20,6 +20,7 @@ import FormulaMaintenancePage from "./pages/maintenance/formula/FormulaMaintenan
 import BankProcessMaintenancePage from "./pages/maintenance/bankprocess/BankProcessMaintenancePage.jsx";
 import TransactionPaymentPage from "./pages/transaction-payment/TransactionPaymentPage.jsx";
 import PaymentHistoryPage from "./pages/transaction-payment/PaymentHistoryPage.jsx";
+import MemberWinLossPage from "./pages/member/MemberWinLossPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
 import { RequireSession } from "./context/session";
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/data-capture" element={<DataCapturePage />} />
           <Route path="/data-capture/summary" element={<DataCaptureSummaryPage />} />
           <Route path="/transaction-payment" element={<TransactionPaymentPage />} />
+          <Route path="/member/win-loss" element={<MemberWinLossPage />} />
           <Route path="/report/customer" element={<CustomerReportPage />} />
           <Route path="/report/domain" element={<DomainReportPage />} />
           <Route path="/maintenance/data-capture" element={<CaptureMaintenancePage />} />

@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/layout/Sidebar.jsx";
 import SidebarRail from "@/components/layout/SidebarRail.jsx";
 import NotificationPanel from "@/components/layout/NotificationPanel.jsx";
-import { menuKeyForPath } from "@/components/layout/sidebarConfig";
+import { homePath, menuKeyForPath } from "@/components/layout/sidebarConfig";
 import { useNotifications } from "@/components/layout/useNotifications";
 import { SessionProvider, useSession } from "@/context/session";
 import { clearSession } from "@/hooks/useSavedState";
@@ -55,7 +55,7 @@ function Shell() {
   // A page whose menu key is not true for this user (wrong role or company type) goes back home.
   const menuKey = menuKeyForPath(pathname);
   if (ready && user && menuKey && user.menu?.[menuKey] !== true) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePath(user)} replace />;
   }
 
   return (
