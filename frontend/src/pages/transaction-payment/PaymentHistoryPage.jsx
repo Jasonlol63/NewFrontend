@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { Download, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
+import ExportPdfModal from "./ExportPdfModal.jsx";
 import { closingBalances, flowAmount, formatRate, parseHistoryParams } from "./paymentHistoryRules";
 import { fmt } from "./transactionPaymentRules";
 import { useHistory } from "./useTransactionData";
@@ -31,13 +32,14 @@ const TD =
 /**
  * Payment History: opened in its own popup window from an account name in Transaction Payment. Same frosted frame as
  * the form modals, the rows of the Admin / Account list. The company, account, period and currencies come from the
- * address (see openPaymentHistory); the rows from /api/transaction/history. PDF does nothing yet.
+ * address (see openPaymentHistory); the rows from /api/transaction/history. The PDF button opens the export dialog.
  */
 export default function PaymentHistoryPage() {
   const routeAccount = decodeURIComponent(useParams().account ?? "");
   const [search] = useSearchParams();
   const request = useMemo(() => parseHistoryParams(search), [search]);
   const history = useHistory(request);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const code = history.account?.accountId || routeAccount;
   const name = history.account?.name || code;
@@ -69,6 +71,7 @@ export default function PaymentHistoryPage() {
           <div className="flex flex-none items-center gap-2">
             <button
               type="button"
+              onClick={() => setExportOpen(true)}
               className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#bfd8ff] bg-[#eaf4ff] px-4 text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dcebff] max-[900px]:px-3"
             >
               <Download className="size-[15px]" strokeWidth={2.3} />
@@ -166,6 +169,7 @@ export default function PaymentHistoryPage() {
           </section>
         </div>
       </div>
+      {exportOpen && <ExportPdfModal open onClose={() => setExportOpen(false)} request={request} account={{ code, name: history.account?.name ?? "" }} />}
     </div>
   );
 }
