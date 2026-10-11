@@ -66,6 +66,8 @@ export default function PaymentMaintenancePage() {
     },
     noun: "payment",
     label: (r) => `${r.toAccount} ${r.amount}`,
+    // The API deletes a whole RATE (both currencies, the Middle-Man and the fees) even when only one of its rows is picked.
+    note: (list) => (list.some((r) => r.type === "RATE") ? "A RATE is deleted together with all its entries: both currencies, the Middle-Man and the fees." : undefined),
     onDeleted: clearSelection,
   });
 

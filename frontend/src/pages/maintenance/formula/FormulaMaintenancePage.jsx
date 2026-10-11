@@ -3,8 +3,11 @@ import DataTable from "@/components/shared/list/DataTable.jsx";
 import { IconAction } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
+import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
+import { normalizeAccountRow } from "@/pages/account/accountRules";
+import FormulaEditModal from "./FormulaEditModal.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useMaintenanceFilters } from "../shared/useMaintenanceFilters";
 import { useMaintenanceList } from "../shared/useMaintenanceList";
@@ -14,7 +17,7 @@ const dash = (v) => v || "-";
 
 // Every cell stays on one line. Formula and Description are the columns that give way (with "..."
 // and the full text on hover) if the row is still wider than the card.
-const columns = [
+const baseColumns = [
   { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
   { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
   { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
@@ -24,21 +27,13 @@ const columns = [
   { key: "inputMethod", label: "Input Method", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
   { key: "formula", label: "Formula", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
   { key: "description", label: "Description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
-  {
-    key: "action",
-    label: "Action",
-    sortable: false,
-    className: "text-center",
-    cellClassName: "whitespace-nowrap text-center",
-    // The edit window is not built yet, so the pencil stays disabled.
-    render: () => <IconAction disabled aria-label="Edit formula (not available yet)" />,
-  },
 ];
 
 export default function FormulaMaintenancePage() {
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
+  const [editing, setEditing] = useState(null);
 
   const filters = useMaintenanceFilters({
     dated: false,
@@ -46,6 +41,33 @@ export default function FormulaMaintenancePage() {
   });
   const list = useMaintenanceList(FORMULA_LIST_URL, filters.request, normalizeFormulaRow);
   const rows = useMemo(() => filterFormulaRows(list.rows, filters.search), [list.rows, filters.search]);
+
+  // The accounts the Edit window offers: the company's active ones.
+  const { tenantId } = filters.scope;
+  const { rows: accountRows } = useTenantList("/api/account", tenantId, { normalize: normalizeAccountRow });
+  const accounts = useMemo(() => accountRows.filter((a) => a.status === "active"), [accountRows]);
+
+  const columns = useMemo(
+    () => [
+      ...baseColumns,
+      {
+        key: "action",
+        label: "Action",
+        sortable: false,
+        className: "text-center",
+        cellClassName: "whitespace-nowrap text-center",
+        render: (r) => (
+          <IconAction
+            disabled={readOnly}
+            onClick={() => setEditing(r)}
+            aria-label={readOnly ? "Read-only login" : "Edit formula"}
+            title={readOnly ? "Read-only login" : "Edit formula"}
+          />
+        ),
+      },
+    ],
+    [readOnly]
+  );
 
   const canSelect = () => !readOnly;
   const selectedRows = rows.filter((r) => canSelect(r) && selected.has(r.id));
@@ -89,6 +111,10 @@ export default function FormulaMaintenancePage() {
       />
 
       {actions.dialogs}
+
+      {editing && (
+        <FormulaEditModal row={editing} tenantId={tenantId} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => list.reload()} />
+      )}
     </div>
   );
 }

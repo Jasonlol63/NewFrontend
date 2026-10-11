@@ -5,11 +5,12 @@ import StatusDialog from "@/components/shared/StatusDialog.jsx";
 /**
  * Status toggle + bulk delete flow shared by the list pages.
  *  - toggleStatus(row) / deleteRows(rows) are the page's API calls (they throw on failure).
- *  - noun ("user", "account") and label(row) word the delete confirmation.
+ *  - noun ("user", "account") and label(row) word the delete confirmation; note(rows) can add a line under it
+ *    (what else is removed with them).
  *  - Returns the rows being toggled (`pendingIds`), handlers, and the confirm / error `dialogs`
  *    to render once in the page.
  */
-export function useRowActions({ toggleStatus, deleteRows, noun = "item", label = (row) => row.id, onDeleted }) {
+export function useRowActions({ toggleStatus, deleteRows, noun = "item", label = (row) => row.id, note, onDeleted }) {
   const [pendingIds, setPendingIds] = useState(() => new Set());
   const [toDelete, setToDelete] = useState(null); // rows awaiting confirmation
   const [failure, setFailure] = useState(null); // { title, description }
@@ -47,6 +48,7 @@ export function useRowActions({ toggleStatus, deleteRows, noun = "item", label =
         onOpenChange={(open) => !open && setToDelete(null)}
         names={toDelete?.map(label) ?? []}
         noun={noun}
+        note={toDelete && note ? note(toDelete) : undefined}
         onConfirm={confirmDelete}
       />
       <StatusDialog

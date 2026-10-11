@@ -29,6 +29,7 @@ export function normalizePaymentRow(raw) {
   return {
     id: `${deleted ? "d" : "l"}${raw.id}`,
     transactionId: raw.id,
+    type: text(raw.transactionType).toUpperCase(),
     deleted,
     createdAt: raw.createdAt ?? "",
     toAccount: text(raw.toAccountCode),
