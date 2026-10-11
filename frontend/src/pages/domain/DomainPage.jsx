@@ -1,3 +1,4 @@
+import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { useCallback, useEffect, useState } from "react";
 import { CircleDollarSign, Plus, Search, Trash2 } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
@@ -87,6 +88,9 @@ export default function DomainPage() {
       alive = false;
     };
   }, [tenantId, reloadKey]);
+
+  // Someone else charged a domain fee: read the lists again.
+  useRealtime([REALTIME_DOMAINS.DOMAIN], () => setReloadKey((k) => k + 1));
 
   const reloadRows = async () => setRows(toDomains(await fetchDomains()));
 

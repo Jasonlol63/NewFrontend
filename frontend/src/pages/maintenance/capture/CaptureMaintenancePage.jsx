@@ -1,3 +1,4 @@
+import { REALTIME_DOMAINS } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
@@ -28,7 +29,7 @@ export default function CaptureMaintenancePage() {
   const [selected, setSelected] = useState(() => new Set());
 
   const filters = useMaintenanceFilters({ onChange: () => setSelected(new Set()) });
-  const captures = useMaintenanceList(CAPTURE_LIST_URL, filters.request, normalizeCaptureRow);
+  const captures = useMaintenanceList(CAPTURE_LIST_URL, filters.request, normalizeCaptureRow, [REALTIME_DOMAINS.DATACAPTURE]);
   const rows = useMemo(() => filterCaptureRows(captures.rows, filters.search), [captures.rows, filters.search]);
 
   // Archived captures are already deleted.

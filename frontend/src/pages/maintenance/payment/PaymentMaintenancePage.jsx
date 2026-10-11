@@ -1,3 +1,4 @@
+import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
@@ -53,7 +54,7 @@ export default function PaymentMaintenancePage() {
         : null,
     [tenantId, currency, range, type]
   );
-  const payments = useMaintenanceList(PAYMENT_LIST_URL, request, normalizePaymentRow);
+  const payments = useMaintenanceList(PAYMENT_LIST_URL, request, normalizePaymentRow, touchesLedger);
   const rows = useMemo(() => filterPaymentRows(payments.rows, filters.search), [payments.rows, filters.search]);
 
   // Archived rows are already deleted.

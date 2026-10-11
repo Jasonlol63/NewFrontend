@@ -1,3 +1,4 @@
+import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
@@ -64,7 +65,7 @@ export default function CustomerReportPage() {
         : null,
     [tenantId, currency, range, accountId, showAll]
   );
-  const report = useReport(CUSTOMER_REPORT_URL, request);
+  const report = useReport(CUSTOMER_REPORT_URL, request, touchesLedger);
   const rows = useMemo(() => report.rows.map(normalizeCustomerRow), [report.rows]);
 
   const totalRow = report.total && [

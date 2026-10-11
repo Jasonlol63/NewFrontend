@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { postJson } from "@/lib/api";
+import { useRealtime } from "@/lib/realtime/realtimeEvents";
 
 /**
  * Rows of one Maintenance list: `POST url` with the JSON `body` (null = nothing to ask yet), each
  * row passed through `normalize` (keep it a stable function). While a new request is in flight the
  * previous result stays on screen and `loading` dims it. `reload()` asks again, e.g. after a delete.
+ * `refreshOn` (domain names or a function, see useRealtime) makes it load again, without dimming, when the backend says
+ * someone else changed that data.
  */
-export function useMaintenanceList(url, body, normalize) {
+export function useMaintenanceList(url, body, normalize, refreshOn = []) {
   const requestKey = body ? JSON.stringify(body) : "";
   const [reloadCount, setReloadCount] = useState(0);
+  const [pushed, setPushed] = useState(0);
   const [state, setState] = useState({ key: "", rows: [], error: "" });
   const key = `${requestKey}|${reloadCount}`;
 
@@ -21,7 +25,8 @@ export function useMaintenanceList(url, body, normalize) {
         if (err.name !== "AbortError") setState({ key, rows: [], error: err.message });
       });
     return () => controller.abort();
-  }, [url, requestKey, key, normalize]);
+  }, [url, requestKey, key, pushed, normalize]);
+  useRealtime(refreshOn, () => requestKey && setPushed((n) => n + 1));
 
   const reload = useCallback(() => setReloadCount((n) => n + 1), []);
 

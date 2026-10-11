@@ -1,3 +1,4 @@
+import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
@@ -46,7 +47,7 @@ export default function BankProcessMaintenancePage() {
       tenantId && currency ? buildBankProcessRequest({ tenantId, dateFrom: range.from, dateTo: range.to, currency }) : null,
     [tenantId, currency, range]
   );
-  const list = useMaintenanceList(BANK_PROCESS_LIST_URL, request, normalizeBankProcessRow);
+  const list = useMaintenanceList(BANK_PROCESS_LIST_URL, request, normalizeBankProcessRow, touchesLedger);
   const rows = useMemo(() => filterBankProcessRows(list.rows, filters.search), [list.rows, filters.search]);
 
   // Archived rows are already deleted.

@@ -1,3 +1,4 @@
+import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
@@ -29,7 +30,7 @@ const columns = [
 
 export default function TransactionMaintenancePage() {
   const filters = useMaintenanceFilters();
-  const list = useMaintenanceList(TRANSACTION_LIST_URL, filters.request, normalizeTransactionRow);
+  const list = useMaintenanceList(TRANSACTION_LIST_URL, filters.request, normalizeTransactionRow, touchesLedger);
   const rows = useMemo(() => filterTransactionRows(list.rows, filters.search), [list.rows, filters.search]);
 
   const pageError = filters.error || list.error;

@@ -1,3 +1,4 @@
+import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { useListScope } from "@/components/shared/list/useListScope";
@@ -36,7 +37,7 @@ export default function DomainReportPage() {
         : null,
     [tenantId, range, processId, isGroupOwn]
   );
-  const report = useReport(DOMAIN_REPORT_URL, request);
+  const report = useReport(DOMAIN_REPORT_URL, request, touchesLedger);
   const rows = useMemo(() => report.rows.map((r) => normalizeDomainRow(r, isGroupOwn)), [report.rows, isGroupOwn]);
 
   const columns = [
