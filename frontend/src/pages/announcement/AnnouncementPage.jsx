@@ -6,6 +6,7 @@ import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { TRAY } from "@/components/shared/list/DataTable.jsx";
 import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import AnnouncementList from "./AnnouncementList.jsx";
 import AnnouncementFormModal from "./AnnouncementFormModal.jsx";
 import MaintenanceTab from "./MaintenanceTab.jsx";
@@ -72,6 +73,9 @@ export default function AnnouncementPage() {
       alive = false;
     };
   }, [reloadKey]);
+
+  // Someone else published, edited or deleted an announcement or the notice: read the lists again.
+  useRealtime([REALTIME_DOMAINS.ANNOUNCEMENTS, REALTIME_DOMAINS.MAINTENANCE], () => setReloadKey((k) => k + 1));
 
   useEffect(() => {
     if (!isIt) return;

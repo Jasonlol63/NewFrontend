@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { fetchBellAnnouncements, fetchUnreadCount, markAnnouncementsRead } from "@/pages/announcement/announcementApi";
 import { newestFirst, unreadIdsOf } from "./notificationRules";
 
-const POLL_MS = 60_000;
+// The backend pushes announcement changes (useRealtime below); the poll is only the fallback for a dropped connection.
+const POLL_MS = 5 * 60_000;
 
 /**
  * The announcements behind the bell: { items (newest first), unreadCount, isUnread(item), loading, error, reload, markAllRead }.
  * The read state is the backend's (per login account, whatever the company): the count comes from /unreadCount and "mark all
  * as read" is /markRead. Loaded once the session is ready, again when the panel opens (reload), when the window gets focus and
- * every minute, so a new announcement shows up without a reload.
+ * every 5 minutes, and straight away when the backend announces a change.
  */
 export function useNotifications() {
   const user = useCurrentUser();
@@ -44,6 +46,8 @@ export function useNotifications() {
       window.removeEventListener("focus", tick);
     };
   }, [userKey, refresh]);
+
+  useRealtime([REALTIME_DOMAINS.ANNOUNCEMENTS, REALTIME_DOMAINS.MAINTENANCE], () => userKey && refresh({ silent: true }));
 
   const markAllRead = useCallback(async () => {
     const mine = ++seq.current;
