@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Check, ChevronDown, Eye, EyeOff, Plus, SquarePen, X } from "lucide-react";
-import { Select } from "radix-ui";
+import { useMemo, useState } from "react";
+import { Check, ChevronDown, Eye, EyeOff, Plus, Search, SquarePen, X } from "lucide-react";
+import { Popover, Select } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 // Form controls of the full-area form modals (Add / Edit User, Add / Edit Account).
@@ -67,10 +67,11 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * options: [{ value, label }]. The list is exactly as wide as the trigger, opens below it
  * (above when there's no room) and scrolls inside itself if the screen is too short.
  * onClear: while a value is chosen, a small x inside the box clears it (onClear is called).
+ * capped: the list is at most 280px high (as high as a SearchSelectField list) and scrolls, for a long list.
  * uppercase: the shown value, the placeholder and the options are all upper case (the popup is outside the modal, so it
  * needs the class itself).
  */
-export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear, uppercase = false }) {
+export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear, uppercase = false, capped = false }) {
   const label = options.find((o) => o.value === value)?.label;
   const clearable = Boolean(onClear && value && !disabled);
   const select = (
@@ -95,13 +96,15 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
           />
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal>
+      {/* In full screen only the full-screen element is drawn, so the list goes inside it. */}
+      <Select.Portal container={document.fullscreenElement ?? undefined}>
         <Select.Content
           position="popper"
           sideOffset={6}
           collisionPadding={8}
           className={cn(
-            "z-50 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
+            "z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
+            capped ? "max-h-[min(280px,var(--radix-select-content-available-height))]" : "max-h-(--radix-select-content-available-height)",
             uppercase && "uppercase"
           )}
         >
@@ -144,6 +147,95 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * A SelectField for a long list: the list is at most 240px high and scrolls, and a search box on top narrows it
+ * (typed letters show in capitals, the match ignores case; Enter picks the first match). options: [{ value, label }].
+ */
+export function SearchSelectField({ value, onChange, options, placeholder = "Select", searchPlaceholder = "Search", disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const label = options.find((o) => o.value === value)?.label;
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  }, [options, query]);
+  const pick = (option) => {
+    onChange(option.value);
+    setOpen(false);
+  };
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setQuery("");
+        setOpen(next);
+      }}
+    >
+      <Popover.Trigger asChild disabled={disabled}>
+        <button
+          type="button"
+          title={label}
+          className={cn(
+            inputClass,
+            "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
+            open && openFieldClass,
+            "disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint disabled:hover:border-modal-input-line"
+          )}
+        >
+          <span className={cn("min-w-0 flex-1 truncate", !label && "text-dash-faint")}>{label ?? placeholder}</span>
+          <ChevronDown className={cn("size-3.5 flex-none text-dash-faint transition-transform", open && "rotate-180 text-[#3b82f6]")} strokeWidth={2.4} />
+        </button>
+      </Popover.Trigger>
+      {/* In full screen only the full-screen element is drawn, so the list goes inside it. */}
+      <Popover.Portal container={document.fullscreenElement ?? undefined}>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl"
+        >
+          <label className="flex items-center gap-2 border-b border-modal-input-line px-3 py-2">
+            <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && shown[0]) pick(shown[0]);
+              }}
+              placeholder={searchPlaceholder}
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full bg-transparent text-[13px] uppercase outline-none placeholder:text-dash-faint placeholder:normal-case"
+            />
+          </label>
+          <div className="flex max-h-[min(240px,calc(var(--radix-popover-content-available-height)-48px))] flex-col gap-0.5 overflow-y-auto p-[5px] [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
+            {shown.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => pick(o)}
+                className={cn(
+                  "flex min-h-[34px] w-full flex-none cursor-pointer items-center gap-2 rounded-[9px] border border-transparent px-2.5 py-1.5 text-left text-[13px] font-semibold text-[#374151] hover:bg-[#eef4ff] modal-compact:min-h-[30px] modal-tiny:min-h-7 modal-tiny:text-[12.5px]",
+                  o.value === value && "border-[#7fb2ff] bg-row-stripe font-bold text-brand-navy"
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                {o.value === value && (
+                  <span className="flex size-4 flex-none items-center justify-center rounded-full bg-brand-sweep text-white shadow-[0_3px_8px_-3px_rgba(20,90,220,0.6)]">
+                    <Check className="size-2.5" strokeWidth={4} />
+                  </span>
+                )}
+              </button>
+            ))}
+            {shown.length === 0 && <p className="m-0 px-2.5 py-2 text-center text-[12px] text-dash-faint">No results found</p>}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 

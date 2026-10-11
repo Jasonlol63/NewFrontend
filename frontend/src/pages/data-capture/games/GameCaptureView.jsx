@@ -1,78 +1,138 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
-import { AddButton, Field, SelectField, TextInput, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
+import { AddButton, Field, SearchSelectField, SelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import DescriptionPickerModal from "@/pages/process/games/DescriptionPickerModal.jsx";
-import { MOCK_CURRENCIES } from "@/pages/process/games/processFormOptions";
+import { useProcessCurrencies } from "@/pages/process/games/useProcessCurrencies";
 import { useProcessDescriptions } from "@/pages/process/games/useProcessDescriptions";
 import { useProcessList } from "@/pages/process/games/useProcessList";
 import CaptureSheet from "../shared/CaptureSheet.jsx";
+import RemoveWordInput from "../shared/RemoveWordInput.jsx";
+import SheetCard, { SubmitBar, textButtonClass } from "../shared/SheetCard.jsx";
 import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
 import { cardClass } from "../shared/cardParts.jsx";
+import { CAPTURE_MODES, GAME_GRID } from "../shared/dataCaptureRules";
+import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
+import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
+import { useCaptureDraft } from "../shared/useCaptureDraft";
+import { useDateOptions } from "../shared/useDateOptions";
+import { useGameProcesses } from "../shared/useGameProcesses";
+import { useSubmittedProcesses } from "../shared/useSubmittedProcesses";
+import { useNotice } from "../shared/useNotice";
 import { useFullscreen } from "../shared/useFullscreen";
-import { CAPTURE_MODES, MOCK_SUBMITTED, dateOptions } from "../shared/dataCaptureRules";
 
 const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "", replaceTo: "", remark: "" };
 
 /**
  * Data Capture of a Game company: pick Date, Process and Currency, choose the descriptions with the same
  * "Select or Add Description" modal as Add Process, paste the data into the sheet and Submit (opens the summary).
+ * A process saved with "Save Data Capture Table" keeps its sheet as a draft per currency (Delete Draft clears it).
  * scope: the Group / Company pickers (useListScope, owned by DataCapturePage); readOnly: read-only login.
  */
 export default function GameCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
 
-  const dates = useMemo(() => dateOptions(), []);
-  const [date, setDate] = useState(dates[0].value);
+  const { dates, today } = useDateOptions();
+  const [date, setDate] = useState(today);
   const [form, setForm] = useState(EMPTY_FORM);
   const [descriptions, setDescriptions] = useState(() => new Set());
   const [picker, setPicker] = useState(false);
   const [mode, setMode] = useState(CAPTURE_MODES[0].value);
+  const sheet = useCaptureGrid(GAME_GRID);
+  const { notice, push: pushNotice, clear: clearNotice } = useNotice();
 
+  // What can be captured on the date comes from /games/form (the weekday and "not submitted yet" are the server's); what a process
+  // was saved with (currency, words, descriptions) is in the Process list of the company.
+  const { processes, error: processError } = useGameProcesses(scope.tenantId, date);
   const { rows: allProcesses, error: listError } = useProcessList(scope.tenantId);
-  const processes = useMemo(() => allProcesses.filter((p) => p.category === "GAME" && p.status === "active"), [allProcesses]);
-  const processOptions = useMemo(() => processes.map((p) => ({ value: String(p.id), label: p.code })), [processes]);
+  const processOptions = useMemo(() => processes.map((p) => ({ value: String(p.id), label: p.display })), [processes]);
+  const currencies = useProcessCurrencies(scope.tenantId);
   const descriptionList = useProcessDescriptions(scope.tenantId);
+  const submitted = useSubmittedProcesses(scope.tenantId, date);
+
+  // A new day moved the options on and the picked date is no longer among them: back to today.
+  useEffect(() => {
+    if (!dates.some((d) => d.value === date)) setDate(today);
+  }, [dates, date, today]);
 
   // Another company means another process list: start the form again.
   useEffect(() => {
     setForm(EMPTY_FORM);
     setDescriptions(new Set());
+    sheet.resetGrid();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new company starts again
   }, [scope.tenantId]);
+
+  // Another date has its own processes: pick again, on an empty sheet.
+  const pickDate = (value) => {
+    setDate(value);
+    setForm(EMPTY_FORM);
+    setDescriptions(new Set());
+    sheet.resetGrid();
+  };
 
   // Picking a process fills in what it was saved with; every field stays editable.
   const pickProcess = (id) => {
-    const p = processes.find((x) => String(x.id) === id);
-    setForm({ process: id, currency: p?.currency ?? "", removeWord: p?.removeWord ?? "", replaceFrom: p?.replaceFrom ?? "", replaceTo: p?.replaceTo ?? "", remark: p?.remark ?? "" });
+    const p = allProcesses.find((x) => String(x.id) === id);
+    setForm({ process: id, currency: p?.currencyId != null && currencies.options.some((o) => o.value === String(p.currencyId)) ? String(p.currencyId) : "", removeWord: p?.removeWord ?? "", replaceFrom: p?.replaceFrom ?? "", replaceTo: p?.replaceTo ?? "", remark: p?.remark ?? "" });
     setDescriptions(new Set(p?.descriptionIds ?? []));
   };
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const picked = descriptionList.items.filter((it) => descriptions.has(it.value));
+  const process = processes.find((p) => String(p.id) === form.process);
+  const currencyLabel = currencies.options.find((o) => o.value === form.currency)?.label ?? "";
 
-  // Sheet: remount to clear; Submit needs at least one filled cell.
-  const sheetRef = useRef(null);
-  const [sheetKey, setSheetKey] = useState(0);
-  const [hasData, setHasData] = useState(false);
-  const checkData = useCallback(() => setHasData([...(sheetRef.current?.querySelectorAll("td") ?? [])].some((td) => td.textContent.trim())), []);
-  const resetSheet = () => {
-    setSheetKey((k) => k + 1);
-    setHasData(false);
+  // Draft of the sheet: only for a process saved with "Save Data Capture Table", one per currency (kept on the server).
+  const draftEnabled = Boolean(process?.enableSaveDraft);
+  const draft = useCaptureDraft({
+    sheet,
+    draft: draftEnabled && form.currency ? { kind: "game", tenantId: scope.tenantId, process: form.process, currencyId: Number(form.currency) } : null,
+    picked: Boolean(form.process && form.currency),
+    size: GAME_GRID,
+    readOnly,
+  });
+
+  // Reset keeps the draft (Delete Draft removes it) and starts the whole form again.
+  const reset = () => {
+    draft.flush();
+    setDate(today);
+    setForm(EMPTY_FORM);
+    setDescriptions(new Set());
+    sheet.resetGrid();
   };
 
-  const { ref: tableCardRef, full, toggle: toggleFull } = useFullscreen();
+  const fullscreen = useFullscreen();
 
-  // Submit opens the Data Capture Summary with what was chosen here (the captured rows will come from the submit API).
-  const submit = () =>
-    navigate("/data-capture/summary", {
-      state: { date, process: processes.find((p) => String(p.id) === form.process)?.code ?? "", description: picked.map((it) => it.label).join(", "), currency: form.currency, remark: form.remark },
-    });
+  // Submit opens the Data Capture Summary with what was chosen here and the sheet (the captured rows come from the submit API).
+  const submit = () => {
+    const table = buildSubmission(sheet.grid);
+    if (!table) return;
+    draft.flush();
+    const capture = {
+      tenantId: scope.tenantId,
+      date,
+      processId: Number(form.process),
+      process: process?.code ?? "",
+      description: picked.map((it) => it.label).join(", "),
+      descriptionIds: [...descriptions],
+      currencyId: Number(form.currency),
+      currency: currencyLabel,
+      removeWord: form.removeWord,
+      replaceFrom: form.replaceFrom,
+      replaceTo: form.replaceTo,
+      remark: form.remark,
+      captureType: mode,
+      table,
+    };
+    saveCaptureSession(capture);
+    navigate("/data-capture/summary", { state: capture });
+  };
 
-  const canSubmit = !readOnly && hasData && form.process && form.currency && descriptions.size > 0;
-  const pageError = scope.error || listError;
+  const canSubmit = !readOnly && sheet.filled && form.process && form.currency && descriptions.size > 0;
+  const pageError = scope.error || processError || listError || currencies.error || submitted.error;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
@@ -92,13 +152,13 @@ export default function GameCaptureView({ scope, readOnly }) {
 
           <div className="grid grid-cols-6 gap-x-3.5 gap-y-2 short:gap-y-1.5 max-[899px]:grid-cols-1">
             <Field label="Date" as="div" className="col-span-2 max-[899px]:col-span-1">
-              <SelectField value={date} onChange={setDate} options={dates} />
+              <SelectField value={date} onChange={pickDate} options={dates} capped />
             </Field>
             <Field label="Process" as="div" className="col-span-2 max-[899px]:col-span-1">
-              <SelectField value={form.process} onChange={pickProcess} options={processOptions} placeholder="Select Process" />
+              <SearchSelectField value={form.process} onChange={pickProcess} options={processOptions} placeholder="Select Process" searchPlaceholder="Search process" />
             </Field>
             <Field label="Currency" as="div" className="col-span-2 max-[899px]:col-span-1">
-              <SelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={MOCK_CURRENCIES} placeholder="Select Currency" />
+              <SearchSelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={currencies.options} placeholder="Select Currency" searchPlaceholder="Search currency" />
             </Field>
 
             <Field label="Description" as="div" className="col-span-2 max-[899px]:col-span-1">
@@ -126,7 +186,7 @@ export default function GameCaptureView({ scope, readOnly }) {
             </Field>
 
             <Field label="Remove Word" optional className="col-span-3 max-[899px]:col-span-1">
-              <TextInput value={form.removeWord} onChange={setField("removeWord")} autoComplete="off" className="uppercase" />
+              <RemoveWordInput value={form.removeWord} onChange={(removeWord) => setForm((f) => ({ ...f, removeWord }))} />
             </Field>
             <Field label="Remark" optional className="col-span-3 max-[899px]:col-span-1">
               <TextInput value={form.remark} onChange={setField("remark")} autoComplete="off" placeholder="ENTER REMARK" className="uppercase" />
@@ -134,47 +194,34 @@ export default function GameCaptureView({ scope, readOnly }) {
           </div>
         </section>
 
-        <SubmittedProcesses items={MOCK_SUBMITTED} />
+        <SubmittedProcesses items={submitted.items} />
       </div>
 
       {pageError && <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>}
 
-      <section ref={tableCardRef} className={cn(cardClass, "flex min-h-0 flex-1 flex-col overflow-hidden", full && "rounded-none bg-[#eaf3fd]")}>
-        <div className="flex flex-none items-center gap-2.5 px-4 py-2.5">
-          <h2 className="m-0 mr-1.5 flex items-center gap-2 text-[16px] font-extrabold text-brand-navy">
-            <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-            Data Capture Table
-          </h2>
-          <div className="w-[140px] flex-none">
-            <SelectField value={mode} onChange={setMode} options={CAPTURE_MODES} />
-          </div>
-          <button type="button" onClick={resetSheet} className="h-[34px] cursor-pointer rounded-[10px] border border-modal-input-line bg-modal-input px-4 text-[13px] font-bold text-[#475569] shadow-[0_1px_3px_rgba(15,23,42,0.05)] hover:border-[#94a3b8] hover:bg-white/90">
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={toggleFull}
-            aria-label={full ? "Exit full screen" : "Full screen"}
-            title={full ? "Exit full screen" : "Full screen"}
-            className="ml-auto flex size-[34px] cursor-pointer items-center justify-center rounded-[10px] border border-modal-input-line bg-modal-input text-[#475569] hover:bg-white/90"
-          >
-            {full ? <Minimize2 className="size-4" strokeWidth={2.2} /> : <Maximize2 className="size-4" strokeWidth={2.2} />}
-          </button>
-        </div>
-        <CaptureSheet key={sheetKey} ref={sheetRef} onInput={checkData} />
-      </section>
+      <SheetCard
+        fullscreen={fullscreen}
+        notice={notice}
+        left={
+          <>
+            <div className="w-[140px] flex-none">
+              <SelectField value={mode} onChange={(m) => { setMode(m); clearNotice(); }} options={CAPTURE_MODES} />
+            </div>
+            <button type="button" onClick={reset} className={textButtonClass}>
+              Reset
+            </button>
+            {draftEnabled && (
+              <button type="button" onClick={draft.remove} disabled={!form.currency} title="Delete the saved draft of this process and currency" className={textButtonClass}>
+                Delete Draft
+              </button>
+            )}
+          </>
+        }
+      >
+        <CaptureSheet sheet={sheet} captureType={mode} onNotice={pushNotice} />
+      </SheetCard>
 
-      <div className="flex flex-none justify-center">
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={submit}
-          title={readOnly ? "Read-only login" : undefined}
-          className={cn(primaryButtonClass, "h-[34px] min-w-[108px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.55] disabled:hover:brightness-100")}
-        >
-          Submit
-        </button>
-      </div>
+      <SubmitBar disabled={!canSubmit} readOnly={readOnly} onSubmit={submit} />
 
       {/* The same modal as the "Add" of Add Process: what is ticked here becomes this page's Description. */}
       {picker && (

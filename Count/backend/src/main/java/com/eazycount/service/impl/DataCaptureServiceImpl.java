@@ -104,7 +104,12 @@ public class DataCaptureServiceImpl implements DataCaptureService {
 
         List<DataCaptureBankDTO.Cell> cells = normalizeCells(request);
         if (cells.isEmpty()) {
-            throw new BusinessException("Draft cells are required");
+            // An empty table clears the draft (Reset keeps it, Delete Draft and Submit-then-clear empty it).
+            Process existing = dataCaptureDao.findBankProcessByTenantAndCode(tenantId, processCode);
+            if (existing != null && existing.getId() != null) {
+                clearDraftCells(tenantId, existing.getId(), currencyId);
+            }
+            return emptyDraftResponse(tenantId, processCode, currencyId);
         }
 
         Process process = ensureBankProcess(tenantId, processCode, currencyId, session);
@@ -218,7 +223,9 @@ public class DataCaptureServiceImpl implements DataCaptureService {
 
         List<DataCaptureBankDTO.Cell> cells = normalizeCells(request);
         if (cells.isEmpty()) {
-            throw new BusinessException("Draft cells are required");
+            // An empty table clears the draft.
+            clearDraftCells(tenantId, process.getId(), currencyId);
+            return emptyGameDraftResponse(tenantId, process.getId(), currencyId);
         }
 
         DataCaptureDraft draft = dataCaptureDao.findDraftByTenantProcessCurrency(
@@ -303,6 +310,14 @@ public class DataCaptureServiceImpl implements DataCaptureService {
         response.setCells(cells);
         response.setTableData(cells.isEmpty() ? null : buildTableData(cells));
         return response;
+    }
+
+    // Empties the stored cells of one draft (the draft row stays, a later save fills it again).
+    private void clearDraftCells(Integer tenantId, Integer processId, Integer currencyId) {
+        DataCaptureDraft draft = dataCaptureDao.findDraftByTenantProcessCurrency(tenantId, processId, currencyId);
+        if (draft != null && draft.getId() != null) {
+            dataCaptureDao.deleteDraftCellsByDraftId(draft.getId());
+        }
     }
 
     // GAME draft eligibility: must belong to the tenant, be GAME category, and have the

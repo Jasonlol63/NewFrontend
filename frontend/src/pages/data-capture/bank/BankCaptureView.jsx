@@ -1,47 +1,101 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Maximize2, Minimize2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
-import { Field, SelectField, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
-import { MOCK_CURRENCIES } from "@/pages/process/games/processFormOptions";
+import { Field, SearchSelectField, SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
+import { useProcessCurrencies } from "@/pages/process/games/useProcessCurrencies";
 import CaptureSheet from "../shared/CaptureSheet.jsx";
+import SheetCard, { SubmitBar, iconButtonClass, textButtonClass } from "../shared/SheetCard.jsx";
 import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
 import { cardClass } from "../shared/cardParts.jsx";
-import { ADD_ROW_OPTIONS, BANK_PROCESSES, MOCK_SUBMITTED, SHEET_ROWS, dateOptions } from "../shared/dataCaptureRules";
+import { ADD_COL_OPTIONS, ADD_ROW_OPTIONS, BANK_DRAFT_PROCESSES, BANK_GRID, BANK_PROCESSES } from "../shared/dataCaptureRules";
+import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
+import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
+import { useCaptureDraft } from "../shared/useCaptureDraft";
+import { useDateOptions } from "../shared/useDateOptions";
+import { useNotice } from "../shared/useNotice";
 import { useFullscreen } from "../shared/useFullscreen";
 
-const iconBtn = "flex size-[34px] flex-none cursor-pointer items-center justify-center rounded-[10px] border border-modal-input-line bg-modal-input text-[#475569] hover:bg-white/90";
+const EMPTY_FORM = { process: "", currency: "", remark: "" };
 
 /**
- * Data Capture of a Bank company: no description / replace / remove word, just Date, Process, Currency and Remark
- * above the sheet. The sheet starts with 26 rows and "Add Row" appends more.
- * UI only for now: the process list is fixed (BANK_PROCESSES) and Submit just clears the sheet.
+ * Data Capture of a Bank company, of C168 (a Game company that captures like a Bank) and of a Group's own data: no
+ * description / replace / remove word, just Date, Process, Currency and Remark above the sheet. The sheet has 11 columns
+ * (no column menu) and "Add Row" / "Add Col" append more.
+ * SALARY, COMMISSION and BONUS keep their sheet as a draft per currency, PROFIT never does.
+ * The process list is fixed (BANK_PROCESSES): unlike a Game process, a Bank process can be submitted again on the same date, so
+ * there is no "submitted" list here (the card stays empty).
  */
 export default function BankCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
-  const dates = useMemo(() => dateOptions(), []);
-  const [form, setForm] = useState({ date: dates[0].value, process: "", currency: "", remark: "" });
+  const { dates, today } = useDateOptions();
+  const [date, setDate] = useState(today);
+  const [form, setForm] = useState(EMPTY_FORM);
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
+  const sheet = useCaptureGrid(BANK_GRID);
+  const { notice, push: pushNotice } = useNotice();
+  const [addRows, setAddRows] = useState("26");
+  const [addCols, setAddCols] = useState("1");
+  const fullscreen = useFullscreen();
 
-  const sheetRef = useRef(null);
-  const [sheetKey, setSheetKey] = useState(0);
-  const [rows, setRows] = useState(SHEET_ROWS);
-  const [addCount, setAddCount] = useState(String(SHEET_ROWS));
-  const [hasData, setHasData] = useState(false);
-  const checkData = useCallback(() => setHasData([...(sheetRef.current?.querySelectorAll("td") ?? [])].some((td) => td.textContent.trim())), []);
-  const resetSheet = () => {
-    setSheetKey((k) => k + 1);
-    setRows(SHEET_ROWS);
-    setHasData(false);
+  const currencies = useProcessCurrencies(scope.tenantId);
+  const currencyLabel = currencies.options.find((o) => o.value === form.currency)?.label ?? "";
+
+  // SALARY / COMMISSION / BONUS keep a draft per currency on the server, PROFIT never does.
+  const draft = useCaptureDraft({
+    sheet,
+    draft: BANK_DRAFT_PROCESSES.has(form.process) && form.currency ? { kind: "bank", tenantId: scope.tenantId, process: form.process, currencyId: Number(form.currency) } : null,
+    picked: Boolean(form.process && form.currency),
+    size: BANK_GRID,
+    readOnly,
+  });
+
+  // A new day moved the options on and the picked date is no longer among them: back to today.
+  useEffect(() => {
+    if (!dates.some((d) => d.value === date)) setDate(today);
+  }, [dates, date, today]);
+
+  // Another company: start the form again.
+  useEffect(() => {
+    setForm(EMPTY_FORM);
+    sheet.resetGrid();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new company starts again
+  }, [scope.tenantId]);
+
+  // Another date (or Reset) starts the form again on an empty sheet; the drafts stay.
+  const startAgain = (nextDate = date) => {
+    draft.flush();
+    setDate(nextDate);
+    setForm(EMPTY_FORM);
+    sheet.resetGrid();
   };
-  const { ref: tableCardRef, full, toggle: toggleFull } = useFullscreen();
 
-  // Submit opens the Data Capture Summary with what was chosen here (the captured rows will come from the submit API).
-  const submit = () => navigate("/data-capture/summary", { state: { date: form.date, process: form.process, description: "", currency: form.currency, remark: form.remark } });
+  // Submit opens the Data Capture Summary with what was chosen here and the sheet (the captured rows come from the submit API).
+  const submit = () => {
+    const table = buildSubmission(sheet.grid);
+    if (!table) return;
+    draft.flush();
+    const capture = {
+      tenantId: scope.tenantId,
+      date,
+      processId: null,
+      process: form.process,
+      description: "",
+      descriptionIds: [],
+      currencyId: Number(form.currency),
+      currency: currencyLabel,
+      remark: form.remark,
+      captureType: "1.Text",
+      table,
+    };
+    saveCaptureSession(capture);
+    navigate("/data-capture/summary", { state: capture });
+  };
 
-  const canSubmit = !readOnly && hasData && form.process && form.currency;
+  const canSubmit = !readOnly && sheet.filled && form.process && form.currency;
+  const pageError = scope.error || currencies.error;
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
@@ -61,13 +115,13 @@ export default function BankCaptureView({ scope, readOnly }) {
 
           <div className="grid grid-cols-2 gap-x-3.5 gap-y-2 short:gap-y-1.5 max-[899px]:grid-cols-1">
             <Field label="Date" as="div">
-              <SelectField value={form.date} onChange={set("date")} options={dates} />
+              <SelectField value={date} onChange={(d) => startAgain(d)} options={dates} capped />
             </Field>
             <Field label="Process" as="div">
               <SelectField value={form.process} onChange={set("process")} options={BANK_PROCESSES} placeholder="Select Process" />
             </Field>
             <Field label="Currency" as="div">
-              <SelectField value={form.currency} onChange={set("currency")} options={MOCK_CURRENCIES} placeholder="Select Currency" />
+              <SearchSelectField value={form.currency} onChange={set("currency")} options={currencies.options} placeholder="Select Currency" searchPlaceholder="Search currency" />
             </Field>
             <Field label="Remark" optional>
               <TextInput value={form.remark} onChange={(e) => set("remark")(e.target.value)} autoComplete="off" placeholder="ENTER REMARK" className="uppercase" />
@@ -75,46 +129,42 @@ export default function BankCaptureView({ scope, readOnly }) {
           </div>
         </section>
 
-        <SubmittedProcesses items={MOCK_SUBMITTED} />
+        <SubmittedProcesses items={[]} />
       </div>
 
-      <section ref={tableCardRef} className={cn(cardClass, "flex min-h-0 flex-1 flex-col overflow-hidden", full && "rounded-none bg-[#eaf3fd]")}>
-        <div className="flex flex-none items-center gap-2.5 px-4 py-2.5">
-          <h2 className="m-0 mr-1.5 flex items-center gap-2 text-[16px] font-extrabold text-brand-navy">
-            <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-            Data Capture Table
-          </h2>
-          <button type="button" onClick={resetSheet} className="h-[34px] cursor-pointer rounded-[10px] border border-modal-input-line bg-modal-input px-4 text-[13px] font-bold text-[#475569] shadow-[0_1px_3px_rgba(15,23,42,0.05)] hover:border-[#94a3b8] hover:bg-white/90">
+      {pageError && <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>}
+
+      <SheetCard
+        fullscreen={fullscreen}
+        notice={notice}
+        left={
+          <button type="button" onClick={() => startAgain(today)} className={textButtonClass}>
             Reset
           </button>
-
-          <div className="ml-auto flex items-center gap-2">
+        }
+        right={
+          <>
             <span className="text-[13px] font-semibold text-[#374151]">Add Row</span>
             <div className="w-[84px] flex-none">
-              <SelectField value={addCount} onChange={setAddCount} options={ADD_ROW_OPTIONS} />
+              <SelectField value={addRows} onChange={setAddRows} options={ADD_ROW_OPTIONS} />
             </div>
-            <button type="button" onClick={() => setRows((n) => n + Number(addCount))} aria-label={`Add ${addCount} rows`} title={`Add ${addCount} rows`} className={iconBtn}>
+            <button type="button" onClick={() => sheet.actions.addRows(Number(addRows))} aria-label={`Add ${addRows} rows`} title={`Add ${addRows} rows`} className={iconButtonClass}>
               <RefreshCw className="size-4" strokeWidth={2.2} />
             </button>
-            <button type="button" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"} title={full ? "Exit full screen" : "Full screen"} className={iconBtn}>
-              {full ? <Minimize2 className="size-4" strokeWidth={2.2} /> : <Maximize2 className="size-4" strokeWidth={2.2} />}
+            <span className="ml-1 text-[13px] font-semibold text-[#374151]">Add Col</span>
+            <div className="w-[76px] flex-none">
+              <SelectField value={addCols} onChange={setAddCols} options={ADD_COL_OPTIONS} />
+            </div>
+            <button type="button" onClick={() => sheet.actions.addCols(Number(addCols))} aria-label={`Add ${addCols} columns`} title={`Add ${addCols} columns`} className={iconButtonClass}>
+              <RefreshCw className="size-4" strokeWidth={2.2} />
             </button>
-          </div>
-        </div>
-        <CaptureSheet key={sheetKey} ref={sheetRef} rows={rows} onInput={checkData} />
-      </section>
+          </>
+        }
+      >
+        <CaptureSheet sheet={sheet} columnEdit={false} maxCols={BANK_GRID.cols} onNotice={pushNotice} />
+      </SheetCard>
 
-      <div className="flex flex-none justify-center">
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={submit}
-          title={readOnly ? "Read-only login" : undefined}
-          className={cn(primaryButtonClass, "h-[34px] min-w-[108px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.55] disabled:hover:brightness-100")}
-        >
-          Submit
-        </button>
-      </div>
+      <SubmitBar disabled={!canSubmit} readOnly={readOnly} onSubmit={submit} />
     </div>
   );
 }

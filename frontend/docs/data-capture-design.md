@@ -9,10 +9,17 @@ Files: `frontend/src/pages/data-capture/` (split like Process: an entry page plu
 
 | File | Role |
 |---|---|
-| `DataCapturePage.jsx` | Entry (`/data-capture`): owns the Group / Company scope and shows the Game or the Bank view |
+| `DataCapturePage.jsx` | Entry (`/data-capture`): owns the Group / Company scope and shows the Game or the Bank view (`usesBankForm`: Bank companies, C168 and a Group's own data use the Bank view) |
 | `games/GameCaptureView.jsx` | Game company capture: Date, Process, Currency, Description, Replace / Remove word, Remark, the sheet, Submit |
 | `bank/BankCaptureView.jsx` | Bank company capture: Date, Process (fixed list), Currency, Remark, the sheet, Submit |
-| `shared/CaptureSheet.jsx` | The paste sheet (columns 1-20, rows A.., editable cells) |
+| `shared/CaptureSheet.jsx` | The paste sheet: renders `useCaptureGrid`, mouse / keyboard / menus (see "Sheet") |
+| `shared/grid/` | `gridModel.js` (pure grid functions), `useCaptureGrid.js` (grid + undo + selection), `GridContextMenu.jsx`, `GridDeleteDialog.jsx`, `gridClipboard.js` |
+| `shared/paste/` | The paste modules copied from the old Data Capture (see `paste/README.md`): `pasteRouter.js` picks the module (Text / Return), `pasteSession.js` is the grid they work on, `core/` + `vendors/` are the parsers and report helpers |
+| `shared/SheetCard.jsx` | The Data Capture Table card (title, left / right controls, full screen) and the Submit bar |
+| `shared/captureApi.js` | `/api/datacapture/*` calls: Game processes of a date (`games/form`), submitted list (`games/submitted`), drafts (`bank|games/draft/get|save`), cells <-> grid |
+| `shared/useGameProcesses.js`, `shared/useSubmittedProcesses.js`, `shared/useCaptureDraft.js` | The Process list of the date, the Submitted Processes card, the draft of the picked process + currency |
+| `shared/submitSnapshot.js` | Sheet -> snapshot, SUB / GRAND TOTAL conversion, hand-off to the summary (router state + sessionStorage) |
+| `shared/RemoveWordInput.jsx`, `removeWordRules.js` | Remove Word box (comma separated, `=` = exact word, tidied on blur) |
 | `shared/SubmittedProcesses.jsx`, `shared/cardParts.jsx`, `shared/useFullscreen.js` | Right card of the capture pages, shared card surface and title, full-screen toggle |
 | `shared/dataCaptureRules.js` | Capture constants (sheet size, modes, date options, mock submitted list) |
 | `summary/DataCaptureSummaryPage.jsx` | The summary list (see "Summary page") |
@@ -50,15 +57,31 @@ Table card (fills the rest), Submit centred.
 - **Submitted Processes card:** padding `px-4 pt-3 pb-3.5`; list is absolutely placed so it scrolls inside the card
   (min height 84); rows radius 10, padding 7 / 12 / 7 / 16, 3px blue bar on the left, code 13px/800, name 12px,
   user pill min-width 42, time 12px/700 + date 10.5px.
-- **Data Capture Table card:** header bar `px-4 py-2.5`: title, mode select (Game, 140px wide), Reset (34px high),
-  full-screen toggle (34px square, right). Bank: Reset, then right side "Add Row" select (84px) + add-rows button +
-  full-screen.
-- **Sheet:** 20 columns x 40 rows (`SHEET_COLS`, `SHEET_ROWS`), cells 27px high, row-letter column 56px wide
-  (sticky), header 27px (sticky), table `min-w-[1100px] table-fixed`, font 12.5px; scrolls both ways inside the
-  card. Cells are `contentEditable="plaintext-only"` (focus ring 2px blue).
+- **Data Capture Table card:** header bar `px-4 py-2.5`: title, mode select (Game, 140px wide), Reset (34px high), Delete Draft (Game, only for a draft process),
+  full-screen toggle (34px square, right). Bank: Reset, then right side "Add Row" select (84px) + add-rows button,
+  "Add Col" select (76px) + add-columns button, full-screen.
+- **Sheet:** Game 26 rows x 20 columns (`GAME_GRID`), Bank 26 x 11 (`BANK_GRID`); rows A..ZZ (702) and 50 columns at most.
+  Cells 27px high, row-letter column 56px wide (sticky), header 27px (sticky), `table-fixed`, min width 56 + 55 per
+  column, font 12.5px; scrolls both ways inside the card. The grid lives in `useCaptureGrid` (cells are `{ value }`),
+  the cells only mirror it. A selected cell is blue (`#cfe2ff`), the keyboard cell has a 2px blue outline, the row
+  letters / column numbers of the selection are darker.
+- **Sheet interaction:** click / drag / Shift / Ctrl select, row letters and column numbers select a whole row / column,
+  corner = select all; double click, Enter, F2 or typing edits (typing replaces the content; text is upper case);
+  Enter / Tab move on and add a row / column past the end; arrows move (Left / Right leave an edited cell only at the text
+  edge); Delete / Backspace clear; Ctrl+A / C / Z; Ctrl+V and the menu Paste go through `paste/pasteRouter.js` (1.Text: Citibet,
+  the site helpers, the Format fill with the cell styles, the text / generic paste; 4.RETURN: formulas kept), one Undo step per
+  paste; what a paste did is told in the card header (`useNotice`). A pasted cell keeps its colour / bold (`styleCssText`, cleaned
+  `html`, `colspan`); the Bank sheet is never made wider by a paste. Right click: cell menu (Copy, Paste, Clear,
+  Delete..., Select All), row menu (insert above / below, delete, clear), column menu (Game sheet only). Delete... asks
+  Shift cells left / up, Entire row, Entire column (Game only). Undo (Ctrl+Z) reverts clear / delete / insert / paste / Add Row.
+- **Capture type:** `1.TEXT` (every report layout) and `4.RETURN`.
+- **Draft (server):** Game processes saved with "Save Data Capture Table" and the Bank processes SALARY / COMMISSION / BONUS keep the
+  sheet per currency (cells `{ rowIndex, colIndex, cellValue }`; saving a sheet without cells empties the draft); picking another process / currency loads its draft (or an empty sheet), Reset keeps the draft, Delete
+  Draft (Game only) removes it. PROFIT never keeps one.
 - **Submit:** 34px high, min-width 108, padding 22, 13.5px. Enabled when the sheet has data and Process + Currency
   (+ at least one Description for Game) are set, not read-only. It opens the summary and passes
-  `{ date, process, description, currency, remark }` as router state.
+  `{ date, process, description, currency, remark, captureType, table }` as router state (`table` = the snapshot of
+  `submitSnapshot.js`) and keeps a copy in sessionStorage (`dc-capture-session`).
 
 ## Summary page (`/data-capture/summary`)
 
