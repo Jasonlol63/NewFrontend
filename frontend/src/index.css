@@ -123,6 +123,7 @@ body {
   --animate-status-ripple-loop: status-ripple 0.9s ease-out 0.25s, status-ripple-soft 3.2s ease-out 1.6s infinite;
   --animate-status-glow: status-glow 3.2s ease-in-out 1.6s infinite;
   --animate-status-burst: status-burst 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.3s both;
+  --animate-logout-step: logout-step 1.8s ease-in-out 1.2s infinite;
 
   @keyframes dialog-fade {
     from { opacity: 0; }
@@ -150,6 +151,10 @@ body {
   @keyframes status-glow {
     0%, 100% { opacity: 0.35; }
     50% { opacity: 0.9; }
+  }
+  @keyframes logout-step {
+    0%, 55%, 100% { transform: translateX(0); }
+    25% { transform: translateX(2.2px); }
   }
   @keyframes status-burst {
     0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(0.4); }

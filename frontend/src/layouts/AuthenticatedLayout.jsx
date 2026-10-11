@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/layout/Sidebar.jsx";
+import LogoutDialog from "@/components/shared/LogoutDialog.jsx";
 import SidebarRail from "@/components/layout/SidebarRail.jsx";
 import NotificationPanel from "@/components/layout/NotificationPanel.jsx";
 import { homePath, menuKeyForPath } from "@/components/layout/sidebarConfig";
@@ -33,7 +34,12 @@ function Shell() {
     setPanelOpen(true);
     reloadNotifications();
   }, [reloadNotifications]);
-  const onLogout = async () => {
+  // The Logout buttons only ask first; the dialog does the real logout.
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const onLogout = () => setLogoutOpen(true);
+  const confirmLogout = async () => {
+    setLoggingOut(true);
     try {
       await fetch("/auth/logout", { method: "POST", credentials: "include" });
     } catch {
@@ -118,6 +124,7 @@ function Shell() {
           />
         </div>
       </div>
+      <LogoutDialog open={logoutOpen} onOpenChange={setLogoutOpen} who={user?.login_id || user?.name} busy={loggingOut} onConfirm={confirmLogout} />
     </div>
   );
 }
