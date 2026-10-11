@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { Download, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
-import { HISTORY_ROWS } from "./paymentHistoryRules";
+import { closingBalances, flowAmount, formatRate, parseHistoryParams } from "./paymentHistoryRules";
 import { fmt } from "./transactionPaymentRules";
+import { useHistory } from "./useTransactionData";
 
 const amountTone = (n) => (n > 0 ? "font-bold text-[#1d4ed8]" : n < 0 ? "font-bold text-[#dc2626]" : "");
 
@@ -29,17 +30,27 @@ const TD =
 
 /**
  * Payment History: opened in its own popup window from an account name in Transaction Payment. Same frosted frame as
- * the form modals, the rows of the Admin / Account list. UI only for now: the same sample rows for every account,
- * and PDF does nothing yet.
+ * the form modals, the rows of the Admin / Account list. The company, account, period and currencies come from the
+ * address (see openPaymentHistory); the rows from /api/transaction/history. PDF does nothing yet.
  */
 export default function PaymentHistoryPage() {
-  const account = decodeURIComponent(useParams().account ?? "");
-  const title = `Payment History - ${account} (${account})`;
+  const routeAccount = decodeURIComponent(useParams().account ?? "");
+  const [search] = useSearchParams();
+  const request = useMemo(() => parseHistoryParams(search), [search]);
+  const history = useHistory(request);
+
+  const code = history.account?.accountId || routeAccount;
+  const name = history.account?.name || code;
+  const title = `Payment History - ${name} (${code})`;
   useEffect(() => {
     document.title = title;
   }, [title]);
 
-  const closing = HISTORY_ROWS[HISTORY_ROWS.length - 1].balance;
+  // Without the company, account and period there is nothing to load: back to the list.
+  if (!request) return <Navigate to="/transaction-payment" replace />;
+
+  const { rows } = history;
+  const closing = closingBalances(rows);
 
   return (
     <div className="fixed inset-0 bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat">
@@ -72,7 +83,12 @@ export default function PaymentHistoryPage() {
 
         <div className="flex min-h-0 flex-1 flex-col px-(--pad) pt-(--gap) pb-(--pad)">
           <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
-            <div className="min-h-0 flex-1 overflow-auto [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]">
+            {history.error && (
+              <div role="alert" className="flex-none border-b border-red-200 bg-red-50 px-3.5 py-2 text-[13px] font-medium text-dash-down">
+                {history.error}
+              </div>
+            )}
+            <div className={cn("min-h-0 flex-1 overflow-auto transition-opacity [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]", history.loading && "opacity-60")}>
               <table className="w-full table-fixed border-separate border-spacing-0 text-[clamp(11px,0.625vw,12px)]">
                 <colgroup>
                   {COLS.map(([name, , width]) => (
@@ -89,42 +105,62 @@ export default function PaymentHistoryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="bg-[rgba(214,230,250,0.92)] font-extrabold text-brand-navy">
-                    <td className={cn(TD, "text-left")}>B/F</td>
-                    <td className={cn(TD, "text-left")}>-</td>
-                    <td className={cn(TD, "text-center")}>MYR</td>
-                    <td className={cn(TD, "text-center")}>-</td>
-                    <td className={cn(TD, "text-right")}>-</td>
-                    <td className={cn(TD, "text-right")}>-</td>
-                    <td className={cn(TD, "text-right")}>0.00</td>
-                    <td className={cn(TD, "text-left")}>OPENING BALANCE</td>
-                    <td className={cn(TD, "text-center")}>-</td>
-                    <td className={cn(TD, "text-center")}>-</td>
-                  </tr>
                   {/* the same two-tone rows as the Admin / Account list: blue stripe, white, deeper blue on hover */}
-                  {HISTORY_ROWS.map((r, i) => (
-                    <tr key={r.key} className={cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover")}>
-                      <td className={cn(TD, "text-left font-bold text-[#1f2937]")}>{r.date}</td>
-                      <td className={cn(TD, "text-left font-bold text-[#1f2937]")}>{r.product}</td>
-                      <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.currency}</td>
-                      <td className={cn(TD, "text-center text-[#1f2937]")}>{r.rate}</td>
-                      <td className={cn(TD, "text-right text-[#1f2937]")}>{r.winLoss}</td>
-                      <td className={cn(TD, "text-right", amountTone(r.crdr))}>{fmt(r.crdr)}</td>
-                      <td className={cn(TD, "text-right", amountTone(r.balance))}>{fmt(r.balance)}</td>
-                      <td className={cn(TD, "text-left font-bold text-[#1f2937]")}>{r.description}</td>
-                      <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.remark}</td>
-                      <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.creater}</td>
+                  {rows.map((r, i) =>
+                    r.bf ? (
+                      <tr key={r.key} className="bg-[rgba(214,230,250,0.92)] font-extrabold text-brand-navy">
+                        <td className={cn(TD, "text-left")}>B/F</td>
+                        <td className={cn(TD, "text-left")}>-</td>
+                        <td className={cn(TD, "text-center")}>{r.currency}</td>
+                        <td className={cn(TD, "text-center")}>-</td>
+                        <td className={cn(TD, "text-right")}>-</td>
+                        <td className={cn(TD, "text-right")}>-</td>
+                        <td className={cn(TD, "text-right")}>{fmt(r.balance)}</td>
+                        <td className={cn(TD, "text-left")}>{r.description}</td>
+                        <td className={cn(TD, "text-center")}>-</td>
+                        <td className={cn(TD, "text-center")}>-</td>
+                      </tr>
+                    ) : (
+                      <tr key={r.key} className={cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover")}>
+                        <td className={cn(TD, "text-left font-bold text-[#1f2937]")}>{r.date || "-"}</td>
+                        <td className={cn(TD, "text-left font-bold text-[#1f2937]")} title={r.product}>{r.product || "-"}</td>
+                        <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.currency || "-"}</td>
+                        <td className={cn(TD, "text-center text-[#1f2937]")}>{formatRate(r.rate)}</td>
+                        <td className={cn(TD, "text-right", amountTone(r.winLoss))}>{flowAmount(r.winLoss)}</td>
+                        <td className={cn(TD, "text-right", amountTone(r.crDr))}>{flowAmount(r.crDr)}</td>
+                        <td className={cn(TD, "text-right", amountTone(r.balance))}>{fmt(r.balance)}</td>
+                        <td className={cn(TD, "text-left font-bold text-[#1f2937] uppercase")} title={r.description}>{r.description || "-"}</td>
+                        <td className={cn(TD, "text-center font-bold text-[#1f2937] uppercase")} title={r.remark}>{r.remark || "-"}</td>
+                        <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.createdBy || "-"}</td>
+                      </tr>
+                    )
+                  )}
+                  {!history.loading && !history.error && !rows.length && (
+                    <tr>
+                      <td colSpan={COLS.length} className={cn(TD, "text-center text-dash-sub")}>No records found</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
             <div className="flex flex-none items-center justify-between gap-3 border-t border-[rgba(130,155,195,0.3)] bg-white/60 px-3.5 py-[7px] text-xs text-dash-sub">
               <span>
-                Showing <b className="text-brand-navy">{HISTORY_ROWS.length + 1}</b> records
+                {history.loading ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    Showing <b className="text-brand-navy">{rows.length}</b> records
+                  </>
+                )}
               </span>
               <span>
-                Closing balance <b className={cn("ml-1", closing < 0 ? "text-[#dc2626]" : "text-brand-navy")}>{fmt(closing)}</b>
+                Closing balance
+                {closing.map(([currency, balance]) => (
+                  <b key={currency} className={cn("ml-2", balance < 0 ? "text-[#dc2626]" : "text-brand-navy")}>
+                    {closing.length > 1 && `${currency} `}
+                    {fmt(balance)}
+                  </b>
+                ))}
               </span>
             </div>
           </section>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "@/lib/api";
+import { HISTORY_URL, normalizeHistoryRow } from "./paymentHistoryRules";
 import { SEARCH_URL, normalizeSearchRow } from "./transactionPaymentRules";
 
 const enc = encodeURIComponent;
@@ -96,4 +97,29 @@ export function useLinkedAccounts(tenantId, currencyIds) {
   }, [wantedKey, tenantId]);
 
   return useCallback((currencyId) => loaded[`${tenantId}:${currencyId}`] ?? null, [loaded, tenantId]);
+}
+
+/**
+ * The Payment History of `request` (null = nothing to ask): { account, rows, loading, error }. Rows keep the backend's
+ * order (a B/F row per currency first, then the period).
+ */
+export function useHistory(request) {
+  const requestKey = request ? JSON.stringify(request) : "";
+  const [state, setState] = useState({ key: "", account: null, rows: [], error: "" });
+
+  useEffect(() => {
+    if (!requestKey) return undefined;
+    const controller = new AbortController();
+    postJson(HISTORY_URL, JSON.parse(requestKey), { signal: controller.signal })
+      .then((body) =>
+        setState({ key: requestKey, account: body.data?.account ?? null, rows: (body.data?.history || []).map(normalizeHistoryRow), error: "" })
+      )
+      .catch((err) => {
+        if (err.name !== "AbortError") setState({ key: requestKey, account: null, rows: [], error: err.message });
+      });
+    return () => controller.abort();
+  }, [requestKey]);
+
+  const current = state.key === requestKey;
+  return { account: current ? state.account : null, rows: current ? state.rows : [], loading: Boolean(requestKey) && !current, error: current ? state.error : "" };
 }

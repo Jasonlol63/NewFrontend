@@ -80,7 +80,7 @@ export default function TransactionPaymentPage() {
     },
     [reloadSearch, reloadInbox]
   );
-  const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range });
+  const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range, currencies: shown });
 
   const pageError = scope.error || currencyError || accountError || search.error;
 
