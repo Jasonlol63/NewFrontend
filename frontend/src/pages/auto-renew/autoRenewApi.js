@@ -40,6 +40,12 @@ export async function fetchAutoRenew(kind, range, ledgerTenantId, { signal } = {
   };
 }
 
+/** How many requests wait for a decision (all tabs), for the number on the sidebar. */
+export async function fetchPendingCount() {
+  const { data } = await postJson(`${AUTO_RENEW}/list`, { action: "pending_count" });
+  return data?.pending_count ?? 0;
+}
+
 /** Approves one request: extends the expiry date by the period and, when `charge` is on, posts the domain fee and commissions to the C168 ledger. */
 export async function approveRequest(requestId, periodCode, charge) {
   const { data } = await postJson(`${AUTO_RENEW}/approve`, { request_id: requestId, period: periodCode, charge_on_approve: charge });

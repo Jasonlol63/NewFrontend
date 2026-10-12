@@ -5,6 +5,7 @@ import LogoutDialog from "@/components/shared/LogoutDialog.jsx";
 import SidebarRail from "@/components/layout/SidebarRail.jsx";
 import NotificationPanel from "@/components/layout/NotificationPanel.jsx";
 import { homePath, menuKeyForPath } from "@/components/layout/sidebarConfig";
+import { useAutoRenewPending } from "@/components/layout/useAutoRenewPending";
 import { useNotifications } from "@/components/layout/useNotifications";
 import { SessionProvider, useSession } from "@/context/session";
 import { clearSession } from "@/hooks/useSavedState";
@@ -28,6 +29,7 @@ function Shell() {
   const closeDrawer = () => setDrawerOpen(false);
   // The bell's announcement panel; its list is read again each time it opens.
   const notifications = useNotifications();
+  const badges = { autoRenew: useAutoRenewPending() };
   const [panelOpen, setPanelOpen] = useState(false);
   const closePanel = useCallback(() => setPanelOpen(false), []);
   const { reload: reloadNotifications } = notifications;
@@ -69,10 +71,10 @@ function Shell() {
     <div className="flex h-dvh overflow-hidden bg-[#eaf3fd] bg-[url('/images/Count-Inside-Bg.webp')] bg-cover bg-center bg-no-repeat bg-fixed">
       {ready && <RealtimeConnection />}
       <div className="hidden h-full nav:flex">
-        <Sidebar onLogout={onLogout} onOpenNotifications={openPanel} unreadCount={notifications.unreadCount} />
+        <Sidebar onLogout={onLogout} onOpenNotifications={openPanel} unreadCount={notifications.unreadCount} badges={badges} />
       </div>
       <div className="flex h-full nav:hidden">
-        <SidebarRail onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
+        <SidebarRail onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} badges={badges} />
       </div>
 
       {/* Pages render full-area modals into #main-overlay (see MainOverlay) so they cover the
@@ -123,6 +125,7 @@ function Shell() {
               openPanel();
             }}
             unreadCount={notifications.unreadCount}
+            badges={badges}
           />
         </div>
       </div>

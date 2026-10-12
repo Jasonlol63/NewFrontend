@@ -24,7 +24,8 @@ const LANG_OPTIONS = [
 // 1920) and spacing tightens on short screens via `short:`. Also rendered as
 // the drawer behind the icon rail below 1200px (onNavigate closes it). The bell opens the notification panel
 // (onOpenNotifications) and shows how many announcements are unread.
-export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, onOpenNotifications, unreadCount = 0, className }) {
+// badges: { [menu key]: number } shown as a red count at the end of that menu item (Auto Renew: requests waiting).
+export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, onOpenNotifications, unreadCount = 0, badges, className }) {
   const { loading, items, userName, userRole, expiryLabel } = useSidebarData();
   const [lang, setLang] = useState("en");
   // Only one submenu open at a time; starts collapsed, even when the current page is inside one.
@@ -111,7 +112,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
             ))}
           </div>
         )}
-        {items.map(({ index, key, label, icon: Icon, path, children }) => {
+        {items.map(({ index, key, menu, label, icon: Icon, path, children }) => {
           if (!children) {
             return (
               <NavLink
@@ -124,6 +125,11 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
                 <span className="min-w-0 truncate">
                   {index}. {label}
                 </span>
+                {badges?.[menu] > 0 && (
+                  <span className="ml-auto flex h-[17px] min-w-[17px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[10px] font-extrabold text-white shadow-[0_0_0_2px_rgba(12,36,82,0.6)]">
+                    {unreadLabel(badges[menu])}
+                  </span>
+                )}
               </NavLink>
             );
           }

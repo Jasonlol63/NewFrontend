@@ -8,6 +8,7 @@ import {
   IDLE_ITEM_CLASS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
+import { unreadLabel } from "./notificationRules";
 import { useSidebarData } from "./useSidebarData";
 
 const ITEM_CLASS =
@@ -32,7 +33,7 @@ function RailTip({ label, children }) {
 
 // Icon-only sidebar used below 1200px. Items with a submenu (and the menu
 // button) open the full sidebar as a drawer instead of navigating.
-export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, onLogout }) {
+export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, onLogout, badges }) {
   const { loading, items, userName } = useSidebarData();
   const { pathname } = useLocation();
 
@@ -80,7 +81,7 @@ export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, on
               ))}
             </div>
           )}
-          {items.map(({ key, label, icon: Icon, path, children }) => {
+          {items.map(({ key, menu, label, icon: Icon, path, children }) => {
             const tip = children ? `${label} ›` : label;
             // Resolved here rather than via NavLink: Tooltip's asChild Slot
             // stringifies a function className.
@@ -106,9 +107,14 @@ export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, on
                   to={path}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
-                  className={cn(ITEM_CLASS, active ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS)}
+                  className={cn(ITEM_CLASS, "relative", active ? ACTIVE_ITEM_CLASS : IDLE_ITEM_CLASS)}
                 >
                   <Icon size={18} className="stroke-current" />
+                  {badges?.[menu] > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] font-extrabold text-white shadow-[0_0_0_2px_#0c2452]">
+                      {unreadLabel(badges[menu])}
+                    </span>
+                  )}
                 </Link>
               </RailTip>
             );

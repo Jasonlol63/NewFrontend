@@ -11,6 +11,7 @@ export const REALTIME_DOMAINS = {
   MAINTENANCE: "maintenance",
   ANNOUNCEMENTS: "announcements",
   DOMAIN: "domain",
+  AUTO_RENEW: "auto_renew",
   APP: "app",
   SESSION_KICK: "session_kick",
 };

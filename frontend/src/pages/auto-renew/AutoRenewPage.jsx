@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentMonthRange } from "@/lib/date";
@@ -7,6 +7,7 @@ import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import { Badge, IconAction } from "@/components/shared/list/cells.jsx";
 import { useListView } from "@/components/shared/list/useListView";
 import { useSession } from "@/context/session";
+import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import AutoRenewFilterCard from "./AutoRenewFilterCard.jsx";
 import { approveRequest, fetchAutoRenew, rejectRequest, saveShare, undoRequest } from "./autoRenewApi";
@@ -127,6 +128,21 @@ export default function AutoRenewPage() {
   };
   const [chargeId, setChargeId] = useState(null);
   const chargeRow = rows.find((r) => r.id === chargeId);
+
+  // Someone else decided a request: read the list again. While the Charge dialog is open the list waits, so an unsaved Share is not
+  // replaced under the user; it is read when the dialog closes.
+  const staleWhileOpen = useRef(false);
+  useRealtime([REALTIME_DOMAINS.AUTO_RENEW], () => {
+    if (chargeId != null) staleWhileOpen.current = true;
+    else setReloadKey((k) => k + 1);
+  });
+  const closeCharge = () => {
+    setChargeId(null);
+    if (staleWhileOpen.current) {
+      staleWhileOpen.current = false;
+      setReloadKey((k) => k + 1);
+    }
+  };
 
   const columns = [
     { key: "no", label: "No", sortable: false, className: "w-[36px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
@@ -297,7 +313,7 @@ export default function AutoRenewPage() {
           accounts={ledger.shareAccounts}
           onPatch={(changes) => patch(chargeRow.id, changes)}
           onSave={(row) => saveShare(row, ledger.accounts)}
-          onClose={() => setChargeId(null)}
+          onClose={closeCharge}
         />
       )}
       <DeleteDialog

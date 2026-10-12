@@ -15,6 +15,7 @@ Auto Renew 列出 30 天内即将到期（或已到期）的 Company / Group，�
 | `src/pages/auto-renew/AutoRenewPage.jsx` | 页面：读列表、持有状态，定义列，Approve / Reject / Undo，拼装筛选卡片、`DataTable` 和弹窗 |
 | `src/pages/auto-renew/autoRenewApi.js` | 所有后端调用：列表（连同分账和账号）、approve、reject、undo、保存分账 |
 | `src/pages/auto-renew/ChargeDialog.jsx` | Comm 按钮打开的 Charge 弹窗（第 7 节） |
+| `src/components/layout/useAutoRenewPending.js` | 侧边栏 Auto Renew 上的待处理数量（第 10 节） |
 | `src/pages/auto-renew/AutoRenewFilterCard.jsx` | 顶部筛选卡片（M1 排版） |
 | `src/pages/auto-renew/StatusFilter.jsx` | Status 行：图标方块 + 数量 |
 | `src/pages/auto-renew/PeriodSelect.jsx` | Period 下拉卡片 |
@@ -195,15 +196,35 @@ Status 徽章颜色：
 | 保存分账 | `PUT /api/domain/update-setting` | 见第 7 节 |
 
 - 成功后重新读列表；Pending 行已选的 Period 和 Charge 会按申请 id 保留，其他行不丢选择。后端报错时在页面顶部显示红色提示条，行保持原样。
+- 收到后端的 Auto Renew 实时事件时也会重新读列表，见第 10 节。
 - 刷新页面会清空已选的 Period 和 Charge。要持久化需要在 `tenant_auto_renew` 加列，目前不做。
 - 价格表里没配价格的周期（价格 0）批不了，要到 Domain 的 Price 里补。
 - 保存分账时带的是列表读到的到期日；如果几乎同时有人批准了同一家的续期，理论上可能把到期日写回旧值。
 
 ---
 
-## 10. 验证过的尺寸
+## 10. 侧边栏数量与实时刷新
+
+**侧边栏数量**：Auto Renew 菜单项右边有红色数字，是全部待处理请求数（公司和集团合计），来自 `POST /api/auto-renew/list` 的 `{ action: "pending_count" }`。
+
+- 完整侧边栏显示在菜单项最右；窄屏图标栏显示在图标右上角；超过 99 显示 `99+`，为 0 不显示。
+- 没有 Auto Renew 菜单的账号不请求、不显示。
+- 由布局（`AuthenticatedLayout`）里的 `useAutoRenewPending` 统一请求一次，再通过 `badges` 传给侧边栏、图标栏和抽屉里的侧边栏，不会各请求一份。读取失败时保留旧数字，不影响菜单。
+- 刷新时机：登录后、窗口重新获得焦点、每 5 分钟（后端推送断了时的兜底），以及收到实时事件时。
+
+**实时刷新**：前端在 `realtimeEvents.js` 里订阅 `AUTO_RENEW` 域（wire name `auto_renew`，必须和后端 `RealtimeDomain` 一致）。收到事件后：
+
+- 侧边栏数量重新读取；
+- Auto Renew 页面重新读列表（Pending 行已选的 Period、Charge 保留）；
+- Charge 弹窗开着时列表先不动，关闭弹窗后再读，避免把还没保存的 Share 冲掉。
+
+后端需要在 Approve、Reject、Undo，以及每次扫描生成新申请之后发出这个事件。
+
+---
+
+## 11. 验证过的尺寸
 
 1000×600、1100×620、1200×620、1280×560、1366×610、1440×760、1536×730、1600×800、1920×950 九个尺寸下（所有行都选到 1 year 这种最宽状态）：整页没有纵向或横向滚动，表格没有横向滚动条，筛选卡片、单元格内容、Period 弹窗都没有溢出或被覆盖，`oxlint` 无报错。选任意周期时各列宽度不变（逐行逐周期共 45 次切换，量过表头宽度和表格高度）。
 
 
-Charge 弹窗另外在 1280×560、1366×610、1440×760、1536×730、1600×800、1920×950、1100×620、1000×600、768×1024、375×812 检查过，结果见第 7 节。
+Charge 弹窗另外在 1280×560、1366×610、1440×760、1536×730、1600×800、1920×950、1100×620、1000×600、768×1024、375×812 检查过（结果见第 7 节）。侧边栏数量只在完整侧边栏（桌面宽度）和 1000 宽的图标栏下看过。
