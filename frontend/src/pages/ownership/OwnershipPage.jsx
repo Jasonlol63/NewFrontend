@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Clock, LayoutGrid, Layers, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
@@ -10,14 +11,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNotice } from "@/hooks/useNotice";
 import MonthPicker from "./MonthPicker.jsx";
 import OwnershipCard from "./OwnershipCard.jsx";
-import { setParent } from "./ownershipApi";
+import { fetchOwners, setParent } from "./ownershipApi";
 import { NO_GROUP, canSetReadOnly, companiesOfGroup, currentMonth, monthLabel } from "./ownershipRules";
 import { useOwnershipOverview } from "./useOwnershipOverview";
-
-const TABS = [
-  { value: "ownership", label: "Account Ownership", icon: Users },
-  { value: "earnings", label: "Group Earnings", icon: Layers },
-];
 
 // Sizes shared by the white pills and the Current button; they follow the screen height like the rest of the page.
 const pillSize =
@@ -43,6 +39,11 @@ async function runAll(ids, action) {
  *    confirmed there only applies to that month (Link Partner, Select and Ungroup are for the current month only).
  */
 export default function OwnershipPage() {
+  const { t } = useTranslation(["ownership", "common"]);
+  const TABS = [
+    { value: "ownership", label: t("page.tabOwnership"), icon: Users },
+    { value: "earnings", label: t("page.tabEarnings"), icon: Layers },
+  ];
   const viewer = useCurrentUser();
   const readOnly = Boolean(viewer?.readOnly);
   const mayChangeReadOnly = canSetReadOnly(viewer?.role);
@@ -95,31 +96,55 @@ export default function OwnershipPage() {
     setUngroup(null);
     leaveSelection();
     reload();
-    if (failed === 0) push(done === 1 ? `"${ungroup.names[0]}" removed from group` : `Removed ${done} companies from group`);
-    else push(`${failed} failed, ${done} succeeded`, "error", message);
+    if (failed === 0) push(done === 1 ? t("toast.removedOne", { name: ungroup.names[0] }) : t("toast.removedMany", { count: done }));
+    else push(ungroup.ids.length === 1 ? t("errors.ungroup") : t("toast.partial", { failed, done }), "error", message);
   };
 
   const doJoin = async () => {
-    if (!joinGroup) return push("Select a group", "error", "Choose the group to add the companies to.");
+    if (!joinGroup) return push(t("toast.selectGroup"), "error", t("toast.selectGroupHint"));
     setWorking(true);
     const ids = [...selected];
     const { done, failed, message } = await runAll(ids, (id) => setParent(id, joinGroup));
     setWorking(false);
     reload();
     if (failed === 0) {
-      push(`Added ${done} ${done === 1 ? "company" : "companies"} to ${joinGroup}`);
+      push(done === 1 ? t("toast.addedOne", { count: done, group: joinGroup }) : t("toast.addedMany", { count: done, group: joinGroup }));
       leaveSelection();
       pickGroup(joinGroup);
-    } else push(`${failed} failed, ${done} succeeded`, "error", message);
+    } else push(ids.length === 1 ? t("errors.join") : t("toast.partial", { failed, done }), "error", message);
   };
 
-  const ask = (ids) => setUngroup({ ids, names: ids.map((id) => directory.companies.find((c) => c.tenantId === id)?.code ?? String(id)) });
+  // A company whose ownership holds a Group (its own Group's share) can not leave that Group until that share is taken out of
+  // its list: the check reads each company's current list first and says which ones are in the way.
+  const ask = async (ids) => {
+    const names = ids.map((id) => directory.companies.find((c) => c.tenantId === id)?.code ?? String(id));
+    let lists;
+    try {
+      lists = await Promise.all(ids.map((id) => fetchOwners(id, current)));
+    } catch (err) {
+      push(t("errors.ungroupCheck"), "error", err.message);
+      return;
+    }
+    const blocked = ids
+      .map((_, i) => ({ name: names[i], groups: lists[i].filter((r) => !r.external && r.role === "GROUP").map((r) => r.label) }))
+      .filter((b) => b.groups.length > 0);
+    if (blocked.length) {
+      push(t("errors.ungroupBlocked"), "error", blocked.map((b) => t("errors.ungroupBlockedLine", { name: b.name, group: b.groups.join(", ") })));
+      return;
+    }
+    setUngroup({ ids, names });
+  };
 
   const entities =
     tab === "ownership"
-      ? companies.map((c) => ({ tenantId: c.tenantId, ref: c.tenantId, code: c.code, chip: c.group ?? "NO GROUP", expiration: c.expiration, canUngroup: Boolean(c.group), kind: "company" }))
-      : groups.map((g) => ({ tenantId: g.tenantId, ref: g.tenantId ?? g.code, code: g.code, chip: "GROUP", expiration: g.expiration, canUngroup: false, kind: "group" }));
+      ? companies.map((c) => ({ tenantId: c.tenantId, ref: c.tenantId, code: c.code, chip: c.group ?? t("page.noGroupChip"), expiration: c.expiration, canUngroup: Boolean(c.group), kind: "company" }))
+      : groups.map((g) => ({ tenantId: g.tenantId, ref: g.tenantId ?? g.code, code: g.code, chip: t("page.groupChip"), expiration: g.expiration, canUngroup: false, kind: "group" }));
   const inGroupView = group !== NO_GROUP;
+  // The groups and companies that did not load are an error toast (once per error); the page keeps a Retry.
+  useEffect(() => {
+    if (error) push(t("page.loadFail"), "error", error, { label: t("common:retry"), onClick: reload });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   return (
     <div className="relative py-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] gap-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] text-[length:max(12px,clamp(10.14px,calc(2.07dvh_-_2.09px),13px))] xl-screen:px-7 xl-screen:py-[22px] xl-screen:gap-[18px] flex h-full min-h-[520px] flex-col">
@@ -157,7 +182,7 @@ export default function OwnershipPage() {
               }}
               className={cn(primaryButtonClass, pillSize, "min-w-[88px] text-white shadow-[0_6px_14px_-6px_rgba(20,90,220,0.6),inset_0_1px_2px_rgba(255,255,255,0.35)]")}
             >
-              Current
+              {t("page.current")}
             </button>
           )}
         </div>
@@ -167,14 +192,14 @@ export default function OwnershipPage() {
         <div className={infoBar}>
           <Clock className="size-4 flex-none" strokeWidth={2.2} />
           <span>
-            Viewing <b className="text-[#a45a04]">{monthLabel(month)}</b> (history). Changes you confirm here apply to this month only.
+            <Trans t={t} i18nKey="page.historyBar" values={{ month: monthLabel(month) }} components={{ b: <b className="text-[#a45a04]" /> }} />
           </span>
         </div>
       )}
 
       {tab === "ownership" && directory && (
         <div className="flex flex-none items-center gap-3 px-1">
-          <span className="text-[length:max(11px,clamp(8.97px,calc(1.83dvh_-_1.85px),11.5px))] font-extrabold tracking-[0.5px] text-brand-navy">GROUP</span>
+          <span className="text-[length:max(11px,clamp(8.97px,calc(1.83dvh_-_1.85px),11.5px))] font-extrabold tracking-[0.5px] text-brand-navy">{t("page.group")}</span>
           <div className="rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] inline-flex overflow-hidden border border-dash-line shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
             {chips.map((g) => {
               const active = g === group;
@@ -188,7 +213,7 @@ export default function OwnershipPage() {
                     active ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
                   )}
                 >
-                  {g === NO_GROUP ? "No Group" : g}
+                  {g === NO_GROUP ? t("page.noGroup") : g}
                   <span className={cn("text-[length:max(10.5px,clamp(8.58px,calc(1.75dvh_-_1.77px),11px))] min-w-5 rounded-full px-1.5 text-center font-extrabold tabular-nums", active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]")}>{countOf(g)}</span>
                 </button>
               );
@@ -198,11 +223,11 @@ export default function OwnershipPage() {
             type="button"
             disabled={locked || companies.length === 0}
             onClick={() => (selecting ? leaveSelection() : (setOpenId(null), setSelecting(true)))}
-            title={readOnly ? "Read-only login" : historical ? "Not available for a past month" : undefined}
+            title={readOnly ? t("readOnlyLogin") : historical ? t("pastMonth") : undefined}
             className={cn(whitePill, "ml-auto cursor-pointer disabled:cursor-not-allowed disabled:opacity-50", selecting && "border-brand-blue bg-[#e8f1ff]")}
           >
             <LayoutGrid className="size-4" strokeWidth={2.2} />
-            Select
+            {t("page.select")}
           </button>
         </div>
       )}
@@ -210,11 +235,11 @@ export default function OwnershipPage() {
       {selecting && (
         <div className={cn(infoBar, "gap-3")}>
           <b className="min-w-5 rounded-full bg-[#e8f1ff] px-2 py-0.5 text-center tabular-nums text-[#0b4fd0]">{selected.size}</b>
-          <span>selected</span>
+          <span>{t("page.selected")}</span>
           <div className="ml-auto flex items-center gap-2">
             {inGroupView ? (
               <button type="button" disabled={selected.size === 0 || working} onClick={() => ask([...selected])} className={cn(pillSize, "inline-flex cursor-pointer items-center border border-[#fbc4cf] bg-white font-bold text-[#e11d48] disabled:cursor-not-allowed disabled:opacity-50")}>
-                Ungroup
+                {t("page.ungroup")}
               </button>
             ) : (
               <>
@@ -222,17 +247,17 @@ export default function OwnershipPage() {
                   options={groups.map((g) => ({ value: g.code, label: g.code }))}
                   value={joinGroup}
                   onChange={(v) => setJoinGroup(v ?? "")}
-                  placeholder="Select group"
-                  ariaLabel="Group to join"
+                  placeholder={t("page.selectGroup")}
+                  ariaLabel={t("page.groupToJoin")}
                   className="h-[clamp(28.08px,calc(5.72dvh_-_5.8px),36px)] w-[160px] rounded-[10px]"
                 />
                 <button type="button" disabled={selected.size === 0 || !joinGroup || working} onClick={doJoin} className={cn(primaryButtonClass, pillSize, "text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none")}>
-                  Join Group
+                  {t("page.joinGroup")}
                 </button>
               </>
             )}
             <SoftButton onClick={leaveSelection} className={cn(pillSize, "px-4")}>
-              Cancel
+              {t("common:cancel")}
             </SoftButton>
           </div>
         </div>
@@ -240,16 +265,16 @@ export default function OwnershipPage() {
 
       <div className="gap-[clamp(6.24px,calc(1.27dvh_-_1.29px),8px)] xl-screen:gap-3 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 pb-1 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
         {loading ? (
-          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">Loading…</div>
+          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">{t("page.loading")}</div>
         ) : error ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] font-semibold text-dash-sub">
-            {error}
+            {t("page.loadFail")}
             <button type="button" onClick={reload} className={cn(primaryButtonClass, pillSize, "text-white")}>
-              Retry
+              {t("common:retry")}
             </button>
           </div>
         ) : entities.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">{tab === "ownership" ? "No companies in this group." : "No Group to show."}</div>
+          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">{tab === "ownership" ? t("page.noCompanies") : t("page.noGroups")}</div>
         ) : (
           entities.map((e) => (
             <OwnershipCard
@@ -279,7 +304,17 @@ export default function OwnershipPage() {
         verb="Ungroup"
         verbPast="removed from their group"
         irreversible={false}
-        note="Their ownership lists stay as they are."
+        title={ungroup ? (ungroup.names.length === 1 ? t("ungroupDialog.titleOne") : t("ungroupDialog.titleMany", { count: ungroup.names.length })) : undefined}
+        description={
+          ungroup ? (
+            ungroup.names.length === 1 ? (
+              <Trans t={t} i18nKey="ungroupDialog.one" values={{ name: ungroup.names[0] }} components={{ b: <b /> }} />
+            ) : (
+              t("ungroupDialog.many", { count: ungroup.names.length })
+            )
+          ) : undefined
+        }
+        note={t("ungroupDialog.note")}
         onConfirm={doUngroup}
       />
     </div>

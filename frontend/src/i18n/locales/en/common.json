@@ -98,5 +98,8 @@
     "inactive": "inactive"
   },
   "selectAll": "Select all",
-  "noMatches": "No matches"
+  "noMatches": "No matches",
+  "noResults": "No results found",
+  "clearOf": "Clear {{what}}",
+  "selection": "selection"
 }

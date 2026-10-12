@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover } from "radix-ui";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MONTHS, monthKey, monthLabel } from "./ownershipRules";
+import { monthKey, monthLabel } from "./ownershipRules";
 
 /**
  * Month picker for the Ownership page: a year header with arrows and a 4x3 month grid.
@@ -10,6 +11,8 @@ import { MONTHS, monthKey, monthLabel } from "./ownershipRules";
  * The trigger turns amber with a HISTORICAL tag while a past month is selected.
  */
 export default function MonthPicker({ value, current, saved, onChange, triggerClassName }) {
+  const { t } = useTranslation("ownership");
+  const MONTHS = t("common:calendar.months", { returnObjects: true });
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState(Number(value.split("-")[0]));
   const currentYear = Number(current.split("-")[0]);
@@ -26,7 +29,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
       <Popover.Trigger asChild>
         <button
           type="button"
-          aria-label="Choose month"
+          aria-label={t("picker.choose")}
           className={cn(
             triggerClassName,
             "cursor-pointer transition-[border-color,box-shadow,background-color]",
@@ -36,7 +39,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
         >
           <CalendarDays className={cn("size-4", historical ? "text-[#c77d0a]" : "text-[#0b57e8]")} strokeWidth={2.2} />
           {monthLabel(value)}
-          {historical && <span className="rounded-full bg-[#fde7b8] px-2 py-0.5 text-[10px] font-extrabold tracking-[0.4px] text-[#a45a04]">HISTORICAL</span>}
+          {historical && <span className="rounded-full bg-[#fde7b8] px-2 py-0.5 text-[10px] font-extrabold tracking-[0.4px] text-[#a45a04]">{t("card.historical")}</span>}
           <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform", open && "rotate-180")} strokeWidth={2.6} />
         </button>
       </Popover.Trigger>
@@ -48,13 +51,13 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
           className="z-50 w-[304px] rounded-2xl border border-dash-line bg-white p-3 shadow-[0_14px_34px_-8px_rgba(15,23,42,0.32)]"
         >
           <div className="flex items-center justify-between rounded-[10px] bg-[#f3f6fb] px-2 py-1.5 text-[13px] font-extrabold text-brand-navy">
-            <button type="button" aria-label="Previous year" onClick={() => setYear((y) => y - 1)} className="flex size-6 cursor-pointer items-center justify-center rounded-md hover:bg-white">
+            <button type="button" aria-label={t("picker.prevYear")} onClick={() => setYear((y) => y - 1)} className="flex size-6 cursor-pointer items-center justify-center rounded-md hover:bg-white">
               <ChevronLeft className="size-4" strokeWidth={2.6} />
             </button>
             {year}
             <button
               type="button"
-              aria-label="Next year"
+              aria-label={t("picker.nextYear")}
               disabled={year >= currentYear}
               onClick={() => setYear((y) => y + 1)}
               className="flex size-6 cursor-pointer items-center justify-center rounded-md hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
@@ -96,11 +99,11 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
           <div className="mt-2.5 flex items-center gap-3.5 text-[11px] text-dash-sub">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-[#f5a524]" />
-              Has saved changes
+              {t("picker.saved")}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-brand-blue" />
-              Current month
+              {t("picker.currentMonth")}
             </span>
           </div>
         </Popover.Content>

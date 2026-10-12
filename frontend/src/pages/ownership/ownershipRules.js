@@ -1,12 +1,14 @@
+import i18n from "@/i18n";
 // Rules of the Ownership page (no React here): the Group / Company directory, the rows of a company's ownership list,
 // the checks before a save and the request body. The wire format is Spring's TenantOwnershipDTO (snake_case).
 //
-// An ownership row (what the editor works on): { id, accountId, label, role, pct, readOnly, external, ownershipId }
+// An ownership row (what the editor works on): { id, accountId, label, role, pct, readOnly, linked, external, ownershipId }
 //   - accountId is the backend's key: "O_12" an Owner, "U_3" a user, "G_5" a Group's equity
 //   - readOnly: a partnership user's Read Only is the login's own switch, the same one the Admin page shows; a change saved
 //     here changes that login everywhere
 //   - pct is text ("30", "33.5"), so a half typed "12." survives; Number(pct) is the share
-//   - external = a partner linked through Link Partner: it sits at 0% beside the shareholders and is kept on every save
+//   - linked = a partner linked through Link Partner. It is a shareholder row like any other (it can be given a share, and the
+//     Read only switch stays on it); `external` is always false, so the back end does not hold it at 0%
 
 // ---- Groups and companies ----
 
@@ -71,7 +73,8 @@ export const currentMonth = () => {
 
 export const monthLabel = (key) => {
   const [y, m] = key.split("-");
-  return `${MONTHS[Number(m) - 1]} ${y}`;
+  const months = i18n.t("calendar.months", { returnObjects: true });
+  return i18n.t("ownership:month", { year: y, month: months[Number(m) - 1] ?? MONTHS[Number(m) - 1] });
 };
 
 // ---- Ownership rows ----
@@ -103,7 +106,8 @@ export function normalizeOwner(o, index = 0) {
     role: String(o.role ?? "").toUpperCase(),
     pct: String(Number(o.percentage) || 0),
     readOnly: o.read_only == null ? 1 : Number(o.read_only),
-    external: Number(o.is_external_partner) === 1 || o.is_external_partner === true,
+    linked: Number(o.is_external_partner) === 1 || o.is_external_partner === true,
+    external: false,
     ownershipId,
   };
 }
@@ -114,6 +118,19 @@ export function normalizeOwner(o, index = 0) {
  */
 export function normalizeCandidate(a) {
   return { accountId: String(a.account_id ?? ""), label: labelOf(a), role: String(a.role ?? "").toUpperCase(), readOnly: a.read_only == null ? null : Number(a.read_only) };
+}
+
+/**
+ * Link Partner's reason in words that name the id the user typed. The back end answers in English; the cases it can say
+ * (not found, already the main owner, itself, already linked) are rewritten in the current language, anything else is shown as it is.
+ */
+export function linkErrorText(message, id) {
+  const text = String(message ?? "");
+  if (/not found/i.test(text)) return i18n.t("ownership:errors.linkNotFound", { id });
+  if (/already the main owner/i.test(text)) return i18n.t("ownership:errors.linkMainOwner", { id });
+  if (/link a tenant to itself/i.test(text)) return i18n.t("ownership:errors.linkSelf");
+  if (/already linked/i.test(text)) return i18n.t("ownership:errors.linkDuplicate", { id });
+  return text;
 }
 
 /** Only the Owner and an Admin may switch a Read Only on or off (the backend checks it again). */
@@ -131,15 +148,30 @@ export function accountChoices(candidates, rows, ownRowId) {
   return [...seen.values()].filter((c) => c.accountId && !used.has(c.accountId));
 }
 
+/**
+ * The choices for a past month: the back end only offers the Owner, the partnership logins of the company and its Group, so
+ * what the live list already holds (an Admin, a partner added later...) is added, and the choices of the current month too,
+ * so filling in a past month offers the same people as the current one. `candidates` come first; nobody appears twice.
+ */
+export function withLiveChoices(candidates, liveRows, liveCandidates) {
+  const extra = [
+    ...liveCandidates,
+    ...liveRows.filter((r) => !r.external).map((r) => ({ accountId: r.accountId, label: r.label, role: r.role, readOnly: r.readOnly })),
+  ];
+  const seen = new Set(candidates.map((c) => c.accountId));
+  const added = extra.filter((c) => c.accountId && !seen.has(c.accountId) && seen.add(c.accountId));
+  return [...candidates, ...added];
+}
+
 /** The most one row can take: what the other rows leave of 100%. */
 export const maxPct = (rows, id) => Math.max(0, 100 - rows.reduce((sum, r) => (r.id === id ? sum : sum + (Number(r.pct) || 0)), 0));
 
 /** What stops a Save, or "" when it can go. */
 export function checkRows(rows) {
-  if (rows.some((r) => !r.accountId)) return "Select an account for every row.";
+  if (rows.some((r) => !r.accountId)) return i18n.t("ownership:validation.selectAccount");
   const ids = rows.map((r) => r.accountId);
-  if (new Set(ids).size !== ids.length) return "The same account is used twice.";
-  if (totalAllocation(rows) > 100.0000001) return "Total allocation exceeds 100%.";
+  if (new Set(ids).size !== ids.length) return i18n.t("ownership:validation.duplicate");
+  if (totalAllocation(rows) > 100.0000001) return i18n.t("ownership:validation.over100");
   return "";
 }
 

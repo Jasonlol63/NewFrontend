@@ -39,10 +39,11 @@ function TrashIcon() {
  *  - names: labels of the items to delete (string[])
  *  - noun: singular noun ("user", "account")
  *  - note: optional extra line under the warning
+ *  - title / description: replace the generated title / sentence (for an action whose words do not fit "verb noun")
  *  - verb / verbPast: the action when it isn't a plain delete ("Reject" / "rejected"); default "Delete" / "deleted"
  *  - irreversible: false drops the "can't be undone" line, for an action that can simply be done the other way round (Ungroup)
  */
-export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, verb = "Delete", verbPast = "deleted", irreversible = true, onConfirm }) {
+export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, title, description, verb = "Delete", verbPast = "deleted", irreversible = true, onConfirm }) {
   const { t } = useTranslation();
   const count = names.length;
   const single = count === 1;
@@ -60,16 +61,17 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
         >
           <TrashIcon />
           <Dialog.Title className="m-0 mb-1.5 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">
-            {single ? t("deleteDialog.titleOne", { verb: verbText, noun: nounText }) : t("deleteDialog.titleMany", { verb: verbText, count, noun: nounText })}
+            {title ?? (single ? t("deleteDialog.titleOne", { verb: verbText, noun: nounText }) : t("deleteDialog.titleMany", { verb: verbText, count, noun: nounText }))}
           </Dialog.Title>
           <Dialog.Description className="m-0 break-words text-[clamp(13px,1.8dvh,14px)] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
-            {single ? (
-              <>
-                {t("deleteDialog.confirmBefore", { verb: verbText.toLowerCase() })}<b>{names[0]}</b>{t("deleteDialog.confirmAfter")}
-              </>
-            ) : (
-              <>{t("deleteDialog.many", { count, noun: nounText, verbPast: verbPastText })}</>
-            )}
+            {description ??
+              (single ? (
+                <>
+                  {t("deleteDialog.confirmBefore", { verb: verbText.toLowerCase() })}<b>{names[0]}</b>{t("deleteDialog.confirmAfter")}
+                </>
+              ) : (
+                <>{t("deleteDialog.many", { count, noun: nounText, verbPast: verbPastText })}</>
+              ))}
             {irreversible && (
               <>
                 <br />

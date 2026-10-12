@@ -7,6 +7,7 @@ import enDomain from "./locales/en/domain.json";
 import enAnnouncement from "./locales/en/announcement.json";
 import enAdmin from "./locales/en/admin.json";
 import enAccount from "./locales/en/account.json";
+import enOwnership from "./locales/en/ownership.json";
 import enNotification from "./locales/en/notification.json";
 import zhCommon from "./locales/zh/common.json";
 import zhSidebar from "./locales/zh/sidebar.json";
@@ -15,6 +16,7 @@ import zhDomain from "./locales/zh/domain.json";
 import zhAnnouncement from "./locales/zh/announcement.json";
 import zhAdmin from "./locales/zh/admin.json";
 import zhAccount from "./locales/zh/account.json";
+import zhOwnership from "./locales/zh/ownership.json";
 import zhNotification from "./locales/zh/notification.json";
 
 export const LANGUAGES = ["en", "zh"];
@@ -33,13 +35,13 @@ function initialLanguage() {
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount },
-    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount },
+    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount, ownership: enOwnership },
+    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount, ownership: zhOwnership },
   },
   lng: initialLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account"],
+  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account", "ownership"],
   interpolation: { escapeValue: false },
 });
 

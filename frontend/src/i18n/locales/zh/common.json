@@ -90,10 +90,13 @@
     "users": "用户",
     "account": "账户",
     "accounts": "账户",
-    "currency": "货币"
+    "currency": "货币",
+    "company": "公司",
+    "companies": "公司"
   },
   "verbs": {
-    "Delete": "删除"
+    "Delete": "删除",
+    "Ungroup": "移出集团"
   },
   "verbsPast": {
     "deleted": "删除"
@@ -112,5 +115,8 @@
     "inactive": "停用"
   },
   "selectAll": "全选",
-  "noMatches": "没有匹配项"
+  "noMatches": "没有匹配项",
+  "noResults": "没有找到结果",
+  "clearOf": "清除{{what}}",
+  "selection": "选择"
 }

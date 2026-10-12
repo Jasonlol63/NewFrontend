@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover } from "radix-ui";
 import { ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,15 +13,18 @@ export default function DropdownSelect({
   options,
   value,
   onChange,
-  placeholder = "Select",
+  placeholder: placeholderProp,
   searchable = false,
-  searchPlaceholder = "Search",
+  searchPlaceholder: searchProp,
   className = "w-[250px]",
   ariaLabel,
   clearable = false,
   panelClassName,
   listClassName,
 }) {
+  const { t } = useTranslation();
+  const placeholder = placeholderProp ?? t("select");
+  const searchPlaceholder = searchProp ?? t("search");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -58,7 +62,7 @@ export default function DropdownSelect({
             <span
               role="button"
               tabIndex={0}
-              aria-label={`Clear ${ariaLabel ?? "selection"}`}
+              aria-label={t("clearOf", { what: ariaLabel ?? t("selection") })}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -118,7 +122,7 @@ export default function DropdownSelect({
                 {option.label}
               </button>
             ))}
-            {shown.length === 0 && <p className="px-2.5 py-2 text-center text-[12px] text-dash-faint">No results found</p>}
+            {shown.length === 0 && <p className="px-2.5 py-2 text-center text-[12px] text-dash-faint">{t("noResults")}</p>}
           </div>
         </Popover.Content>
       </Popover.Portal>
