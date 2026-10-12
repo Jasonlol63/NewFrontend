@@ -224,7 +224,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
   const navigate = useNavigate();
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const { user } = useSession();
-  const { notice, push } = useNotice(5500);
+  const { notice, push, clear } = useNotice(5500, { stickyErrors: true });
   const captured = useMemo(() => capturedFromTable(capture.table), [capture.table]);
   const signature = draftSignature(capture);
   const defaultCurrency = data.currencies.find((c) => c.id === capture.currencyId)?.code ?? String(capture.currency ?? "");
@@ -259,7 +259,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
 
   const applyRateToTicked = () => {
     const ticked = rows.filter((r) => r.rateChecked && hasAccount(r));
-    if (ticked.length === 0) return push("Tick the Rate box of the rows first.", "info");
+    if (ticked.length === 0) return push("Tick the Rate box first", "info", "Choose the rows to apply the rate to.");
     const value = rate.trim();
     setRows((rs) => rs.map((r) => (r.rateChecked && hasAccount(r) ? { ...r, rateValue: value, rateChecked: false } : r)));
     return push(`Rate ${value} applied to ${ticked.length} row(s).`);
@@ -275,27 +275,27 @@ function SummaryBoard({ capture, data, onRefresh }) {
       await updateFormula(next, capture);
     } catch (err) {
       setRows((rs) => rs.map((r) => (r.key === row.key ? row : r)));
-      push(err.message || "Could not save the change.", "error");
+      push("Couldn't save the change", "error", err.message);
     }
   };
   const commitInline = (row, field, text) => {
     setEditing(null);
     if (field === "rateValue") {
-      if (text && !parseRate(text)) return push("Rate has to be like *3, /3 or 3.", "error");
+      if (text && !parseRate(text)) return push("Rate isn't valid", "error", "Use a form like *3, /3 or 3.");
       return edit({ rateValue: text }, row.key);
     }
     if (field === "source") {
       const value = text || "1";
-      if (parseSource(value) === null) return push("Source has to be a number, e.g. 1, 2 or 0.5.", "error");
+      if (parseSource(value) === null) return push("Source isn't valid", "error", "Enter a number, e.g. 1, 2 or 0.5.");
       if (value === row.sourcePercent) return undefined;
       return storeInline(row, { sourcePercent: value });
     }
     // formula: what is typed has to calculate
-    if (!text) return push("The formula can't be empty.", "error");
+    if (!text) return push("Formula is empty", "error", "Enter a formula to calculate the amount.");
     try {
       baseAmount({ ...row, formula: text }, captured, row.rowIndex);
     } catch {
-      return push("The formula is not valid.", "error");
+      return push("Formula isn't valid", "error", "Check it and try again.");
     }
     if (text === formulaDisplay(row.formula, captured, row.rowIndex)) return undefined;
     return storeInline(row, { formula: text });
@@ -337,7 +337,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
     } catch (err) {
       setWorking(false);
       setConfirmDelete(false);
-      return push(err.message || "Could not delete.", "error");
+      return push("Couldn't delete the rows", "error", err.message);
     }
     const { rows: next, removed, cleared } = deleteTicked(rows);
     setRows(next);
@@ -352,7 +352,8 @@ function SummaryBoard({ capture, data, onRefresh }) {
     const check = checkSubmit(rows, amounts);
     setProblems(check.problems);
     if (!check.ok) {
-      push(check.message, "error");
+      if (check.lines?.length) push(check.title, "error", check.lines);
+      else push(check.message, "error");
       const first = check.problems.keys().next().value;
       if (first) document.querySelector(`[data-row-key="${first}"]`)?.scrollIntoView({ block: "center" });
       return;
@@ -363,12 +364,12 @@ function SummaryBoard({ capture, data, onRefresh }) {
       const captureId = await submitSummary(capture, lines);
       clearDraft();
       clearCaptureSession();
-      push(`All data submitted successfully! Capture ID: ${captureId}, total ${lines.length} rows.`);
+      push("Data submitted", "success", `Capture ID ${captureId} · ${lines.length} rows`);
       // Stay locked until the page is left, so a second click cannot submit it twice.
       later(() => navigate("/data-capture"), 1600);
     } catch (err) {
       setWorking(false);
-      push(err.message || "Submission failed.", "error");
+      push("Couldn't submit the data", "error", err.message);
     }
   };
 
@@ -387,7 +388,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
 
   return (
     <div className="relative h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
-      <Toast notice={notice} />
+      <Toast notice={notice} onClose={clear} />
       <div className="flex h-full min-h-[480px] flex-col gap-[clamp(6px,1.3dvh,10px)] overflow-hidden rounded-[22px] border border-white/55 bg-modal-bg px-[clamp(12px,1.8vw,24px)] py-[clamp(10px,2dvh,18px)] shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px] backdrop-saturate-[1.15]">
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
           <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">

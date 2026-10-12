@@ -9,6 +9,8 @@ import { useListView } from "@/components/shared/list/useListView";
 import { useSession } from "@/context/session";
 import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNotice } from "@/hooks/useNotice";
+import Toast from "@/components/shared/Toast.jsx";
 import AutoRenewFilterCard from "./AutoRenewFilterCard.jsx";
 import { approveRequest, fetchAutoRenew, rejectRequest, saveShare, undoRequest } from "./autoRenewApi";
 import ChargeDialog from "./ChargeDialog.jsx";
@@ -58,10 +60,9 @@ export default function AutoRenewPage() {
   const [serverCounts, setServerCounts] = useState(EMPTY_COUNTS);
   const [serverTabCounts, setServerTabCounts] = useState({ company: 0, group: 0 });
   const [loadedKey, setLoadedKey] = useState(null);
-  const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [busyId, setBusyId] = useState(null);
-  const [actionError, setActionError] = useState("");
+  const { notice, push, clear } = useNotice(5000, { stickyErrors: true });
   const [confirm, setConfirm] = useState(null); // { row, action: "reject" | "undo" }
   const [ledger, setLedger] = useState({ accounts: [], shareAccounts: [] });
   const [tab, setTab] = useState("company");
@@ -88,16 +89,15 @@ export default function AutoRenewPage() {
         setLedger({ accounts: data.accounts, shareAccounts: data.shareAccounts });
         setServerCounts(data.counts);
         setServerTabCounts(data.tabCounts);
-        setLoadError("");
         setLoadedKey(loadKey);
       })
       .catch((e) => {
         if (e.name === "AbortError") return;
-        setLoadError(e.message);
+        push("Couldn't load the list", "error", e.message, { label: "Retry", onClick: () => setReloadKey((k) => k + 1) });
         setLoadedKey(loadKey);
       });
     return () => controller.abort();
-  }, [loadKey, tab, range, ledgerTenantId]);
+  }, [loadKey, tab, range, ledgerTenantId, push]);
 
   const tabRows = useMemo(() => rows.filter((r) => r.kind === tab), [rows, tab]);
   // Status counts of the rows loaded, but a local Approve / Reject moves a row between them, so count what is on screen.
@@ -114,14 +114,14 @@ export default function AutoRenewPage() {
   const decide = async (row, action) => {
     if (busyId != null) return;
     setBusyId(row.id);
-    setActionError("");
+    clear();
     try {
       if (action === "approve") await approveRequest(row.id, periodCodeOf(row.periodKey), row.charge);
       else if (action === "reject") await rejectRequest(row.id);
       else await undoRequest(row.id);
       setReloadKey((k) => k + 1);
     } catch (e) {
-      setActionError(e.message);
+      push("Couldn't update the request", "error", e.message);
     } finally {
       setBusyId(null);
     }
@@ -272,7 +272,8 @@ export default function AutoRenewPage() {
   };
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast notice={notice} onClose={clear} />
       <AutoRenewFilterCard
         tab={tab}
         onTabChange={changeTab}
@@ -285,24 +286,6 @@ export default function AutoRenewPage() {
         onStatusChange={changeStatus}
         statusCounts={counts}
       />
-
-      {actionError && (
-        <div role="alert" className="flex flex-none items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-dash-down">
-          <span className="min-w-0">{actionError}</span>
-          <button type="button" onClick={() => setActionError("")} className="flex-none cursor-pointer border-none bg-transparent text-[12px] font-bold text-[#1d7bff]">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {loadError && (
-        <div role="alert" className="flex flex-none items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-dash-down">
-          <span className="min-w-0">{loadError}</span>
-          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="flex-none cursor-pointer border-none bg-transparent text-[12px] font-bold text-[#1d7bff]">
-            Retry
-          </button>
-        </div>
-      )}
 
       <DataTable columns={columns} noun="records" minWidth="min-w-0" fitWidth loading={loading} emptyMessage="Nothing to renew here" {...view.table} />
 

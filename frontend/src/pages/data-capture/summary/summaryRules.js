@@ -229,7 +229,10 @@ export function checkSubmit(rows, amounts) {
     const [key, why] = problems.entries().next().value;
     const row = rows.find((r) => r.key === key);
     const more = problems.size > 1 ? ` (and ${problems.size - 1} more)` : "";
-    return { ok: false, message: `Cannot submit: ${rowName(row)}: ${why}${more}.`, problems };
+    // `lines` is what the toast lists when several rows are wrong; with one problem it is empty and `message` says it.
+    const lines = problems.size > 1 ? [...problems].slice(0, 4).map(([k, w]) => `${rowName(rows.find((r) => r.key === k))}: ${w}`) : [];
+    if (problems.size > 4) lines.push(`and ${problems.size - 4} more`);
+    return { ok: false, message: `Cannot submit: ${rowName(row)}: ${why}${more}.`, title: `Fix ${problems.size} things to submit`, lines, problems };
   }
 
   const total = totalOf(rows, amounts);

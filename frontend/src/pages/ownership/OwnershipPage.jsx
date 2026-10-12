@@ -46,7 +46,7 @@ export default function OwnershipPage() {
   const viewer = useCurrentUser();
   const readOnly = Boolean(viewer?.readOnly);
   const mayChangeReadOnly = canSetReadOnly(viewer?.role);
-  const { notice, push } = useNotice(5500);
+  const { notice, push, clear } = useNotice(5500, { stickyErrors: true });
   const [tab, setTab] = useState("ownership");
   const [picked, setPicked] = useState(null); // the Group chip, null = the first one
   const [openId, setOpenId] = useState(null); // tenantId of the card being managed
@@ -96,11 +96,11 @@ export default function OwnershipPage() {
     leaveSelection();
     reload();
     if (failed === 0) push(done === 1 ? `"${ungroup.names[0]}" removed from group` : `Removed ${done} companies from group`);
-    else push(`${done} succeeded, ${failed} failed${message ? `: ${message}` : ""}`, "error");
+    else push(`${failed} failed, ${done} succeeded`, "error", message);
   };
 
   const doJoin = async () => {
-    if (!joinGroup) return push("Please select a group", "error");
+    if (!joinGroup) return push("Select a group", "error", "Choose the group to add the companies to.");
     setWorking(true);
     const ids = [...selected];
     const { done, failed, message } = await runAll(ids, (id) => setParent(id, joinGroup));
@@ -110,7 +110,7 @@ export default function OwnershipPage() {
       push(`Added ${done} ${done === 1 ? "company" : "companies"} to ${joinGroup}`);
       leaveSelection();
       pickGroup(joinGroup);
-    } else push(`${done} succeeded, ${failed} failed${message ? `: ${message}` : ""}`, "error");
+    } else push(`${failed} failed, ${done} succeeded`, "error", message);
   };
 
   const ask = (ids) => setUngroup({ ids, names: ids.map((id) => directory.companies.find((c) => c.tenantId === id)?.code ?? String(id)) });
@@ -123,7 +123,7 @@ export default function OwnershipPage() {
 
   return (
     <div className="relative py-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] gap-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] text-[length:max(12px,clamp(10.14px,calc(2.07dvh_-_2.09px),13px))] xl-screen:px-7 xl-screen:py-[22px] xl-screen:gap-[18px] flex h-full min-h-[520px] flex-col">
-      <Toast notice={notice} />
+      <Toast notice={notice} onClose={clear} />
       <div className="flex flex-none items-center gap-3 px-1">
         <SlideTabs
           options={TABS}
