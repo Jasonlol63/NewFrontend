@@ -5,12 +5,16 @@ import enSidebar from "./locales/en/sidebar.json";
 import enDashboard from "./locales/en/dashboard.json";
 import enDomain from "./locales/en/domain.json";
 import enAnnouncement from "./locales/en/announcement.json";
+import enAdmin from "./locales/en/admin.json";
+import enAccount from "./locales/en/account.json";
 import enNotification from "./locales/en/notification.json";
 import zhCommon from "./locales/zh/common.json";
 import zhSidebar from "./locales/zh/sidebar.json";
 import zhDashboard from "./locales/zh/dashboard.json";
 import zhDomain from "./locales/zh/domain.json";
 import zhAnnouncement from "./locales/zh/announcement.json";
+import zhAdmin from "./locales/zh/admin.json";
+import zhAccount from "./locales/zh/account.json";
 import zhNotification from "./locales/zh/notification.json";
 
 export const LANGUAGES = ["en", "zh"];
@@ -29,13 +33,13 @@ function initialLanguage() {
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement },
-    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement },
+    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount },
+    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount },
   },
   lng: initialLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement"],
+  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account"],
   interpolation: { escapeValue: false },
 });
 

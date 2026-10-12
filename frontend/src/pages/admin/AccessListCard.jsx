@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, Minus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
-  { value: "all", label: "All", title: "All" },
-  { value: "on", label: "Sel", title: "Selected" },
-  { value: "off", label: "Unsel", title: "Unselected" },
+  { value: "all", key: "all" },
+  { value: "on", key: "sel" },
+  { value: "off", key: "unsel" },
 ];
 
 /**
@@ -15,6 +16,7 @@ const FILTERS = [
  * adapt to the width the column really gets, not to the screen width.
  */
 export default function AccessListCard({ title, items, selected, onChange }) {
+  const { t } = useTranslation("admin");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [searching, setSearching] = useState(false);
@@ -78,8 +80,8 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         <button
           type="button"
           onClick={toggleAll}
-          title={allMatched ? "Clear" : "Select all"}
-          aria-label={allMatched ? `Clear ${title}` : `Select all ${title}`}
+          title={allMatched ? t("access.clear") : t("access.selectAll")}
+          aria-label={allMatched ? t("access.clearOf", { title }) : t("access.selectAllOf", { title })}
           className={cn(
             "flex size-[18px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] p-0 transition-colors @max-[340px]/card:size-4 @max-[340px]/card:rounded-[4px]",
             allMatched || someMatched
@@ -104,7 +106,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
               <button
                 key={f.value}
                 type="button"
-                title={f.title}
+                title={t(`access.${f.key}Title`)}
                 onClick={() => setFilter(f.value)}
                 className={cn(
                   "cursor-pointer whitespace-nowrap rounded-[7px] border-none px-[9px] py-[3px] text-[11.5px] font-bold @max-[380px]/card:px-2 @max-[340px]/card:px-[7px]",
@@ -113,18 +115,18 @@ export default function AccessListCard({ title, items, selected, onChange }) {
                     : "bg-transparent text-[#5b74a3]"
                 )}
               >
-                {f.label}
+                {t(`access.${f.key}`)}
               </button>
             ))}
           </div>
 
           {/* Only very wide columns keep the search box open; others use the search button. */}
-          <div className="hidden w-[170px] min-w-[110px] @min-[620px]/card:block">{searchInput({ placeholder: "Search" })}</div>
+          <div className="hidden w-[170px] min-w-[110px] @min-[620px]/card:block">{searchInput({ placeholder: t("access.search") })}</div>
           <button
             type="button"
             onClick={openSearch}
-            title="Search"
-            aria-label={`Search ${title}`}
+            title={t("access.search")}
+            aria-label={t("access.searchOf", { title })}
             className="relative flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#cfe0fb] bg-[#eaf2ff] text-brand-navy hover:bg-[#dce9ff] @max-[340px]/card:size-[26px] @min-[620px]/card:hidden"
           >
             <Search className="size-3.5" strokeWidth={2.2} />
@@ -136,11 +138,11 @@ export default function AccessListCard({ title, items, selected, onChange }) {
 
         {searching && (
           <div className="absolute inset-0 z-10 flex items-center gap-1.5 rounded-t-2xl bg-modal-float px-3 backdrop-blur-md">
-            <div className="min-w-0 flex-1">{searchInput({ ref: searchRef, placeholder: `Search ${title.toLowerCase()}` })}</div>
+            <div className="min-w-0 flex-1">{searchInput({ ref: searchRef, placeholder: t("access.searchOf", { title }) })}</div>
             <button
               type="button"
               onClick={() => setSearching(false)}
-              aria-label="Close search"
+              aria-label={t("access.closeSearch")}
               className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border border-[#cfe0fb] bg-[#eaf2ff] text-brand-navy hover:bg-[#dce9ff]"
             >
               <X className="size-3.5" strokeWidth={2.2} />
@@ -158,7 +160,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         )}
       >
         {shown.length === 0 ? (
-          <div className="col-span-full py-9 text-center text-[13px] text-dash-faint">No matches</div>
+          <div className="col-span-full py-9 text-center text-[13px] text-dash-faint">{t("access.noMatches")}</div>
         ) : (
           shown.map((it) => <AccessItem key={it.id} item={it} on={selected.has(it.id)} onToggle={() => toggle(it.id)} />)
         )}

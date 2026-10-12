@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog } from "radix-ui";
 import { Redo2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ const pillClass = {
  * Mount it only while open so every opening starts fresh.
  */
 export default function CurrencyChangesDialog({ changes, accountsById, saving = false, onClose, onConfirm }) {
+  const { t } = useTranslation("account");
   const [restored, setRestored] = useState(() => new Set());
   const [currency, setCurrency] = useState(changes[0]?.currency);
   const [tab, setTab] = useState(changes[0]?.removed.length ? "removed" : "added");
@@ -96,12 +98,12 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
         >
           <div className="flex flex-none flex-wrap items-center gap-3">
             <WarningIcon />
-            <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">Confirm changes</Dialog.Title>
+            <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">{t("changes.title")}</Dialog.Title>
             <div className="ml-auto flex flex-wrap gap-1.5">
-              {removedTotal > 0 && <SumChip className="bg-[#fee2e2] text-[#b91c1c]">{removedTotal} removed</SumChip>}
-              {addedTotal > 0 && <SumChip className="bg-[#d1fae5] text-[#047857]">{addedTotal} added</SumChip>}
+              {removedTotal > 0 && <SumChip className="bg-[#fee2e2] text-[#b91c1c]">{t("changes.removed", { count: removedTotal })}</SumChip>}
+              {addedTotal > 0 && <SumChip className="bg-[#d1fae5] text-[#047857]">{t("changes.added", { count: addedTotal })}</SumChip>}
               <SumChip className="bg-[#eef3fb] text-[#475569]">
-                {touched} {touched === 1 ? "currency" : "currencies"}
+                {touched === 1 ? t("changes.currencyOne", { count: touched }) : t("changes.currencyMany", { count: touched })}
               </SumChip>
             </div>
           </div>
@@ -138,26 +140,26 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                   {bothTabs ? (
                     <>
                       <TabButton on={shownTab === "removed"} tone="removed" onClick={() => setTab("removed")}>
-                        Removed {current.removed.length}
+                        {t("changes.tabRemoved", { count: current.removed.length })}
                       </TabButton>
                       <TabButton on={shownTab === "added"} tone="added" onClick={() => setTab("added")}>
-                        Added {current.added.length}
+                        {t("changes.tabAdded", { count: current.added.length })}
                       </TabButton>
                     </>
                   ) : (
                     <TabButton on tone={shownTab} disabled>
-                      {shownTab === "removed" ? "Removed" : "Added"} {ids.length}
+                      {shownTab === "removed" ? t("changes.tabRemoved", { count: ids.length }) : t("changes.tabAdded", { count: ids.length })}
                     </TabButton>
                   )}
                 </div>
-                <span className="hidden min-w-0 truncate text-[11.5px] text-dash-faint min-[821px]:block">Click an account to undo</span>
+                <span className="hidden min-w-0 truncate text-[11.5px] text-dash-faint min-[821px]:block">{t("changes.clickUndo")}</span>
                 <button
                   type="button"
                   onClick={toggleAll}
                   className="ml-auto inline-flex h-7 flex-none cursor-pointer items-center gap-1.5 rounded-lg border border-[#dbe5f3] bg-white px-2.5 text-xs font-bold text-brand-navy hover:bg-[#f1f6fd]"
                 >
                   {allUndone ? <Redo2 className="size-3" strokeWidth={2.8} /> : <Undo2 className="size-3" strokeWidth={2.8} />}
-                  {allUndone ? "Redo all" : "Undo all"}
+                  {allUndone ? t("changes.redoAll") : t("changes.undoAll")}
                 </button>
               </div>
               <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(128px,1fr))] content-start gap-2 overflow-y-auto p-2.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
@@ -168,7 +170,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                       key={id}
                       type="button"
                       onClick={() => toggle(id)}
-                      title={undone ? "Click to redo" : "Click to undo"}
+                      title={undone ? t("changes.clickToRedo") : t("changes.clickToUndo")}
                       className={cn(
                         "relative flex h-[46px] min-w-0 cursor-pointer flex-col justify-center rounded-[10px] border py-0 pl-[11px] pr-8 text-left transition-[background-color,opacity] hover:brightness-[0.97]",
                         undone ? pillClass.undone : pillClass[shownTab]
@@ -188,7 +190,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
 
           <div className="mt-3.5 flex flex-none gap-2.5">
             <Dialog.Close className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
-              Back to edit
+              {t("changes.back")}
             </Dialog.Close>
             <button
               type="button"
@@ -196,7 +198,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
               onClick={() => onConfirm(restoredList())}
               className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:bg-[#e5484d]"
             >
-              {saving ? "Saving…" : total ? `Confirm & Save (${total})` : "Nothing to save"}
+              {saving ? t("changes.saving") : total ? t("changes.confirm", { count: total }) : t("changes.nothing")}
             </button>
           </div>
         </Dialog.Content>

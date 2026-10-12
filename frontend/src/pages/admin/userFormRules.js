@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 // Pure rules for the Add / Edit User form: validation and the request bodies of /api/userlist.
 
 export const SECOND_PASSWORD_LENGTH = 6;
@@ -16,16 +17,16 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // The first problem with the form, or "" when it can be saved.
 export function validateUserForm({ mode, form, perms, isOwnerRow }) {
   const isAdd = mode === "add";
-  if (isAdd && !form.loginId.trim()) return "Login ID is required";
-  if (!form.name.trim()) return "Name is required";
-  if (!form.email.trim()) return "Email is required";
-  if (!EMAIL.test(form.email.trim())) return "Email is not valid";
-  if (isAdd && !form.password) return "Password is required";
+  if (isAdd && !form.loginId.trim()) return i18n.t("admin:validation.loginId");
+  if (!form.name.trim()) return i18n.t("admin:validation.name");
+  if (!form.email.trim()) return i18n.t("admin:validation.email");
+  if (!EMAIL.test(form.email.trim())) return i18n.t("admin:validation.emailInvalid");
+  if (isAdd && !form.password) return i18n.t("admin:validation.password");
   if (isOwnerRow) return "";
-  if (!form.role) return "Role is required";
+  if (!form.role) return i18n.t("admin:validation.role");
   // An empty permission list would be stored as a custom list with nothing in it, which the menu
   // reads as "no restriction": never send it.
-  if (perms.size === 0) return "Select at least one permission";
+  if (perms.size === 0) return i18n.t("admin:validation.permission");
   return "";
 }
 

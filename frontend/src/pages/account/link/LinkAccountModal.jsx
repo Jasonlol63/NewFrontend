@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Link2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { CheckListTools } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems } from "@/components/shared/form-modal/listSelection";
@@ -63,6 +66,8 @@ const other = (t) => (t === "bi" ? "uni" : "bi");
  * through is not sent again.
  */
 export default function LinkAccountModal({ account, accounts, tenantId, onClose, onSaved }) {
+  const { t: tr } = useTranslation(["account", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const [initial, setInitial] = useState(() => new Map()); // otherAccountId -> "bi" | "uni" | "in", as stored
   const [current, setCurrent] = useState(() => new Map());
   const [labels, setLabels] = useState(() => new Map());
@@ -70,7 +75,6 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -83,7 +87,7 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-        setMessage(err.message);
+        push(tr("errors.linkLoad"), "error", err.message);
         setLoading(false);
       });
     return () => controller.abort();
@@ -130,7 +134,6 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
 
   const save = async () => {
     if (saving || loading) return;
-    setMessage("");
     setSaving(true);
     const done = new Map(initial);
     try {
@@ -142,18 +145,22 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
       await onSaved(); // closes the modal
     } catch (err) {
       setInitial(done);
-      setMessage(err.message);
+      push(tr("errors.linkSave"), "error", err.message);
       setSaving(false);
     }
   };
 
-  const footerNote = message || (loading ? "Loading…" : current.size ? [`${count("bi")} bidirectional`, `${count("uni")} unidirectional`, count("in") ? `${count("in")} from others` : ""].filter(Boolean).join(" · ") : "");
-  const footerIsError = Boolean(message);
+  const footerNote = loading
+    ? tr("form.loading")
+    : current.size
+      ? [tr("link.countBi", { count: count("bi") }), tr("link.countUni", { count: count("uni") }), count("in") ? tr("link.countIn", { count: count("in") }) : ""].filter(Boolean).join(" · ")
+      : "";
+  const footerIsError = false;
 
   return (
     <FormModal
       icon={Link2}
-      title="Link Account"
+      title={tr("link.title")}
       onClose={onClose}
       onSave={save}
       saveDisabled={loading || saving}
@@ -191,6 +198,7 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
         onClear={clear}
         loading={loading}
       />
+      <Toast toasts={toasts} onClose={dismiss} />
     </FormModal>
   );
 }
@@ -200,17 +208,18 @@ const stackBody = "@max-[899px]/main:overflow-visible";
 
 // Link from + the mode bar (what a click adds as) + a small picture of what that mode means.
 function LinkTypeCard({ accountId, mode, setMode }) {
-  const hint = mode === "bi" ? "Clicked accounts are added as bidirectional: data syncs both ways." : `Clicked accounts are added as unidirectional: data flows from ${accountId} to the account.`;
+  const { t: tr } = useTranslation("account");
+  const hint = mode === "bi" ? tr("link.hintBi") : tr("link.hintUni", { id: accountId });
   const ModeArrow = TYPES[mode].Icon;
   return (
     <FormCard title="Link Type" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
-      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">Link from</p>
+      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">{tr("link.linkFrom")}</p>
       <div className="mb-3 flex h-9 items-center justify-between rounded-[10px] border border-modal-input-line bg-modal-input px-3 text-[13.5px] font-extrabold text-brand-navy shadow-[0_1px_3px_rgba(15,23,42,0.05)] modal-compact:mb-2 modal-compact:h-[30px] modal-tiny:h-7">
         <span className="truncate">{accountId}</span>
-        <span className="flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">THIS ACCOUNT</span>
+        <span className="flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">{tr("link.thisAccount")}</span>
       </div>
 
-      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">Add clicked accounts as</p>
+      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">{tr("link.addAs")}</p>
       <div className="grid grid-cols-2 gap-0.5 rounded-[10px] border border-modal-off-line bg-white/45 p-0.5">
         {MODES.map((key) => [key, TYPES[key]]).map(([key, t]) => (
           <button
@@ -224,7 +233,7 @@ function LinkTypeCard({ accountId, mode, setMode }) {
             )}
           >
             <t.Icon className="size-3.5 flex-none" strokeWidth={2.6} />
-            <span className="truncate">{t.label}</span>
+            <span className="truncate">{tr(`link.${key}`)}</span>
           </button>
         ))}
       </div>
@@ -233,7 +242,7 @@ function LinkTypeCard({ accountId, mode, setMode }) {
         <div className="flex items-center justify-center gap-2.5">
           <span className="grid h-9 min-w-16 max-w-[45%] place-items-center truncate rounded-[11px] border border-[#7fb2ff] bg-row-stripe px-3 text-[13px] font-extrabold text-brand-navy">{accountId}</span>
           <ModeArrow className={cn("h-[18px] w-11 flex-none", TYPES[mode].arrow)} strokeWidth={2.2} />
-          <span className="grid h-9 min-w-16 place-items-center rounded-[11px] border border-modal-off-line bg-modal-off px-3 text-[13px] font-extrabold text-[#374151]">Account</span>
+          <span className="grid h-9 min-w-16 place-items-center rounded-[11px] border border-modal-off-line bg-modal-off px-3 text-[13px] font-extrabold text-[#374151]">{tr("link.account")}</span>
         </div>
         <p className="m-0 mt-2.5 text-center text-[12px] leading-[1.45] text-[#475569]">{hint}</p>
       </div>
@@ -245,10 +254,11 @@ function LinkTypeCard({ accountId, mode, setMode }) {
 // A chip's arrow button moves it to the other group, × removes it. A link that points at this account can only be
 // made bidirectional (and back, until Save), never removed from here, so it has no ×.
 function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
+  const { t: tr } = useTranslation("account");
   return (
     <FormCard
-      title="Selected"
-      right={<CardCount>{current.size} selected</CardCount>}
+      title={tr("link.selected")}
+      right={<CardCount>{tr("link.selectedCount", { count: current.size })}</CardCount>}
       className={cn("flex-1 @max-[899px]/main:order-3", stackCard)}
       bodyClassName={stackBody}
     >
@@ -260,7 +270,7 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
           <div key={key} className="mb-3.5 last:mb-0">
             <div className={cn("mb-1.5 ml-px flex items-center gap-1.5 text-[12px] font-extrabold", t.heading)}>
               <t.Icon className="size-3.5" strokeWidth={2.6} />
-              {t.label}
+              {tr(`link.${key}`)}
               <span className={cn("ml-auto text-[11.5px]", t.count)}>{count(key)}</span>
             </div>
             {ids.length ? (
@@ -271,9 +281,9 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
                   const Switch = wasIncoming ? (key === "in" ? ArrowLeftRight : ArrowLeft) : TYPES[other(key)].Icon;
                   const switchTitle = wasIncoming
                     ? key === "in"
-                      ? "Make bidirectional"
-                      : "Back to one-way from them"
-                    : `Switch to ${TYPES[other(key)].label}`;
+                      ? tr("link.makeBi")
+                      : tr("link.backOneWay")
+                    : tr("link.switchTo", { type: tr(`link.${other(key)}`) });
                   return (
                     <span key={id} className={cn("inline-flex h-7 items-center gap-1 rounded-lg border pl-2.5 pr-1.5 text-[12px] font-extrabold", t.chip)}>
                       {labelOf(id)}
@@ -289,8 +299,8 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
                         <button
                           type="button"
                           onClick={() => onRemove(id)}
-                          title="Remove"
-                          aria-label={`Remove ${labelOf(id)}`}
+                          title={tr("link.remove")}
+                          aria-label={tr("link.removeOf", { id: labelOf(id) })}
                           className="flex cursor-pointer rounded-[5px] border-none bg-transparent p-[3px] opacity-55 hover:bg-white/80 hover:opacity-100"
                         >
                           <X className="size-[11px]" strokeWidth={3.2} />
@@ -301,7 +311,7 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
                 })}
               </div>
             ) : (
-              <div className="rounded-[10px] border border-dashed border-modal-off-line px-1.5 py-[9px] text-center text-[12px] text-[#8a96a8]">None</div>
+              <div className="rounded-[10px] border border-dashed border-modal-off-line px-1.5 py-[9px] text-center text-[12px] text-[#8a96a8]">{tr("link.none")}</div>
             )}
           </div>
         );
@@ -311,22 +321,21 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
 }
 
 function AccountsCard({ items, total, current, mode, query, onQuery, onClick, onSelectAll, onClear, loading }) {
+  const { t: tr } = useTranslation("account");
   return (
     <FormCard
-      title="Accounts"
+      title={tr("link.accounts")}
       right={
         <>
           <span className="flex items-center gap-3 text-[11.5px] font-semibold text-[#475569] @max-[599px]/main:hidden">
             {MODES.map((key) => [key, TYPES[key]]).map(([key, t]) => (
               <span key={key} className="inline-flex items-center gap-[5px]">
                 <i className={cn("size-2.5 rounded-[3px]", t.dot)} />
-                {t.label}
+                {tr(`link.${key}`)}
               </span>
             ))}
           </span>
-          <CardCount>
-            {current.size}/{total} selected
-          </CardCount>
+          <CardCount>{tr("link.accountsSelected", { selected: current.size, total })}</CardCount>
         </>
       }
       className={cn("flex-1 @max-[899px]/main:order-2", stackCard)}
@@ -335,7 +344,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
       <CheckListTools
         query={query}
         onQuery={onQuery}
-        placeholder="Search account"
+        placeholder={tr("link.searchAccount")}
         onSelectAll={onSelectAll}
         onClear={onClear}
         className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2"
@@ -356,7 +365,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
               type="button"
               onClick={() => onClick(p.value)}
               aria-pressed={Boolean(type)}
-              title={type === "in" ? "One-way from this account to you. Click to make it bidirectional." : t ? t.label : `Add as ${TYPES[mode].label.toLowerCase()}`}
+              title={type === "in" ? tr("link.tileIn") : type ? tr(`link.${type}`) : tr("link.addAsType", { type: tr(`link.${mode}`) })}
               className={cn(
                 "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-10 text-left text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
                 t ? t.tile : "border-modal-off-line bg-white/60 text-[#374151] hover:border-[#93c5fd]"
@@ -372,7 +381,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
           );
         })}
         {items.length === 0 && (
-          <div className="col-span-full py-6 text-center text-[12.5px] text-dash-faint">{loading ? "Loading…" : "No matches"}</div>
+          <div className="col-span-full py-6 text-center text-[12.5px] text-dash-faint">{loading ? tr("form.loading") : tr("link.noMatches")}</div>
         )}
       </div>
     </FormCard>

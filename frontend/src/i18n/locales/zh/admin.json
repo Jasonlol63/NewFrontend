@@ -1,0 +1,84 @@
+{
+  "col": {
+    "no": "序号",
+    "loginId": "登录ID",
+    "name": "名称",
+    "email": "邮箱",
+    "role": "角色",
+    "status": "状态",
+    "lastLogin": "最后登录",
+    "lastLogout": "最后登出",
+    "createdBy": "创建人",
+    "action": "操作"
+  },
+  "page": {
+    "add": "新增用户",
+    "search": "搜索登录ID、名称、邮箱",
+    "edit": "编辑用户",
+    "noEditPermission": "没有编辑权限"
+  },
+  "form": {
+    "add": "新增用户",
+    "edit": "编辑用户",
+    "info": "用户信息",
+    "loginId": "登录ID",
+    "name": "名称",
+    "password": "密码",
+    "secondary": "二级密码",
+    "role": "角色",
+    "selectRole": "选择角色",
+    "email": "邮箱",
+    "permissions": "权限",
+    "readOnly": "只读",
+    "account": "账户",
+    "process": "合同"
+  },
+  "permission": {
+    "home": "首页",
+    "admin": "管理员",
+    "account": "账户",
+    "ownership": "股权",
+    "process": "合同",
+    "datacapture": "数据采集",
+    "payment": "交易付款",
+    "report": "报表",
+    "maintenance": "维护"
+  },
+  "access": {
+    "all": "全部",
+    "sel": "已选",
+    "unsel": "未选",
+    "allTitle": "全部",
+    "selTitle": "已选择",
+    "unselTitle": "未选择",
+    "selectAll": "全选",
+    "clear": "清除",
+    "selectAllOf": "全选{{title}}",
+    "clearOf": "清除{{title}}",
+    "search": "搜索",
+    "searchOf": "搜索{{title}}",
+    "closeSearch": "关闭搜索",
+    "noMatches": "没有匹配项"
+  },
+  "toast": {
+    "added": "用户已新增：{{id}}",
+    "saved": "用户已保存"
+  },
+  "errors": {
+    "add": "无法新增用户",
+    "save": "无法保存用户",
+    "list": "无法加载用户",
+    "form": "无法加载表单数据",
+    "scope": "无法切换公司"
+  },
+  "validation": {
+    "loginId": "请输入登录ID",
+    "name": "请输入名称",
+    "email": "请输入邮箱",
+    "emailInvalid": "请输入有效的邮箱",
+    "password": "请输入密码",
+    "secondary": "二级密码必须是 6 位数字",
+    "role": "请选择角色",
+    "permission": "请至少选择一项权限"
+  }
+}

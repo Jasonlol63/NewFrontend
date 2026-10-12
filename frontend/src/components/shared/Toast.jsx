@@ -74,18 +74,13 @@ function ToastCard({ notice, onClose }) {
  * What the last actions did, over the top of the page. toasts = [{ id, message, detail?, level, at, ms }] (see hooks/useNotice):
  * `message` is the headline, `detail` an optional second line, or an array of lines for several problems at once.
  * Several can be on screen at once, stacked in the order they came, each one going away when its own countdown bar ends
- * (`ms`; null = stays until closed). onClose(id) is the X. It is drawn into #main-overlay (the content area, above the
- * full-area modals) when the layout has it, else in place: put it in a `relative` page.
+ * (`ms`; null = stays until closed). onClose(id) is the X. Its cards are drawn into #toast-stack (top of the content area,
+ * above the modals, shared by every Toast) when the layout has it, else in place: put it in a `relative` page.
  */
 export default function Toast({ toasts, onClose }) {
   if (!toasts?.length) return null;
-  const root = typeof document === "undefined" ? null : document.getElementById("main-overlay");
-  const stack = (
-    <div className="pointer-events-none absolute inset-x-0 top-3 z-[80] flex flex-col items-center gap-2 px-4">
-      {toasts.map((n) => (
-        <ToastCard key={n.id} notice={n} onClose={onClose} />
-      ))}
-    </div>
-  );
-  return root ? createPortal(stack, root) : stack;
+  const root = typeof document === "undefined" ? null : document.getElementById("toast-stack");
+  const cards = toasts.map((n) => <ToastCard key={n.id} notice={n} onClose={onClose} />);
+  if (root) return createPortal(cards, root);
+  return <div className="pointer-events-none absolute inset-x-0 top-3 z-[80] flex flex-col items-center gap-2 px-4">{cards}</div>;
 }

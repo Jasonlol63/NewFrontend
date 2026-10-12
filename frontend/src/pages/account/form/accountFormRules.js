@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { toIsoDate } from "@/lib/date";
 import { PRESET_DAYS } from "./accountFormOptions";
 
@@ -55,14 +56,14 @@ export function alertPayload(alert, { keepConfig }) {
 
 // The first problem with the form, or "" when it can be saved.
 export function validateAccountForm({ mode, form, pickedCount, tenantIds, scopeTenantId }) {
-  if (mode === "add" && !form.accountId.trim()) return "Account ID is required";
-  if (!form.name.trim()) return "Name is required";
-  if (!form.role) return "Role is required";
-  if (mode === "add" && !form.password) return "Password is required";
-  if (pickedCount === 0) return "Select at least one currency";
-  if (tenantIds.length === 0) return "Select at least one company";
+  if (mode === "add" && !form.accountId.trim()) return i18n.t("account:validation.accountId");
+  if (!form.name.trim()) return i18n.t("account:validation.name");
+  if (!form.role) return i18n.t("account:validation.role");
+  if (mode === "add" && !form.password) return i18n.t("account:validation.password");
+  if (pickedCount === 0) return i18n.t("account:validation.currency");
+  if (tenantIds.length === 0) return i18n.t("account:validation.company");
   // The new account's currencies are saved for the company being viewed, so it has to be one of them.
-  if (mode === "add" && !tenantIds.includes(scopeTenantId)) return "The current company must stay selected";
+  if (mode === "add" && !tenantIds.includes(scopeTenantId)) return i18n.t("account:validation.currentCompany");
   return "";
 }
 

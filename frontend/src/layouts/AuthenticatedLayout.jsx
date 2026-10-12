@@ -84,6 +84,8 @@ function Shell() {
           {ready && <Outlet />}
         </main>
         <div id="main-overlay" />
+        {/* Every Toast draws its cards here, so toasts of the page and of its modals stack in one column. */}
+        <div id="toast-stack" className="pointer-events-none absolute inset-x-0 top-3 z-[80] flex flex-col items-center gap-2 px-4" />
         <NotificationPanel
           open={panelOpen}
           onClose={closePanel}

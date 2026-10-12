@@ -1,0 +1,84 @@
+{
+  "col": {
+    "no": "No",
+    "loginId": "Login ID",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "lastLogin": "Last Login",
+    "lastLogout": "Last Logout",
+    "createdBy": "Created By",
+    "action": "Action"
+  },
+  "page": {
+    "add": "Add User",
+    "search": "Search Login ID, Name, Email",
+    "edit": "Edit user",
+    "noEditPermission": "No permission to edit"
+  },
+  "form": {
+    "add": "Add User",
+    "edit": "Edit User",
+    "info": "User Information",
+    "loginId": "Login ID",
+    "name": "Name",
+    "password": "Password",
+    "secondary": "2nd Password",
+    "role": "Role",
+    "selectRole": "Select Role",
+    "email": "Email",
+    "permissions": "Permissions",
+    "readOnly": "Read only",
+    "account": "Account",
+    "process": "Process"
+  },
+  "permission": {
+    "home": "Home",
+    "admin": "Admin",
+    "account": "Account",
+    "ownership": "Ownership",
+    "process": "Process",
+    "datacapture": "Data Capture",
+    "payment": "Transaction Payment",
+    "report": "Report",
+    "maintenance": "Maintenance"
+  },
+  "access": {
+    "all": "All",
+    "sel": "Sel",
+    "unsel": "Unsel",
+    "allTitle": "All",
+    "selTitle": "Selected",
+    "unselTitle": "Unselected",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "selectAllOf": "Select all {{title}}",
+    "clearOf": "Clear {{title}}",
+    "search": "Search",
+    "searchOf": "Search {{title}}",
+    "closeSearch": "Close search",
+    "noMatches": "No matches"
+  },
+  "toast": {
+    "added": "User added: {{id}}",
+    "saved": "User saved"
+  },
+  "errors": {
+    "add": "Could not add the user",
+    "save": "Could not save the user",
+    "list": "Could not load the users",
+    "form": "Could not load the form data",
+    "scope": "Couldn't switch company"
+  },
+  "validation": {
+    "loginId": "Enter a Login ID",
+    "name": "Enter a name",
+    "email": "Enter an email",
+    "emailInvalid": "Enter a valid email",
+    "password": "Enter a password",
+    "secondary": "2nd password must be 6 digits",
+    "role": "Select a role",
+    "permission": "Select at least one permission"
+  }
+}

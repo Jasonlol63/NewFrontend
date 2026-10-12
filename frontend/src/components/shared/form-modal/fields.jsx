@@ -70,7 +70,8 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * options: [{ value, label }]. The list is exactly as wide as the trigger, opens below it
  * (above when there's no room) and scrolls inside itself if the screen is too short.
  * onClear: while a value is chosen, a small x inside the box clears it (onClear is called).
- * capped: the list is at most 280px high (as high as a SearchSelectField list) and scrolls, for a long list.
+ * capped: the list is at most 280px high (as high as a SearchSelectField list) and scrolls, for a long list; a number sets
+ * that height in px instead (e.g. capped={200}).
  * uppercase: the shown value, the placeholder and the options are all upper case (the popup is outside the modal, so it
  * needs the class itself).
  */
@@ -107,9 +108,10 @@ export function SelectField({ value, onChange, options, placeholder: placeholder
           position="popper"
           sideOffset={6}
           collisionPadding={8}
+          style={capped ? { maxHeight: `min(${capped === true ? 280 : capped}px, var(--radix-select-content-available-height))` } : undefined}
           className={cn(
             "z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
-            capped ? "max-h-[min(280px,var(--radix-select-content-available-height))]" : "max-h-(--radix-select-content-available-height)",
+            !capped && "max-h-(--radix-select-content-available-height)",
             uppercase && "uppercase"
           )}
         >

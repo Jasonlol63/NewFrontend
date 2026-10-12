@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Coins, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { SelectField, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
@@ -38,7 +41,14 @@ const TILE_STATE = {
 };
 
 export default function CurrencySettingModal({ tenantId, accounts, onClose, onSaved }) {
+  const { t } = useTranslation(["account", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const { data, error: loadError, loading } = useCurrencyHoldings(tenantId, accounts);
+  // Holdings that did not load are an error toast (once per error).
+  useEffect(() => {
+    if (loadError) push(t("errors.settingLoad"), "error", loadError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadError]);
   const [currencies, setCurrencies] = useState([]); // codes, in the order shown
   const [meta, setMeta] = useState({}); // code -> { id, deletable }
   const [orig, setOrig] = useState({}); // saved
@@ -47,7 +57,6 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [review, setReview] = useState(null); // changes shown in the confirmation, null = closed
-  const [message, setMessage] = useState(""); // the backend's error or a problem with the changes
   const [saving, setSaving] = useState(false);
 
   // Fill the state once the data has arrived.
@@ -91,7 +100,6 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
       setActive(code);
       return;
     }
-    setMessage("");
     try {
       const created = await createCurrency(tenantId, code);
       setCurrencies((list) => [...list, code]);
@@ -99,18 +107,19 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
       setOrig((o) => ({ ...o, [code]: new Set() }));
       setDraft((d) => ({ ...d, [code]: new Set() }));
       setActive(code);
+      push(t("toast.currencyCreated", { code }));
     } catch (err) {
-      setMessage(err.message);
+      push(t("errors.currencyCreate"), "error", err.message);
     }
   };
   const removeCurrency = async (code) => {
-    setMessage("");
     try {
       await deleteCurrency(tenantId, meta[code].id);
     } catch (err) {
-      setMessage(err.message);
+      push(t("errors.currencyDelete"), "error", err.message);
       return;
     }
+    push(t("toast.currencyDeleted", { code }));
     const rest = currencies.filter((c) => c !== code);
     setCurrencies(rest);
     const drop = (h) => Object.fromEntries(Object.entries(h).filter(([c]) => c !== code));
@@ -143,11 +152,10 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
     if (stranded.length) {
       setDraft(final);
       setReview(null);
-      setMessage(`Every account needs at least one currency. These would have none: ${stranded.join(", ")}`);
+      push(t("errors.stranded"), "error", t("errors.strandedList", { list: stranded.join(", ") }));
       return;
     }
 
-    setMessage("");
     setSaving(true);
     try {
       await saveHoldings(
@@ -169,20 +177,20 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
       }
       setDraft(final);
       setReview(null);
-      setMessage(err.message);
+      push(t("errors.settingSave"), "error", err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const footerNote = message || loadError || (loading ? "Loading…" : "");
-  const footerIsError = Boolean(message || loadError);
+  const footerNote = loading ? t("form.loading") : "";
+  const footerIsError = false;
 
   return (
     <>
       <FormModal
         icon={Coins}
-        title="Currency Setting"
+        title={t("setting.title")}
         onClose={() => !saving && onClose()}
         onSave={() => setReview(changes)}
         saveDisabled={!changeCount || loading || saving || Boolean(loadError)}
@@ -201,7 +209,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
         }
         saveLabel={
           <>
-            Save
+            {t("setting.save")}
             {changeCount > 0 && <span className="ml-0.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-white/25 px-1.5 text-[11.5px] font-extrabold">{changeCount}</span>}
           </>
         }
@@ -226,7 +234,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
         <FormCard
           title={
             <span className="flex items-center gap-2">
-              Account
+              {t("setting.account")}
               <span className="inline-flex h-[22px] items-center rounded-full @max-[359px]/main:hidden bg-brand-sweep px-2.5 text-[11.5px] font-extrabold tracking-[0.3px] text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]">{active}</span>
             </span>
           }
@@ -238,7 +246,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
               </span>
               <span className="@max-[419px]/main:hidden">
                 <CardCount>
-                  {activeSet.size} hold {active}
+                  {t("setting.holdCount", { count: activeSet.size, currency: active })}
                 </CardCount>
               </span>
               <button
@@ -247,7 +255,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                 disabled={!shown.length}
                 className={cn(primaryButtonClass, "h-8 flex-none px-4 text-[12.5px] disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-7 modal-tiny:h-[26px]")}
               >
-                {allShownHeld ? "Clear All" : "Select All"}
+                {allShownHeld ? t("setting.clearAll") : t("setting.selectAll")}
               </button>
             </>
           }
@@ -260,9 +268,9 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
 
           <div className={cn("min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-compact:p-2.5 modal-tiny:p-2", stackBody)}>
             <div className="mb-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-dash-sub modal-compact:mb-2">
-              <Legend className="border-[#7fb2ff] bg-[#eaf3ff]">Holds</Legend>
-              <Legend className="border-dashed border-[#f87171] bg-[#fff5f5]">Will be removed</Legend>
-              <Legend className="border-[#34d399] bg-[#ecfdf5]">Newly added</Legend>
+              <Legend className="border-[#7fb2ff] bg-[#eaf3ff]">{t("setting.legendHolds")}</Legend>
+              <Legend className="border-dashed border-[#f87171] bg-[#fff5f5]">{t("setting.legendRemove")}</Legend>
+              <Legend className="border-[#34d399] bg-[#ecfdf5]">{t("setting.legendNew")}</Legend>
             </div>
 
             {shown.length ? (
@@ -280,8 +288,8 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                         TILE_STATE[state]
                       )}
                     >
-                      {state === "rm" && <Tag className="bg-[#fee2e2] text-[#b91c1c]">Remove</Tag>}
-                      {state === "new" && <Tag className="bg-[#d1fae5] text-[#047857]">New</Tag>}
+                      {state === "rm" && <Tag className="bg-[#fee2e2] text-[#b91c1c]">{t("setting.tagRemove")}</Tag>}
+                      {state === "new" && <Tag className="bg-[#d1fae5] text-[#047857]">{t("setting.tagNew")}</Tag>}
                       <b className={cn("truncate text-[13.5px] font-extrabold text-[#374151]", state === "on" && "text-brand-navy", state === "new" && "text-[#065f46]", state === "rm" && "text-[#b91c1c] line-through decoration-[1.5px]")}>
                         {a.accountId}
                       </b>
@@ -291,10 +299,11 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                 })}
               </div>
             ) : (
-              <p className="m-0 p-6 text-center text-[13px] text-dash-faint">No account matches.</p>
+              <p className="m-0 p-6 text-center text-[13px] text-dash-faint">{t("setting.noMatch")}</p>
             )}
           </div>
         </FormCard>
+        <Toast toasts={toasts} onClose={dismiss} />
       </FormModal>
 
       {review && (
@@ -316,14 +325,15 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
 
 // Search box + Filter Row select; the caller sizes the search box through className.
 function AccountFilters({ query, onQuery, filter, onFilter, className }) {
+  const { t } = useTranslation("account");
   return (
     <>
       <label className={cn("relative block", className)}>
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dash-faint" strokeWidth={2.2} />
-        <TextInput value={query} onChange={(e) => onQuery(e.target.value)} placeholder="Account or Name" aria-label="Search Account or Name" className="rounded-full pl-8" />
+        <TextInput value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t("setting.searchPlaceholder")} aria-label={t("setting.searchLabel")} className="rounded-full pl-8" />
       </label>
       <div className="w-[124px] flex-none">
-        <SelectField value={filter} onChange={onFilter} options={FILTER_OPTIONS} />
+        <SelectField value={filter} onChange={onFilter} options={FILTER_OPTIONS.map((o) => ({ ...o, label: t(`setting.filter${o.value[0].toUpperCase()}${o.value.slice(1)}`) }))} />
       </div>
     </>
   );
@@ -344,6 +354,7 @@ function Tag({ className, children }) {
 
 // Add Currency + the Currency list (tabs; in Delete mode a click asks to delete that currency).
 function CurrencyManager({ currencies, active, onPick, changed, counts, deletable, onAdd, onRemove }) {
+  const { t } = useTranslation("account");
   const [code, setCode] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [toDelete, setToDelete] = useState(null);
@@ -357,20 +368,20 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
 
   return (
     <>
-      <FormCard title="Add Currency" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
+      <FormCard title={t("setting.addCurrency")} className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
         <div className="flex items-center gap-2">
           <TextInput
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/[^a-z]/gi, "").slice(0, 5))}
             onKeyDown={(e) => e.key === "Enter" && add()}
-            placeholder="e.g. MYR"
-            aria-label="New currency code"
+            placeholder={t("setting.placeholder")}
+            aria-label={t("form.newCurrencyCode")}
             autoComplete="off"
             className="min-w-0 flex-1 uppercase"
           />
           <button type="button" onClick={add} className={cn(primaryButtonClass, "h-9 flex-none px-3 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7")}>
             <Plus className="size-3.5" strokeWidth={2.6} />
-            Add
+            {t("setting.add")}
           </button>
           <button
             type="button"
@@ -382,14 +393,14 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
             )}
           >
             <Trash2 className="size-3.5" strokeWidth={2.2} />
-            {deleting ? "Done" : "Delete"}
+            {deleting ? t("form.done") : t("form.delete")}
           </button>
         </div>
       </FormCard>
 
       <FormCard
-        title="Currency"
-        right={<CardCount>{currencies.length} added</CardCount>}
+        title={t("setting.currency")}
+        right={<CardCount>{t("setting.addedCount", { count: currencies.length })}</CardCount>}
         className={cn("flex-1 @max-[899px]/main:order-2", stackCard)}
         bodyClassName={stackBody}
       >
@@ -405,10 +416,10 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
                 title={
                   deleting
                     ? deletable(c)
-                      ? `Delete ${c}`
-                      : "Synced from a subsidiary, can't be deleted"
+                      ? t("form.deleteCode", { code: c })
+                      : t("setting.synced")
                     : changed.has(c)
-                      ? "Unsaved changes"
+                      ? t("setting.unsaved")
                       : undefined
                 }
                 aria-pressed={deleting ? undefined : on}

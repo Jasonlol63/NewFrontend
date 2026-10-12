@@ -76,19 +76,41 @@
     "irreversible": "此操作无法撤销。"
   },
   "rowActions": {
-    "statusFailed": "状态未更改",
-    "deleteFailed": "删除失败"
+    "statusFailed": "无法更改状态",
+    "deleteFailed": "无法删除{{noun}}",
+    "deleted": "{{noun}}已删除",
+    "deletedMany": "已删除 {{count}} 个{{noun}}"
   },
   "nouns": {
     "domain": "域名",
     "domains": "域名",
     "announcement": "公告",
-    "maintenance notice": "维护通知"
+    "maintenance notice": "维护通知",
+    "user": "用户",
+    "users": "用户",
+    "account": "账户",
+    "accounts": "账户",
+    "currency": "货币"
   },
   "verbs": {
     "Delete": "删除"
   },
   "verbsPast": {
     "deleted": "删除"
-  }
+  },
+  "list": {
+    "showAll": "显示全部",
+    "showActive": "显示启用",
+    "showInactive": "显示停用",
+    "group": "集团:",
+    "company": "公司:",
+    "delete": "删除 ({{count}})",
+    "statusClick": "点击更改状态"
+  },
+  "status": {
+    "active": "启用",
+    "inactive": "停用"
+  },
+  "selectAll": "全选",
+  "noMatches": "没有匹配项"
 }

@@ -76,10 +76,27 @@
     "irreversible": "This action can't be undone."
   },
   "rowActions": {
-    "statusFailed": "Status not changed",
-    "deleteFailed": "Delete failed"
+    "statusFailed": "Could not change the status",
+    "deleteFailed": "Could not delete the {{noun}}",
+    "deleted": "{{noun}} deleted",
+    "deletedMany": "{{count}} {{noun}}s deleted"
   },
   "nouns": {},
   "verbs": {},
-  "verbsPast": {}
+  "verbsPast": {},
+  "list": {
+    "showAll": "Show All",
+    "showActive": "Show Active",
+    "showInactive": "Show Inactive",
+    "group": "Group:",
+    "company": "Company:",
+    "delete": "Delete ({{count}})",
+    "statusClick": "Click to change status"
+  },
+  "status": {
+    "active": "active",
+    "inactive": "inactive"
+  },
+  "selectAll": "Select all",
+  "noMatches": "No matches"
 }

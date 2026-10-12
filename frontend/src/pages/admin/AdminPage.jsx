@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { UserPlus } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import ListToolbar, { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -7,7 +8,9 @@ import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
+import Toast from "@/components/shared/Toast.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNotice } from "@/hooks/useNotice";
 import { postJson } from "@/lib/api";
 import { ROLE_BADGE, filterUsers, normalizeUserRow, roleLabel, rowCapabilities, sortUsers } from "./userListRules";
 import UserFormModal from "./UserFormModal.jsx";
@@ -17,6 +20,8 @@ const canSelect = (u) => u.caps.canDelete;
 const rowKey = (u) => `${u.isOwnerShadow ? "owner" : "user"}-${u.id}`;
 
 export default function AdminPage() {
+  const { t } = useTranslation(["admin", "common", "sidebar"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const viewer = useCurrentUser();
   // null = closed, { mode: "add" } or { mode: "edit", user } = open
   const [userForm, setUserForm] = useState(null);
@@ -27,15 +32,17 @@ export default function AdminPage() {
     rowKey,
   });
 
-  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again.
-  // A failure is thrown back to the modal, which shows the message.
+  // Posts what the modal built ({ url, body }); on success the modal closes, the list is fetched again and a toast says so.
+  // A failure is thrown back to the modal, which shows it as a toast.
   const submitUser = useCallback(
-    async ({ url, body }) => {
+    async ({ url, body }, meta) => {
       await postJson(url, body);
+      const adding = userForm?.mode === "add";
       closeUserForm();
       reload();
+      push(adding ? t("toast.added", { id: meta?.loginId }) : t("toast.saved"));
     },
-    [closeUserForm, reload]
+    [closeUserForm, reload, push, t, userForm]
   );
 
   const rowsWithCaps = useMemo(() => rows.map((u) => ({ ...u, caps: rowCapabilities(u, viewer) })), [rows, viewer]);
@@ -47,21 +54,24 @@ export default function AdminPage() {
     noun: "user",
     label: (u) => u.loginId,
     onDeleted: view.clearSelection,
+    push,
   });
 
   const columns = [
-    { key: "no", label: "No", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "loginId", label: "Login ID", cellClassName: "font-semibold whitespace-nowrap", render: (u) => u.loginId },
-    { key: "name", label: "Name", cellClassName: "whitespace-nowrap", render: (u) => u.name },
-    { key: "email", label: "Email", cellClassName: "text-[#374151]", render: (u) => u.email },
+    { key: "no", label: t("col.no"), sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+    { key: "loginId", label: t("col.loginId"), cellClassName: "font-semibold whitespace-nowrap", render: (u) => u.loginId },
+    { key: "name", label: t("col.name"), cellClassName: "whitespace-nowrap", render: (u) => u.name },
+    { key: "email", label: t("col.email"), cellClassName: "text-[#374151]", render: (u) => u.email },
     {
       key: "role",
-      label: "Role",
-      render: (u) => <Badge className={ROLE_BADGE[u.role] ?? ROLE_BADGE.customer_service}>{roleLabel(u.role)}</Badge>,
+      label: t("col.role"),
+      render: (u) => (
+        <Badge className={ROLE_BADGE[u.role] ?? ROLE_BADGE.customer_service}>{t(`sidebar:role.${u.role}`, { defaultValue: roleLabel(u.role) })}</Badge>
+      ),
     },
     {
       key: "status",
-      label: "Status",
+      label: t("col.status"),
       render: (u) => (
         <StatusBadge
           status={u.status}
@@ -70,28 +80,37 @@ export default function AdminPage() {
         />
       ),
     },
-    { key: "lastLogin", label: "Last Login", render: (u) => <DateText value={u.lastLogin} /> },
-    { key: "lastLogout", label: "Last Logout", cellClassName: "text-[#374151]", render: (u) => <DateText value={u.lastLogout} /> },
-    { key: "createdBy", label: "Created By", cellClassName: "whitespace-nowrap", render: (u) => u.createdBy || "-" },
+    { key: "lastLogin", label: t("col.lastLogin"), render: (u) => <DateText value={u.lastLogin} variant="gradient" /> },
+    { key: "lastLogout", label: t("col.lastLogout"), cellClassName: "text-[#374151]", render: (u) => <DateText value={u.lastLogout} variant="gradient" /> },
+    { key: "createdBy", label: t("col.createdBy"), cellClassName: "whitespace-nowrap", render: (u) => u.createdBy || "-" },
     {
       key: "action",
-      label: "Action",
+      label: t("col.action"),
       sortable: false,
       className: "text-center",
       render: (u) => (
         <IconAction
           disabled={!u.caps.canEdit}
-          title={u.caps.canEdit ? "Edit user" : "No permission to edit"}
+          title={u.caps.canEdit ? t("page.edit") : t("page.noEditPermission")}
           onClick={() => setUserForm({ mode: "edit", user: u })}
         />
       ),
     },
   ];
 
-  const pageError = scope.error || listError;
+  // A list or company that did not load is an error toast (once per error).
+  useEffect(() => {
+    if (listError) push(t("errors.list"), "error", listError, { label: t("common:retry"), onClick: reload });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listError]);
+  useEffect(() => {
+    if (scope.error) push(t("errors.scope"), "error", scope.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.error]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <ListToolbar
         primaryAction={
           <PrimaryButton
@@ -99,23 +118,17 @@ export default function AdminPage() {
             disabled={!scope.tenantId || Boolean(viewer?.readOnly)}
             onClick={() => setUserForm({ mode: "add" })}
           >
-            Add User
+            {t("page.add")}
           </PrimaryButton>
         }
         actions={<DeleteButton count={view.selectedRows.length} onClick={() => actions.requestDelete(view.selectedRows)} />}
-        searchPlaceholder="Search Login ID, Name, Email"
+        searchPlaceholder={t("page.search")}
         search={view.search}
         onSearchChange={view.setSearch}
         chips={view.chips}
         onChipChange={view.setChip}
         scope={scope}
       />
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
 
       <DataTable
         columns={columns}

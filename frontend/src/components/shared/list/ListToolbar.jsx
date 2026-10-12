@@ -1,4 +1,5 @@
 import { Search, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import FilterRow from "@/components/shared/FilterRow.jsx";
@@ -45,12 +46,14 @@ export function SecondaryButton({ icon: Icon, children, className, ...props }) {
 
 // iconOnly: just the trash can (and the count once something is selected), for toolbars that are short of room.
 export function DeleteButton({ count, iconOnly = false, ...props }) {
+  const { t } = useTranslation();
+  const text = t("list.delete", { count });
   return (
     <button
       type="button"
       disabled={count === 0}
-      aria-label={iconOnly ? `Delete (${count})` : undefined}
-      title={iconOnly ? `Delete (${count})` : undefined}
+      aria-label={iconOnly ? text : undefined}
+      title={iconOnly ? text : undefined}
       className={cn(
         buttonBase,
         iconOnly && "h-9 min-w-9 justify-center px-2.5 py-0",
@@ -59,7 +62,7 @@ export function DeleteButton({ count, iconOnly = false, ...props }) {
       {...props}
     >
       <Trash2 className="size-4" strokeWidth={2.2} />
-      {iconOnly ? count > 0 && <span>{count}</span> : `Delete (${count})`}
+      {iconOnly ? count > 0 && <span>{count}</span> : text}
     </button>
   );
 }
@@ -78,6 +81,7 @@ export default function ListToolbar({
   onChipChange,
   scope,
 }) {
+  const { t } = useTranslation();
   return (
     <section
       className={cn(
@@ -99,9 +103,9 @@ export default function ListToolbar({
         </label>
 
         <div className="flex flex-wrap items-center gap-2">
-          <FilterChip label="Show All" checked={chips.showAll} onChange={(v) => onChipChange("showAll", v)} />
-          <FilterChip label="Show Active" checked={chips.showActive} onChange={(v) => onChipChange("showActive", v)} />
-          <FilterChip label="Show Inactive" checked={chips.showInactive} onChange={(v) => onChipChange("showInactive", v)} />
+          <FilterChip label={t("list.showAll")} checked={chips.showAll} onChange={(v) => onChipChange("showAll", v)} />
+          <FilterChip label={t("list.showActive")} checked={chips.showActive} onChange={(v) => onChipChange("showActive", v)} />
+          <FilterChip label={t("list.showInactive")} checked={chips.showInactive} onChange={(v) => onChipChange("showInactive", v)} />
         </div>
 
         <div className="ml-auto flex flex-none items-center gap-2.5">{actions}</div>
@@ -109,7 +113,7 @@ export default function ListToolbar({
 
       <div className="flex flex-col gap-2 px-4 pt-2 pb-2.5 short:gap-1.5 short:pt-1.5 short:pb-2">
         {scope.showGroups && (
-          <FilterRow label="Group ID:">
+          <FilterRow label={t("list.group")}>
             <SegmentGroup
               options={scope.groupOptions}
               value={scope.group}
@@ -120,7 +124,7 @@ export default function ListToolbar({
         )}
         {/* A Group with no companies has nothing to pick, so the Company row is hidden. */}
         {scope.companyOptions.length > 0 && (
-          <FilterRow label="Company:">
+          <FilterRow label={t("list.company")}>
             <SegmentGroup
               options={scope.companyOptions}
               value={scope.company}

@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { UserPen, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { Field, PasswordInput, SelectField, TextInput, ToggleSwitch } from "@/components/shared/form-modal/fields.jsx";
 import AccessListCard, { Count } from "./AccessListCard.jsx";
 import { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, roleOptionsFor } from "./addUserOptions";
@@ -40,9 +43,11 @@ const PERMISSION_KEYS = new Set(PERMISSIONS.map((p) => p.key));
  * passwords), so it shows just the information card.
  */
 export default function UserFormModal({ mode = "add", user, tenantId, companyCode, viewer, onClose, onSave }) {
+  const { t } = useTranslation(["admin", "common", "sidebar"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const isEdit = mode === "edit";
   const isOwnerRow = isEdit && Boolean(user?.isOwnerShadow);
-  const title = isEdit ? "Edit User" : "Add User";
+  const title = isEdit ? t("form.edit") : t("form.add");
   const HeaderIcon = isEdit ? UserPen : UserPlus;
   const showSecondPassword =
     String(companyCode ?? "").toUpperCase() === SECOND_PASSWORD_COMPANY || (isEdit && user?.role === "owner");
@@ -58,7 +63,6 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
   const [perms, setPerms] = useState(() => new Set());
   const [accounts, setAccounts] = useState(() => new Set());
   const [processes, setProcesses] = useState(() => new Set());
-  const [message, setMessage] = useState(""); // validation problem or the backend's error
   const [saving, setSaving] = useState(false);
 
   // What the lists and the record being edited need before the form is usable. The Owner row
@@ -69,6 +73,11 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
   const loadError = accountData.error || processData.error || detailError;
   const ready =
     isOwnerRow || (!accountData.loading && !processData.loading && !detailLoading && !loadError && (!isEdit || Boolean(detail)));
+  // A list that did not load is an error toast (once per error).
+  useEffect(() => {
+    if (loadError) push(t("errors.form"), "error", loadError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadError]);
 
   // Fill the form once everything has arrived: the saved values when editing; for a new user every
   // account and process (the admin unticks what they shouldn't see).
@@ -91,7 +100,7 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
     }
   }, [ready, isOwnerRow, isEdit, detail, accountData.items, processData.items]);
 
-  const roleOptions = roleOptionsFor(viewer?.role);
+  const roleOptions = roleOptionsFor(viewer?.role).map((o) => ({ ...o, label: t(`sidebar:role.${o.value}`, { defaultValue: o.label }) }));
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   // Login IDs are always upper case: typed letters are converted as they go in, and the cursor stays
   // where it was (setting a changed value would otherwise jump it to the end).
@@ -131,14 +140,14 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
     if (secondPasswordIncomplete) {
       setTriedSave(true);
       secondPasswordRef.current?.focus();
+      push(t("validation.secondary"), "error");
       return;
     }
     const problem = validateUserForm({ mode, form, perms, isOwnerRow });
     if (problem) {
-      setMessage(problem);
+      push(problem, "error");
       return;
     }
-    setMessage("");
     setSaving(true);
     const request = isOwnerRow
       ? { url: OWNER_URL, body: buildOwnerPayload({ userId: user.id, form, showSecondPassword }) }
@@ -150,16 +159,16 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
           }),
         };
     try {
-      await onSave(request); // closes the modal on success
+      await onSave(request, { loginId: form.loginId.trim() }); // closes the modal on success
     } catch (err) {
-      setMessage(err.message);
+      push(isEdit ? t("errors.save") : t("errors.add"), "error", err.message);
       setSaving(false);
     }
   };
 
-  // One line in the footer: the 2nd Password hint, a validation / backend error, a load error, or the loading note.
-  const footerNote = secondPasswordError ? "2nd Password must be 6 digits" : message || loadError || (ready ? "" : "Loading…");
-  const footerIsError = Boolean(secondPasswordError || message || loadError);
+  // The footer only says the form is still loading; every problem is a toast.
+  const footerNote = ready || loadError ? "" : t("common:loading");
+  const footerIsError = false;
 
   return (
     <FormModal
@@ -210,25 +219,27 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
       />
       {!isOwnerRow && (
         <>
-          <AccessListCard title="Account" items={accountData.items} selected={accounts} onChange={setAccounts} />
-          <AccessListCard title="Process" items={processData.items} selected={processes} onChange={setProcesses} />
+          <AccessListCard title={t("form.account")} items={accountData.items} selected={accounts} onChange={setAccounts} />
+          <AccessListCard title={t("form.process")} items={processData.items} selected={processes} onChange={setProcesses} />
         </>
       )}
+      <Toast toasts={toasts} onClose={dismiss} />
     </FormModal>
   );
 }
 
 function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPassword, showSecondPassword, secondPasswordRef, secondPasswordError, readOnly, onToggleReadOnly, perms, onTogglePerm, isEdit, isOwnerRow, roleOptions }) {
+  const { t } = useTranslation("admin");
   return (
     // The body scrolls on its own if the screen is too short, so nothing is ever clipped.
     <FormCard
-      title="User Information"
+      title={t("form.info")}
       className={cn("@max-[899px]/main:col-span-full", isOwnerRow && "mx-auto w-full max-w-[720px]")}
       bodyClassName="@container/info flex flex-col @max-[899px]/main:block @max-[899px]/main:overflow-visible"
     >
         <div className="grid flex-none grid-cols-2 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[560px]/info:grid-cols-3">
           {/* Login ID | Name share a row so Role gets a full row: long roles ("Customer Service") never clip. */}
-          <Field label="Login ID">
+          <Field label={t("form.loginId")}>
             {/* The backend never changes a Login ID once it is created. */}
             <TextInput
               value={form.loginId}
@@ -239,15 +250,15 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
               className="uppercase disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint"
             />
           </Field>
-          <Field label="Name">
+          <Field label={t("form.name")}>
             <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
           </Field>
           {/* With the 2nd Password, Password | 2nd Password share a row (3 columns: it moves next to Role). */}
-          <Field label="Password" optional={isEdit} className={showSecondPassword ? undefined : "col-span-2 @min-[560px]/info:col-span-1"}>
+          <Field label={t("form.password")} optional={isEdit} className={showSecondPassword ? undefined : "col-span-2 @min-[560px]/info:col-span-1"}>
             <PasswordInput value={form.password} onChange={setField("password")} />
           </Field>
           {showSecondPassword && (
-            <Field label="2nd Password" optional>
+            <Field label={t("form.secondary")} optional>
               <PasswordInput
                 ref={secondPasswordRef}
                 value={form.secondaryPassword}
@@ -260,11 +271,11 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
             </Field>
           )}
           {!isOwnerRow && (
-            <Field label="Role" className="col-span-2 @min-[560px]/info:col-span-1">
-              <SelectField value={form.role} onChange={setRole} options={roleOptions} placeholder="Select Role" />
+            <Field label={t("form.role")} className="col-span-2 @min-[560px]/info:col-span-1">
+              <SelectField value={form.role} onChange={setRole} options={roleOptions} placeholder={t("form.selectRole")} />
             </Field>
           )}
-          <Field label="Email" className={showSecondPassword && !isOwnerRow ? "col-span-2 @min-[560px]/info:col-span-1" : "col-span-2"}>
+          <Field label={t("form.email")} className={showSecondPassword && !isOwnerRow ? "col-span-2 @min-[560px]/info:col-span-1" : "col-span-2"}>
             <TextInput type="email" inputMode="email" value={form.email} onChange={setField("email")} autoComplete="off" />
           </Field>
         </div>
@@ -275,9 +286,9 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
 
         <div className="mb-2 flex flex-none flex-wrap items-center justify-between gap-2 modal-compact:mb-1.5 modal-tiny:mb-1">
           <div className="flex items-baseline gap-[5px] text-[13px] font-extrabold text-brand-navy">
-            Permissions <Count value={perms.size} total={PERMISSIONS.length} />
+            {t("form.permissions")} <Count value={perms.size} total={PERMISSIONS.length} />
           </div>
-          <ToggleSwitch on={readOnly} onToggle={onToggleReadOnly} label="Read only" />
+          <ToggleSwitch on={readOnly} onToggle={onToggleReadOnly} label={t("form.readOnly")} />
         </div>
 
         {/* In the 3-column layout the grid stretches to fill the card's remaining height. */}
@@ -301,6 +312,7 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
 }
 
 function PermissionItem({ perm, on, onToggle }) {
+  const { t } = useTranslation("admin");
   const Icon = perm.icon;
   // The icon doubles as the checkbox: grey when off, brand gradient when on.
   return (
@@ -308,7 +320,7 @@ function PermissionItem({ perm, on, onToggle }) {
       type="button"
       onClick={onToggle}
       aria-pressed={on}
-      title={perm.label}
+      title={t(`permission.${perm.key}`)}
       className={cn(
         "flex min-h-[38px] min-w-0 cursor-pointer items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left text-[12.5px] font-semibold transition-colors",
         "@min-[900px]/main:@max-[1099px]/main:gap-1.5 @min-[900px]/main:@max-[1099px]/main:px-1.5 @min-[900px]/main:@max-[1099px]/main:py-1 @min-[900px]/main:@max-[1099px]/main:text-[11.5px]",
@@ -328,7 +340,7 @@ function PermissionItem({ perm, on, onToggle }) {
       >
         <Icon className="size-3.5 modal-compact:size-3" strokeWidth={2} />
       </span>
-      <span className="min-w-0 leading-[1.2]">{perm.label}</span>
+      <span className="min-w-0 leading-[1.2]">{t(`permission.${perm.key}`)}</span>
     </button>
   );
 }

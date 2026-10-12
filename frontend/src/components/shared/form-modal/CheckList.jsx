@@ -1,4 +1,5 @@
 import { Check, Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 /**
@@ -6,7 +7,8 @@ import { cn } from "@/lib/utils";
  * dropdown and as a card body of its own (Company on wide screens), so both look the same.
  * items: [{ value, label, hint?, tag? }]; selected: Set of values; onChange(nextSet).
  */
-export function CheckListTools({ query, onQuery, onSelectAll, onClear, placeholder = "Search", className }) {
+export function CheckListTools({ query, onQuery, onSelectAll, onClear, placeholder, className }) {
+  const { t } = useTranslation();
   return (
     <div className={cn("flex flex-none items-center gap-1.5", className)}>
       <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[9px] border border-modal-input-line bg-modal-input px-2.5 text-[12.5px] focus-within:border-[#3b82f6] modal-tiny:h-7">
@@ -14,13 +16,13 @@ export function CheckListTools({ query, onQuery, onSelectAll, onClear, placehold
         <input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("search")}
           className="w-full min-w-0 bg-transparent text-[#111827] outline-none placeholder:text-dash-faint"
         />
       </label>
-      <ListLink onClick={onSelectAll}>Select all</ListLink>
+      <ListLink onClick={onSelectAll}>{t("selectAll")}</ListLink>
       <ListLink onClick={onClear} muted>
-        Clear
+        {t("clear")}
       </ListLink>
     </div>
   );
@@ -42,7 +44,8 @@ function ListLink({ muted, className, ...props }) {
 
 // boxed: rows on the glass card (Company box) get a light frame; in the white popup they stay flat.
 export function CheckRows({ items, selected, onToggle, boxed, className }) {
-  if (items.length === 0) return <div className="py-4 text-center text-[12px] text-dash-faint">No matches</div>;
+  const { t } = useTranslation();
+  if (items.length === 0) return <div className="py-4 text-center text-[12px] text-dash-faint">{t("noMatches")}</div>;
   return (
     <div className={cn("flex flex-col gap-0.5", className)}>
       {items.map((it) => {

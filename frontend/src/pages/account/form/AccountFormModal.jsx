@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, Plus, Trash2, UserPen, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toIsoDate } from "@/lib/date";
@@ -7,6 +8,8 @@ import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx
 import { CheckListTools, CheckRows } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import {
   Field,
@@ -38,6 +41,8 @@ import { useAccountCurrencies } from "./useAccountCurrencies";
  * posts it and closes the modal; if it throws, the message is shown in the footer.
  */
 export default function AccountFormModal({ mode = "add", account, defaultRole = "", tenantId, companyOptions = [], onClose, onSave }) {
+  const { t } = useTranslation(["account", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const isEdit = mode === "edit";
   const [form, setForm] = useState(() => ({
     accountId: isEdit ? (account?.accountId ?? "") : "",
@@ -47,7 +52,6 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
     remark: isEdit ? (account?.remark ?? "") : "",
   }));
   const [alert, setAlert] = useState(() => alertFromRow(isEdit ? account : null));
-  const [message, setMessage] = useState(""); // validation problem or the backend's error
   const [saving, setSaving] = useState(false);
 
   const { currencies, error: currencyError, loading: currenciesLoading, create, remove } = useAccountCurrencies(
@@ -55,6 +59,11 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
     isEdit ? account?.id : null
   );
   const [pickedCurrencies, setPickedCurrencies] = useState(() => new Set());
+  // A currency list that did not load is an error toast (once per error).
+  useEffect(() => {
+    if (currencyError) push(t("errors.currencyLoad"), "error", currencyError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currencyError]);
   // Tick once the list has arrived: what the account already holds (Edit), else MYR when the company has it.
   const seeded = useRef(false);
   useEffect(() => {
@@ -64,7 +73,7 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
     setPickedCurrencies(new Set(start.map((c) => c.id)));
   }, [currenciesLoading, currencyError, currencies, isEdit]);
 
-  const companyItems = companyOptions.map((c) => ({ ...c, tag: c.tenantId === tenantId ? "CURRENT" : undefined }));
+  const companyItems = companyOptions.map((c) => ({ ...c, tag: c.tenantId === tenantId ? t("form.current") : undefined }));
   // The account's own companies; an account the list doesn't say anything about starts from the current one.
   const ownTenantIds = isEdit && account?.tenantIds?.length ? account.tenantIds : [tenantId];
   const [companies, setCompanies] = useState(
@@ -85,16 +94,15 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
 
   // Currency Create / Delete take effect immediately; a failure (duplicate code, currency in use...) shows in the footer.
   const createCurrency = async (code) => {
-    setMessage("");
     try {
       const id = await create(code);
       if (id != null) setPickedCurrencies((s) => new Set(s).add(id));
+      push(t("toast.currencyCreated", { code }));
     } catch (err) {
-      setMessage(err.message);
+      push(t("errors.currencyCreate"), "error", err.message);
     }
   };
   const deleteCurrency = async (currency) => {
-    setMessage("");
     try {
       await remove(currency.id);
       setPickedCurrencies((s) => {
@@ -102,8 +110,9 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
         next.delete(currency.id);
         return next;
       });
+      push(t("toast.currencyDeleted", { code: currency.code }));
     } catch (err) {
-      setMessage(err.message);
+      push(t("errors.currencyDelete"), "error", err.message);
     }
   };
 
@@ -112,10 +121,9 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
     const tenantIds = [...companyItems.filter((c) => companies.has(c.value)).map((c) => c.tenantId), ...hiddenTenantIds];
     const problem = validateAccountForm({ mode, form, pickedCount: pickedCurrencies.size, tenantIds, scopeTenantId: tenantId });
     if (problem) {
-      setMessage(problem);
+      push(problem, "error");
       return;
     }
-    setMessage("");
     setSaving(true);
     const body = buildAccountPayload({
       mode,
@@ -128,20 +136,20 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
       keepAlertConfig: isEdit && account?.alertDay != null,
     });
     try {
-      await onSave({ url: isEdit ? UPDATE_URL : ADD_URL, body }); // closes the modal on success
+      await onSave({ url: isEdit ? UPDATE_URL : ADD_URL, body }, { accountId: form.accountId.trim().toUpperCase() }); // closes the modal on success
     } catch (err) {
-      setMessage(err.message);
+      push(isEdit ? t("errors.save") : t("errors.add"), "error", err.message);
       setSaving(false);
     }
   };
 
-  const footerNote = message || currencyError || (currenciesLoading ? "Loading…" : "");
-  const footerIsError = Boolean(message || currencyError);
+  const footerNote = currenciesLoading ? t("form.loading") : "";
+  const footerIsError = false;
 
   return (
     <FormModal
       icon={isEdit ? UserPen : UserPlus}
-      title={isEdit ? "Edit Account" : "Add Account"}
+      title={isEdit ? t("form.edit") : t("form.add")}
       onClose={onClose}
       onSave={save}
       saveDisabled={currenciesLoading || saving}
@@ -175,6 +183,7 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
       <div className="hidden min-h-0 min-w-0 flex-col @min-[1210px]/main:flex">
         <CompanyCard items={companyItems} selected={companies} onChange={setCompanies} />
       </div>
+      <Toast toasts={toasts} onClose={dismiss} />
     </FormModal>
   );
 }
@@ -185,11 +194,12 @@ const stackBody = "@max-[899px]/main:overflow-visible";
 
 // Never shrinks, so no field hides behind a scroll; Payment Alert under it takes what is left.
 function AccountInfoCard({ form, setField, setAccountId, setForm, isEdit }) {
+  const { t } = useTranslation("account");
   return (
-    <FormCard title="Account Information" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
+    <FormCard title={t("form.info")} className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
       {/* 3 per row (ID | Name | Role, Password | Remark); 2 per row on 1440+ screens. */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[1210px]/main:grid-cols-2">
-        <Field label="Account ID">
+        <Field label={t("form.accountId")}>
           {/* The backend never changes an Account ID once it is created. */}
           <TextInput
             value={form.accountId}
@@ -200,17 +210,17 @@ function AccountInfoCard({ form, setField, setAccountId, setForm, isEdit }) {
             className="uppercase disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint"
           />
         </Field>
-        <Field label="Name">
+        <Field label={t("form.name")}>
           <TextInput value={form.name} onChange={setField("name")} className="uppercase" />
         </Field>
-        <Field label="Role">
-          <SelectField value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} options={ROLE_OPTIONS} placeholder="Select Role" />
+        <Field label={t("form.role")}>
+          <SelectField value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} options={ROLE_OPTIONS.map((o) => ({ ...o, label: t(`role.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("form.selectRole")} capped={200} />
         </Field>
         {/* Edit: left blank = keep the current password. */}
-        <Field label="Password" optional={isEdit}>
-          <PasswordInput value={form.password} onChange={setField("password")} placeholder={isEdit ? "Keep current" : undefined} />
+        <Field label={t("form.password")} optional={isEdit}>
+          <PasswordInput value={form.password} onChange={setField("password")} placeholder={isEdit ? t("form.keepCurrent") : undefined} />
         </Field>
-        <Field label="Remark" optional className="col-span-2 @min-[1210px]/main:col-span-full">
+        <Field label={t("form.remark")} optional className="col-span-2 @min-[1210px]/main:col-span-full">
           <TextInput value={form.remark} onChange={setField("remark")} />
         </Field>
       </div>
@@ -219,6 +229,7 @@ function AccountInfoCard({ form, setField, setAccountId, setForm, isEdit }) {
 }
 
 function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
+  const { t } = useTranslation("account");
   const [code, setCode] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [toDelete, setToDelete] = useState(null); // currency awaiting confirmation
@@ -246,8 +257,8 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
 
   return (
     <FormCard
-      title="Currency"
-      right={<CardCount>{picked.size} selected</CardCount>}
+      title={t("form.currency")}
+      right={<CardCount>{t("form.selectedCount", { count: picked.size })}</CardCount>}
       className={cn("flex-1 @max-[899px]/main:order-3", stackCard)}
       bodyClassName={stackBody}
     >
@@ -257,12 +268,12 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/[^a-z]/gi, "").slice(0, 5))}
           onKeyDown={(e) => e.key === "Enter" && create()}
-          aria-label="New currency code"
+          aria-label={t("form.newCurrencyCode")}
           className="min-w-[72px] flex-1 uppercase"
         />
         <button type="button" onClick={create} className={cn(primaryButtonClass, "h-9 flex-none px-3.5 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7")}>
           <Plus className="size-3.5" strokeWidth={2.6} />
-          Create
+          {t("form.create")}
         </button>
         <button
           type="button"
@@ -274,7 +285,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           )}
         >
           <Trash2 className="size-3.5" strokeWidth={2.2} />
-          {deleting ? "Done" : "Delete"}
+          {deleting ? t("form.done") : t("form.delete")}
         </button>
       </div>
 
@@ -289,7 +300,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
               onClick={() => clickTile(c)}
               disabled={deleting && (on || !c.deletable)}
               aria-pressed={on}
-              title={removable ? `Delete ${c.code}` : undefined}
+              title={removable ? t("form.deleteCode", { code: c.code }) : undefined}
               className={cn(
                 "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
                 // Below 1440 the tiles are plain (no tick circle): selected = blue, about 5 per row.
@@ -319,7 +330,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           );
         })}
       </div>
-      {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">Click × to delete an unticked currency. Ticked currencies, and ones synced from a subsidiary, can&apos;t be deleted.</p>}
+      {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">{t("form.deleteHint")}</p>}
 
       <DeleteDialog
         open={toDelete !== null}
@@ -333,6 +344,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
 }
 
 function PaymentAlertCard({ alert, setAlert }) {
+  const { t } = useTranslation("account");
   const set = (patch) => setAlert((a) => ({ ...a, ...patch }));
   const custom = alert.custom || (alert.type !== "monthly" && !PRESET_DAYS.includes(alert.type));
 
@@ -343,17 +355,17 @@ function PaymentAlertCard({ alert, setAlert }) {
 
   return (
     <FormCard
-      title="Payment Alert"
-      right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? "On" : "Off"} className="font-bold" />}
+      title={t("form.alertCard")}
+      right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? t("form.on") : t("form.off")} className="font-bold" />}
       className={cn("min-h-[140px] flex-1 @max-[899px]/main:order-2", stackCard)}
       bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5 @min-[900px]/main:modal-cozy:flex @min-[900px]/main:modal-cozy:flex-col", stackBody)}
     >
       {!alert.on ? (
         <div className="grid h-full min-h-20 place-items-center rounded-xl border border-dashed border-modal-off-line p-2.5 text-center text-[12.5px] text-[#8a96a8]">
           <span>
-            Payment alert is off.
+            {t("form.alertOff1")}
             <br />
-            Switch it on to set how often to remind, from when, and the amount.
+            {t("form.alertOff2")}
           </span>
         </div>
       ) : (
@@ -362,23 +374,23 @@ function PaymentAlertCard({ alert, setAlert }) {
               Short laptops in the 2-column layout (<= 700px high): the three share one row, so all 31 days still fit. */}
           <div className="@max-[1209px]/main:modal-short:grid @max-[1209px]/main:modal-short:grid-cols-[146px_144px_minmax(0,1fr)] @max-[1209px]/main:modal-short:items-start @max-[1209px]/main:modal-short:gap-x-3">
             <div className="grid grid-cols-2 gap-x-3.5 @max-[1209px]/main:modal-short:contents">
-              <Field label="Start Date">
+              <Field label={t("form.startDate")}>
                 <DateField value={alert.startDate} onChange={(startDate) => set({ startDate })} />
               </Field>
-              <Field label="Alert (Amount)" optional>
+              <Field label={t("form.alertAmount")} optional>
                 <TextInput
                   value={alert.amount}
                   onChange={(e) => set({ amount: e.target.value })}
                   onBlur={() => set({ amount: normalizeAlertAmount(alert.amount) })}
                   inputMode="decimal"
-                  placeholder="e.g. -5,000.00"
+                  placeholder={t("form.alertAmountPlaceholder")}
                 />
               </Field>
             </div>
 
             <div className="mt-2.5 flex items-center gap-2.5 modal-compact:mt-2 modal-snug:mt-[5px] @max-[1209px]/main:modal-short:mt-0! @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-short:min-w-0">
               <span className="flex-none whitespace-nowrap text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px] @max-[1209px]/main:modal-short:mb-0.5 @max-[1209px]/main:modal-short:ml-0.5 @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-tiny:mb-px">
-                Alert Type <i className="not-italic text-[#ef4444]">*</i>
+                {t("form.alertType")} <i className="not-italic text-[#ef4444]">*</i>
               </span>
               <AlertTypeBar custom={custom} type={alert.type} onPick={pick} />
             </div>
@@ -393,6 +405,7 @@ function PaymentAlertCard({ alert, setAlert }) {
 
 // Weekly | 15 Days | Monthly | Custom as one thin segmented bar.
 function AlertTypeBar({ custom, type, onPick }) {
+  const { t } = useTranslation("account");
   return (
     <div className="grid min-w-0 flex-1 grid-cols-4 gap-0.5 rounded-[10px] border border-modal-off-line bg-white/45 p-0.5 @max-[1209px]/main:modal-short:h-[30px] @max-[1209px]/main:modal-tiny:h-7">
       {ALERT_PICKS.map((p) => {
@@ -410,7 +423,7 @@ function AlertTypeBar({ custom, type, onPick }) {
               on ? "bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]" : "bg-transparent text-[#64748b] hover:bg-white/60 hover:text-brand-navy"
             )}
           >
-            {p.label}
+            {t(`form.pick.${p.value}`)}
           </button>
         );
       })}
@@ -421,9 +434,10 @@ function AlertTypeBar({ custom, type, onPick }) {
 // 1-31 in a dashed box. Cells are 30 x 30; on tall screens (>= 880px high, modal-roomy) 48 x 44. As many fit per
 // row as the card is wide (the spare width is spread between them), so a narrow card has more rows, never smaller cells.
 function DayGrid({ value, onPick }) {
+  const { t } = useTranslation("account");
   return (
     <div className="mt-1.5 flex flex-col @min-[900px]/main:modal-cozy:min-h-0 @min-[900px]/main:modal-cozy:flex-1 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1 modal-roomy:mt-2 modal-roomy:px-3 modal-roomy:pb-3 modal-roomy:pt-2.5">
-      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2 modal-roomy:text-[13px]">Remind every … days</div>
+      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2 modal-roomy:text-[13px]">{t("form.remindEvery")}</div>
       <div
         className={cn(
           "grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1 modal-short:gap-[3px] modal-roomy:grid-cols-[repeat(auto-fill,48px)] modal-roomy:gap-1.5",
@@ -459,27 +473,24 @@ function DayGrid({ value, onPick }) {
 
 // Wide screens only: Company as its own card, the list always visible.
 function CompanyCard({ items, selected, onChange }) {
+  const { t } = useTranslation("account");
   const [query, setQuery] = useState("");
   const shown = filterItems(items, query);
   return (
     <FormCard
       title={
         <>
-          Company <i className="not-italic text-[#ef4444]">*</i>
+          {t("form.company")} <i className="not-italic text-[#ef4444]">*</i>
         </>
       }
-      right={
-        <CardCount>
-          {selected.size}/{items.length} selected
-        </CardCount>
-      }
+      right={<CardCount>{t("form.companySelected", { selected: selected.size, total: items.length })}</CardCount>}
       className="flex-1"
       body={false}
     >
       <CheckListTools
         query={query}
         onQuery={setQuery}
-        placeholder="Search company"
+        placeholder={t("form.searchCompany")}
         onSelectAll={() => onChange(new Set([...selected, ...shown.map((it) => it.value)]))}
         onClear={() => onChange(new Set())}
         className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2"
@@ -493,10 +504,11 @@ function CompanyCard({ items, selected, onChange }) {
 
 // Below 1440: a small Company box under Currency, every company a toggle chip (all visible, wraps; scrolls if there are very many).
 function CompanyChipsBox({ items, selected, onChange }) {
+  const { t } = useTranslation("account");
   return (
     <section className="flex flex-none items-start gap-2.5 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card @min-[1210px]/main:hidden @max-[899px]/main:order-4 modal-compact:px-3 modal-compact:py-[9px]">
       <span className="flex-none whitespace-nowrap pt-[5px] text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">
-        Company <i className="not-italic text-[#ef4444]">*</i>
+        {t("form.company")} <i className="not-italic text-[#ef4444]">*</i>
       </span>
       <div className="flex max-h-[94px] @max-[899px]/main:max-h-none min-w-0 flex-1 flex-wrap gap-[5px] overflow-y-auto [scrollbar-width:thin]">
         {items.map((it) => {

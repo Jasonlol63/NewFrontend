@@ -1,4 +1,5 @@
 import { Tooltip } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import { Clock, SquarePen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BADGE, formatDateTime } from "./listFormat";
@@ -15,10 +16,12 @@ export function Badge({ className, children, ...props }) {
 
 // Clickable when onToggle is given (flips Active / Inactive), otherwise a plain badge.
 export function StatusBadge({ status, onToggle, pending, disabledTitle }) {
+  const { t } = useTranslation();
+  const text = status ? t(`status.${status}`, { defaultValue: status }) : "-";
   if (!onToggle) {
     return (
       <span className={cn(badge, STATUS_BADGE[status])} title={disabledTitle}>
-        {status || "-"}
+        {text}
       </span>
     );
   }
@@ -27,10 +30,10 @@ export function StatusBadge({ status, onToggle, pending, disabledTitle }) {
       type="button"
       disabled={pending}
       onClick={onToggle}
-      title="Click to change status"
+      title={t("list.statusClick")}
       className={cn(badge, "cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-50", STATUS_BADGE[status])}
     >
-      {status || "-"}
+      {text}
     </button>
   );
 }

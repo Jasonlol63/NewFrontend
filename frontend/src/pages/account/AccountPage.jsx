@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Coins, Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DataTable from "@/components/shared/list/DataTable.jsx";
@@ -8,7 +9,9 @@ import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
+import Toast from "@/components/shared/Toast.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNotice } from "@/hooks/useNotice";
 import { postJson } from "@/lib/api";
 import { ROLE_BADGE, ROLE_BADGE_NONE, filterAccounts, normalizeAccountRow, sortAccounts } from "./accountRules";
 import AccountFormModal from "./form/AccountFormModal.jsx";
@@ -18,13 +21,14 @@ import LinkAccountModal from "./link/LinkAccountModal.jsx";
 
 // Payment alert on / off; a click switches it right away (see toggleAlert in the page).
 function AlertPill({ on, onToggle, disabled }) {
+  const { t } = useTranslation("account");
   return (
     <button
       type="button"
       onClick={onToggle}
       disabled={disabled}
       aria-pressed={on}
-      title={disabled ? "Read-only login" : "Click to switch"}
+      title={disabled ? t("page.readOnly") : t("page.alertSwitch")}
       // Rounded rectangle (rounded-md) to line up with the Role / Status badges.
       className={cn(
         "relative inline-flex h-[22px] w-[46px] items-center rounded-md border-none text-[9.5px] font-bold tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
@@ -39,12 +43,14 @@ function AlertPill({ on, onToggle, disabled }) {
           on ? "right-[3px] shadow-[0_1px_3px_rgba(6,78,59,0.4)]" : "left-[3px] shadow-[0_1px_3px_rgba(127,29,29,0.4)]"
         )}
       />
-      {on ? "ON" : "OFF"}
+      {on ? t("page.on") : t("page.off")}
     </button>
   );
 }
 
 export default function AccountPage() {
+  const { t } = useTranslation(["account", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   // null = closed, { mode: "add" } or { mode: "edit", account } = open
@@ -55,7 +61,6 @@ export default function AccountPage() {
   const [currencySetting, setCurrencySetting] = useState(false);
   const closeCurrencySetting = useCallback(() => setCurrencySetting(false), []);
   const [alertPending, setAlertPending] = useState(() => new Set()); // account ids whose alert is being switched off
-  const [actionError, setActionError] = useState("");
   const scope = useListScope({ onChange: () => view.reset() });
   const { rows, error: listError, loading, toggleStatus, deleteRows, reload } = useTenantList("/api/account", scope.tenantId, {
     normalize: normalizeAccountRow,
@@ -67,15 +72,17 @@ export default function AccountPage() {
       ? [{ value: scope.group, label: scope.group, tenantId: scope.tenantId }]
       : scope.companyOptions;
 
-  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again.
-  // A failure is thrown back to the modal, which shows the message.
+  // Posts what the modal built ({ url, body }); on success the modal closes, the list is fetched again and a toast says so.
+  // A failure is thrown back to the modal, which shows it as a toast.
   const submitAccount = useCallback(
-    async ({ url, body }) => {
+    async ({ url, body }, meta) => {
       await postJson(url, body);
+      const adding = accountForm?.mode === "add";
       closeAccountForm();
       reload();
+      push(adding ? t("toast.added", { id: meta?.accountId }) : t("toast.saved"));
     },
-    [closeAccountForm, reload]
+    [closeAccountForm, reload, push, t, accountForm]
   );
 
   // Alert pill: switches the alert on or off right away, keeping whatever alert settings the account already
@@ -83,7 +90,6 @@ export default function AccountPage() {
   // until a type, start date and amount are set (Edit Account). It is a full account update (the backend replaces
   // the account's currencies and companies with what it is sent), so both are read first and sent back unchanged.
   const toggleAlert = async (a) => {
-    setActionError("");
     setAlertPending((s) => new Set(s).add(a.id));
     try {
       const available = await postJson(
@@ -105,7 +111,7 @@ export default function AccountPage() {
       });
       reload();
     } catch (err) {
-      setActionError(err.message);
+      push(t("errors.alert"), "error", err.message);
     } finally {
       setAlertPending((s) => {
         const next = new Set(s);
@@ -124,43 +130,44 @@ export default function AccountPage() {
     noun: "account",
     label: (a) => a.accountId,
     onDeleted: view.clearSelection,
+    push,
   });
 
   const columns = [
-    { key: "no", label: "No", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "accountId", label: "Account", cellClassName: "font-semibold whitespace-nowrap", render: (a) => a.accountId },
-    { key: "name", label: "Name", cellClassName: "whitespace-nowrap", render: (a) => a.name },
-    { key: "role", label: "Role", render: (a) => <Badge className={ROLE_BADGE[a.role] ?? ROLE_BADGE_NONE}>{a.role}</Badge> },
+    { key: "no", label: t("col.no"), sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+    { key: "accountId", label: t("col.accountId"), cellClassName: "font-semibold whitespace-nowrap", render: (a) => a.accountId },
+    { key: "name", label: t("col.name"), cellClassName: "whitespace-nowrap", render: (a) => a.name },
+    { key: "role", label: t("col.role"), render: (a) => <Badge className={ROLE_BADGE[a.role] ?? ROLE_BADGE_NONE}>{t(`role.${a.role}`, { defaultValue: a.role })}</Badge> },
     {
       key: "alert",
-      label: "Alert",
+      label: t("col.alert"),
       render: (a) => (
         <AlertPill on={a.paymentAlert} disabled={readOnly || alertPending.has(a.id)} onToggle={() => toggleAlert(a)} />
       ),
     },
     {
       key: "status",
-      label: "Status",
+      label: t("col.status"),
       render: (a) => (
         <StatusBadge
           status={a.status}
           pending={actions.pendingIds.has(a.id)}
           onToggle={readOnly ? undefined : () => actions.toggle(a)}
-          disabledTitle={readOnly ? "Read-only login" : undefined}
+          disabledTitle={readOnly ? t("page.readOnly") : undefined}
         />
       ),
     },
-    { key: "lastLogin", label: "Last Login", render: (a) => <DateText value={a.lastLogin} /> },
-    { key: "lastLogout", label: "Last Logout", cellClassName: "text-[#374151]", render: (a) => <DateText value={a.lastLogout} /> },
+    { key: "lastLogin", label: t("col.lastLogin"), render: (a) => <DateText value={a.lastLogin} variant="gradient" /> },
+    { key: "lastLogout", label: t("col.lastLogout"), cellClassName: "text-[#374151]", render: (a) => <DateText value={a.lastLogout} variant="gradient" /> },
     {
       key: "remark",
-      label: "Remark",
+      label: t("col.remark"),
       cellClassName: "max-w-[220px] truncate text-[#374151]",
       render: (a) => <span title={a.remark || undefined}>{a.remark || "-"}</span>,
     },
     {
       key: "action",
-      label: "Action",
+      label: t("col.action"),
       sortable: false,
       className: "text-center",
       cellClassName: "whitespace-nowrap",
@@ -169,40 +176,49 @@ export default function AccountPage() {
           <IconAction
             onClick={() => setAccountForm({ mode: "edit", account: a })}
             disabled={readOnly}
-            title={readOnly ? "Read-only login" : "Edit account"}
-            aria-label="Edit account"
+            title={readOnly ? t("page.readOnly") : t("page.edit")}
+            aria-label={t("page.edit")}
           />
           <IconAction
             icon={Plus}
             onClick={() => setLinkAccount(a)}
             disabled={readOnly}
-            title={readOnly ? "Read-only login" : "Link account"}
-            aria-label="Link account"
+            title={readOnly ? t("page.readOnly") : t("page.link")}
+            aria-label={t("page.link")}
           />
         </>
       ),
     },
   ];
 
-  const pageError = scope.error || listError || actionError;
+  // A list or company that did not load is an error toast (once per error).
+  useEffect(() => {
+    if (listError) push(t("errors.list"), "error", listError, { label: t("common:retry"), onClick: reload });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listError]);
+  useEffect(() => {
+    if (scope.error) push(t("errors.scope"), "error", scope.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.error]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <ListToolbar
         primaryAction={
-          <PrimaryButton icon={UserPlus} onClick={() => setAccountForm({ mode: "add" })} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
-            Add Account
+          <PrimaryButton icon={UserPlus} onClick={() => setAccountForm({ mode: "add" })} disabled={readOnly} title={readOnly ? t("page.readOnly") : undefined}>
+            {t("page.add")}
           </PrimaryButton>
         }
         actions={
           <>
-            <SecondaryButton icon={Coins} onClick={() => setCurrencySetting(true)} disabled={readOnly || loading || !scope.tenantId} title={readOnly ? "Read-only login" : undefined}>
-              Currency Setting
+            <SecondaryButton icon={Coins} onClick={() => setCurrencySetting(true)} disabled={readOnly || loading || !scope.tenantId} title={readOnly ? t("page.readOnly") : undefined}>
+              {t("page.currencySetting")}
             </SecondaryButton>
             <DeleteButton count={view.selectedRows.length} onClick={() => actions.requestDelete(view.selectedRows)} />
           </>
         }
-        searchPlaceholder="Search Account, Name, Role, Remark"
+        searchPlaceholder={t("page.search")}
         search={view.search}
         onSearchChange={view.setSearch}
         chips={view.chips}
@@ -210,23 +226,35 @@ export default function AccountPage() {
         scope={scope}
       />
 
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
-
       <DataTable columns={columns} noun="accounts" loading={loading} boxedPager {...view.table} />
 
       {actions.dialogs}
 
       {/* Currency Setting fills the content area (sidebar stays visible). */}
       {currencySetting && (
-        <CurrencySettingModal tenantId={scope.tenantId} accounts={rows} onClose={closeCurrencySetting} onSaved={closeCurrencySetting} />
+        <CurrencySettingModal
+          tenantId={scope.tenantId}
+          accounts={rows}
+          onClose={closeCurrencySetting}
+          onSaved={() => {
+            closeCurrencySetting();
+            push(t("toast.currencySaved"));
+          }}
+        />
       )}
 
       {linkAccount && (
-        <LinkAccountModal account={linkAccount} accounts={rows} tenantId={scope.tenantId} onClose={closeLinkAccount} onSaved={closeLinkAccount} />
+        <LinkAccountModal
+          account={linkAccount}
+          accounts={rows}
+          tenantId={scope.tenantId}
+          onClose={closeLinkAccount}
+          onSaved={() => {
+            const id = linkAccount.accountId;
+            closeLinkAccount();
+            push(t("toast.linksSaved", { id }));
+          }}
+        />
       )}
 
       {/* Add Account and Edit Account share one modal. */}
