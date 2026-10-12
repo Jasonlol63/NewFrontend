@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
@@ -9,28 +10,29 @@ import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSession } from "@/context/session";
 import { postJson } from "@/lib/api";
+import { localizeBackend } from "@/i18n/backendMessages";
 import Toast from "@/components/shared/Toast.jsx";
 import { useNotice } from "@/hooks/useNotice";
 import { clearCaptureSession, loadCaptureSession } from "../shared/submitSnapshot";
 import FormulaDialog from "./FormulaDialog.jsx";
 import { deleteFormulas, fetchAccounts, fetchCurrencies, fetchTemplates, saveFormula, submitSummary, updateFormula } from "./summaryApi";
 import { applyDraft, clearDraft, draftSignature, saveDraft } from "./summaryDraft";
-import { baseAmount, formatMoney, formulaDisplay, inputMethodLabel, parseRate, parseSource, totalWithinTolerance } from "./summaryMath";
+import { baseAmount, formatMoney, formulaDisplay, parseRate, parseSource, totalWithinTolerance } from "./summaryMath";
 import { buildRows } from "./summaryPopulate";
 import { amountsByKey, capturedFromTable, checkSubmit, createRow, deleteTicked, hasAccount, idLabel, insertSub, rowName, submitLines, totalOf } from "./summaryRules";
 
 // Column widths in %. Formula has none and takes what is left: it is the column that gets long.
 const COLS = [
-  ["Id Product", 13],
-  ["Account", 15],
-  ["Currency", 7],
-  ["Formula", null],
-  ["Source", 5.5],
-  ["Rate", 4],
-  ["Rate Value", 6],
-  ["Processed Amount", 9],
-  ["Skip", 4],
-  ["Delete", 5.5],
+  ["idProduct", 13],
+  ["account", 15],
+  ["currency", 7],
+  ["formula", null],
+  ["source", 5.5],
+  ["rate", 4],
+  ["rateValue", 6],
+  ["processedAmount", 9],
+  ["skip", 4],
+  ["delete", 5.5],
 ];
 
 // No horizontal scroll: headers wrap below 1700px wide instead of widening the table.
@@ -122,7 +124,7 @@ function useSummaryData(capture, version) {
     Promise.all([fetchAccounts(capture.tenantId, { signal }), fetchCurrencies(capture.tenantId, { signal }), fetchTemplates(capture, { signal })])
       .then(([accounts, currencies, templates]) => setResult({ key, accounts, currencies, templates }))
       .catch((err) => {
-        if (err.name !== "AbortError") setResult({ key, error: err.message || "Network error, please try again" });
+        if (err.name !== "AbortError") setResult({ key, error: err.message || i18n.t("capture:summary.empty.network") });
       });
     return () => controller.abort();
     // The capture is read once per key (its identity changes on every read of the navigation state).
@@ -133,21 +135,22 @@ function useSummaryData(capture, version) {
 
 // The summary while its data is on the way: the same frame, with the list showing "Loading…" in its body.
 function LoadingFrame({ capture }) {
+  const { t } = useTranslation(["capture", "common"]);
   return (
     <div className="h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
       <div className="flex h-full min-h-[480px] flex-col gap-[clamp(6px,1.3dvh,10px)] overflow-hidden rounded-[22px] border border-white/55 bg-modal-bg px-[clamp(12px,1.8vw,24px)] py-[clamp(10px,2dvh,18px)] shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px] backdrop-saturate-[1.15]">
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
           <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">
             <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-            Data Capture Summary
+            {t("summary.title")}
           </h1>
-          <InfoChip label="Date" value={capture.date} />
-          <InfoChip label="Process" value={capture.process} />
-          <InfoChip label="Description" value={capture.description} />
-          <InfoChip label="Currency" value={capture.currency} />
-          <InfoChip label="Remark" value={capture.remark} />
+          <InfoChip label={t("form.date")} value={capture.date} />
+          <InfoChip label={t("form.process")} value={capture.process} />
+          <InfoChip label={t("form.description")} value={capture.description} />
+          <InfoChip label={t("form.currency")} value={capture.currency} />
+          <InfoChip label={t("form.remark")} value={capture.remark} />
         </div>
-        <div className="flex h-[42px] flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 text-[13px] font-extrabold text-brand-navy">Rate</div>
+        <div className="flex h-[42px] flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 text-[13px] font-extrabold text-brand-navy">{t("summary.rate.label")}</div>
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
           <table className="w-full table-fixed border-separate border-spacing-0 text-[12px]">
             <colgroup>
@@ -159,7 +162,7 @@ function LoadingFrame({ capture }) {
               <tr>
                 {COLS.map(([name]) => (
                   <th key={name} className={th}>
-                    {name}
+                    {t(`summary.cols.${name}`)}
                   </th>
                 ))}
               </tr>
@@ -169,7 +172,7 @@ function LoadingFrame({ capture }) {
                 <td colSpan={COLS.length} className="h-40 border-b border-[#e8eef7] text-center text-[13px] font-semibold text-dash-sub">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="size-4 animate-spin" />
-                    Loading…
+                    {t("common:loading")}
                   </span>
                 </td>
               </tr>
@@ -193,6 +196,7 @@ function LoadingFrame({ capture }) {
  * See summaryRules.js (row model), summaryPopulate.js (rows from formulas), summaryMath.js (amounts) and summaryApi.js.
  */
 export default function DataCaptureSummaryPage() {
+  const { t } = useTranslation("capture");
   const location = useLocation();
   const capture = useMemo(() => location.state ?? loadCaptureSession(), [location.state]);
   const [version, setVersion] = useState(0);
@@ -200,9 +204,9 @@ export default function DataCaptureSummaryPage() {
 
   if (!capture?.table?.rows?.length) {
     return (
-      <Message title="No captured data" text="Open the summary from Data Capture: paste the data into the table and press Submit.">
+      <Message title={t("summary.empty.title")} text={t("summary.empty.text")}>
         <Link to="/data-capture" className={linkButton}>
-          Go to Data Capture
+          {t("summary.empty.go")}
         </Link>
       </Message>
     );
@@ -210,9 +214,9 @@ export default function DataCaptureSummaryPage() {
   if (!data) return <LoadingFrame capture={capture} />;
   if (data.error) {
     return (
-      <Message title="Could not load the summary" text={data.error}>
+      <Message title={t("summary.empty.loadFailed")} text={localizeBackend(data.error)}>
         <button type="button" className={linkButton} onClick={() => setVersion((v) => v + 1)}>
-          Retry
+          {t("common:retry")}
         </button>
       </Message>
     );
@@ -221,6 +225,7 @@ export default function DataCaptureSummaryPage() {
 }
 
 function SummaryBoard({ capture, data, onRefresh }) {
+  const { t } = useTranslation(["capture", "common"]);
   const navigate = useNavigate();
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const { user } = useSession();
@@ -259,10 +264,10 @@ function SummaryBoard({ capture, data, onRefresh }) {
 
   const applyRateToTicked = () => {
     const ticked = rows.filter((r) => r.rateChecked && hasAccount(r));
-    if (ticked.length === 0) return push("Tick the Rate box first", "info", "Choose the rows to apply the rate to.");
+    if (ticked.length === 0) return push(t("summary.toast.tickRate"), "info", t("summary.toast.tickRateDetail"));
     const value = rate.trim();
     setRows((rs) => rs.map((r) => (r.rateChecked && hasAccount(r) ? { ...r, rateValue: value, rateChecked: false } : r)));
-    return push(`Rate ${value} applied to ${ticked.length} row(s).`);
+    return push(t("summary.toast.rateApplied", { value, count: ticked.length }));
   };
 
   // ---- cells edited in place ----
@@ -275,27 +280,27 @@ function SummaryBoard({ capture, data, onRefresh }) {
       await updateFormula(next, capture);
     } catch (err) {
       setRows((rs) => rs.map((r) => (r.key === row.key ? row : r)));
-      push("Couldn't save the change", "error", err.message);
+      push(t("summary.toast.saveFailed"), "error", err.message);
     }
   };
   const commitInline = (row, field, text) => {
     setEditing(null);
     if (field === "rateValue") {
-      if (text && !parseRate(text)) return push("Rate isn't valid", "error", "Use a form like *3, /3 or 3.");
+      if (text && !parseRate(text)) return push(t("summary.toast.rateInvalid"), "error", t("summary.toast.rateInvalidDetail"));
       return edit({ rateValue: text }, row.key);
     }
     if (field === "source") {
       const value = text || "1";
-      if (parseSource(value) === null) return push("Source isn't valid", "error", "Enter a number, e.g. 1, 2 or 0.5.");
+      if (parseSource(value) === null) return push(t("summary.toast.sourceInvalid"), "error", t("summary.toast.sourceInvalidDetail"));
       if (value === row.sourcePercent) return undefined;
       return storeInline(row, { sourcePercent: value });
     }
     // formula: what is typed has to calculate
-    if (!text) return push("Formula is empty", "error", "Enter a formula to calculate the amount.");
+    if (!text) return push(t("summary.toast.formulaEmpty"), "error", t("summary.toast.formulaEmptyDetail"));
     try {
       baseAmount({ ...row, formula: text }, captured, row.rowIndex);
     } catch {
-      return push("Formula isn't valid", "error", "Check it and try again.");
+      return push(t("summary.toast.formulaInvalid"), "error", t("summary.toast.formulaInvalidDetail"));
     }
     if (text === formulaDisplay(row.formula, captured, row.rowIndex)) return undefined;
     return storeInline(row, { formula: text });
@@ -312,12 +317,12 @@ function SummaryBoard({ capture, data, onRefresh }) {
     // The server decides main or sub; when it did not decide what the screen assumed, show what it stored instead.
     const expected = mode === "sub" ? "sub" : target.type;
     if (mode !== "edit" && stored.type !== expected) {
-      push("Formula saved.");
+      push(t("summary.toast.formulaSaved"));
       return onRefresh();
     }
     setProblems(new Map());
     setRows((rs) => (mode === "sub" ? insertSub(rs, dialog.key, saved) : rs.map((r) => (r.key === dialog.key ? saved : r))));
-    return push("Formula saved.");
+    return push(t("summary.toast.formulaSaved"));
   };
   // The Account modal made or edited an account: it is stored, the list is read again and the dialog gets its label.
   const saveAccount = async ({ url, body }) => {
@@ -325,7 +330,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
     const list = await fetchAccounts(capture.tenantId);
     setAccounts(list);
     const found = list.find((a) => (body.id != null ? a.id === body.id : a.row.accountId === body.accountId));
-    if (!found) throw new Error("The account was saved but is not in the list yet.");
+    if (!found) throw new Error(t("summary.errors.accountNotListed"));
     return found.label;
   };
 
@@ -337,19 +342,19 @@ function SummaryBoard({ capture, data, onRefresh }) {
     } catch (err) {
       setWorking(false);
       setConfirmDelete(false);
-      return push("Couldn't delete the rows", "error", err.message);
+      return push(t("summary.toast.deleteFailed"), "error", err.message);
     }
     const { rows: next, removed, cleared } = deleteTicked(rows);
     setRows(next);
     setProblems(new Map());
     setConfirmDelete(false);
     setWorking(false);
-    return push(`${removed + cleared} row(s) deleted.`);
+    return push(t("summary.toast.deleted", { count: removed + cleared }));
   };
 
   // ---- Submit ----
   const submit = async () => {
-    const check = checkSubmit(rows, amounts);
+    const check = checkSubmit(rows, amounts, t);
     setProblems(check.problems);
     if (!check.ok) {
       if (check.lines?.length) push(check.title, "error", check.lines);
@@ -364,21 +369,21 @@ function SummaryBoard({ capture, data, onRefresh }) {
       const captureId = await submitSummary(capture, lines);
       clearDraft();
       clearCaptureSession();
-      push("Data submitted", "success", `Capture ID ${captureId} · ${lines.length} rows`);
+      push(t("summary.toast.submitted"), "success", t("summary.toast.submittedDetail", { id: captureId, count: lines.length }));
       // Stay locked until the page is left, so a second click cannot submit it twice.
       later(() => navigate("/data-capture"), 1600);
     } catch (err) {
       setWorking(false);
-      push("Couldn't submit the data", "error", err.message);
+      push(t("summary.toast.submitFailed"), "error", err.message);
     }
   };
 
   const info = capture;
   if (rows.length === 0) {
     return (
-      <Message title="No captured data" text="The captured table has no Id Product to summarize. Go back to Data Capture and paste the data first.">
+      <Message title={t("summary.empty.title")} text={t("summary.empty.noIdProduct")}>
         <Link to="/data-capture" className={linkButton}>
-          Go to Data Capture
+          {t("summary.empty.go")}
         </Link>
       </Message>
     );
@@ -393,35 +398,35 @@ function SummaryBoard({ capture, data, onRefresh }) {
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
           <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">
             <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-            Data Capture Summary
+            {t("summary.title")}
           </h1>
-          <InfoChip label="Date" value={info.date} />
-          <InfoChip label="Process" value={info.process} />
-          <InfoChip label="Description" value={info.description} />
-          <InfoChip label="Currency" value={info.currency} />
-          <InfoChip label="Remark" value={info.remark} />
+          <InfoChip label={t("form.date")} value={info.date} />
+          <InfoChip label={t("form.process")} value={info.process} />
+          <InfoChip label={t("form.description")} value={info.description} />
+          <InfoChip label={t("form.currency")} value={info.currency} />
+          <InfoChip label={t("form.remark")} value={info.remark} />
         </div>
 
         <div className="flex flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 py-1.5 short:py-1">
-          <span className="text-[13px] font-extrabold text-brand-navy">Rate</span>
+          <span className="text-[13px] font-extrabold text-brand-navy">{t("summary.rate.label")}</span>
           <input
             value={rate}
             onChange={(e) => setRate(e.target.value)}
-            placeholder="e.g. *3 or /3"
+            placeholder={t("summary.rate.placeholder")}
             autoComplete="off"
             className="h-7 w-[150px] rounded-lg border border-modal-input-line bg-modal-input px-2.5 text-[12.5px] text-[#111827] outline-none focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
           />
           <PrimaryButton className={smallButton} disabled={readOnly || busy || withAccount.length === 0} onClick={() => setRows((rs) => rs.map((r) => (hasAccount(r) ? { ...r, rateChecked: !allRate } : r)))}>
-            {allRate ? "Select None" : "Select All"}
+            {allRate ? t("summary.rate.selectNone") : t("summary.rate.selectAll")}
           </PrimaryButton>
           <PrimaryButton className={smallButton} disabled={readOnly || busy || !rateOk} onClick={applyRateToTicked}>
-            Submit
+            {t("summary.rate.apply")}
           </PrimaryButton>
           <div className="ml-auto flex flex-none items-center gap-2">
             <button
               type="button"
-              aria-label="Refresh"
-              title="Refresh"
+              aria-label={t("summary.rate.refresh")}
+              title={t("summary.rate.refresh")}
               disabled={busy}
               onClick={onRefresh}
               className="flex size-7 cursor-pointer items-center justify-center rounded-lg border border-white/80 bg-white/55 text-brand-navy hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-50"
@@ -435,7 +440,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
               className="inline-flex h-7 flex-none items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-[12.5px] font-bold text-white transition-colors enabled:cursor-pointer enabled:bg-[linear-gradient(180deg,#ff8a8a_0%,#ef4444_100%)] enabled:shadow-[0_6px_14px_-6px_rgba(239,68,68,0.6)] disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <Trash2 className="size-[13px]" strokeWidth={2.2} />
-              Delete ({delRows.length})
+              {t("common:list.delete", { count: delRows.length })}
             </button>
           </div>
         </div>
@@ -452,7 +457,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                   <tr>
                     {COLS.map(([name]) => (
                       <th key={name} className={th}>
-                        {name}
+                        {t(`summary.cols.${name}`)}
                       </th>
                     ))}
                   </tr>
@@ -475,8 +480,8 @@ function SummaryBoard({ capture, data, onRefresh }) {
                           <div className="flex items-center gap-1.5">
                             <span className={cn("min-w-0 flex-1 truncate text-[11.5px] font-medium text-[#475569] max-[1400px]:text-[11px]", !filled && "text-[#b6c2d6]")}>{r.account || "-"}</span>
                             <AddMini
-                              aria-label={filled ? "Add sub formula" : "Add formula"}
-                              title={filled ? "Add another formula (a sub row) for this Id Product" : "Add formula"}
+                              aria-label={filled ? t("summary.table.addSub") : t("summary.table.addFormula")}
+                              title={filled ? t("summary.table.addSubTitle") : t("summary.table.addFormula")}
                               disabled={readOnly || busy}
                               onClick={() => setDialog({ key: r.key, mode: filled ? "sub" : "fill" })}
                             />
@@ -487,37 +492,37 @@ function SummaryBoard({ capture, data, onRefresh }) {
                         </td>
                         <td className={cn(td, isEditing("formula") && "p-0.5")}>
                           {isEditing("formula") ? (
-                            <InlineInput value={formulaDisplay(r.formula, captured, r.rowIndex)} onSave={(t) => commitInline(r, "formula", t)} onCancel={() => setEditing(null)} />
+                            <InlineInput value={formulaDisplay(r.formula, captured, r.rowIndex)} onSave={(text) => commitInline(r, "formula", text)} onCancel={() => setEditing(null)} />
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <code
                                 className={cn("min-w-0 flex-1 truncate font-[inherit] font-bold text-[#334155]", r.formula && !readOnly && "cursor-text")}
-                                title={r.inputMethod ? inputMethodLabel(r.inputMethod) : "Double click to edit"}
+                                title={r.inputMethod ? t(`summary.methods.${r.inputMethod}`) : t("summary.table.dblEdit")}
                                 onDoubleClick={() => r.formula && startEdit("formula")}
                               >
                                 {formulaDisplay(r.formula, captured, r.rowIndex)}
                               </code>
-                              {r.formula && <IconAction className="flex-none" aria-label="Edit formula" title="Edit formula" disabled={readOnly || busy} onClick={() => setDialog({ key: r.key, mode: "edit" })} />}
+                              {r.formula && <IconAction className="flex-none" aria-label={t("summary.table.editFormula")} title={t("summary.table.editFormula")} disabled={readOnly || busy} onClick={() => setDialog({ key: r.key, mode: "edit" })} />}
                             </div>
                           )}
                         </td>
-                        <td className={cn(td, "text-center", isEditing("source") && "p-0.5")} onDoubleClick={() => !isEditing("source") && startEdit("source")} title={filled ? "Double click to edit" : undefined}>
-                          {isEditing("source") ? <InlineInput align="center" value={r.sourcePercent} placeholder="1, 2 or 0.5" onSave={(t) => commitInline(r, "source", t)} onCancel={() => setEditing(null)} /> : filled ? r.sourcePercent : ""}
+                        <td className={cn(td, "text-center", isEditing("source") && "p-0.5")} onDoubleClick={() => !isEditing("source") && startEdit("source")} title={filled ? t("summary.table.dblEdit") : undefined}>
+                          {isEditing("source") ? <InlineInput align="center" value={r.sourcePercent} placeholder={t("summary.table.sourcePlaceholder")} onSave={(text) => commitInline(r, "source", text)} onCancel={() => setEditing(null)} /> : filled ? r.sourcePercent : ""}
                         </td>
                         <td className={cn(td, "text-center")}>
-                          <SelectBox checked={r.rateChecked} onChange={(rateChecked) => edit({ rateChecked }, r.key)} label="Apply rate" disabled={readOnly || busy || !filled} />
+                          <SelectBox checked={r.rateChecked} onChange={(rateChecked) => edit({ rateChecked }, r.key)} label={t("summary.table.applyRate")} disabled={readOnly || busy || !filled} />
                         </td>
-                        <td className={cn(td, "text-right tabular-nums", isEditing("rateValue") && "p-0.5")} onDoubleClick={() => !isEditing("rateValue") && startEdit("rateValue")} title={filled ? "Double click to edit" : undefined}>
-                          {isEditing("rateValue") ? <InlineInput align="right" value={r.rateValue} placeholder="*3 or /3" onSave={(t) => commitInline(r, "rateValue", t)} onCancel={() => setEditing(null)} /> : r.rateValue}
+                        <td className={cn(td, "text-right tabular-nums", isEditing("rateValue") && "p-0.5")} onDoubleClick={() => !isEditing("rateValue") && startEdit("rateValue")} title={filled ? t("summary.table.dblEdit") : undefined}>
+                          {isEditing("rateValue") ? <InlineInput align="right" value={r.rateValue} placeholder={t("summary.table.ratePlaceholder")} onSave={(text) => commitInline(r, "rateValue", text)} onCancel={() => setEditing(null)} /> : r.rateValue}
                         </td>
                         <td className={cn(td, "text-right font-extrabold tabular-nums", amt?.isNeg() ? "text-[#dc2626]" : "text-[#1d4ed8]")}>
-                          {amt ? formatMoney(amt) : r.formula && filled ? <span className="text-[#dc2626]">Error</span> : ""}
+                          {amt ? formatMoney(amt) : r.formula && filled ? <span className="text-[#dc2626]">{t("summary.table.error")}</span> : ""}
                         </td>
                         <td className={cn(td, "text-center")}>
-                          <SelectBox checked={r.skip} onChange={(skip) => edit({ skip }, r.key)} label="Skip" disabled={readOnly || busy} />
+                          <SelectBox checked={r.skip} onChange={(skip) => edit({ skip }, r.key)} label={t("summary.cols.skip")} disabled={readOnly || busy} />
                         </td>
                         <td className={cn(td, "text-center")}>
-                          <SelectBox checked={r.del} onChange={(del) => edit({ del }, r.key)} label="Delete" disabled={readOnly || busy || (!sub && !filled)} />
+                          <SelectBox checked={r.del} onChange={(del) => edit({ del }, r.key)} label={t("summary.cols.delete")} disabled={readOnly || busy || (!sub && !filled)} />
                         </td>
                       </tr>
                     );
@@ -526,9 +531,9 @@ function SummaryBoard({ capture, data, onRefresh }) {
                 <tfoot>
                   <tr className="text-[12px] font-extrabold text-brand-navy">
                     <td colSpan={7} className={cn(TOTAL_CELL, "text-right")}>
-                      Total
+                      {t("summary.table.total")}
                     </td>
-                    <td className={cn(TOTAL_CELL, "text-right tabular-nums", totalBad ? "text-[#dc2626]" : "text-[#1d4ed8]")} title={totalBad ? "Submit needs a total within ±0.05" : undefined}>
+                    <td className={cn(TOTAL_CELL, "text-right tabular-nums", totalBad ? "text-[#dc2626]" : "text-[#1d4ed8]")} title={totalBad ? t("summary.table.totalTitle") : undefined}>
                       {formatMoney(total)}
                     </td>
                     <td colSpan={2} className={TOTAL_CELL} />
@@ -539,15 +544,15 @@ function SummaryBoard({ capture, data, onRefresh }) {
         </section>
 
         <div className="flex flex-none items-center gap-2">
-          <PrimaryButton className={smallButton} disabled={readOnly || busy} title={readOnly ? "Read-only login" : undefined} onClick={submit}>
-            {working ? "Working…" : "Submit"}
+          <PrimaryButton className={smallButton} disabled={readOnly || busy} title={readOnly ? t("readOnly") : undefined} onClick={submit}>
+            {working ? t("summary.working") : t("summary.submit")}
           </PrimaryButton>
           <button
             type="button"
             onClick={() => navigate("/data-capture")}
             className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-white/80 bg-white/55 px-4 text-[12.5px] font-bold text-brand-navy hover:bg-white/75"
           >
-            Back
+            {t("summary.back")}
           </button>
         </div>
       </div>
@@ -571,9 +576,9 @@ function SummaryBoard({ capture, data, onRefresh }) {
       <DeleteDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        names={delRows.map(rowName)}
+        names={delRows.map((r) => rowName(r, t))}
         noun="row"
-        note={delRows.some((r) => r.type === "main") ? "A main row keeps its Id Product and is only cleared; a sub row is removed." : undefined}
+        note={delRows.some((r) => r.type === "main") ? t("summary.deleteNote") : undefined}
         onConfirm={confirmDeleteRows}
       />
     </div>

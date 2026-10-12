@@ -71,7 +71,7 @@ Table card (fills the rest), Submit centred.
   Enter / Tab move on and add a row / column past the end; arrows move (Left / Right leave an edited cell only at the text
   edge); Delete / Backspace clear; Ctrl+A / C / Z; Ctrl+V and the menu Paste go through `paste/pasteRouter.js` (1.Text: Citibet,
   the site helpers, the Format fill with the cell styles, the text / generic paste; 4.RETURN: formulas kept), one Undo step per
-  paste; what a paste did is told in the card header (`useNotice`). A pasted cell keeps its colour / bold (`styleCssText`, cleaned
+  paste; what a paste did (and the add row / col, delete draft and load errors) is a toast over the page (`hooks/useNotice` + `Toast`), written in the page language (`capture` i18n namespace; `paste/pasteNotice.js` maps the paste modules' Chinese / English messages to it). A pasted cell keeps its colour / bold (`styleCssText`, cleaned
   `html`, `colspan`); the Bank sheet is never made wider by a paste. Right click: cell menu (Copy, Paste, Clear,
   Delete..., Select All), row menu (insert above / below, delete, clear), column menu (Game sheet only). Delete... asks
   Shift cells left / up, Entire row, Entire column (Game only). Undo (Ctrl+Z) reverts clear / delete / insert / paste / Add Row.

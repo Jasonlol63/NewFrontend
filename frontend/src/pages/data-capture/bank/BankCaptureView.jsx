@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { Field, SearchSelectField, SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
@@ -15,7 +18,7 @@ import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
 import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
 import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
-import { useNotice } from "../shared/useNotice";
+import { useErrorToasts } from "../shared/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
 
 const EMPTY_FORM = { process: "", currency: "", remark: "" };
@@ -30,12 +33,14 @@ const EMPTY_FORM = { process: "", currency: "", remark: "" };
  */
 export default function BankCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
+  const { t } = useTranslation(["capture", "common"]);
   const { dates, today } = useDateOptions();
   const [date, setDate] = useState(today);
   const [form, setForm] = useState(EMPTY_FORM);
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const sheet = useCaptureGrid(BANK_GRID);
-  const { notice, push: pushNotice } = useNotice();
+  const { toasts, push, dismiss } = useNotice(5000);
+  const pushNotice = (message, level) => push(message, level);
   const [addRows, setAddRows] = useState("26");
   const [addCols, setAddCols] = useState("1");
   const fullscreen = useFullscreen();
@@ -50,6 +55,7 @@ export default function BankCaptureView({ scope, readOnly }) {
     picked: Boolean(form.process && form.currency),
     size: BANK_GRID,
     readOnly,
+    onLoadError: (err) => push(t("errors.draftLoad"), "error", [err.message, t("errors.draftLoadDetail")]),
   });
 
   // A new day moved the options on and the picked date is no longer among them: back to today.
@@ -94,37 +100,50 @@ export default function BankCaptureView({ scope, readOnly }) {
     navigate("/data-capture/summary", { state: capture });
   };
 
+  const addRowsNow = () => {
+    sheet.actions.addRows(Number(addRows));
+    push(t("toast.rowsAdded", { count: Number(addRows) }));
+  };
+  const addColsNow = () => {
+    sheet.actions.addCols(Number(addCols));
+    push(t("toast.colsAdded", { count: Number(addCols) }));
+  };
+
   const canSubmit = !readOnly && sheet.filled && form.process && form.currency;
-  const pageError = scope.error || currencies.error;
+  useErrorToasts(push, [
+    [scope.error, t("errors.scope")],
+    [currencies.error, t("errors.currencies")],
+  ]);
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="grid flex-none grid-cols-1 gap-[clamp(8px,1.5dvh,12px)] lg:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]">
         <section className={cn(cardClass, "flex min-h-0 flex-col gap-2 px-4 pt-2.5 pb-3.5 transition-opacity short:gap-1.5 short:pb-2.5", scope.loading && "opacity-60")}>
           {scope.showGroups && (
-            <FilterRow label="GroupID:">
+            <FilterRow label={t("common:list.group")}>
               <SegmentGroup options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
             </FilterRow>
           )}
           {scope.companyOptions.length > 0 && (
-            <FilterRow label="Company:">
+            <FilterRow label={t("common:list.company")}>
               <SegmentGroup options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
             </FilterRow>
           )}
           <div className="my-0.5 h-px bg-modal-input-line opacity-60" />
 
           <div className="grid grid-cols-2 gap-x-3.5 gap-y-2 short:gap-y-1.5 max-[899px]:grid-cols-1">
-            <Field label="Date" as="div">
+            <Field label={t("form.date")} as="div">
               <SelectField value={date} onChange={(d) => startAgain(d)} options={dates} capped />
             </Field>
-            <Field label="Process" as="div">
-              <SelectField value={form.process} onChange={set("process")} options={BANK_PROCESSES} placeholder="Select Process" />
+            <Field label={t("form.process")} as="div">
+              <SelectField value={form.process} onChange={set("process")} options={BANK_PROCESSES} placeholder={t("form.selectProcess")} />
             </Field>
-            <Field label="Currency" as="div">
-              <SearchSelectField value={form.currency} onChange={set("currency")} options={currencies.options} placeholder="Select Currency" searchPlaceholder="Search currency" />
+            <Field label={t("form.currency")} as="div">
+              <SearchSelectField value={form.currency} onChange={set("currency")} options={currencies.options} placeholder={t("form.selectCurrency")} searchPlaceholder={t("form.searchCurrency")} />
             </Field>
-            <Field label="Remark" optional>
-              <TextInput value={form.remark} onChange={(e) => set("remark")(e.target.value)} autoComplete="off" placeholder="ENTER REMARK" className="uppercase" />
+            <Field label={t("form.remark")} optional>
+              <TextInput value={form.remark} onChange={(e) => set("remark")(e.target.value)} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
             </Field>
           </div>
         </section>
@@ -132,30 +151,27 @@ export default function BankCaptureView({ scope, readOnly }) {
         <SubmittedProcesses items={[]} />
       </div>
 
-      {pageError && <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>}
-
       <SheetCard
         fullscreen={fullscreen}
-        notice={notice}
         left={
           <button type="button" onClick={() => startAgain(today)} className={textButtonClass}>
-            Reset
+            {t("sheet.reset")}
           </button>
         }
         right={
           <>
-            <span className="text-[13px] font-semibold text-[#374151]">Add Row</span>
+            <span className="text-[13px] font-semibold text-[#374151]">{t("sheet.addRow")}</span>
             <div className="w-[84px] flex-none">
               <SelectField value={addRows} onChange={setAddRows} options={ADD_ROW_OPTIONS} />
             </div>
-            <button type="button" onClick={() => sheet.actions.addRows(Number(addRows))} aria-label={`Add ${addRows} rows`} title={`Add ${addRows} rows`} className={iconButtonClass}>
+            <button type="button" onClick={addRowsNow} aria-label={t("sheet.addRows", { count: Number(addRows) })} title={t("sheet.addRows", { count: Number(addRows) })} className={iconButtonClass}>
               <RefreshCw className="size-4" strokeWidth={2.2} />
             </button>
-            <span className="ml-1 text-[13px] font-semibold text-[#374151]">Add Col</span>
+            <span className="ml-1 text-[13px] font-semibold text-[#374151]">{t("sheet.addCol")}</span>
             <div className="w-[76px] flex-none">
               <SelectField value={addCols} onChange={setAddCols} options={ADD_COL_OPTIONS} />
             </div>
-            <button type="button" onClick={() => sheet.actions.addCols(Number(addCols))} aria-label={`Add ${addCols} columns`} title={`Add ${addCols} columns`} className={iconButtonClass}>
+            <button type="button" onClick={addColsNow} aria-label={t("sheet.addCols", { count: Number(addCols) })} title={t("sheet.addCols", { count: Number(addCols) })} className={iconButtonClass}>
               <RefreshCw className="size-4" strokeWidth={2.2} />
             </button>
           </>

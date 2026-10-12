@@ -13,13 +13,12 @@ export const CAPTURE_MODES = [
   { value: "4.RETURN", label: "4.RETURN" },
 ];
 
-const WEEKDAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-
-// The six days after today, today and the six days before it, newest first: "2026-10-08 (THURSDAY)".
+// The six days after today, today and the six days before it, newest first: { value: "2026-10-08", day: 4 } (day = getDay(), the
+// weekday name is written in the page language by useDateOptions: "2026-10-08 (THURSDAY)").
 export function dateOptions(today = new Date()) {
   return Array.from({ length: 13 }, (_, i) => {
     const d = addDays(today, 6 - i);
-    return { value: toIsoDate(d), label: `${toIsoDate(d)} (${WEEKDAYS[d.getDay()]})` };
+    return { value: toIsoDate(d), day: d.getDay() };
   });
 }
 

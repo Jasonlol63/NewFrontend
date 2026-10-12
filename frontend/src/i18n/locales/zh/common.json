@@ -84,6 +84,7 @@
     "deletedMany": "已删除 {{count}} 个{{noun}}"
   },
   "nouns": {
+    "row": "行",
     "domain": "域名",
     "domains": "域名",
     "announcement": "公告",

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { AddButton, Field, SearchSelectField, SelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
@@ -20,7 +23,7 @@ import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
 import { useGameProcesses } from "../shared/useGameProcesses";
 import { useSubmittedProcesses } from "../shared/useSubmittedProcesses";
-import { useNotice } from "../shared/useNotice";
+import { useErrorToasts } from "../shared/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
 
 const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "", replaceTo: "", remark: "" };
@@ -33,6 +36,7 @@ const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "",
  */
 export default function GameCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
+  const { t } = useTranslation(["capture", "common"]);
 
   const { dates, today } = useDateOptions();
   const [date, setDate] = useState(today);
@@ -41,11 +45,12 @@ export default function GameCaptureView({ scope, readOnly }) {
   const [picker, setPicker] = useState(false);
   const [mode, setMode] = useState(CAPTURE_MODES[0].value);
   const sheet = useCaptureGrid(GAME_GRID);
-  const { notice, push: pushNotice, clear: clearNotice } = useNotice();
+  const { toasts, push, dismiss } = useNotice(5000);
+  const pushNotice = (message, level) => push(message, level);
 
   // What can be captured on the date comes from /games/form (the weekday and "not submitted yet" are the server's); what a process
   // was saved with (currency, words, descriptions) is in the Process list of the company.
-  const { processes, error: processError } = useGameProcesses(scope.tenantId, date);
+  const { processes, error: processError, reload: reloadProcesses } = useGameProcesses(scope.tenantId, date);
   const { rows: allProcesses, error: listError } = useProcessList(scope.tenantId);
   const processOptions = useMemo(() => processes.map((p) => ({ value: String(p.id), label: p.display })), [processes]);
   const currencies = useProcessCurrencies(scope.tenantId);
@@ -93,7 +98,14 @@ export default function GameCaptureView({ scope, readOnly }) {
     picked: Boolean(form.process && form.currency),
     size: GAME_GRID,
     readOnly,
+    onLoadError: (err) => push(t("errors.draftLoad"), "error", [err.message, t("errors.draftLoadDetail")]),
   });
+
+  const deleteDraft = async () => {
+    const ok = await draft.remove();
+    if (ok === true) push(t("toast.draftDeleted"), "success", t("toast.draftDeletedDetail"));
+    else if (ok === false) push(t("errors.draftDelete"), "error", t("errors.tryAgain"));
+  };
 
   // Reset keeps the draft (Delete Draft removes it) and starts the whole form again.
   const reset = () => {
@@ -132,40 +144,47 @@ export default function GameCaptureView({ scope, readOnly }) {
   };
 
   const canSubmit = !readOnly && sheet.filled && form.process && form.currency && descriptions.size > 0;
-  const pageError = scope.error || processError || listError || currencies.error || submitted.error;
+  useErrorToasts(push, [
+    [scope.error, t("errors.scope")],
+    [processError, t("errors.processes"), reloadProcesses],
+    [listError, t("errors.list")],
+    [currencies.error, t("errors.currencies")],
+    [submitted.error, t("errors.submitted")],
+  ]);
 
   return (
     <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="grid flex-none grid-cols-1 gap-[clamp(8px,1.5dvh,12px)] lg:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]">
         <section className={cn(cardClass, "flex min-h-0 flex-col gap-2 px-4 pt-2.5 pb-3.5 transition-opacity short:gap-1.5 short:pb-2.5", scope.loading && "opacity-60")}>
           {scope.showGroups && (
-            <FilterRow label="GroupID:">
+            <FilterRow label={t("common:list.group")}>
               <SegmentGroup options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
             </FilterRow>
           )}
           {scope.companyOptions.length > 0 && (
-            <FilterRow label="Company:">
+            <FilterRow label={t("common:list.company")}>
               <SegmentGroup options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
             </FilterRow>
           )}
           <div className="my-0.5 h-px bg-modal-input-line opacity-60" />
 
           <div className="grid grid-cols-6 gap-x-3.5 gap-y-2 short:gap-y-1.5 max-[899px]:grid-cols-1">
-            <Field label="Date" as="div" className="col-span-2 max-[899px]:col-span-1">
+            <Field label={t("form.date")} as="div" className="col-span-2 max-[899px]:col-span-1">
               <SelectField value={date} onChange={pickDate} options={dates} capped />
             </Field>
-            <Field label="Process" as="div" className="col-span-2 max-[899px]:col-span-1">
-              <SearchSelectField value={form.process} onChange={pickProcess} options={processOptions} placeholder="Select Process" searchPlaceholder="Search process" />
+            <Field label={t("form.process")} as="div" className="col-span-2 max-[899px]:col-span-1">
+              <SearchSelectField value={form.process} onChange={pickProcess} options={processOptions} placeholder={t("form.selectProcess")} searchPlaceholder={t("form.searchProcess")} />
             </Field>
-            <Field label="Currency" as="div" className="col-span-2 max-[899px]:col-span-1">
-              <SearchSelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={currencies.options} placeholder="Select Currency" searchPlaceholder="Search currency" />
+            <Field label={t("form.currency")} as="div" className="col-span-2 max-[899px]:col-span-1">
+              <SearchSelectField value={form.currency} onChange={(currency) => setForm((f) => ({ ...f, currency }))} options={currencies.options} placeholder={t("form.selectCurrency")} searchPlaceholder={t("form.searchCurrency")} />
             </Field>
 
-            <Field label="Description" as="div" className="col-span-2 max-[899px]:col-span-1">
+            <Field label={t("form.description")} as="div" className="col-span-2 max-[899px]:col-span-1">
               <div className="flex items-center gap-1.5">
                 <div title={picked.map((it) => it.label).join(", ")} className={cn(inputClass, "flex min-w-0 flex-1 cursor-default items-center gap-1.5 overflow-hidden")}>
                   {picked.length === 0 ? (
-                    <span className="truncate text-dash-faint">Click + to select descriptions</span>
+                    <span className="truncate text-dash-faint">{t("form.descriptionHint")}</span>
                   ) : (
                     picked.map((it) => (
                       <span key={it.value} className="inline-flex h-[22px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-row-stripe px-2 text-[11.5px] font-extrabold text-brand-navy">
@@ -174,22 +193,22 @@ export default function GameCaptureView({ scope, readOnly }) {
                     ))
                   )}
                 </div>
-                <AddButton label={picked.length ? "Edit descriptions" : "Add description"} edit={picked.length > 0} onClick={() => setPicker(true)} disabled={!scope.tenantId} />
+                <AddButton label={picked.length ? t("form.editDescriptions") : t("form.addDescription")} edit={picked.length > 0} onClick={() => setPicker(true)} disabled={!scope.tenantId} />
               </div>
             </Field>
-            <Field label="Replace Word" optional as="div" className="col-span-4 max-[899px]:col-span-1">
+            <Field label={t("form.replaceWord")} optional as="div" className="col-span-4 max-[899px]:col-span-1">
               <div className="flex items-center gap-2">
-                <TextInput value={form.replaceFrom} onChange={setField("replaceFrom")} autoComplete="off" placeholder="OLD WORD" className="min-w-0 flex-1 uppercase" />
+                <TextInput value={form.replaceFrom} onChange={setField("replaceFrom")} autoComplete="off" placeholder={t("form.oldWord")} className="min-w-0 flex-1 uppercase" />
                 <span className="flex-none text-[13px] text-dash-sub">→</span>
-                <TextInput value={form.replaceTo} onChange={setField("replaceTo")} autoComplete="off" placeholder="NEW WORD" className="min-w-0 flex-1 uppercase" />
+                <TextInput value={form.replaceTo} onChange={setField("replaceTo")} autoComplete="off" placeholder={t("form.newWord")} className="min-w-0 flex-1 uppercase" />
               </div>
             </Field>
 
-            <Field label="Remove Word" optional className="col-span-3 max-[899px]:col-span-1">
+            <Field label={t("form.removeWord")} optional className="col-span-3 max-[899px]:col-span-1">
               <RemoveWordInput value={form.removeWord} onChange={(removeWord) => setForm((f) => ({ ...f, removeWord }))} />
             </Field>
-            <Field label="Remark" optional className="col-span-3 max-[899px]:col-span-1">
-              <TextInput value={form.remark} onChange={setField("remark")} autoComplete="off" placeholder="ENTER REMARK" className="uppercase" />
+            <Field label={t("form.remark")} optional className="col-span-3 max-[899px]:col-span-1">
+              <TextInput value={form.remark} onChange={setField("remark")} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
             </Field>
           </div>
         </section>
@@ -197,22 +216,19 @@ export default function GameCaptureView({ scope, readOnly }) {
         <SubmittedProcesses items={submitted.items} />
       </div>
 
-      {pageError && <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>}
-
       <SheetCard
         fullscreen={fullscreen}
-        notice={notice}
         left={
           <>
             <div className="w-[140px] flex-none">
-              <SelectField value={mode} onChange={(m) => { setMode(m); clearNotice(); }} options={CAPTURE_MODES} />
+              <SelectField value={mode} onChange={setMode} options={CAPTURE_MODES} />
             </div>
             <button type="button" onClick={reset} className={textButtonClass}>
-              Reset
+              {t("sheet.reset")}
             </button>
             {draftEnabled && (
-              <button type="button" onClick={draft.remove} disabled={!form.currency} title="Delete the saved draft of this process and currency" className={textButtonClass}>
-                Delete Draft
+              <button type="button" onClick={deleteDraft} disabled={!form.currency} title={t("sheet.deleteDraftTitle")} className={textButtonClass}>
+                {t("sheet.deleteDraft")}
               </button>
             )}
           </>

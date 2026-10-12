@@ -9,11 +9,13 @@ const SAVE_PAUSE = 600;
  *  - sheet: useCaptureGrid; draft: { kind: "bank" | "game", tenantId, process, currencyId } or null when the picked process keeps
  *    no draft; picked: process + currency are both chosen (a new pick starts from the draft of that pick, or from an empty sheet);
  *    size: { rows, cols } of a fresh sheet; readOnly: a read-only login never saves.
+ *  - onLoadError(error): the draft of a pick could not be loaded (nothing is saved for that pick then).
  *  - Edits are saved after a short pause, and at once when the pick changes or the page closes. Nothing is saved for a pick
  *    until its draft was loaded (an empty sheet must not wipe a draft that has not come back yet).
- * Returns { flush, remove }: flush saves now (before Reset / Submit), remove empties the draft and the sheet.
+ * Returns { flush, remove }: flush saves now (before Reset / Submit); remove empties the draft and the sheet and answers (a promise)
+ * true when the server emptied it, false when that failed (the sheet is then left as it is), null when there was no draft loaded to empty.
  */
-export function useCaptureDraft({ sheet, draft, picked, size, readOnly = false }) {
+export function useCaptureDraft({ sheet, draft, picked, size, readOnly = false, onLoadError }) {
   const { grid, resetGrid } = sheet;
   const keyId = draft ? `${draft.kind}:${draft.tenantId}:${draft.process}:${draft.currencyId}` : null;
   const draftRef = useRef(draft);
@@ -27,6 +29,8 @@ export function useCaptureDraft({ sheet, draft, picked, size, readOnly = false }
   const skip = useRef(0);
   const sizeRef = useRef(size);
   sizeRef.current = size;
+  const onLoadErrorRef = useRef(onLoadError);
+  onLoadErrorRef.current = onLoadError;
 
   useEffect(() => {
     committed.current = grid;
@@ -55,8 +59,9 @@ export function useCaptureDraft({ sheet, draft, picked, size, readOnly = false }
             resetGrid(cellsToGrid(cells, sizeRef.current.rows, sizeRef.current.cols));
           }
         })
-        .catch(() => {
-          /* not loaded: nothing is saved for this pick, so the server draft stays as it is */
+        .catch((err) => {
+          // Not loaded: nothing is saved for this pick, so the server draft stays as it is.
+          if (!cancelled && err?.name !== "AbortError") onLoadErrorRef.current?.(err);
         });
     }
     return () => {
@@ -93,10 +98,15 @@ export function useCaptureDraft({ sheet, draft, picked, size, readOnly = false }
     const key = draftRef.current;
     if (key && !readOnly && ready.current === keyId) saveDraft(key, latest.current);
   }, [keyId, readOnly]);
-  const remove = useCallback(() => {
+  const remove = useCallback(async () => {
     const key = draftRef.current;
-    if (key && !readOnly && ready.current === keyId) saveDraft(key, createGrid(1, 1));
-    empty();
+    if (!key || readOnly || ready.current !== keyId) {
+      empty();
+      return null;
+    }
+    const ok = await saveDraft(key, createGrid(1, 1));
+    if (ok) empty();
+    return ok;
   }, [keyId, readOnly, empty]);
 
   return { flush, remove };

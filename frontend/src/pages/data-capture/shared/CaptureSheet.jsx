@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine, ArrowUpToLine, ClipboardPaste, Copy, Eraser, SquareDashedMousePointer, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { MAX_GRID_COLS, rowLetter } from "./dataCaptureRules";
 import GridContextMenu from "./grid/GridContextMenu.jsx";
@@ -99,9 +100,11 @@ const Cell = memo(function Cell({ r, c, cell, selected, active, editing }) {
  * captureType: "1.Text" | "4.RETURN" - which paste modules take a paste (paste/pasteRouter.js) and whether the amount typed in a
  *   cell is shown with thousand separators (Return).
  * maxCols: the widest a paste may make the sheet (the Bank sheet keeps its columns; default: the sheet cap).
- * onNotice(message, level): what a paste says ("Successfully pasted 12 cells ...").
+ * onNotice(message, level): what a paste says ("Successfully pasted 12 cells ..."), already in the page language; level is
+ *   "success" | "error".
  */
 export default function CaptureSheet({ sheet, columnEdit = true, captureType = "1.Text", maxCols = MAX_GRID_COLS, onNotice }) {
+  const { t } = useTranslation("capture");
   const { grid, active, editing, hotRows, hotCols, isSelected, actions } = sheet;
   const wrapRef = useRef(null);
   const drag = useRef(null);
@@ -152,12 +155,12 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
       sheet.stopEdit();
       const b = sheet.bounds;
       const start = b ? { row: b.r1, col: b.c1 } : { row: active?.r ?? 0, col: active?.c ?? 0 };
-      const notify = (message, level) => onNotice?.(translatePasteNotice(message), level);
+      const notify = (message, level) => onNotice?.(translatePasteNotice(message, t), level === "danger" ? "error" : "success");
       const taken = pasteIntoSheet({ clip, grid: sheet.grid, anchor: start, captureType, maxCols, notify, commit: actions.replaceGrid });
       // No module took it: a plain tab / newline paste.
       if (!taken && clip.text) actions.paste(plainTextMatrix(clip.text), { r: start.row, c: start.col });
     },
-    [sheet, active, actions, captureType, maxCols, onNotice]
+    [sheet, active, actions, captureType, maxCols, onNotice, t]
   );
 
   // ---- mouse ----
@@ -213,24 +216,24 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
 
   // ---- menus ----
   const cellMenu = [
-    { label: "Copy", icon: Copy, onSelect: () => writeClipboardText(actions.copyText()) },
-    { label: "Paste", icon: ClipboardPaste, onSelect: () => readClipboard().then((clip) => clip && doPaste(clip)) },
-    { label: "Clear", icon: Eraser, onSelect: sheet.clearSelected },
-    { label: "Delete...", icon: Trash2, danger: true, onSelect: () => setDeleteOpen(true) },
+    { label: t("menu.copy"), icon: Copy, onSelect: () => writeClipboardText(actions.copyText()) },
+    { label: t("menu.paste"), icon: ClipboardPaste, onSelect: () => readClipboard().then((clip) => clip && doPaste(clip)) },
+    { label: t("menu.clear"), icon: Eraser, onSelect: sheet.clearSelected },
+    { label: t("menu.delete"), icon: Trash2, danger: true, onSelect: () => setDeleteOpen(true) },
     { separator: true },
-    { label: "Select All", icon: SquareDashedMousePointer, onSelect: sheet.selectAll },
+    { label: t("menu.selectAll"), icon: SquareDashedMousePointer, onSelect: sheet.selectAll },
   ];
   const rowMenu = (r) => [
-    { label: "Insert Row Above", icon: ArrowUpToLine, onSelect: () => actions.insertRowAbove(r) },
-    { label: "Insert Row Below", icon: ArrowDownToLine, onSelect: () => actions.insertRowBelow(r) },
-    { label: "Delete Row", icon: Trash2, danger: true, onSelect: () => actions.deleteRows() },
-    { label: "Clear Row", icon: Eraser, onSelect: () => actions.clearRows() },
+    { label: t("menu.insertRowAbove"), icon: ArrowUpToLine, onSelect: () => actions.insertRowAbove(r) },
+    { label: t("menu.insertRowBelow"), icon: ArrowDownToLine, onSelect: () => actions.insertRowBelow(r) },
+    { label: t("menu.deleteRow"), icon: Trash2, danger: true, onSelect: () => actions.deleteRows() },
+    { label: t("menu.clearRow"), icon: Eraser, onSelect: () => actions.clearRows() },
   ];
   const colMenu = (c) => [
-    { label: "Insert Column Left", icon: ArrowLeftToLine, onSelect: () => actions.insertColLeft(c) },
-    { label: "Insert Column Right", icon: ArrowRightToLine, onSelect: () => actions.insertColRight(c) },
-    { label: "Delete Column", icon: Trash2, danger: true, onSelect: () => actions.deleteCols() },
-    { label: "Clear Column", icon: Eraser, onSelect: () => actions.clearCols() },
+    { label: t("menu.insertColLeft"), icon: ArrowLeftToLine, onSelect: () => actions.insertColLeft(c) },
+    { label: t("menu.insertColRight"), icon: ArrowRightToLine, onSelect: () => actions.insertColRight(c) },
+    { label: t("menu.deleteColumn"), icon: Trash2, danger: true, onSelect: () => actions.deleteCols() },
+    { label: t("menu.clearColumn"), icon: Eraser, onSelect: () => actions.clearCols() },
   ];
   const onContextMenu = (e) => {
     e.preventDefault();
@@ -388,7 +391,7 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
       <table className="w-full table-fixed border-separate border-spacing-0 text-[12.5px]" style={{ minWidth: 56 + grid.cols * COL_W }}>
         <thead>
           <tr>
-            <th data-corner="" title="Select all" className={cn(headBase, headBg, "top-0 left-0 z-3 w-14 cursor-pointer")} />
+            <th data-corner="" title={t("sheet.selectAll")} className={cn(headBase, headBg, "top-0 left-0 z-3 w-14 cursor-pointer")} />
             {cols.map((c) => (
               <th key={c} data-col={c} className={cn(headBase, "top-0 cursor-pointer", hotCols.has(c) ? headHot : headBg)}>
                 {c + 1}

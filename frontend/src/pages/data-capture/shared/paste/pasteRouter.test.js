@@ -5,7 +5,7 @@ import { createGrid } from "../grid/gridModel.js";
 import { applyDataMatrixToGrid } from "./core/dataCapturePasteApply.js";
 import { runPasteSession } from "./pasteSession.js";
 import { pasteIntoSheet } from "./pasteRouter.js";
-import { translatePasteNotice } from "./pasteNotice.js";
+import { describePasteNotice, translatePasteNotice } from "./pasteNotice.js";
 
 // Pastes plain text into an empty 26 x 20 sheet; returns { taken, commits, grid (last committed or the original), notes }.
 function paste(text, { captureType = "1.Text", anchor = { row: 0, col: 0 }, maxCols = 50, html = "" } = {}) {
@@ -51,11 +51,17 @@ test("Return: formula cells expand into label + numbers, plain text never falls 
   assert.ok(grid.cells[0].some((c) => c.value.includes("100")), "the formula numbers are in the row");
 });
 
-test("a paste is told to the user in English", () => {
-  assert.equal(translatePasteNotice("成功粘贴 12 个单元格 (3 行 x 4 列)!"), "Successfully pasted 12 cells (3 rows × 4 columns).");
-  assert.equal(translatePasteNotice("成功粘贴 12 个单元格 (3 行 x 4 列)! 按 Ctrl+Z 可撤销"), "Successfully pasted 12 cells (3 rows × 4 columns). Press Ctrl+Z to undo.");
-  assert.equal(translatePasteNotice("AWC (2.7): 成功粘贴 8 个单元格 (2 行 x 4 列)，已保持表格行格式!"), "AWC (2.7): successfully pasted 8 cells (2 rows × 4 columns). Table row format kept.");
-  assert.equal(translatePasteNotice("成功粘贴表格 (1 个数据行 x 25 列)，已按字段重排!"), "Successfully pasted table (1 data rows × 25 columns). Rearranged by field.");
-  assert.equal(translatePasteNotice("成功粘贴 KING855 Win/Loss 9 行 x 13 列"), "KING855 Win/Loss: successfully pasted 9 rows × 13 columns.");
-  assert.equal(translatePasteNotice("Something else"), "Something else");
+test("a paste message is split into translatable pieces", () => {
+  const keys = (m) => describePasteNotice(m)?.map(([k]) => k).join("+");
+  assert.equal(keys("成功粘贴 12 个单元格 (3 行 x 4 列)!"), "cells");
+  assert.equal(keys("成功粘贴 12 个单元格 (3 行 x 4 列)! 按 Ctrl+Z 可撤销"), "cells+tail.undo");
+  assert.equal(keys("AWC (2.7): 成功粘贴 8 个单元格 (2 行 x 4 列)，已保持表格行格式!"), "cellsLabeled+tail.tableRow");
+  assert.equal(keys("成功粘贴表格 (1 个数据行 x 25 列)，已按字段重排!"), "tableByField");
+  assert.equal(keys("成功粘贴 KING855 Win/Loss 9 行 x 13 列"), "report");
+  assert.equal(keys("Successfully pasted 5 cells (1 rows x 5 cols)! Press Ctrl+Z to undo"), "cells+tail.undo");
+  assert.equal(keys("No cells were pasted from Citibet report."), "noCells");
+  assert.equal(keys("Something else"), undefined);
+  const t = (key, p) => key + JSON.stringify(p ?? {});
+  assert.equal(translatePasteNotice("Something else", t), "Something else");
+  assert.match(translatePasteNotice("成功粘贴 12 个单元格 (3 行 x 4 列)!", t), /^capture:paste.cells{.*"cells":"12"/);
 });

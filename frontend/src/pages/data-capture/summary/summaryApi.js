@@ -3,6 +3,7 @@
 //   /api/datacapture-summary/formula/save | update | delete, /submit  (DataCaptureSummaryController)
 //   /api/maintenance/formula-maintenance/list  the stored formulas of a process (read only here)
 //   /api/account/list, /api/currency/list      the company's accounts and currencies
+import i18n from "@/i18n";
 import { postJson } from "@/lib/api";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import { sourceColumnsOf } from "./summaryMath";
@@ -130,6 +131,6 @@ export async function submitSummary(capture, lines) {
     lines,
   });
   const captureId = body.data?.captureId;
-  if (!captureId) throw new Error("The server did not return a capture id.");
+  if (!captureId) throw new Error(i18n.t("capture:summary.errors.noCaptureId"));
   return captureId;
 }

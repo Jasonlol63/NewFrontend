@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TextInput } from "@/components/shared/form-modal/fields.jsx";
 import { normalizeRemoveWords } from "./removeWordRules";
 
@@ -6,6 +7,7 @@ import { normalizeRemoveWords } from "./removeWordRules";
  * comma can be typed.
  */
 export default function RemoveWordInput({ value, onChange }) {
+  const { t } = useTranslation("capture");
   return (
     <TextInput
       value={value}
@@ -14,7 +16,7 @@ export default function RemoveWordInput({ value, onChange }) {
       autoComplete="off"
       spellCheck={false}
       placeholder="FREE,=BONUS"
-      title="For multiple words, use commas (,). To match only one exact word, put = before it."
+      title={t("form.removeHint")}
       className="uppercase"
     />
   );

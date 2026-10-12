@@ -75,8 +75,8 @@ export function idLabel(row) {
   return id && desc && !id.endsWith(`(${desc})`) ? `${id} (${desc})` : id;
 }
 
-/** "KAIYUAN (COMM) -> KY [KAI YUAN]": how a row is named in a message. */
-export const rowName = (row) => [idLabel(row) || "(no Id Product)", row.account.trim()].filter(Boolean).join(" → ");
+/** "KAIYUAN (COMM) -> KY [KAI YUAN]": how a row is named in a message. t: the `capture` namespace's t (i18next). */
+export const rowName = (row, t) => [idLabel(row) || t("summary.table.noIdProduct"), row.account.trim()].filter(Boolean).join(" → ");
 
 // ---- the captured sheet ----
 // captured = { rows } with rows[r][n] = the text of column n of sheet row r (n = 1 is the Id Product, so $2 is the first
@@ -194,20 +194,20 @@ export function submitLines(rows, amounts, captured) {
 /**
  * What stops a Submit: { ok, message, problems } with problems = Map(row key -> why). The checks of the old summary:
  * a row with an account needs a valid formula and a currency, the account has to exist, a COMM split has to go in whole
- * (both legs or none), and the total has to be within +-0.05.
+ * (both legs or none), and the total has to be within +-0.05. The texts are written with t (the `capture` namespace's t).
  */
-export function checkSubmit(rows, amounts) {
+export function checkSubmit(rows, amounts, t) {
   const problems = new Map();
   const known = (row) => row.accountId != null;
   const submitting = rows.filter((r) => !r.skip && hasAccount(r));
-  if (submitting.length === 0) return { ok: false, message: "There is nothing to submit: no row has an account.", problems };
+  if (submitting.length === 0) return { ok: false, message: t("summary.check.nothing"), problems };
 
   for (const row of submitting) {
     const amount = amounts.get(row.key);
-    if (!row.formula.trim()) problems.set(row.key, "No formula");
-    else if (amount === null) problems.set(row.key, "The formula is not valid");
-    else if (!row.currency.trim()) problems.set(row.key, "No currency");
-    else if (!known(row) && !amount.isZero()) problems.set(row.key, "The account could not be found");
+    if (!row.formula.trim()) problems.set(row.key, t("summary.check.noFormula"));
+    else if (amount === null) problems.set(row.key, t("summary.check.invalidFormula"));
+    else if (!row.currency.trim()) problems.set(row.key, t("summary.check.noCurrency"));
+    else if (!known(row) && !amount.isZero()) problems.set(row.key, t("summary.check.accountNotFound"));
   }
 
   // COMM: legs of one product with an amount; some go in, some are left out (skipped, no account or a wrong account).
@@ -222,21 +222,21 @@ export function checkSubmit(rows, amounts) {
   for (const legs of groups.values()) {
     const goes = (r) => !r.skip && hasAccount(r) && known(r);
     if (legs.length < 2 || !legs.some(goes) || legs.every(goes)) continue;
-    for (const leg of legs.filter((r) => !goes(r))) problems.set(leg.key, "COMM split is incomplete: the other leg is submitted without this one");
+    for (const leg of legs.filter((r) => !goes(r))) problems.set(leg.key, t("summary.check.commIncomplete"));
   }
 
   if (problems.size > 0) {
     const [key, why] = problems.entries().next().value;
     const row = rows.find((r) => r.key === key);
-    const more = problems.size > 1 ? ` (and ${problems.size - 1} more)` : "";
+    const more = problems.size > 1 ? t("summary.check.more", { count: problems.size - 1 }) : "";
     // `lines` is what the toast lists when several rows are wrong; with one problem it is empty and `message` says it.
-    const lines = problems.size > 1 ? [...problems].slice(0, 4).map(([k, w]) => `${rowName(rows.find((r) => r.key === k))}: ${w}`) : [];
-    if (problems.size > 4) lines.push(`and ${problems.size - 4} more`);
-    return { ok: false, message: `Cannot submit: ${rowName(row)}: ${why}${more}.`, title: `Fix ${problems.size} things to submit`, lines, problems };
+    const lines = problems.size > 1 ? [...problems].slice(0, 4).map(([k, w]) => `${rowName(rows.find((r) => r.key === k), t)}: ${w}`) : [];
+    if (problems.size > 4) lines.push(t("summary.check.andMore", { count: problems.size - 4 }));
+    return { ok: false, message: t("summary.check.cannot", { row: rowName(row, t), why, more }), title: t("summary.check.fix", { count: problems.size }), lines, problems };
   }
 
   const total = totalOf(rows, amounts);
-  if (!totalWithinTolerance(total)) return { ok: false, message: `Total ${formatMoney(total)} is out of tolerance (±0.05); adjust before submitting.`, problems };
+  if (!totalWithinTolerance(total)) return { ok: false, message: t("summary.check.totalOut", { total: formatMoney(total) }), problems };
   return { ok: true, message: "", problems };
 }
 

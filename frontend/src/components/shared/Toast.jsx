@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { Check, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ const TONE = {
 };
 
 function ToastCard({ notice, onClose }) {
+  const { t } = useTranslation("common");
   const tone = TONE[notice.level] ?? TONE.info;
   const { Icon } = tone;
   const lines = Array.isArray(notice.detail) ? notice.detail : [];
@@ -58,7 +60,7 @@ function ToastCard({ notice, onClose }) {
       {onClose && (
         <button
           type="button"
-          aria-label="Close"
+          aria-label={t("close")}
           onClick={() => onClose(notice.id)}
           className="mt-0.5 flex-none cursor-pointer border-none bg-transparent p-0.5 text-current opacity-55 transition-opacity hover:opacity-100"
         >

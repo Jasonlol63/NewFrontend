@@ -1,14 +1,16 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { cardClass, CardTitle } from "./cardParts.jsx";
 
 /** Right card of Data Capture: the processes already submitted for the picked date, newest first. Scrolls inside itself. */
 export default function SubmittedProcesses({ items }) {
+  const { t } = useTranslation("capture");
   return (
     <section className={cn(cardClass, "flex min-h-0 flex-col px-4 pt-3 pb-3.5")}>
-      <CardTitle>Submitted Processes</CardTitle>
+      <CardTitle>{t("submitted.title")}</CardTitle>
       {items.length === 0 ? (
         <div className="mt-3 grid min-h-[84px] flex-1 place-items-center rounded-[10px] border border-dashed border-modal-input-line bg-white/35 p-2.5 text-center text-[13px] italic text-dash-sub">
-          No processes submitted for this date
+          {t("submitted.empty")}
         </div>
       ) : (
         // The list is absolutely placed so it scrolls inside the card instead of making the top row taller.

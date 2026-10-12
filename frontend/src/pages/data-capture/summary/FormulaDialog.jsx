@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calculator, Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import { AddButton, SelectField, SoftButton, TextInput, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
-import { INPUT_METHODS, applyInputMethod, cellNumber, evalExpression, expandRefs, inputMethodLabel, parseSource, plainNumber } from "./summaryMath";
+import { INPUT_METHODS, applyInputMethod, cellNumber, evalExpression, expandRefs, parseSource, plainNumber } from "./summaryMath";
 
 const KEYS = [
   ["7", "8", "9", "/"],
@@ -44,7 +45,11 @@ const group = (plain) => {
  *   when it throws, the message is shown in the footer and the dialog stays open
  */
 export default function FormulaDialog({ mode = "fill", row, captured, accounts, currencies, defaultCurrency = "", tenantId, companyOptions, onSaveAccount, onClose, onSave }) {
+  const { t } = useTranslation(["capture", "common"]);
   const edit = mode === "edit";
+  const methodLabel = (key) => t(`summary.methods.${key}`);
+  const methodOptions = useMemo(() => INPUT_METHODS.map((m) => ({ value: m.value, label: t(`summary.methods.${m.value}`) })), [t]);
+  const title = edit ? t("summary.dialog.edit") : mode === "sub" ? t("summary.dialog.addSub") : t("summary.dialog.add");
   const [method, setMethod] = useState(edit ? row.inputMethod : "");
   const [account, setAccount] = useState(edit ? row.account : "");
   const [currency, setCurrency] = useState(row.currency || defaultCurrency);
@@ -68,7 +73,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
   const cells = useMemo(
     () =>
       (captured.rows[Number(dataRow)] ?? [])
-        .map((t, n) => ({ n, t: String(t ?? ""), v: cellNumber(t) }))
+        .map((text, n) => ({ n, t: String(text ?? ""), v: cellNumber(text) }))
         .filter((c) => c.n >= 2 && c.t.trim() !== ""),
     [captured, dataRow]
   );
@@ -81,14 +86,14 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
     try {
       const value = evalExpression(expandRefs(fx, captured, row.rowIndex));
       const src = parseSource(source);
-      if (src === null) return { raw: value, result: { text: "Invalid source", bad: true } };
+      if (src === null) return { raw: value, result: { text: t("summary.dialog.invalidSource"), bad: true } };
       const final = applyInputMethod(src.minus(1).abs().lt("0.0001") ? value : value.mul(src), method);
       return { raw: value, result: { text: group(plainNumber(final)) } };
     } catch {
-      return { raw: null, result: { text: "Invalid formula", bad: true } };
+      return { raw: null, result: { text: t("summary.dialog.invalidFormula"), bad: true } };
     }
-  }, [fx, source, method, captured, row.rowIndex]);
-  const note = [parseSource(source)?.minus(1).abs().lt("0.0001") === false ? `× ${source.trim()}` : "", method ? inputMethodLabel(method) : ""].filter(Boolean).join(" · ");
+  }, [fx, source, method, captured, row.rowIndex, t]);
+  const note = [parseSource(source)?.minus(1).abs().lt("0.0001") === false ? `× ${source.trim()}` : "", method ? methodLabel(method) : ""].filter(Boolean).join(" · ");
   const used = useMemo(() => {
     const counts = {};
     if (own) for (const m of fx.matchAll(/\$(\d+)/g)) counts[m[1]] = (counts[m[1]] ?? 0) + 1;
@@ -142,11 +147,11 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
 
   const save = async () => {
     const refuse = (message) => setFailed({ message, stamp });
-    if (!picked) return refuse("Select an account.");
+    if (!picked) return refuse(t("summary.dialog.errSelectAccount"));
     const pickedCurrency = currencies.find((c) => c.code === currency);
-    if (!pickedCurrency) return refuse("Select a currency.");
-    if (raw === null) return refuse("The formula is not valid.");
-    if (parseSource(source) === null) return refuse("Source has to be a number, e.g. 1, 2 or 0.5.");
+    if (!pickedCurrency) return refuse(t("summary.dialog.errSelectCurrency"));
+    if (raw === null) return refuse(t("summary.dialog.errFormula"));
+    if (parseSource(source) === null) return refuse(t("summary.dialog.errSource"));
     setSaving(true);
     try {
       await onSave({
@@ -160,7 +165,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
         description: desc.trim(),
       });
     } catch (err) {
-      refuse(err?.message || "Could not save the formula.");
+      refuse(err?.message || t("summary.dialog.errSave"));
       setSaving(false);
     }
   };
@@ -174,18 +179,18 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={edit ? "Edit Formula" : mode === "sub" ? "Add Sub Formula" : "Add Formula"}
+          aria-label={title}
           className="relative z-10 flex max-h-full w-[min(1180px,100%)] flex-col overflow-hidden rounded-[20px] border border-white/70 bg-[rgba(232,240,251,0.88)] shadow-[0_30px_70px_-30px_rgba(20,51,107,0.55)] backdrop-blur-[22px] backdrop-saturate-[1.15]"
         >
           <header className="flex flex-none items-center gap-3 border-b border-[rgba(130,155,195,0.25)] px-[18px] pt-3.5 pb-3 modal-short:px-4 modal-short:pt-2.5 modal-short:pb-2">
             <div className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-brand-sweep text-white shadow-[0_8px_16px_-8px_rgba(20,90,220,0.55),inset_0_2px_4px_rgba(255,255,255,0.35)] modal-short:size-[30px] modal-short:rounded-[9px]">
               <Calculator className="size-[18px] modal-short:size-4" strokeWidth={2.2} />
             </div>
-            <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.2px] text-brand-navy modal-short:text-[17px]">{edit ? "Edit Formula" : mode === "sub" ? "Add Sub Formula" : "Add Formula"}</h2>
+            <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.2px] text-brand-navy modal-short:text-[17px]">{title}</h2>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common:close")}
               className="ml-auto flex size-8 cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-[#64748b] hover:bg-white/70 hover:text-[#ef4444]"
             >
               <X className="size-[18px]" strokeWidth={2.4} />
@@ -193,45 +198,45 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
           </header>
 
           <div className="formula-grid min-h-0 overflow-y-auto px-[18px] py-4 [scrollbar-width:thin] modal-short:px-4 modal-short:py-2.5">
-            <label className={gl} style={{ gridArea: "lid" }} htmlFor="fx-id">Id Product</label>
-            <TextInput id="fx-id" value={row.idProduct} readOnly tabIndex={-1} title="The Id Product of the row" className="min-w-0 cursor-default bg-modal-off uppercase" style={{ gridArea: "cid" }} />
-            <span className={gl} style={{ gridArea: "lim" }}>Input Method</span>
+            <label className={gl} style={{ gridArea: "lid" }} htmlFor="fx-id">{t("summary.dialog.idProduct")}</label>
+            <TextInput id="fx-id" value={row.idProduct} readOnly tabIndex={-1} title={t("summary.dialog.idProductTitle")} className="min-w-0 cursor-default bg-modal-off uppercase" style={{ gridArea: "cid" }} />
+            <span className={gl} style={{ gridArea: "lim" }}>{t("summary.dialog.inputMethod")}</span>
             <div className="min-w-0" style={{ gridArea: "cim" }}>
-              <SelectField value={method} onChange={setMethod} options={INPUT_METHODS} placeholder="Select Input Method (Optional)" onClear={() => setMethod("")} />
+              <SelectField value={method} onChange={setMethod} options={methodOptions} placeholder={t("summary.dialog.selectMethod")} onClear={() => setMethod("")} />
             </div>
 
-            <span className={gl} style={{ gridArea: "lac" }}>Account</span>
+            <span className={gl} style={{ gridArea: "lac" }}>{t("summary.dialog.account")}</span>
             <div className="flex min-w-0 items-center gap-1.5" style={{ gridArea: "cac" }}>
               <DropdownSelect
                 options={accountOptions}
                 value={account}
                 onChange={(v) => setAccount(v ?? "")}
-                placeholder="Select Account"
+                placeholder={t("summary.dialog.selectAccount")}
                 searchable
                 clearable
-                searchPlaceholder="Search"
-                ariaLabel="Account"
+                searchPlaceholder={t("summary.dialog.search")}
+                ariaLabel={t("summary.dialog.account")}
                 className={cn(inputClass, "min-w-0 flex-1 justify-between gap-2 py-0 font-normal shadow-[0_1px_3px_rgba(15,23,42,0.05)]")}
               />
-              <AddButton label={hasAccount ? "Edit account" : "Add account"} edit={hasAccount} onClick={() => setAccountModal(true)} />
+              <AddButton label={hasAccount ? t("summary.dialog.editAccount") : t("summary.dialog.addAccount")} edit={hasAccount} onClick={() => setAccountModal(true)} />
             </div>
-            <span className={gl} style={{ gridArea: "lcu" }}>Currency</span>
+            <span className={gl} style={{ gridArea: "lcu" }}>{t("summary.dialog.currency")}</span>
             <div className="min-w-0" style={{ gridArea: "ccu" }}>
-              <SelectField value={currency} onChange={setCurrency} options={currencyOptions} placeholder="Select Currency" />
+              <SelectField value={currency} onChange={setCurrency} options={currencyOptions} placeholder={t("summary.dialog.selectCurrency")} />
             </div>
 
-            <label className={gl} style={{ gridArea: "lsr" }} htmlFor="fx-src">Source</label>
-            <TextInput id="fx-src" value={source} onChange={(e) => setSource(e.target.value)} inputMode="decimal" placeholder="1, 2 or 0.5" title="The formula result is multiplied by Source" autoComplete="off" className="min-w-0" style={{ gridArea: "csr" }} />
-            <label className={gl} style={{ gridArea: "lde" }} htmlFor="fx-desc">Description</label>
+            <label className={gl} style={{ gridArea: "lsr" }} htmlFor="fx-src">{t("summary.dialog.source")}</label>
+            <TextInput id="fx-src" value={source} onChange={(e) => setSource(e.target.value)} inputMode="decimal" placeholder={t("summary.table.sourcePlaceholder")} title={t("summary.dialog.sourceTitle")} autoComplete="off" className="min-w-0" style={{ gridArea: "csr" }} />
+            <label className={gl} style={{ gridArea: "lde" }} htmlFor="fx-desc">{t("summary.dialog.description")}</label>
             <TextInput id="fx-desc" value={desc} onChange={(e) => setDesc(e.target.value.toUpperCase())} autoComplete="off" className="min-w-0 uppercase" style={{ gridArea: "cde" }} />
 
-            <span className={gl} style={{ gridArea: "ldt" }}>Data</span>
+            <span className={gl} style={{ gridArea: "ldt" }}>{t("summary.dialog.data")}</span>
             <div className="flex min-w-0 items-center gap-[5px]" style={{ gridArea: "cdt" }}>
               <div className="min-w-[104px] flex-[1.25_1_0]">
-                <SelectField value={dataRow} onChange={changeDataRow} options={dataRows} placeholder="Select Id Product" />
+                <SelectField value={dataRow} onChange={changeDataRow} options={dataRows} placeholder={t("summary.dialog.selectIdProduct")} />
               </div>
               <div className="min-w-0 flex-[1_1_0]">
-                <SelectField value={dataCol} onChange={setDataCol} options={colOptions} placeholder="Select Row Data" />
+                <SelectField value={dataCol} onChange={setDataCol} options={colOptions} placeholder={t("summary.dialog.selectRowData")} />
               </div>
               <button
                 type="button"
@@ -242,12 +247,12 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                 }}
                 className={cn(primaryButtonClass, "h-9 flex-none px-[11px] text-[12.5px] modal-compact:h-[30px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.5]")}
               >
-                Add
+                {t("summary.dialog.add_button")}
               </button>
             </div>
 
-            <label className={gl} style={{ gridArea: "lfx" }} htmlFor="fx-formula">Formula</label>
-            <TextInput id="fx-formula" ref={fxRef} value={fx} onChange={(e) => setFx(e.target.value)} placeholder="e.g. $5+$10*0.6/7" autoComplete="off" className="min-w-0" style={{ gridArea: "cfx" }} />
+            <label className={gl} style={{ gridArea: "lfx" }} htmlFor="fx-formula">{t("summary.dialog.formula")}</label>
+            <TextInput id="fx-formula" ref={fxRef} value={fx} onChange={(e) => setFx(e.target.value)} placeholder={t("summary.dialog.formulaPlaceholder")} autoComplete="off" className="min-w-0" style={{ gridArea: "cfx" }} />
             <span style={{ gridArea: "lrs" }} />
             <div
               className={cn(
@@ -257,17 +262,17 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
               style={{ gridArea: "crs" }}
             >
               <span className="min-w-0 truncate" title={note || undefined}>
-                Result{note && <small className="ml-2 text-[11.5px] text-dash-faint">{note}</small>}
+                {t("summary.dialog.result")}{note && <small className="ml-2 text-[11.5px] text-dash-faint">{note}</small>}
               </span>
               <b className="flex-none pl-2 text-[14px] text-brand-navy">{result.text}</b>
             </div>
 
-            <span className={cn(gl, "self-start pt-1.5")} style={{ gridArea: "lrd" }} title="Click a value to insert it into the formula">
-              Row data
+            <span className={cn(gl, "self-start pt-1.5")} style={{ gridArea: "lrd" }} title={t("summary.dialog.rowDataTitle")}>
+              {t("summary.dialog.rowData")}
             </span>
             <div className="flex max-h-[104px] flex-wrap gap-1.5 self-start overflow-y-auto py-0.5 pr-0.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-short:max-h-[68px]" style={{ gridArea: "crd" }}>
               {cells.length === 0 ? (
-                <div className="py-1.5 text-[12px] text-dash-faint">Select an Id Product in Data to list its captured values.</div>
+                <div className="py-1.5 text-[12px] text-dash-faint">{t("summary.dialog.rowDataEmpty")}</div>
               ) : (
                 cells.map((c) => (
                   <button
@@ -275,7 +280,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                     type="button"
                     disabled={c.v === null}
                     onClick={() => pickCell(c)}
-                    title={c.v === null ? "Text, not usable in a formula" : `Insert ${refOf(c.n)}`}
+                    title={c.v === null ? t("summary.dialog.textCell") : t("summary.dialog.insert", { ref: refOf(c.n) })}
                     className={cn(
                       "inline-flex h-[30px] cursor-pointer items-center gap-[5px] rounded-lg border border-[rgba(130,155,195,0.4)] bg-white/70 px-2.5 text-[12.5px] font-semibold text-[#1f2937] transition-colors enabled:hover:border-[#7fb2ff] enabled:hover:bg-white modal-short:h-[26px] modal-short:px-2 modal-short:text-[12px]",
                       c.v === null && "cursor-not-allowed bg-white/35 text-[#94a3b8]",
@@ -285,7 +290,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                     <i className={cn("text-[12px] font-bold not-italic", c.v === null ? "text-[#a8b3c4]" : "text-[#64748b]")}>[{c.n}]</i>
                     <span className="max-w-[180px] flex-none truncate tabular-nums">{c.t}</span>
                     {used[c.n] && (
-                      <em title={`Used ${used[c.n]} time(s) in the formula`} className="ml-0.5 flex h-[18px] items-center rounded-full bg-[rgba(20,51,107,0.08)] px-1.5 text-[10.5px] font-extrabold not-italic text-dash-sub">
+                      <em title={t("summary.dialog.used", { count: used[c.n] })} className="ml-0.5 flex h-[18px] items-center rounded-full bg-[rgba(20,51,107,0.08)] px-1.5 text-[10.5px] font-extrabold not-italic text-dash-sub">
                         ×{used[c.n]}
                       </em>
                     )}
@@ -300,7 +305,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                   <span key={i} aria-hidden="true" />
                 ) : (
                   <button key={k} type="button" onClick={() => pressKey(k)} className={keyClass(k)}>
-                    {k === "clr" ? "Clr" : k}
+                    {k === "clr" ? t("summary.dialog.clear") : k}
                   </button>
                 )
               )}
@@ -314,7 +319,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
               </span>
             )}
             <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-short:h-[34px] modal-short:min-w-[104px] modal-short:text-[13px]">
-              Cancel
+              {t("common:cancel")}
             </SoftButton>
             <button
               type="button"
@@ -323,7 +328,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
               className={cn(primaryButtonClass, "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-short:h-[34px] modal-short:min-w-[104px] modal-short:text-[13px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("summary.dialog.saving") : t("common:save")}
             </button>
           </footer>
         </div>
