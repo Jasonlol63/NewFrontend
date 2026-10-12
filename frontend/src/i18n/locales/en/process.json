@@ -3,37 +3,37 @@
   "days": {
     "1": {
       "short": "MO",
-      "abbr": "MON",
+      "abbr": "Mon",
       "full": "Monday"
     },
     "2": {
       "short": "TU",
-      "abbr": "TUE",
+      "abbr": "Tue",
       "full": "Tuesday"
     },
     "3": {
       "short": "WE",
-      "abbr": "WED",
+      "abbr": "Wed",
       "full": "Wednesday"
     },
     "4": {
       "short": "TH",
-      "abbr": "THU",
+      "abbr": "Thu",
       "full": "Thursday"
     },
     "5": {
       "short": "FR",
-      "abbr": "FRI",
+      "abbr": "Fri",
       "full": "Friday"
     },
     "6": {
       "short": "SA",
-      "abbr": "SAT",
+      "abbr": "Sat",
       "full": "Saturday"
     },
     "7": {
       "short": "SU",
-      "abbr": "SUN",
+      "abbr": "Sun",
       "full": "Sunday"
     }
   },
@@ -87,7 +87,7 @@
     "copyFrom": "Copy From",
     "copyPlaceholder": "Select Process to Copy From",
     "code": "Process ID",
-    "codePlaceholder": "ENTER PROCESS ID",
+    "codePlaceholder": "Enter process ID",
     "multi": "Multi-Process",
     "multiBack": "Back to a single Process ID",
     "multiPick": "Pick existing processes",
@@ -108,16 +108,16 @@
     "removeWord": "Remove Word",
     "removeHint": "For multiple words, use commas (,). To match only one exact word, put = before it.",
     "replaceFrom": "Replace From",
-    "oldWord": "OLD WORD",
+    "oldWord": "Old Word",
     "replaceFromHint": "Word to be replaced",
     "replaceTo": "Replace To",
-    "newWord": "NEW WORD",
+    "newWord": "New Word",
     "replaceToHint": "Replacement word",
     "schedule": "Schedule",
     "dayUse": "Day Use",
-    "allDay": "ALL DAY",
+    "allDay": "All Day",
     "remarks": "Remarks",
-    "remarksPlaceholder": "ENTER REMARKS...",
+    "remarksPlaceholder": "Enter remarks...",
     "selectedCount": "{{count}} selected",
     "noProcesses": "No processes selected",
     "selectExisting": "Select existing processes",
@@ -138,7 +138,7 @@
     "none2": "Tick one from the list to add it here.",
     "available": "Available Descriptions",
     "total": "{{count}} total",
-    "newPlaceholder": "ENTER NEW DESCRIPTION NAME...",
+    "newPlaceholder": "Enter new description name...",
     "newAria": "New description name",
     "add": "Add",
     "search": "Search descriptions",
@@ -158,12 +158,12 @@
       "showBlocked": "Blocked"
     },
     "status": {
-      "WAITING": "WAITING",
-      "ACTIVE": "ACTIVE",
-      "INACTIVE": "INACTIVE",
-      "OFFICIAL": "OFFICIAL",
-      "E_INVOICE": "E-INVOICE",
-      "BLOCK": "BLOCK"
+      "WAITING": "Waiting",
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "OFFICIAL": "Official",
+      "E_INVOICE": "E-Invoice",
+      "BLOCK": "Block"
     },
     "frequency": {
       "FIRST_OF_EVERY_MONTH": "1st of Every Month",
@@ -176,11 +176,13 @@
       "FIRST_OF_EVERY_MONTH": "1st of Month"
     },
     "cardType": {
-      "PERSONAL": "PERSONAL",
-      "BUSINESS": "BUSINESS",
-      "ENTERPRISE": "ENTERPRISE"
+      "PERSONAL": "Personal",
+      "BUSINESS": "Business",
+      "ENTERPRISE": "Enterprise"
     },
-    "onePlus": "{{value}} MONTHS",
+    "onePlus": "{{value}} Months",
+    "monthsN_one": "{{n}} Month",
+    "monthsN_other": "{{n}} Months",
     "col": {
       "supplier": "Supplier",
       "country": "Country",
@@ -268,7 +270,7 @@
       "selectCountry": "Select Country",
       "selectBank": "Select Bank",
       "selectType": "Select Type",
-      "cardOwnerPlaceholder": "ENTER CARD OWNER",
+      "cardOwnerPlaceholder": "Enter card owner",
       "scheduleCard": "Schedule",
       "dayStart": "Day Start",
       "dayEnd": "Day End",
@@ -276,15 +278,15 @@
       "frequency": "Frequency",
       "selectFrequency": "Select Frequency",
       "on": "ON",
-      "off": "OFF",
+      "off": "Off",
       "dayEndNone": "This frequency has no Day End",
       "dayEndLockedTip": "Locked while the switch is on",
       "notUsed": "Not used",
       "sopCard": "SOP and Remark",
       "sop": "SOP",
       "remark": "Remark",
-      "sopPlaceholder": "ENTER SOP...",
-      "remarkPlaceholder": "ENTER REMARKS...",
+      "sopPlaceholder": "Enter sop...",
+      "remarkPlaceholder": "Enter remarks...",
       "detail": "Detail",
       "supplier": "Supplier",
       "buyPrice": "Buy Price",
@@ -356,7 +358,7 @@
     },
     "remarkDialog": {
       "title": "Remark",
-      "placeholder": "ENTER REMARKS...",
+      "placeholder": "Enter remarks...",
       "chars_one": "{{count}} character",
       "chars_other": "{{count}} characters",
       "collapseAria": "Collapse the text box",
@@ -376,7 +378,7 @@
       "bank": "Bank",
       "dayStart": "Day Start",
       "dayEnd": "Day End",
-      "notUsed": "NOT USED",
+      "notUsed": "Not Used",
       "frequency": "Frequency",
       "selectFrequency": "Select Frequency",
       "pickDayStart": "Pick a Day Start to see what will be resent.",
@@ -411,7 +413,7 @@
       "nothing": "Nothing left to post.",
       "dueNow": "Due now",
       "early": "Early",
-      "notDueYet": "NOT DUE YET",
+      "notDueYet": "Not Due Yet",
       "colNo": "No",
       "colStart": "Start Date",
       "colBilling": "Billing Date",

@@ -238,7 +238,7 @@ export default function AnnouncementPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label={t("page.searchLabel")}
-                className="w-full bg-transparent outline-none placeholder:text-dash-faint"
+                className="w-full bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint"
                 placeholder={t("page.search")}
               />
             </label>

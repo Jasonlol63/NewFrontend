@@ -81,7 +81,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
     >
       <div className="mb-4 short:mb-2 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="mb-1 text-[11px] font-bold tracking-wider text-[#374151] uppercase">
+          <div className="mb-1 text-[11px] font-bold tracking-wider text-[#374151]">
             {t("breakdown.netProfit", { currency: currency || "—" })}
           </div>
           <div className="text-[28px] leading-tight font-bold tracking-tight text-dash-ink tabular-nums">
@@ -95,7 +95,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
         <table className="w-full border-separate border-spacing-0 text-[13px]">
           <thead className="sticky top-0 z-[1] bg-white">
-            <tr className="text-[10.5px] tracking-wider text-[#374151] uppercase">
+            <tr className="text-[10.5px] tracking-wider text-[#374151]">
               <th className={cn(TH, "text-left")}>{t("common:currency")}</th>
               <th className={cn(TH, "text-right")}>{t("breakdown.amount", { currency: currency || "—" })}</th>
               <th className={cn(TH, "text-right")}>{t("breakdown.original")}</th>

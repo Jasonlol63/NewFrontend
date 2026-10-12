@@ -148,7 +148,7 @@ export default function DescriptionPickerModal({ items, selected: initialSelecte
         <div className="flex flex-none items-center gap-1.5 px-3.5 pt-2.5 modal-compact:px-3 modal-compact:pt-2">
           <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[9px] border border-modal-input-line bg-modal-input px-2.5 text-[12.5px] focus-within:border-[#3b82f6] modal-tiny:h-7">
             <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("desc.search")} className="w-full min-w-0 bg-transparent text-[#111827] outline-none placeholder:text-dash-faint" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("desc.search")} className="w-full min-w-0 bg-transparent text-[#111827] uppercase placeholder:normal-case outline-none placeholder:text-dash-faint" />
           </label>
           <button type="button" onClick={() => setSelected((s) => new Set([...s, ...shown.map((it) => it.value)]))} className={cn(link, "text-[#1d7bff]")}>
             {t("desc.selectAll")}

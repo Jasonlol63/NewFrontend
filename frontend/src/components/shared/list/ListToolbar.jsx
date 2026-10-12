@@ -97,7 +97,7 @@ export default function ListToolbar({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-transparent outline-none placeholder:text-dash-faint"
+            className="w-full bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint"
             placeholder={searchPlaceholder}
           />
         </label>

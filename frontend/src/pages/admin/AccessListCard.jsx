@@ -61,7 +61,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint"
+        className="w-full min-w-0 bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint"
         {...props}
       />
     </label>

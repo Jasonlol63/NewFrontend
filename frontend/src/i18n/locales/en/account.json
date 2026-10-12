@@ -20,21 +20,21 @@
     "link": "Link account",
     "alertSwitch": "Click to switch",
     "on": "ON",
-    "off": "OFF"
+    "off": "Off"
   },
   "role": {
-    "CAPITAL": "CAPITAL",
-    "BANK": "BANK",
-    "CASH": "CASH",
-    "PROFIT": "PROFIT",
-    "EXPENSES": "EXPENSES",
-    "COMPANY": "COMPANY",
-    "PARTNER": "PARTNER",
-    "STAFF": "STAFF",
-    "SUPPLIER": "SUPPLIER",
-    "AGENT": "AGENT",
-    "MEMBER": "MEMBER",
-    "DEBTOR": "DEBTOR"
+    "CAPITAL": "Capital",
+    "BANK": "Bank",
+    "CASH": "Cash",
+    "PROFIT": "Profit",
+    "EXPENSES": "Expenses",
+    "COMPANY": "Company",
+    "PARTNER": "Partner",
+    "STAFF": "Staff",
+    "SUPPLIER": "Supplier",
+    "AGENT": "Agent",
+    "MEMBER": "Member",
+    "DEBTOR": "Debtor"
   },
   "toast": {
     "added": "Account added: {{id}}",
@@ -102,7 +102,7 @@
     "company": "Company",
     "companySelected": "{{selected}}/{{total}} selected",
     "searchCompany": "Search company",
-    "current": "CURRENT",
+    "current": "Current",
     "loading": "Loading…"
   },
   "setting": {
@@ -157,7 +157,7 @@
     "in": "From other accounts",
     "linkType": "Link Type",
     "linkFrom": "Link from",
-    "thisAccount": "THIS ACCOUNT",
+    "thisAccount": "This Account",
     "addAs": "Add clicked accounts as",
     "account": "Account",
     "hintBi": "Clicked accounts are added as bidirectional: data syncs both ways.",

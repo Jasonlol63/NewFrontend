@@ -94,7 +94,7 @@ function SearchBox({ value, onChange }) {
   return (
     <label className={cn(searchShell, "order-2 min-w-[120px] max-w-[180px] flex-[1_1_120px]")}>
       <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint" placeholder={t("bank.page.search")} />
+      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full min-w-0 bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint" placeholder={t("bank.page.search")} />
     </label>
   );
 }
@@ -127,7 +127,7 @@ function SearchIcon({ value, onChange }) {
             onChange={(e) => onChange(e.target.value)}
             onBlur={() => setOpen(false)}
             onKeyDown={(e) => (e.key === "Escape" || e.key === "Enter") && setOpen(false)}
-            className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint"
+            className="w-full min-w-0 bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint"
             placeholder={t("bank.page.search")}
           />
         </label>

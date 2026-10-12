@@ -11,9 +11,8 @@ import { Field, SelectField, inputClass } from "@/components/shared/form-modal/f
 import { FIRST_OF_MONTH, FREQUENCIES } from "./bankFormRules";
 import { buildResendRequest, resendSummary, resendUsesDayEnd, validateResend } from "./bankResendRules";
 
-// Same look as Add / Edit Process (everything upper case, the date popups of that form), as a small dialog in the middle.
-const UPPERCASE = "uppercase [&_input]:uppercase";
-const DATE_POPUP = "uppercase min-[1536px]:max-w-[300px]";
+// Same look as Add / Edit Process (the date popups of that form), as a small dialog in the middle.
+const DATE_POPUP = "min-[1536px]:max-w-[300px]";
 const pair = "grid grid-cols-2 gap-x-3 gap-y-2.5 @max-[479px]/main:grid-cols-1";
 
 function ReadOnlyBox({ children }) {
@@ -68,7 +67,6 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
       saveDisabled={saving}
       onClose={onClose}
       onSave={save}
-      className={UPPERCASE}
       bodyClassName="flex flex-col overflow-y-auto [scrollbar-width:thin]"
     >
       <FormCard title={t("bank.resend.processCard")} className="flex-none">
@@ -99,7 +97,7 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
         </div>
         <div className="mt-2.5">
           <Field label={t("bank.resend.frequency")} as="div">
-            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.resend.selectFrequency")} />
+            <SelectField value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.resend.selectFrequency")} />
           </Field>
         </div>
         <p className={cn("m-0 mt-2.5 px-0.5 text-[12px] leading-snug normal-case", summary.error ? "font-semibold text-[#dc2626]" : "text-[#475569]")}>

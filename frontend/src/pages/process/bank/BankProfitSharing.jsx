@@ -101,7 +101,6 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                 <div className="min-w-[110px] flex-[1_1_140px]">
                   {i === 0 && <ColumnLabel>{t("bank.share.account")}</ColumnLabel>}
                   <SearchSelectField
-                    uppercase
                     value={row.account}
                     onChange={(account) => patch(i, { account })}
                     onClear={() => patch(i, { account: "" })}

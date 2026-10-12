@@ -26,6 +26,7 @@ import {
   FREQUENCIES,
   accountLabel,
   buildBankRequest,
+  contractDayEnd,
   contractLabel,
   isBankPickAccount,
   money,
@@ -44,14 +45,12 @@ const pair = "grid grid-cols-2 gap-3 modal-compact:gap-2 @max-[599px]/main:grid-
 const cardFlex = "flex-none @max-[899px]/main:overflow-visible";
 const cardBody = "flex flex-col gap-3 modal-compact:gap-2 @max-[899px]/main:overflow-visible";
 
-// Everything in this modal is shown in upper case: titles, labels, values and placeholders. Buttons keep their normal case
-// (Cancel, Add Process, Back...); the selects are upper case through their own `uppercase` prop. Inputs and text areas don't
-// inherit text-transform (the browser resets it), so they are named; the select and date popups are outside the modal and
-// carry the class themselves.
-const UPPERCASE = "uppercase [&_input]:uppercase [&_textarea]:uppercase";
+// Titles, labels, placeholders and options are shown like the other pages (first letter capital). Only what is typed into
+// Card Owner, SOP and Remark is upper case, as it is saved (placeholders stay normal case).
+const TYPED_UPPER = "uppercase placeholder:normal-case";
 
 // On big screens the date picker popup is a little narrower than the (wide) field; below that it follows the field as before.
-const DATE_POPUP = "uppercase min-[1536px]:max-w-[300px]";
+const DATE_POPUP = "min-[1536px]:max-w-[300px]";
 
 const BLANK = {
   countryId: "",
@@ -123,7 +122,7 @@ function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = fals
   return (
     <div ref={setRow} className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
-        {searchable ? <SearchSelectField uppercase onClear={onClear} {...select} /> : <SelectField uppercase onClear={onClear} {...select} />}
+        {searchable ? <SearchSelectField onClear={onClear} {...select} /> : <SelectField onClear={onClear} {...select} />}
       </div>
       {(typeof button === "function" ? button(row) : button) ?? <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />}
     </div>
@@ -202,6 +201,14 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
   const pickCountry = (countryId) => setForm((f) => ({ ...f, countryId, bankId: "" }));
   // Day End only exists for the frequencies that run to one; the others drop whatever was in it.
   const setFrequency = (frequency) => setForm((f) => ({ ...f, frequency, dayEnd: usesDayEnd(frequency) ? f.dayEnd : "" }));
+  // Day Start / Contract set the Day End straight away (Day Start + the contract's months); it can still be changed by hand.
+  // A Day End that is locked (Edit switch on) or unused for this frequency is left alone.
+  const setDayStartOrContract = (key) => (value) =>
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      const end = contractDayEnd(next.dayStart, next.contract);
+      return end && usesDayEnd(next.frequency) && !dayEndLocked ? { ...next, dayEnd: end } : next;
+    });
 
   // The "+" popovers: Add / Remove write at once (adding a country also creates a currency of that code); Show / hide is only
   // kept in this browser. A failure is thrown to the popover, which shows it.
@@ -328,7 +335,6 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       onClose={onClose}
       onSave={save}
       saveDisabled={saving}
-      className={UPPERCASE}
       overlay={
         editor && (
           <TextEditorSheet
@@ -419,10 +425,10 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           </div>
           <div className={pair}>
             <Field label={t("bank.form.type")} as="div">
-              {isEdit ? <ReadOnlyBox>{t(`bank.cardType.${form.type}`, { defaultValue: form.type })}</ReadOnlyBox> : <SelectField uppercase value={form.type} onChange={set("type")} options={CARD_OWNER_TYPES.map((o) => ({ ...o, label: t(`bank.cardType.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectType")} />}
+              {isEdit ? <ReadOnlyBox>{t(`bank.cardType.${form.type}`, { defaultValue: form.type })}</ReadOnlyBox> : <SelectField value={form.type} onChange={set("type")} options={CARD_OWNER_TYPES.map((o) => ({ ...o, label: t(`bank.cardType.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectType")} />}
             </Field>
             <Field label={t("bank.form.cardOwner")} as="div">
-              {isEdit ? <ReadOnlyBox>{form.cardOwner}</ReadOnlyBox> : <TextInput value={form.cardOwner} onChange={setText("cardOwner")} autoComplete="off" placeholder={t("bank.form.cardOwnerPlaceholder")} className="uppercase" />}
+              {isEdit ? <ReadOnlyBox>{form.cardOwner}</ReadOnlyBox> : <TextInput value={form.cardOwner} onChange={setText("cardOwner")} autoComplete="off" placeholder={t("bank.form.cardOwnerPlaceholder")} className={TYPED_UPPER} />}
             </Field>
           </div>
         </FormCard>
@@ -430,7 +436,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         <FormCard title={t("bank.form.scheduleCard")} className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
             <Field label={t("bank.form.dayStart")} as="div">
-              <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} disabled={billingLocked} />
+              <DateField value={form.dayStart} onChange={setDayStartOrContract("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} disabled={billingLocked} />
             </Field>
             <div className="block min-w-0">
               <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
@@ -455,17 +461,17 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
             </div>
           </div>
           <Field label={t("bank.form.frequency")}>
-            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectFrequency")} disabled={billingLocked} />
+            <SelectField value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectFrequency")} disabled={billingLocked} />
           </Field>
         </FormCard>
 
         <FormCard title={t("bank.form.sopCard")} className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible" bodyClassName="flex flex-col @max-[899px]/main:overflow-visible">
           <div className={cn(pair, "min-h-0 flex-1")}>
             <Field label={t("bank.form.sop")} optional className="flex min-h-[64px] flex-col">
-              <ExpandableTextarea value={form.sop} onChange={setText("sop")} placeholder={t("bank.form.sopPlaceholder")} onExpand={() => setEditor("sop")} className="uppercase" />
+              <ExpandableTextarea value={form.sop} onChange={setText("sop")} placeholder={t("bank.form.sopPlaceholder")} onExpand={() => setEditor("sop")} className={TYPED_UPPER} />
             </Field>
             <Field label={t("bank.form.remark")} optional className="flex min-h-[64px] flex-col">
-              <ExpandableTextarea value={form.remark} onChange={setText("remark")} placeholder={t("bank.form.remarkPlaceholder")} onExpand={() => setEditor("remark")} className="uppercase" />
+              <ExpandableTextarea value={form.remark} onChange={setText("remark")} placeholder={t("bank.form.remarkPlaceholder")} onExpand={() => setEditor("remark")} className={TYPED_UPPER} />
             </Field>
           </div>
         </FormCard>
@@ -532,7 +538,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           </div>
           <div className={pair}>
             <Field label={t("bank.form.contract")} as="div">
-              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract).map((o) => ({ ...o, label: contractLabel(o.value) }))} placeholder={t("bank.form.contract")} disabled={billingLocked} />
+              <SelectField value={form.contract} onChange={setDayStartOrContract("contract")} options={withCurrent(CONTRACTS, form.contract).map((o) => ({ ...o, label: contractLabel(o.value) }))} placeholder={t("bank.form.contract")} disabled={billingLocked} />
             </Field>
             <div className={pair}>
               <Field label={t("bank.form.insurance")} optional>

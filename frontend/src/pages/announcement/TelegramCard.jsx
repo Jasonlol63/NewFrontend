@@ -167,7 +167,7 @@ export default function TelegramCard({ saved, onSave }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[14px] border border-modal-line bg-white/60 px-3.5 py-2.5 text-[12px]">
-          <span className="text-[10.5px] font-bold uppercase tracking-[0.6px] text-[#6b7fa5]">{t("telegram.currentLink")}</span>
+          <span className="text-[10.5px] font-bold tracking-[0.6px] text-[#6b7fa5]">{t("telegram.currentLink")}</span>
           {url ? (
             <a href={url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-[13.5px] font-bold text-[#0b4fd0] underline">
               {url}

@@ -17,7 +17,7 @@ export function CheckListTools({ query, onQuery, onSelectAll, onClear, placehold
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder={placeholder ?? t("search")}
-          className="w-full min-w-0 bg-transparent text-[#111827] outline-none placeholder:text-dash-faint"
+          className="w-full min-w-0 bg-transparent text-[#111827] uppercase placeholder:normal-case outline-none placeholder:text-dash-faint"
         />
       </label>
       <ListLink onClick={onSelectAll}>{t("selectAll")}</ListLink>

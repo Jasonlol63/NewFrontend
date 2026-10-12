@@ -27,7 +27,7 @@ const COLS = [
 ];
 
 const TH =
-  "sticky top-0 z-[2] h-[clamp(26px,1.6vw,30px)] border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] text-[clamp(11px,0.65vw,12px)] font-bold tracking-[0.2px] whitespace-nowrap text-white uppercase last:border-r-0";
+  "sticky top-0 z-[2] h-[clamp(26px,1.6vw,30px)] border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] text-[clamp(11px,0.65vw,12px)] font-bold tracking-[0.2px] whitespace-nowrap text-white last:border-r-0";
 const TD =
   "h-[clamp(21px,1.3vw,25px)] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-[clamp(6px,0.55vw,10px)] text-ellipsis whitespace-nowrap tabular-nums";
 

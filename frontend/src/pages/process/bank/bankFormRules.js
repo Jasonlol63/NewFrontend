@@ -1,4 +1,5 @@
 import i18n from "@/i18n";
+import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
 // Options, validation and the request bodies of the Add / Edit Bank Process modal (/api/bank-process).
 
 export const BANK_ADD_URL = "/api/bank-process/add-bank-process";
@@ -30,12 +31,32 @@ export const contractLabel = (contract) => {
   const c = String(contract ?? "").trim();
   if (ONE_PLUS.test(c)) return i18n.t("process:bank.onePlus", { value: c, defaultValue: `${c} MONTHS` });
   const m = /^(\d+) MONTHS?$/.exec(c);
-  return m ? i18n.t("process:bank.monthsN", { n: m[1], defaultValue: c }) : contract;
+  return m ? i18n.t("process:bank.monthsN", { n: m[1], count: Number(m[1]), defaultValue: c }) : contract;
 };
 export const CONTRACTS = [
   ...options(["1 MONTH", "2 MONTHS", "3 MONTHS", "6 MONTHS"]),
   ...["1+1", "1+2", "1+3"].map((value) => ({ value, label: contractLabel(value) })),
 ];
+
+// Months a contract runs: "3 MONTHS" = 3, "1+2" = 1 month + 2 compensation months = 3. null for free text.
+export function contractMonths(contract) {
+  const c = String(contract ?? "").trim();
+  const plus = /^1\+([123])$/.exec(c);
+  if (plus) return 1 + Number(plus[1]);
+  const m = /^(\d+) MONTHS?$/.exec(c);
+  return m ? Number(m[1]) : null;
+}
+
+// Last day of the contract: Day Start + the contract's months, minus one day (01 Sep + 3 months -> 30 Nov). A short month
+// clamps (31 Jan + 1 month -> 28 Feb, minus a day). "" when either side is missing / unknown.
+export function contractDayEnd(dayStart, contract) {
+  const months = contractMonths(contract);
+  if (!dayStart || !months) return "";
+  const start = parseIsoDate(dayStart);
+  const lastOfTarget = new Date(start.getFullYear(), start.getMonth() + months + 1, 0).getDate();
+  const end = new Date(start.getFullYear(), start.getMonth() + months, Math.min(start.getDate(), lastOfTarget));
+  return toIsoDate(addDays(end, -1));
+}
 
 // Only these two run to a Day End; Once uses just Day Start, Daily and Weekly have no end.
 export const usesDayEnd = (frequency) => frequency === FIRST_OF_MONTH || frequency === "MONTHLY";

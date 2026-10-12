@@ -54,7 +54,7 @@ function TypeTag({ type }) {
   const { t } = useTranslation("transaction");
   const [bg, fg] = typeTone(type);
   return (
-    <span className="inline-flex h-[20px] items-center rounded-md px-2 text-[10.5px] font-extrabold tracking-[0.2px] uppercase" style={{ background: bg, color: fg }}>
+    <span className="inline-flex h-[20px] items-center rounded-md px-2 text-[10.5px] font-extrabold tracking-[0.2px] capitalize" style={{ background: bg, color: fg }}>
       {t(`types.${type}`, { defaultValue: type })}
     </span>
   );

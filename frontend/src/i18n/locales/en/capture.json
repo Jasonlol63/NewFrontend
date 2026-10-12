@@ -152,12 +152,12 @@
     "descriptionHint": "Click + to select descriptions",
     "addDescription": "Add description",
     "editDescriptions": "Edit descriptions",
-    "oldWord": "OLD WORD",
-    "newWord": "NEW WORD",
-    "enterRemark": "ENTER REMARK",
+    "oldWord": "Old Word",
+    "newWord": "New Word",
+    "enterRemark": "Enter remark",
     "removeHint": "For multiple words, use commas (,). To match only one exact word, put = before it."
   },
-  "weekdays": ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+  "weekdays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   "submitted": {
     "title": "Submitted Processes",
     "empty": "No processes submitted for this date"

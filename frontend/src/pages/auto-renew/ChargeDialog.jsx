@@ -105,12 +105,12 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
         <div className="mt-auto rounded-[10px] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] p-2 tabular-nums">
           {row.status === "pending" && (
             <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8] uppercase">Current</span>
+              <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">Current</span>
               <s className="text-[12px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
             </div>
           )}
           <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2.5 py-1.5 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">
-            <span className="flex items-center gap-1 text-[10px] font-extrabold tracking-[0.6px] text-[#2f8dff] uppercase">
+            <span className="flex items-center gap-1 text-[10px] font-extrabold tracking-[0.6px] text-[#2f8dff]">
               <ArrowRight className="size-3 flex-none" strokeWidth={2.6} />
               New
             </span>

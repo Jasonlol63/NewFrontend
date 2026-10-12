@@ -330,7 +330,7 @@ function AccountFilters({ query, onQuery, filter, onFilter, className }) {
     <>
       <label className={cn("relative block", className)}>
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dash-faint" strokeWidth={2.2} />
-        <TextInput value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t("setting.searchPlaceholder")} aria-label={t("setting.searchLabel")} className="rounded-full pl-8" />
+        <TextInput value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t("setting.searchPlaceholder")} aria-label={t("setting.searchLabel")} className="rounded-full pl-8 uppercase placeholder:normal-case" />
       </label>
       <div className="w-[124px] flex-none">
         <SelectField value={filter} onChange={onFilter} options={FILTER_OPTIONS.map((o) => ({ ...o, label: t(`setting.filter${o.value[0].toUpperCase()}${o.value.slice(1)}`) }))} />
@@ -349,7 +349,7 @@ function Legend({ className, children }) {
 }
 
 function Tag({ className, children }) {
-  return <i className={cn("absolute right-[7px] top-1.5 h-[15px] rounded-full px-[5px] text-[9px] font-extrabold uppercase not-italic leading-[15px] tracking-[0.4px]", className)}>{children}</i>;
+  return <i className={cn("absolute right-[7px] top-1.5 h-[15px] rounded-full px-[5px] text-[9px] font-extrabold capitalize not-italic leading-[15px] tracking-[0.4px]", className)}>{children}</i>;
 }
 
 // Add Currency + the Currency list (tabs; in Delete mode a click asks to delete that currency).

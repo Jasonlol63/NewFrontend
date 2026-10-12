@@ -333,7 +333,7 @@ function RecordSection({ process }) {
   ];
   return (
     <div className="mt-1 border-t border-modal-divider pt-3 modal-compact:pt-2">
-      <h3 className="m-0 mb-2 text-[13px] font-extrabold uppercase tracking-[0.6px] text-[#64748b] modal-compact:mb-1 modal-compact:text-[12px]">{t("form.record")}</h3>
+      <h3 className="m-0 mb-2 text-[13px] font-extrabold tracking-[0.6px] text-[#64748b] modal-compact:mb-1 modal-compact:text-[12px]">{t("form.record")}</h3>
       <div className="flex flex-col gap-3 modal-compact:gap-1.5">
         {rows.map((r) => (
           <Field key={r.label} label={r.label} plain as="div">
@@ -440,7 +440,7 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
         <div className="flex items-center gap-1.5 border-b border-modal-divider p-1.5">
           <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-modal-input-line bg-white/60 px-2.5 text-[12.5px] focus-within:border-[#3b82f6] modal-compact:h-7">
             <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("form.searchProcesses")} className="w-full min-w-0 bg-transparent text-[#111827] outline-none placeholder:text-dash-faint" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("form.searchProcesses")} className="w-full min-w-0 bg-transparent text-[#111827] uppercase placeholder:normal-case outline-none placeholder:text-dash-faint" />
           </label>
           <button type="button" onClick={() => onChange(new Set([...selected, ...shown.map((it) => it.value)]))} className={cn(tileLink, "text-[#1d7bff]")}>
             {t("common:selectAll")}
