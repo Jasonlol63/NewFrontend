@@ -8,7 +8,7 @@ import { PERIODS, displayDate, newExpiryOf, periodOf, priceOf } from "./autoRene
  * Renew period picker. The trigger and the card under it are exactly the same width; every period
  * shows its price, and hovering one previews the new expiry date (Current struck through -> New).
  */
-export default function PeriodSelect({ row, value, onChange, disabled }) {
+export default function PeriodSelect({ row, value, onChange, disabled, className }) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(null);
   const set = Boolean(value);
@@ -32,7 +32,8 @@ export default function PeriodSelect({ row, value, onChange, disabled }) {
               : set
                 ? "border-[#9fd0ff] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] text-[#0b4fd0]"
                 : "border-dashed border-[#9fb8de] text-dash-sub enabled:hover:border-[#2f8dff] enabled:hover:text-[#0d60ff]",
-            open && (set ? "bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] text-[#0b4fd0]" : "text-[#0d60ff]")
+            open && (set ? "bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] text-[#0b4fd0]" : "text-[#0d60ff]"),
+            className
           )}
         >
           <CalendarDays className="size-3.5 flex-none" strokeWidth={2} />
@@ -69,7 +70,7 @@ export default function PeriodSelect({ row, value, onChange, disabled }) {
                 >
                   {p.label}
                   <span className={cn("tabular-nums", selected ? "font-extrabold text-[#0b4fd0]" : "font-bold text-[#14336b]")}>
-                    {priceOf(row, p.key)}
+                    {priceOf(row, p.key) ?? "-"}
                   </span>
                 </button>
               );

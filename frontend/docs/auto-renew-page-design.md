@@ -2,7 +2,7 @@
 
 Auto Renew 列出 30 天内即将到期（或已到期）的 Company / Group，操作人为每一行选一个续期周期，再 Approve 或 Reject。
 
-- 当前是**纯设计版**：没有接 API，数据是占位数据，所有操作只改页面自己的状态，刷新即还原。
+- 已接后端 `/api/auto-renew`（list / approve / reject / delete）和 Domain 的分账接口，没有占位数据。唯一只存在页面里的是 Pending 行已选的 **Period 和 Charge**：后端在 Approve 之前没有地方存它们，刷新页面会清空（接口见第 9 节）。
 - 列表的壳（表头、斑马纹、悬停行、毛玻璃外框、页脚、翻页）直接复用 Admin / Account 的 `DataTable`，尺寸见 `admin-account-list-specs.md`，这里不重复。
 - 所有按钮和选中项的蓝色都是登录页的渐变（`bg-brand-sweep`：`#0a3fc9 → #2f8dff → #3fc4ff`）。
 
@@ -12,12 +12,15 @@ Auto Renew 列出 30 天内即将到期（或已到期）的 Company / Group，�
 
 | 文件 | 作用 |
 |---|---|
-| `src/pages/auto-renew/AutoRenewPage.jsx` | 页面：持有状态，定义列，拼装筛选卡片和 `DataTable` |
+| `src/pages/auto-renew/AutoRenewPage.jsx` | 页面：读列表、持有状态，定义列，Approve / Reject / Undo，拼装筛选卡片、`DataTable` 和弹窗 |
+| `src/pages/auto-renew/autoRenewApi.js` | 所有后端调用：列表（连同分账和账号）、approve、reject、undo、保存分账 |
+| `src/pages/auto-renew/ChargeDialog.jsx` | Comm 按钮打开的 Charge 弹窗（第 7 节） |
 | `src/pages/auto-renew/AutoRenewFilterCard.jsx` | 顶部筛选卡片（M1 排版） |
 | `src/pages/auto-renew/StatusFilter.jsx` | Status 行：图标方块 + 数量 |
 | `src/pages/auto-renew/PeriodSelect.jsx` | Period 下拉卡片 |
 | `src/pages/auto-renew/ChargeSwitch.jsx` | Charge 小开关 |
-| `src/pages/auto-renew/autoRenewRules.js` | 周期表、Remaining 档位、各种颜色表、占位数据、搜索 / 排序 |
+| `src/pages/auto-renew/autoRenewRules.js` | 周期表（含后端编码）、价格、新到期日、后端行转页面行（`toRow`）、Remaining 档位、颜色表、搜索 / 排序 |
+| `src/pages/domain/SharePanel.jsx` | 弹窗右栏的 Share，与 Domain 页共用（窄屏时页签、Profit 卡和账号行会换行） |
 | `src/components/shared/SlideTabs.jsx` | Company / Group 滑块（通用组件） |
 | `src/components/shared/list/cells.jsx` | `Badge` 增加了属性透传（`style` 等） |
 | `src/index.css` | 新增 `renew-ring` / `renew-dot` 动画 |
@@ -70,10 +73,10 @@ Auto Renew 列出 30 天内即将到期（或已到期）的 Company / Group，�
 | Expiration | 是 | `dd-mm-yyyy` |
 | Remaining | 是（按到期日） | 带圆点的徽章，见第 5 节 |
 | Period | 否 | Pending 行是 `PeriodSelect`，已处理的行是文字 |
-| Price | 是 | 选了周期才显示，否则灰色 `—` |
+| Price | 是 | 选了周期才显示，否则灰色 `—`。永远是后端全局价表里该类型（公司 / 集团）和周期的价格，不能修改；已处理的行显示批准时的价格 |
 | Charge | 否 | `ChargeSwitch` |
 | Status | 否 | 带圆点的徽章，见下表 |
-| Action | 否 | 三个固定格子，见第 7 节 |
+| Action | 否 | 三个固定格子，见第 8 节 |
 
 Status 徽章颜色：
 
@@ -120,17 +123,42 @@ Status 徽章颜色：
 
 **下拉卡片**：宽度**始终等于触发按钮宽度**（`w-(--radix-popover-trigger-width)`），紧贴按钮下方展开，边框 `#2f8dff`。
 
-- 5 个周期：7 days / 1 month / 3 months / 6 months / 1 year，每行左边周期名、右边价格（粗体）。
+- 5 个周期：7 days / 1 month / 3 months / 6 months / 1 year，每行左边周期名、右边价格（粗体，来自后端价表；没配价格的显示 0.00）。后端编码分别是 `7days / 1month / 3months / 6months / 1year`，页面用 `7d / 1m / 3m / 6m / 1y`，由 `PERIODS` 互相转换。
 - 选中行：浅蓝底 `#e8f2ff` + 左侧 3px 蓝色竖条 + 蓝色字。悬停行：`#f4f9ff`。
 - 底部（浅蓝渐变条，上下两行都占满整个卡片宽度，避免窄卡片里被截断）：
   - 第一行：`CURRENT` + 划线的旧到期日（灰）。
   - 第二行：白底蓝边小卡片，左边小箭头 + `NEW`，右边蓝色粗体的新到期日。
   - 悬停哪个周期就预览哪个；没悬停时显示已选周期；两者都没有时显示 `Hover to preview new expiry`。
-- 新到期日 = 原到期日 + 周期天数；如果已经过期，则从今天起算。
+- 新到期日与后端一致：永远从当前到期日起算（已过期也**不**从今天算），7 天加 7 日，其余按日历月 / 年加，当月没有的日子退到月末（等同 `LocalDate.plusMonths`）。
 
 ---
 
-## 7. Charge 开关与 Action 列
+## 7. Charge 弹窗（Comm 按钮）
+
+文件：`ChargeDialog.jsx`。用共用的 `FormModal` / `FormCard`：填满内容区、Sidebar 不被盖住，外壳、按钮、卡片与 Domain 的 Settings 弹窗一致。标题 `Charge · 公司代码`。
+
+**左栏 Renewal**（宽 4 : 右栏 6）
+
+| 项 | 说明 |
+|---|---|
+| Period | 同一个 `PeriodSelect`，与列表**共用同一份状态**：弹窗里换周期，列表立刻变，反过来也一样 |
+| Price | **只读**，显示该周期的后端全局价 |
+| Charge | 同一个 `ChargeSwitch`，与列表共用同一个值；关闭时右栏 Share 整块变灰禁用，**没有单独的 Share 开关** |
+| Current / New | 原到期日（划线）和新到期日；已处理的行只显示后端记录的新到期日 |
+
+**右栏 Share**：直接用 Domain 的 `SharePanel`（价格行、Profit 卡、Sales / CS / IT 页签、账号分配）。
+
+- 数据与 Domain 页是**同一份**（`tenant_fee_share_allocate`）：页面加载时从 `/api/domain/list` 读，账号下拉用 C168 里 STAFF / AGENT 的 Active 账号。
+- 点 Save 时，只有分账改过才调 `PUT /api/domain/update-setting`，只带分账行和这一行的到期日，**不带收费标志，所以不产生账**；Profit 自动取剩余比例。失败时错误显示在弹窗底部，弹窗不关。
+- Period、Charge 的改动立刻写进页面状态；Cancel / Back / Esc 把这一行还原成打开时的样子，Share 则要 Save 才写入后端。
+- Charge 开着时，分账行没选账号或总和超过 100%，Save 灰掉并提示原因。
+- 只读登录和已处理（Approved / Rejected）的行只能查看：输入禁用，Save 灰掉，底部提示 `View only`。
+
+**各尺寸**：宽屏左右分栏；内容区窄于 800px 上下叠放；窄于 480px 时 Share 的三个部门页签改单列，Profit 金额换行，账号行改成上下两行。1280×560 到 1920×950、1000×600、768×1024、375×812 都检查过：整页无滚动，弹窗无溢出，只有账号列表在卡片内部滚动。
+
+---
+
+## 8. Charge 开关与 Action 列
 
 **Charge 开关**（`ChargeSwitch.jsx`）：40×18px，`rounded-[5px]`，滑块 14px；文字 `ON` / `OFF`，7.5px 粗体。
 
@@ -143,30 +171,39 @@ Status 徽章颜色：
 
 | 格子 | 内容 |
 |---|---|
-| 1 | `Approve`：登录页蓝色渐变；没选周期时禁用（半透明，提示 `Select a period first`） |
-| 2 | `Reject`：石板灰渐变 `#94a3b8 → #64748b` |
-| 3 | `Comm`：蓝色线条对话气泡，目前**禁用**，悬停提示 `Not available yet` |
+| 1 | `Approve`：登录页蓝色渐变，见下 |
+| 2 | `Reject`：石板灰渐变 `#94a3b8 → #64748b`；点后先弹确认框 `Reject request?`，确认才调接口 |
+| 3 | `Comm`：蓝色线条对话气泡，打开第 7 节的弹窗；该行已有分账时右上角有一个蓝点 |
 
-已处理的行（Approved / Rejected）前两格留空，只保留第三格的 Comm。只读账号（`useCurrentUser().readOnly`）的 Approve、Reject、Charge 全部禁用，提示 `Read-only login`。
+**Approve 禁用的情况**（悬停给出原因）：没选周期；后端的 `can_approve` 为 false（这家公司在 C168 里没有对应账号，或付款方与收款方是同一个账号）；所选周期的价格是 0。请求进行中所有行的 Approve / Reject / Undo 都禁用，防止重复点击。
 
----
+**已处理的行**（Approved / Rejected）前两格合并成一个 `Undo` 按钮：确认后调 `/api/auto-renew/delete`，把申请退回 Pending；撤回 Approved 还会回滚到期日并删除当时产生的账本流水，确认框里有说明。后端的 `can_delete` 为 false 时（比如之后又续过期）禁用。
 
-## 8. 当前的占位行为（接 API 时替换）
-
-| 项目 | 现状 |
-|---|---|
-| 数据 | `buildMockRows()`：12 行，到期日按"今天"前后推算（过期 3 天、今天、5 / 7 / 12 / 15 / 22 / 30 天等），保证四档颜色始终都能看到 |
-| 价格 | `基础价 × 周期倍率`，倍率（0.03 / 0.1 / 0.25 / 0.5 / 1）只是占位，不是真实规则 |
-| Approve / Reject | 只把本行状态改成 Approved / Rejected，行会从 Pending 筛选里消失 |
-| Charge | 只在页面里切换 |
-| Date Range | 只保存选择，**不过滤列表**（还不确定它筛的是到期日还是申请日） |
-| 页签数量 | 各页签里 Pending 的行数 |
-| Comm | 禁用 |
-
-接 API 时需要确认：Date Range 作用于哪个日期、真实的价格 / 周期规则、Reject 是否要二次确认、Comm 的功能，以及 Group 页签的列是否与 Company 完全一致。
+只读账号（`useCurrentUser().readOnly`）的 Approve、Reject、Undo、Charge、Period 全部禁用，提示 `Read-only login`；弹窗里只能查看。
 
 ---
 
-## 9. 验证过的尺寸
+## 9. 后端接口与行为
+
+| 动作 | 接口 | 说明 |
+|---|---|---|
+| 读列表 | `POST /api/auto-renew/list` | 每次读一个页签：`status: "all"`、`entity_type`、`date_from` / `date_to`。Pending 是到期日在 30 天窗口内的全部；Approved / Rejected 按**处理时间**落在 Date Range 内的。数量用返回的 `counts`、`tab_pending_counts` |
+| 读分账 / 账号 | `POST /api/domain/list`、`POST /api/account/list` | 每行的 Sales / CS / IT 和账号下拉 |
+| Approve | `POST /api/auto-renew/approve` | `{ request_id, period, charge_on_approve }`。后端把到期日延长，Charge 开着时按全局价和该公司已保存的分账向 C168 账本写入付款、佣金、净利润流水；价格 ≤ 0 或没有 Profit 分账会报错 |
+| Reject | `POST /api/auto-renew/reject` | `{ request_id }` |
+| Undo | `POST /api/auto-renew/delete` | `{ request_id }`，退回 Pending |
+| 保存分账 | `PUT /api/domain/update-setting` | 见第 7 节 |
+
+- 成功后重新读列表；Pending 行已选的 Period 和 Charge 会按申请 id 保留，其他行不丢选择。后端报错时在页面顶部显示红色提示条，行保持原样。
+- 刷新页面会清空已选的 Period 和 Charge。要持久化需要在 `tenant_auto_renew` 加列，目前不做。
+- 价格表里没配价格的周期（价格 0）批不了，要到 Domain 的 Price 里补。
+- 保存分账时带的是列表读到的到期日；如果几乎同时有人批准了同一家的续期，理论上可能把到期日写回旧值。
+
+---
+
+## 10. 验证过的尺寸
 
 1000×600、1100×620、1200×620、1280×560、1366×610、1440×760、1536×730、1600×800、1920×950 九个尺寸下（所有行都选到 1 year 这种最宽状态）：整页没有纵向或横向滚动，表格没有横向滚动条，筛选卡片、单元格内容、Period 弹窗都没有溢出或被覆盖，`oxlint` 无报错。选任意周期时各列宽度不变（逐行逐周期共 45 次切换，量过表头宽度和表格高度）。
+
+
+Charge 弹窗另外在 1280×560、1366×610、1440×760、1536×730、1600×800、1920×950、1100×620、1000×600、768×1024、375×812 检查过，结果见第 7 节。

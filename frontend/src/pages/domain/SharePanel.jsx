@@ -57,7 +57,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
         )}
       </div>
 
-      <div className="relative flex flex-none items-center gap-3 overflow-hidden rounded-xl border border-l-0 border-white/70 bg-[linear-gradient(100deg,rgba(255,255,255,0.62)_0%,rgba(214,232,255,0.55)_100%)] py-[13px] pr-4 pb-[17px] pl-[19px] modal-compact:py-2.5 modal-compact:pb-3.5 modal-snug:py-2 modal-snug:pb-3">
+      <div className="relative flex flex-none flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden rounded-xl border border-l-0 border-white/70 bg-[linear-gradient(100deg,rgba(255,255,255,0.62)_0%,rgba(214,232,255,0.55)_100%)] py-[13px] pr-4 pb-[17px] pl-[19px] modal-compact:py-2.5 modal-compact:pb-3.5 modal-snug:py-2 modal-snug:pb-3">
         <span className="absolute inset-y-0 left-0 w-[3px] bg-brand-blue" />
         <b className="text-[18px] font-extrabold text-brand-navy modal-compact:text-[16px] modal-snug:text-[15px]">Profit</b>
         <span className="flex min-w-0 items-center gap-1 text-[14px] font-bold text-brand-navy modal-compact:text-[13px]">
@@ -97,7 +97,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
           "--nb": "color-mix(in srgb, var(--c) 14%, #fbfdff)",
           "--bd": "color-mix(in srgb, var(--c) 45%, #fff)",
         }}
-        className="relative grid flex-none grid-cols-3 gap-(--g) [--g:10px] modal-compact:[--g:8px] modal-roomy:[--g:12px]"
+        className="relative grid flex-none grid-cols-3 gap-(--g) @max-[479px]/main:grid-cols-1 [--g:10px] modal-compact:[--g:8px] modal-roomy:[--g:12px]"
       >
         {DEPARTMENTS.map((d) => (
           <DepartmentTab key={d.key} department={d} total={summary.departments[d.key]} on={d.key === active} onPick={() => setActive(d.key)} />
@@ -105,7 +105,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
         {/* The little notch under the picked tab points at the panel below; it slides to the next tab. */}
         <i
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-[7px] left-[calc((100%-2*var(--g))/3*(var(--i)+0.5)+var(--i)*var(--g)-6px)] z-10 size-3 rotate-45 rounded-br-[3px] border-r border-b border-(--bd) bg-(--nb) transition-[left] duration-200 ease-out motion-reduce:transition-none modal-compact:-bottom-[6px] modal-compact:size-2.5 modal-compact:left-[calc((100%-2*var(--g))/3*(var(--i)+0.5)+var(--i)*var(--g)-5px)]"
+          className="pointer-events-none absolute -bottom-[7px] @max-[479px]/main:hidden left-[calc((100%-2*var(--g))/3*(var(--i)+0.5)+var(--i)*var(--g)-6px)] z-10 size-3 rotate-45 rounded-br-[3px] border-r border-b border-(--bd) bg-(--nb) transition-[left] duration-200 ease-out motion-reduce:transition-none modal-compact:-bottom-[6px] modal-compact:size-2.5 modal-compact:left-[calc((100%-2*var(--g))/3*(var(--i)+0.5)+var(--i)*var(--g)-5px)]"
         />
       </div>
 
@@ -128,7 +128,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
         </div>
 
         {rows.length > 0 && (
-          <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] gap-2 px-1.5 text-[10px] font-semibold tracking-[0.3px] text-[#6b7fa5]">
+          <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] gap-2 px-1.5 @max-[479px]/main:hidden text-[10px] font-semibold tracking-[0.3px] text-[#6b7fa5]">
             <span>ACCOUNT</span>
             <span className="text-right">AMOUNT</span>
             <span className="text-right">%</span>
@@ -196,7 +196,7 @@ function DepartmentTab({ department, total, on, onPick }) {
       onClick={onPick}
       style={{ "--c": department.color }}
       className={cn(
-        "relative flex min-w-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-xl border border-l-0 py-[9px] pr-3 pb-3 pl-[18px] text-left text-brand-navy transition-colors",
+        "relative flex min-w-0 cursor-pointer flex-wrap items-center gap-x-1.5 gap-y-0 overflow-hidden rounded-xl border border-l-0 py-[9px] pr-3 pb-3 pl-[18px] text-left text-brand-navy transition-colors",
         "modal-compact:py-[5px] modal-compact:pr-2 modal-compact:pb-2 modal-compact:pl-3.5",
         "modal-roomy:rounded-[13px] modal-roomy:pt-3 modal-roomy:pr-3.5 modal-roomy:pb-[15px] modal-roomy:pl-[21px]",
         "modal-tall:pt-3.5 modal-tall:pb-[17px] modal-tall:pl-[23px]",
@@ -240,8 +240,10 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
   };
 
   return (
-    <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] items-center gap-2 rounded-[11px] border border-white/70 bg-white/50 px-1.5 py-1 hover:bg-white/70 modal-compact:py-0.5">
-      <SelectField value={row.account} onChange={(account) => onChange({ ...row, account })} options={options} placeholder="Select account" />
+    <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] items-center gap-2 @max-[479px]/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22px] rounded-[11px] border border-white/70 bg-white/50 px-1.5 py-1 hover:bg-white/70 modal-compact:py-0.5">
+      <div className="min-w-0 @max-[479px]/main:col-span-2 @max-[479px]/main:row-start-1">
+        <SelectField value={row.account} onChange={(account) => onChange({ ...row, account })} options={options} placeholder="Select account" />
+      </div>
       <TextInput
         value={shown("amount")}
         onChange={(e) => type("amount", e.target.value)}
@@ -249,9 +251,9 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
         inputMode="decimal"
         disabled={noPrice}
         aria-label={`${row.account || "Account"} amount`}
-        className="px-2.5 text-right tabular-nums disabled:cursor-not-allowed disabled:opacity-60"
+        className="px-2.5 text-right tabular-nums disabled:cursor-not-allowed disabled:opacity-60 @max-[479px]/main:row-start-2"
       />
-      <div className="relative">
+      <div className="relative @max-[479px]/main:row-start-2">
         <TextInput
           value={shown("pct")}
           onChange={(e) => type("pct", e.target.value)}
@@ -266,7 +268,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${row.account || "account"}`}
-        className="grid size-[22px] flex-none cursor-pointer place-items-center rounded-md border-none bg-transparent p-0 text-[#8a98b0] hover:bg-[#ffe4e8] hover:text-[#d4566a]"
+        className="grid size-[22px] flex-none cursor-pointer place-items-center @max-[479px]/main:col-start-3 @max-[479px]/main:row-start-1 rounded-md border-none bg-transparent p-0 text-[#8a98b0] hover:bg-[#ffe4e8] hover:text-[#d4566a]"
       >
         <X className="size-3.5" strokeWidth={2.6} />
       </button>

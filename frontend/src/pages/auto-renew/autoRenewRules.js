@@ -2,21 +2,31 @@ import { addDays, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date"
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
 
 // ===== Renew periods =====
-// `rate` only prices the placeholder rows (price = basePrice x rate); the real prices come with the API.
+// key: the page's own key; code: what the back end calls it (renewal_period.code); fee: the key of its price in fee_settings.
 export const PERIODS = [
-  { key: "7d", label: "7 days", days: 7, rate: 0.03 },
-  { key: "1m", label: "1 month", days: 30, rate: 0.1 },
-  { key: "3m", label: "3 months", days: 91, rate: 0.25 },
-  { key: "6m", label: "6 months", days: 182, rate: 0.5 },
-  { key: "1y", label: "1 year", days: 365, rate: 1 },
+  { key: "7d", code: "7days", label: "7 days" },
+  { key: "1m", code: "1month", label: "1 month" },
+  { key: "3m", code: "3months", label: "3 months" },
+  { key: "6m", code: "6months", label: "6 months" },
+  { key: "1y", code: "1year", label: "1 year" },
 ];
 
 export const periodOf = (key) => PERIODS.find((p) => p.key === key) ?? null;
+export const periodCodeOf = (key) => periodOf(key)?.code ?? null;
+const periodByCode = (code) => PERIODS.find((p) => p.code === code) ?? null;
 
+// The list price of a period for this row's kind (company / group): the C168 price table, same for every row of a kind.
 export const priceOf = (row, periodKey) => {
-  const period = periodOf(periodKey);
-  return period ? (row.basePrice * period.rate).toFixed(2) : null;
+  const price = row.periodPrices?.[periodKey];
+  return price == null ? null : price.toFixed(2);
 };
+
+// The price of a row: the price it was approved at, else the list price of the picked period. Never typed in.
+export function rowPrice(row) {
+  if (!row.periodKey) return null;
+  if (row.status !== "pending" && row.price != null) return row.price;
+  return row.periodPrices?.[row.periodKey] ?? 0;
+}
 
 const todayStart = () => {
   const t = new Date();
@@ -25,13 +35,62 @@ const todayStart = () => {
 
 export const displayDate = (iso) => formatDisplayDate(iso, "-");
 
-// A renewal runs on from the expiry date, or from today when it has already lapsed.
+// Same as java.time.LocalDate.plusMonths: a day that does not exist in the target month falls back to its last day.
+function addMonths(date, months) {
+  const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  return new Date(target.getFullYear(), target.getMonth(), Math.min(date.getDate(), last));
+}
+
+// The back end always renews from the saved expiry date (also when it has already lapsed), by calendar months / years.
 export function newExpiryOf(row, periodKey) {
-  const period = periodOf(periodKey);
-  if (!period) return null;
+  if (row.status !== "pending" && row.newExpiry) return row.newExpiry;
   const expiry = parseIsoDate(row.expiry);
-  const from = expiry > todayStart() ? expiry : todayStart();
-  return toIsoDate(addDays(from, period.days));
+  switch (periodKey) {
+    case "7d":
+      return toIsoDate(addDays(expiry, 7));
+    case "1m":
+      return toIsoDate(addMonths(expiry, 1));
+    case "3m":
+      return toIsoDate(addMonths(expiry, 3));
+    case "6m":
+      return toIsoDate(addMonths(expiry, 6));
+    case "1y":
+      return toIsoDate(addMonths(expiry, 12));
+    default:
+      return null;
+  }
+}
+
+const feeKeys = { "7d": "7days", "1m": "1month", "3m": "3months", "6m": "6months", "1y": "1year" };
+
+/** One row of POST /api/auto-renew/list as the page shows it. feeSettings: the response's fee_settings (list price per kind and period). */
+export function toRow(r, feeSettings) {
+  const kind = r.entity_type === "group" ? "group" : "company";
+  const table = (kind === "group" ? feeSettings?.group_period_prices : feeSettings?.company_period_prices) ?? {};
+  const periodPrices = {};
+  for (const [key, code] of Object.entries(feeKeys)) {
+    const value = table[code];
+    if (value != null) periodPrices[key] = Number(value);
+  }
+  return {
+    id: r.request_id,
+    tenantId: r.tenant_id,
+    ownerId: r.owner_id,
+    kind,
+    company: r.company_code ?? "",
+    name: r.owner_name || "-",
+    expiry: r.expiration_date,
+    newExpiry: r.new_expiration_date ?? null,
+    status: r.status,
+    periodKey: periodByCode(r.period)?.key ?? null,
+    price: r.price != null ? Number(r.price) : null,
+    periodPrices,
+    canApprove: Boolean(r.can_approve),
+    canDelete: Boolean(r.can_delete),
+    charge: true,
+    departments: { sales: [], cs: [], it: [] },
+  };
 }
 
 // ===== Remaining =====
@@ -131,44 +190,12 @@ export function statusCounts(rows) {
   return counts;
 }
 
-// ===== Placeholder rows (design preview): expiry dates are relative to today so every step shows =====
-export function buildMockRows() {
-  const day = (n) => toIsoDate(addDays(todayStart(), n));
-  const row = (id, kind, company, name, offset, basePrice, extra = {}) => ({
-    id,
-    kind,
-    company,
-    name,
-    expiry: day(offset),
-    basePrice,
-    charge: true,
-    comm: false,
-    status: "pending",
-    periodKey: null,
-    ...extra,
-  });
-  return [
-    row("c1", "company", "ASIA", "-", -3, 2400),
-    row("c2", "company", "GT", "-", -7, 1200),
-    row("c3", "company", "1039", "IT01 KUNZZ", 0, 2400, { charge: false, comm: true }),
-    row("c4", "company", "BK1", "IT01 KUNZZ", 5, 3000, { comm: true }),
-    row("c5", "company", "AJ", "-", 7, 600),
-    row("c6", "company", "MK7", "-", 12, 1800),
-    row("c7", "company", "XY3", "-", 15, 1500),
-    row("c8", "company", "PL5", "-", 22, 900),
-    row("c9", "company", "RT8", "-", 30, 2100, { charge: false }),
-    row("c10", "company", "ZX9", "-", 22, 2400, { comm: true, status: "approved", periodKey: "1y" }),
-    row("c11", "company", "QW2", "-", 7, 1200, { charge: false, status: "rejected", periodKey: "6m" }),
-    row("g1", "group", "GRP01", "-", 4, 5000, { comm: true }),
-  ];
-}
-
 // ===== Search / sort =====
 export function filterAutoRenewRows(rows, { search }) {
   return rows.filter((r) => matchesSearch([r.company, r.name], search));
 }
 
-const priceValue = (r) => (r.periodKey ? r.basePrice * periodOf(r.periodKey).rate : -1);
+const priceValue = (r) => rowPrice(r) ?? -1;
 
 const COMPARE = {
   company: compareText("company"),
