@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Undo2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { currentMonthRange } from "@/lib/date";
 import DataTable from "@/components/shared/list/DataTable.jsx";
@@ -21,7 +22,6 @@ import {
   STATUS_BADGE,
   displayDate,
   filterAutoRenewRows,
-  periodOf,
   periodCodeOf,
   remainingDays,
   rowPrice,
@@ -30,8 +30,6 @@ import {
   sortAutoRenewRows,
   statusCounts,
 } from "./autoRenewRules";
-
-const READ_ONLY = "Read-only login";
 
 // Nothing in this list is bulk-selectable (no delete), so the select column never shows.
 const canSelect = () => false;
@@ -52,6 +50,7 @@ const EMPTY_COUNTS = { all: 0, pending: 0, approved: 0, rejected: 0 };
  * Approve / Reject / Undo call the API and read the list again. The Share is the one saved for the company / group (shared with the Domain page).
  */
 export default function AutoRenewPage() {
+  const { t } = useTranslation(["autorenew", "common"]);
   const user = useCurrentUser();
   const { user: session } = useSession();
   const ledgerTenantId = session?.tenant_id;
@@ -93,11 +92,11 @@ export default function AutoRenewPage() {
       })
       .catch((e) => {
         if (e.name === "AbortError") return;
-        push("Couldn't load the list", "error", e.message, { label: "Retry", onClick: () => setReloadKey((k) => k + 1) });
+        push(t("toast.loadFailed"), "error", e.message, { label: t("common:retry"), onClick: () => setReloadKey((k) => k + 1) });
         setLoadedKey(loadKey);
       });
     return () => controller.abort();
-  }, [loadKey, tab, range, ledgerTenantId, push]);
+  }, [loadKey, tab, range, ledgerTenantId, push, t]);
 
   const tabRows = useMemo(() => rows.filter((r) => r.kind === tab), [rows, tab]);
   // Status counts of the rows loaded, but a local Approve / Reject moves a row between them, so count what is on screen.
@@ -119,8 +118,9 @@ export default function AutoRenewPage() {
       else if (action === "reject") await rejectRequest(row.id);
       else await undoRequest(row.id);
       setReloadKey((k) => k + 1);
+      push(t(action === "approve" ? "toast.approved" : action === "reject" ? "toast.rejected" : "toast.undone"), "success", row.company);
     } catch (e) {
-      push("Couldn't update the request", "error", e.message);
+      push(t("toast.updateFailed"), "error", e.message);
     } finally {
       setBusyId(null);
     }
@@ -144,13 +144,13 @@ export default function AutoRenewPage() {
   };
 
   const columns = [
-    { key: "no", label: "No", sortable: false, className: "w-[36px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "company", label: tab === "group" ? "Group" : "Company", cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.company },
-    { key: "name", label: "Name", cellClassName: "whitespace-nowrap text-[#374151]", render: (r) => r.name },
-    { key: "expiry", label: "Expiration", cellClassName: "whitespace-nowrap tabular-nums", render: (r) => displayDate(r.expiry) },
+    { key: "no", label: t("cols.no"), sortable: false, className: "w-[36px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+    { key: "company", label: tab === "group" ? t("cols.group") : t("cols.company"), cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.company },
+    { key: "name", label: t("cols.name"), cellClassName: "whitespace-nowrap text-[#374151]", render: (r) => r.name },
+    { key: "expiry", label: t("cols.expiry"), cellClassName: "whitespace-nowrap tabular-nums", render: (r) => displayDate(r.expiry) },
     {
       key: "remaining",
-      label: "Remaining",
+      label: t("cols.remaining"),
       render: (r, n) => {
         const days = remainingDays(r.expiry);
         const tone = r.status === "pending" ? REMAINING_BADGE[remainingTier(days)] : REMAINING_BADGE.settled;
@@ -158,26 +158,26 @@ export default function AutoRenewPage() {
           // The pulse of neighbouring rows is staggered so they never flash together.
           <Badge className={cn("items-center gap-1.5", tone.badge)} style={{ animationDelay: `${(n * 0.7) % 4}s` }}>
             <Dot className={tone.dot} />
-            {remainingLabel(days)}
+            {remainingLabel(days, t)}
           </Badge>
         );
       },
     },
     {
       key: "period",
-      label: "Period",
+      label: t("cols.period"),
       sortable: false,
       cellClassName: "whitespace-nowrap",
       render: (r) =>
         r.status === "pending" ? (
           <PeriodSelect row={r} value={r.periodKey} onChange={(key) => patch(r.id, { periodKey: key })} disabled={readOnly} />
         ) : (
-          <span className="text-[#374151]">{periodOf(r.periodKey)?.label ?? "-"}</span>
+          <span className="text-[#374151]">{r.periodKey ? t(`periods.${r.periodKey}`) : "-"}</span>
         ),
     },
     {
       key: "price",
-      label: "Price",
+      label: t("cols.price"),
       cellClassName: "whitespace-nowrap tabular-nums",
       // Fixed minimum width: a price like 900.00 -> 1800.00 would otherwise widen the column and make
       // every other column (and the whole table) shift while a Period is being picked.
@@ -189,27 +189,27 @@ export default function AutoRenewPage() {
     },
     {
       key: "charge",
-      label: "Charge",
+      label: t("cols.charge"),
       sortable: false,
       render: (r) => <ChargeSwitch on={r.charge} disabled={readOnly} onToggle={() => patch(r.id, { charge: !r.charge })} />,
     },
     {
       key: "status",
-      label: "Status",
+      label: t("cols.status"),
       sortable: false,
       render: (r) => {
         const s = STATUS_BADGE[r.status];
         return (
           <Badge className={cn("items-center gap-1.5", s.badge)}>
             <Dot className={s.dot} />
-            {s.label}
+            {t(`status.${r.status}`)}
           </Badge>
         );
       },
     },
     {
       key: "action",
-      label: "Action",
+      label: t("cols.action"),
       sortable: false,
       className: "text-center",
       cellClassName: "whitespace-nowrap",
@@ -222,36 +222,36 @@ export default function AutoRenewPage() {
               <button
                 type="button"
                 disabled={readOnly || busyId != null || !r.periodKey || !r.canApprove || !(rowPrice(r) > 0)}
-                title={readOnly ? READ_ONLY : !r.periodKey ? "Select a period first" : !r.canApprove ? "This company has no matching account in C168" : !(rowPrice(r) > 0) ? "No list price is set for this period (Domain > Price)" : undefined}
+                title={readOnly ? t("readOnly") : !r.periodKey ? t("actions.selectPeriodFirst") : !r.canApprove ? t("actions.noAccount") : !(rowPrice(r) > 0) ? t("actions.noPrice") : undefined}
                 onClick={() => decide(r, "approve")}
                 className={cn(actionButton, "bg-brand-sweep shadow-[0_6px_14px_-6px_rgba(13,96,255,0.6)]")}
               >
-                Approve
+                {t("actions.approve")}
               </button>
               <button
                 type="button"
                 disabled={readOnly || busyId != null}
-                title={readOnly ? READ_ONLY : undefined}
+                title={readOnly ? t("readOnly") : undefined}
                 onClick={() => setConfirm({ row: r, action: "reject" })}
                 className={cn(actionButton, "bg-[linear-gradient(180deg,#94a3b8_0%,#64748b_100%)] shadow-[0_6px_14px_-6px_rgba(71,85,105,0.6)]")}
               >
-                Reject
+                {t("actions.reject")}
               </button>
             </>
           ) : (
             <button
               type="button"
               disabled={readOnly || busyId != null || !r.canDelete}
-              title={readOnly ? READ_ONLY : !r.canDelete ? "This request can no longer be undone" : "Put this request back to Pending"}
+              title={readOnly ? t("readOnly") : !r.canDelete ? t("actions.cannotUndo") : t("actions.putBack")}
               onClick={() => setConfirm({ row: r, action: "undo" })}
               className="col-span-2 flex items-center justify-center gap-1 rounded-lg border border-[#b9cdea] bg-white py-1 text-[12px] font-bold text-[#41588a] transition-colors enabled:cursor-pointer enabled:hover:bg-[#eef4fd] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Undo2 className="size-3" strokeWidth={2.6} />
-              Undo
+              {t("actions.undo")}
             </button>
           )}
           <span className="relative inline-flex">
-            <IconAction icon={MessageSquare} title="Charge and share" aria-label="Comm" onClick={() => setChargeId(r.id)} className="size-6" />
+            <IconAction icon={MessageSquare} title={t("actions.commTitle")} aria-label={t("actions.comm")} onClick={() => setChargeId(r.id)} className="size-6" />
             {Object.values(r.departments).some((list) => list.length > 0) && (
               <i className="pointer-events-none absolute top-0.5 right-0.5 size-[7px] rounded-full bg-[#1f6fe8] ring-2 ring-white" />
             )}
@@ -286,7 +286,7 @@ export default function AutoRenewPage() {
         statusCounts={counts}
       />
 
-      <DataTable columns={columns} noun="records" minWidth="min-w-0" fitWidth loading={loading} emptyMessage="Nothing to renew here" {...view.table} />
+      <DataTable columns={columns} noun="records" minWidth="min-w-0" fitWidth loading={loading} emptyMessage={t("empty")} {...view.table} />
 
       {chargeRow && (
         <ChargeDialog
@@ -296,6 +296,7 @@ export default function AutoRenewPage() {
           onPatch={(changes) => patch(chargeRow.id, changes)}
           onSave={(row) => saveShare(row, ledger.accounts)}
           onClose={closeCharge}
+          notify={push}
         />
       )}
       <DeleteDialog
@@ -307,7 +308,7 @@ export default function AutoRenewPage() {
         verbPast={confirm?.action === "undo" ? "put back to Pending" : "rejected"}
         note={
           confirm?.action === "undo" && confirm.row.status === "approved"
-            ? "The renewal is rolled back to the old expiry date and its ledger entries are deleted."
+            ? t("confirm.rollbackNote")
             : undefined
         }
         irreversible={false}

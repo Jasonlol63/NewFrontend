@@ -1,0 +1,36 @@
+{
+  "filter": {
+    "company": "Company:",
+    "account": "Account:",
+    "currency": "Currency:",
+    "select": "Select:",
+    "all": "ALL",
+    "noCurrency": "No currency available",
+    "exportPdf": "Export PDF"
+  },
+  "balance": {
+    "currency": "Currency",
+    "total": "Total"
+  },
+  "report": {
+    "currency": "Currency: {{code}}",
+    "total": "TOTAL ({{currency}})",
+    "bf": "B/F",
+    "cols": {
+      "date": "Date",
+      "idProduct": "Id Product",
+      "rate": "Rate",
+      "winLoss": "Win/Loss",
+      "crDr": "Cr/Dr",
+      "balance": "Balance",
+      "description": "Description",
+      "remark": "Remark"
+    }
+  },
+  "errors": {
+    "profile": "Couldn't load your account",
+    "currencies": "Couldn't load the currencies",
+    "history": "Couldn't load the statement",
+    "balances": "Couldn't load the balances"
+  }
+}

@@ -3,6 +3,12 @@
   "retry": "重试",
   "loading": "加载中…",
   "logout": "登出",
+  "logoutDialog": {
+    "title": "确定要登出吗？",
+    "signedIn": "你当前登录的账号是 <b>{{who}}</b>。",
+    "again": "之后需要重新登录才能继续使用。",
+    "confirm": "登出"
+  },
   "all": "全部",
   "currency": "货币",
   "calendar": {
@@ -84,6 +90,8 @@
     "deletedMany": "已删除 {{count}} 个{{noun}}"
   },
   "nouns": {
+    "approval": "审批",
+    "request": "申请",
     "records": "记录",
     "capture": "采集记录",
     "payment": "付款记录",
@@ -109,11 +117,13 @@
     "bank balance": "银行余额"
   },
   "verbs": {
+    "Undo": "撤销",
     "Reject": "拒绝",
     "Delete": "删除",
     "Ungroup": "移出集团"
   },
   "verbsPast": {
+    "put back to Pending": "恢复为待处理",
     "rejected": "拒绝",
     "deleted": "删除"
   },

@@ -1,16 +1,18 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 // Small ON / OFF switch (Login blue when on, grey-blue when off), same rounded-square shape as Account's alert pill.
 export default function ChargeSwitch({ on, onToggle, disabled }) {
+  const { t } = useTranslation("autorenew");
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
-      aria-label="Charge"
+      aria-label={t("cols.charge")}
       onClick={onToggle}
       disabled={disabled}
-      title={disabled ? "Read-only login" : undefined}
+      title={disabled ? t("readOnly") : undefined}
       className={cn(
         "relative inline-flex h-[18px] w-10 items-center rounded-[5px] border-none text-[7.5px] font-bold tracking-[0.1px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60",
         on
@@ -25,7 +27,7 @@ export default function ChargeSwitch({ on, onToggle, disabled }) {
           on ? "right-0.5" : "left-0.5"
         )}
       />
-      {on ? "ON" : "OFF"}
+      {on ? t("charge.on") : t("charge.off")}
     </button>
   );
 }

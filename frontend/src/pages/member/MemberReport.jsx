@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/pages/transaction-payment/transactionPaymentRules";
 
@@ -6,14 +7,14 @@ const flow = (n) => (n ? fmt(n) : "-");
 const rowTone = (i) => cn(i % 2 ? "bg-white/65" : "bg-row-stripe", "hover:bg-row-hover");
 
 const COLS = [
-  ["Date", "text-left", "w-[9%]"],
-  ["Id Product", "text-left", "w-[13%]"],
-  ["Rate", "text-right", "w-[8%]"],
-  ["Win/Loss", "text-right", "w-[10%]"],
-  ["Cr/Dr", "text-right", "w-[9%]"],
-  ["Balance", "text-right", "w-[11%]"],
-  ["Description", "text-left", ""],
-  ["Remark", "text-left", "w-[15%]"],
+  ["date", "text-left", "w-[9%]"],
+  ["idProduct", "text-left", "w-[13%]"],
+  ["rate", "text-right", "w-[8%]"],
+  ["winLoss", "text-right", "w-[10%]"],
+  ["crDr", "text-right", "w-[9%]"],
+  ["balance", "text-right", "w-[11%]"],
+  ["description", "text-left", ""],
+  ["remark", "text-left", "w-[15%]"],
 ];
 const TH =
   "h-[clamp(24px,1.46vw,28px)] border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] text-[clamp(11px,0.625vw,12px)] font-bold whitespace-nowrap text-white first:rounded-tl-lg last:rounded-tr-lg last:border-r-0";
@@ -22,9 +23,10 @@ const TOTAL = "h-[clamp(22px,1.35vw,26px)] border-t border-[rgba(47,111,239,0.35
 
 /** One block per shown currency: "Currency: XXX", the statement rows and a TOTAL (XXX) line. */
 export default function MemberReport({ blocks }) {
+  const { t } = useTranslation("member");
   return blocks.map(({ currency, rows, totals }) => (
     <div key={currency} className="not-first:mt-(--gap)">
-      <h2 className="mb-1.5 text-base font-extrabold text-brand-navy">Currency: {currency}</h2>
+      <h2 className="mb-1.5 text-base font-extrabold text-brand-navy">{t("report.currency", { code: currency })}</h2>
       <div className="overflow-hidden rounded-lg">
         <table className="w-full table-fixed border-separate border-spacing-0 text-[clamp(11px,0.625vw,12px)]">
           <colgroup>
@@ -35,7 +37,7 @@ export default function MemberReport({ blocks }) {
           <thead>
             <tr>
               {COLS.map(([name, align]) => (
-                <th key={name} className={cn(TH, align)}>{name}</th>
+                <th key={name} className={cn(TH, align)}>{t(`report.cols.${name}`)}</th>
               ))}
             </tr>
           </thead>
@@ -53,7 +55,7 @@ export default function MemberReport({ blocks }) {
               </tr>
             ))}
             <tr>
-              <td className={cn(TOTAL, "text-left")} colSpan={3}>TOTAL ({currency})</td>
+              <td className={cn(TOTAL, "text-left")} colSpan={3}>{t("report.total", { currency })}</td>
               <td className={TOTAL}>{flow(totals.winLoss)}</td>
               <td className={TOTAL}>{flow(totals.crDr)}</td>
               <td className={cn(TOTAL, amountTone(totals.balance))}>{fmt(totals.balance)}</td>

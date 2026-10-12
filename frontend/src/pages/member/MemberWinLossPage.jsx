@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import Toast from "@/components/shared/Toast.jsx";
 import { useSession } from "@/context/session";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
 import MemberFilterCard from "./MemberFilterCard.jsx";
@@ -15,6 +19,8 @@ import { useLinkedCurrencies, useMemberHistory, useMemberProfile, useMiniBalance
  * /history; the backend lets a member see only their own account and the ones linked to it.
  */
 export default function MemberWinLossPage() {
+  const { t } = useTranslation("member");
+  const { toasts, push, dismiss } = useNotice(5000);
   const { user } = useSession();
   const { profile, error: profileError } = useMemberProfile();
   const [filters, setFilters] = useState(() => {
@@ -50,7 +56,7 @@ export default function MemberWinLossPage() {
     [account, dateFrom, dateTo, shown.join(",")] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const history = useMemberHistory(historyRequest);
-  const blocks = useMemo(() => buildMemberBlocks(history.value, shown), [history.value, shown.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const blocks = useMemo(() => buildMemberBlocks(history.value, shown, t("report.bf")), [history.value, shown.join(","), t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const balanceRequest = useMemo(
     () => (linked && shown.length ? { accountIds, currencyCodes: shown, dateFrom, dateTo } : null),
@@ -62,14 +68,20 @@ export default function MemberWinLossPage() {
   const summary = useMemo(() => {
     const listed = filters.select === "ALL" ? accounts : accounts.filter((a) => a.value === filters.select);
     const rows = listed.map((a) => ({ label: a.label, values: Object.fromEntries(shown.map((c) => [c, balances.value[a.value]?.[c] ?? 0])) }));
-    const total = { label: "Total", values: Object.fromEntries(shown.map((c) => [c, rows.reduce((s, r) => s + r.values[c], 0)])) };
+    const total = { label: t("balance.total"), values: Object.fromEntries(shown.map((c) => [c, rows.reduce((s, r) => s + r.values[c], 0)])) };
     return { currencies: shown, rows: [total, ...rows] };
-  }, [accounts, shown, balances.value, filters.select]);
+  }, [accounts, shown, balances.value, filters.select, t]);
 
-  const error = profileError || union.error || history.error || balances.error;
+  useErrorToasts(push, [
+    [profileError, t("errors.profile")],
+    [union.error, t("errors.currencies")],
+    [history.error, t("errors.history")],
+    [balances.error, t("errors.balances")],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-(--gap) p-[clamp(10px,2dvh,18px)] [--gap:clamp(8px,1.5dvh,14px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-(--gap) p-[clamp(10px,2dvh,18px)] [--gap:clamp(8px,1.5dvh,14px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <MemberFilterCard
         filters={{ ...filters, account }}
         onChange={(patch) => setFilters((cur) => ({ ...cur, ...patch }))}
@@ -80,11 +92,10 @@ export default function MemberWinLossPage() {
         summary={summary}
         onExport={() => setExportOpen(true)}
       />
-      {error && <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{error}</div>}
       <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-white/70 bg-[rgba(226,237,251,0.62)] px-4 py-3 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)] backdrop-blur-[10px] [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]">
         <div className={history.loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
           <MemberReport blocks={blocks} />
-          {profile && !shown.length && <p className="text-[13px] font-medium text-dash-faint">No currency available</p>}
+          {profile && !shown.length && <p className="text-[13px] font-medium text-dash-faint">{t("filter.noCurrency")}</p>}
         </div>
       </section>
       {exportOpen && currentAccount && (

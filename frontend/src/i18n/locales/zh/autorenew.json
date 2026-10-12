@@ -1,0 +1,98 @@
+{
+  "readOnly": "只读账号",
+  "tabs": {
+    "company": "公司",
+    "group": "集团"
+  },
+  "filter": {
+    "dateRange": "日期范围:",
+    "search": "搜索公司、名称",
+    "status": "状态:",
+    "statusLabel": "状态"
+  },
+  "status": {
+    "all": "显示全部",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝"
+  },
+  "periods": {
+    "7d": "7 天",
+    "1m": "1 个月",
+    "3m": "3 个月",
+    "6m": "6 个月",
+    "1y": "1 年"
+  },
+  "cols": {
+    "no": "序号",
+    "company": "公司",
+    "group": "集团",
+    "name": "名称",
+    "expiry": "到期日期",
+    "remaining": "剩余",
+    "period": "期限",
+    "price": "价格",
+    "charge": "收费",
+    "status": "状态",
+    "action": "操作"
+  },
+  "remaining": {
+    "expired": "已过期",
+    "today": "今天到期",
+    "left": "剩余 {{days}} 天"
+  },
+  "actions": {
+    "approve": "批准",
+    "reject": "拒绝",
+    "undo": "撤销",
+    "comm": "分成",
+    "commTitle": "收费与分成",
+    "selectPeriodFirst": "请先选择期限",
+    "noAccount": "该公司在 C168 中没有对应的账户",
+    "noPrice": "该期限还没有设置标价（域名 > 价格）",
+    "cannotUndo": "该申请已无法撤销",
+    "putBack": "将该申请恢复为待处理"
+  },
+  "empty": "这里没有需要续期的项目",
+  "confirm": {
+    "approval": "审批",
+    "request": "申请",
+    "undo": "撤销",
+    "reject": "拒绝",
+    "putBack": "恢复为待处理",
+    "rejected": "拒绝",
+    "rollbackNote": "续期会回滚到原来的到期日期，并删除它产生的账目记录。"
+  },
+  "toast": {
+    "approved": "续期已批准",
+    "rejected": "申请已拒绝",
+    "undone": "已恢复为待处理",
+    "shareSaved": "分成已保存",
+    "loadFailed": "无法加载列表",
+    "updateFailed": "无法更新申请"
+  },
+  "charge": {
+    "title": "收费 · {{company}}",
+    "renewal": "续期",
+    "period": "期限",
+    "price": "价格",
+    "pickPeriod": "请先选择期限",
+    "chargeLabel": "收费",
+    "chargeHint": "关闭表示这次续期不收费。",
+    "current": "当前",
+    "new": "新到期",
+    "share": "分成",
+    "viewOnly": "仅查看",
+    "chooseAccount": "请为每一行分成选择账户",
+    "over": "分成超过 100%",
+    "on": "开",
+    "off": "关"
+  },
+  "select": {
+    "placeholder": "选择期限",
+    "hover": "悬停查看新的到期日期"
+  },
+  "errors": {
+    "noProfit": "没有找到启用的利润账户（角色 PROFIT），因此无法保存分成"
+  }
+}

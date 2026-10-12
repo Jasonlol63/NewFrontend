@@ -25,11 +25,7 @@ import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
 import RealtimeConnection from "./lib/realtime/RealtimeConnection.jsx";
 import { RequireSession } from "./context/session";
-import ComingSoonPage from "./pages/placeholder/ComingSoonPage.jsx";
-import { SUBMENU_PAGES } from "./components/layout/sidebarConfig";
 
-// Submenu pages that have a real page; the rest still show the placeholder.
-const BUILT_PAGES = new Set(["/report/customer", "/report/domain", "/maintenance/data-capture", "/maintenance/transaction", "/maintenance/payment", "/maintenance/formula", "/maintenance/bank-process"]);
 
 export default function App() {
   return (
@@ -71,9 +67,6 @@ export default function App() {
           <Route path="/maintenance/payment" element={<PaymentMaintenancePage />} />
           <Route path="/maintenance/formula" element={<FormulaMaintenancePage />} />
           <Route path="/maintenance/bank-process" element={<BankProcessMaintenancePage />} />
-          {SUBMENU_PAGES.filter(({ path }) => !BUILT_PAGES.has(path)).map(({ path, group, label }) => (
-            <Route key={path} path={path} element={<ComingSoonPage group={group} title={label} />} />
-          ))}
         </Route>
 
         {/* unknown URL: the login page sends a logged-in user on to the dashboard */}

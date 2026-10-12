@@ -1,4 +1,5 @@
 import { Check, Clock, List, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { STATUS_FILTERS } from "./autoRenewRules";
 
@@ -6,8 +7,9 @@ const ICONS = { all: List, pending: Clock, approved: Check, rejected: X };
 
 /** Show All / Pending / Approved / Rejected: icon tile, label and the number of rows behind each. */
 export default function StatusFilter({ value, onChange, counts }) {
+  const { t } = useTranslation("autorenew");
   return (
-    <div role="radiogroup" aria-label="Status" className="flex flex-wrap items-center gap-2">
+    <div role="radiogroup" aria-label={t("filter.statusLabel")} className="flex flex-wrap items-center gap-2">
       {STATUS_FILTERS.map((s) => {
         const Icon = ICONS[s.value];
         const active = s.value === value;
@@ -26,7 +28,7 @@ export default function StatusFilter({ value, onChange, counts }) {
             <span className={cn("flex size-[26px] items-center justify-center rounded-lg transition-colors", active ? s.tileOn : s.tile)}>
               <Icon className="size-3.5" strokeWidth={2.4} />
             </span>
-            {s.label}
+            {t(`status.${s.value}`)}
             <span className={cn("min-w-5 rounded-md px-1.5 text-center text-[11px] font-extrabold tabular-nums", active ? s.countOn : s.count)}>
               {counts[s.value]}
             </span>

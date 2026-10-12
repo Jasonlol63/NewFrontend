@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { postJson } from "@/lib/api";
 import { fetchAccounts, fetchDomains, saveTenantSetting } from "@/pages/domain/domainApi";
 import { DEPARTMENTS, isShareAccount, profitAccountOf, round2, settingsFromTenant } from "@/pages/domain/domainSettingsRules";
@@ -64,7 +65,7 @@ export const undoRequest = (requestId) => postJson(`${AUTO_RENEW}/delete`, { req
 export async function saveShare(row, accounts) {
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
   const profit = profitAccountOf(accounts);
-  if (!profit) throw new Error("No active Profit account (role PROFIT) was found, so the share cannot be saved");
+  if (!profit) throw new Error(i18n.t("autorenew:errors.noProfit"));
 
   const rows = [];
   let taken = 0;

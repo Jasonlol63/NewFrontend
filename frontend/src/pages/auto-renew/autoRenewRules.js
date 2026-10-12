@@ -2,13 +2,14 @@ import { addDays, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date"
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
 
 // ===== Renew periods =====
-// key: the page's own key; code: what the back end calls it (renewal_period.code); fee: the key of its price in fee_settings.
+// key: the page's own key; code: what the back end calls it (renewal_period.code); domainKey: its key in the Domain page's
+// texts (the Share panel); label: the English name (the pages write it with t(`periods.${key}`)).
 export const PERIODS = [
-  { key: "7d", code: "7days", label: "7 days" },
-  { key: "1m", code: "1month", label: "1 month" },
-  { key: "3m", code: "3months", label: "3 months" },
-  { key: "6m", code: "6months", label: "6 months" },
-  { key: "1y", code: "1year", label: "1 year" },
+  { key: "7d", code: "7days", label: "7 days", domainKey: "days7" },
+  { key: "1m", code: "1month", label: "1 month", domainKey: "month1" },
+  { key: "3m", code: "3months", label: "3 months", domainKey: "months3" },
+  { key: "6m", code: "6months", label: "6 months", domainKey: "months6" },
+  { key: "1y", code: "1year", label: "1 year", domainKey: "year1" },
 ];
 
 export const periodOf = (key) => PERIODS.find((p) => p.key === key) ?? null;
@@ -106,10 +107,11 @@ export function remainingTier(days) {
   return "d30";
 }
 
-export function remainingLabel(days) {
-  if (days < 0) return "Expired";
-  if (days === 0) return "Expires today";
-  return `${days} days left`;
+// t: the `autorenew` namespace's t.
+export function remainingLabel(days, t) {
+  if (days < 0) return t("remaining.expired");
+  if (days === 0) return t("remaining.today");
+  return t("remaining.left", { days });
 }
 
 // Soft pastel fills; the closer to expiry, the stronger the tone and the faster the pulse ring.

@@ -1,4 +1,5 @@
 import { FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
@@ -17,12 +18,13 @@ function Row({ label, children }) {
 
 // Balance of every account per currency: the Total row first, then one row per account (all of them, or the one picked in Select).
 function BalanceTable({ currencies, rows }) {
+  const { t } = useTranslation("member");
   return (
     <div className="max-w-full overflow-x-auto rounded-lg border border-dash-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
       <table className="border-collapse text-[12px]">
         <thead>
           <tr>
-            <th className="bg-brand-head px-3 py-[3px] text-left font-bold text-white">Currency</th>
+            <th className="bg-brand-head px-3 py-[3px] text-left font-bold text-white">{t("balance.currency")}</th>
             {currencies.map((c) => (
               <th key={c} className="bg-brand-head px-3 py-[3px] text-right font-bold text-white">{c}</th>
             ))}
@@ -50,6 +52,7 @@ function BalanceTable({ currencies, rows }) {
  * to others (`linked`): an Account row too, and on the right a Select (ALL / account) with the balance table.
  */
 export default function MemberFilterCard({ filters, onChange, company, accounts, linked, currency, summary, onExport }) {
+  const { t } = useTranslation("member");
   return (
     <section className="@container flex min-w-0 flex-none gap-3 rounded-xl border border-dash-line bg-white px-4 py-2.5 shadow-dash-filter">
       <div className={cn("flex min-w-0 flex-col gap-1.5", linked ? "w-[clamp(340px,32%,440px)] flex-none" : "flex-1")}>
@@ -59,44 +62,44 @@ export default function MemberFilterCard({ filters, onChange, company, accounts,
           </div>
           <button
             type="button"
-            aria-label="Export PDF"
+            aria-label={t("filter.exportPdf")}
             onClick={onExport}
-            title="Export PDF"
+            title={t("filter.exportPdf")}
             className="flex size-[30px] flex-none cursor-pointer items-center justify-center rounded-lg border border-[#bfd8ff] bg-[#eaf4ff] text-[#1d4ed8] hover:bg-[#dcebff]"
           >
             <FileText className="size-4" strokeWidth={2.2} />
           </button>
         </div>
         <div className="my-0.5 h-px bg-[rgba(130,155,195,0.3)]" />
-        <Row label="Company:">
+        <Row label={t("filter.company")}>
           <SegmentGroup options={[{ value: company, label: company }]} value={company} onChange={() => {}} />
         </Row>
         {linked && (
-          <Row label="Account:">
+          <Row label={t("filter.account")}>
             <SegmentGroup options={accounts} value={filters.account} onChange={(account) => onChange({ account })} />
           </Row>
         )}
-        <Row label="Currency:">
+        <Row label={t("filter.currency")}>
           {currency.options.length ? (
             <SegmentGroup
               wrap
               itemClassName="px-[11px] py-1"
-              leading={currency.options.length > 1 ? [{ value: "ALL", label: "ALL" }] : []}
+              leading={currency.options.length > 1 ? [{ value: "ALL", label: t("filter.all") }] : []}
               options={currency.options}
               value={currency.allOn ? ["ALL", ...currency.selected] : currency.selected}
               onChange={(v) => (v === "ALL" ? currency.onAll() : currency.onToggle(v))}
               onReorder={currency.onReorder}
             />
           ) : (
-            <span className="text-xs font-medium text-dash-faint">No currency available</span>
+            <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
           )}
         </Row>
       </div>
       {linked && (
         <div className="hidden min-w-0 flex-initial flex-col gap-2 border-l border-[rgba(130,155,195,0.3)] pl-3 min-[1024px]:flex">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-extrabold text-[#1f2937]">Select:</span>
-            <SegmentGroup options={[{ value: "ALL", label: "ALL" }, ...accounts]} value={filters.select} onChange={(select) => onChange({ select })} />
+            <span className="text-[13px] font-extrabold text-[#1f2937]">{t("filter.select")}</span>
+            <SegmentGroup options={[{ value: "ALL", label: t("filter.all") }, ...accounts]} value={filters.select} onChange={(select) => onChange({ select })} />
           </div>
           <BalanceTable currencies={summary.currencies} rows={summary.rows} />
         </div>

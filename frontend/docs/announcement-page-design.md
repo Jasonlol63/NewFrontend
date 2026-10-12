@@ -121,7 +121,7 @@ Changed for this page (small, backwards compatible):
   480px of content width Back shows only the arrow (it keeps `aria-label="Back"`). Affects every form modal, only on
   narrow screens.
 - `components/shared/list/DataTable.jsx`: `TRAY` is now exported so the page can show the same count chip without a table.
-- `App.jsx`: `/announcement` renders `AnnouncementPage` instead of `ComingSoonPage`.
+- `App.jsx`: `/announcement` renders `AnnouncementPage` (the placeholder page has since been removed).
 
 Local to this page, candidates to move to shared if another page needs them: `PanelCard` (glass card with accent bar),
 `StatusPill`, `BigSwitch`, `KickSwitch`, `DELETE_ACTION_CLASS` (red Delete icon button).

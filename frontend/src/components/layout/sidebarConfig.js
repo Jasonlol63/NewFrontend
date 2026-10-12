@@ -80,11 +80,6 @@ export function menuKeyForPath(pathname) {
   return ROUTES.find(({ path }) => pathname === path || pathname.startsWith(path + "/"))?.menu ?? null;
 }
 
-// Every routable page under the submenus, for the placeholder routes.
-export const SUBMENU_PAGES = MENU_ITEMS.flatMap((item) =>
-  (item.children ?? []).map((child) => ({ ...child, group: item.label }))
-);
-
 export const SIDEBAR_BG_STYLE = {
   // Dominant color of the background image, shown until it has loaded.
   backgroundColor: "#08285f",

@@ -1,0 +1,98 @@
+{
+  "readOnly": "Read-only login",
+  "tabs": {
+    "company": "Company",
+    "group": "Group"
+  },
+  "filter": {
+    "dateRange": "Date Range:",
+    "search": "Search Company, Name",
+    "status": "Status:",
+    "statusLabel": "Status"
+  },
+  "status": {
+    "all": "Show All",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "periods": {
+    "7d": "7 days",
+    "1m": "1 month",
+    "3m": "3 months",
+    "6m": "6 months",
+    "1y": "1 year"
+  },
+  "cols": {
+    "no": "No",
+    "company": "Company",
+    "group": "Group",
+    "name": "Name",
+    "expiry": "Expiration",
+    "remaining": "Remaining",
+    "period": "Period",
+    "price": "Price",
+    "charge": "Charge",
+    "status": "Status",
+    "action": "Action"
+  },
+  "remaining": {
+    "expired": "Expired",
+    "today": "Expires today",
+    "left": "{{days}} days left"
+  },
+  "actions": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "undo": "Undo",
+    "comm": "Comm",
+    "commTitle": "Charge and share",
+    "selectPeriodFirst": "Select a period first",
+    "noAccount": "This company has no matching account in C168",
+    "noPrice": "No list price is set for this period (Domain > Price)",
+    "cannotUndo": "This request can no longer be undone",
+    "putBack": "Put this request back to Pending"
+  },
+  "empty": "Nothing to renew here",
+  "confirm": {
+    "approval": "approval",
+    "request": "request",
+    "undo": "Undo",
+    "reject": "Reject",
+    "putBack": "put back to Pending",
+    "rejected": "rejected",
+    "rollbackNote": "The renewal is rolled back to the old expiry date and its ledger entries are deleted."
+  },
+  "toast": {
+    "approved": "Renewal approved",
+    "rejected": "Request rejected",
+    "undone": "Put back to Pending",
+    "shareSaved": "Share saved",
+    "loadFailed": "Couldn't load the list",
+    "updateFailed": "Couldn't update the request"
+  },
+  "charge": {
+    "title": "Charge · {{company}}",
+    "renewal": "Renewal",
+    "period": "Period",
+    "price": "Price",
+    "pickPeriod": "Pick a period first",
+    "chargeLabel": "Charge",
+    "chargeHint": "Off means no fee for this renewal.",
+    "current": "Current",
+    "new": "New",
+    "share": "Share",
+    "viewOnly": "View only",
+    "chooseAccount": "Choose an account for every share row",
+    "over": "The share is over 100%",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "select": {
+    "placeholder": "Select period",
+    "hover": "Hover to preview new expiry"
+  },
+  "errors": {
+    "noProfit": "No active Profit account (role PROFIT) was found, so the share cannot be saved"
+  }
+}

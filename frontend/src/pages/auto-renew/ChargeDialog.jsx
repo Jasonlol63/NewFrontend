@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ArrowRight, CircleDollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { localizeBackend } from "@/i18n/backendMessages";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, TextInput } from "@/components/shared/form-modal/fields.jsx";
@@ -22,16 +24,17 @@ import { displayDate, newExpiryOf, periodOf, rowPrice } from "./autoRenewRules";
 // What a Share holds, without the row ids, to tell whether it was changed.
 const shareKey = (departments) => JSON.stringify(Object.values(departments).map((rows) => rows.map((r) => [r.account, r.pct])));
 
-export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave, onClose }) {
+export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave, onClose, notify }) {
+  const { t } = useTranslation(["autorenew", "common", "domain"]);
   const [initial] = useState(row);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const kindLabel = row.kind === "group" ? "Group" : "Company";
+  const kindLabel = row.kind === "group" ? t("tabs.group") : t("tabs.company");
   const period = periodOf(row.periodKey);
   const price = rowPrice(row) ?? 0;
   const summary = shareSummary(price, row.departments);
   const shareOff = !row.charge;
-  const problem = row.charge && summary.incomplete ? "Choose an account for every share row" : row.charge && summary.over ? "The share is over 100%" : "";
+  const problem = row.charge && summary.incomplete ? t("charge.chooseAccount") : row.charge && summary.over ? t("charge.over") : "";
 
   // Period and Charge only live in the page until Approve; the Share is saved here, and only when it was changed.
   const save = async () => {
@@ -40,8 +43,9 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
       setError("");
       try {
         await onSave(row);
+        notify?.(t("toast.shareSaved"));
       } catch (e) {
-        setError(e.message);
+        setError(localizeBackend(e.message));
         return;
       } finally {
         setSaving(false);
@@ -62,7 +66,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
   return (
     <FormModal
       icon={CircleDollarSign}
-      title={`Charge · ${row.company}`}
+      title={t("charge.title", { company: row.company })}
       onClose={cancel}
       onSave={save}
       saveDisabled={readOnly || saving || Boolean(problem)}
@@ -70,7 +74,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
         (error || problem || readOnly) && (
           <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
-            {readOnly ? "View only" : error || problem}
+            {readOnly ? t("charge.viewOnly") : error || problem}
           </p>
         )
       }
@@ -79,25 +83,25 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
         "@max-[799px]/main:grid-cols-1 @max-[799px]/main:grid-rows-[max-content_max-content] @max-[799px]/main:content-start @max-[799px]/main:overflow-y-auto"
       )}
     >
-      <FormCard title="Renewal" bodyClassName="flex flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
-        <Field label="Period" plain as="div">
+      <FormCard title={t("charge.renewal")} bodyClassName="flex flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
+        <Field label={t("charge.period")} plain as="div">
           <PeriodSelect row={row} value={row.periodKey} onChange={changePeriod} disabled={readOnly} className="h-9! w-full! rounded-[10px]! text-[13.5px]!" />
         </Field>
 
-        <Field label="Price" plain>
+        <Field label={t("charge.price")} plain>
           <TextInput
             value={row.periodKey ? price.toFixed(2) : ""}
             readOnly
             tabIndex={-1}
-            placeholder="Pick a period first"
+            placeholder={t("charge.pickPeriod")}
             className="cursor-default border-modal-off-line bg-modal-off text-right tabular-nums text-[#5b74a3] focus:border-modal-off-line focus:shadow-none"
           />
         </Field>
 
         <div className="flex items-center justify-between gap-3 rounded-[10px] border border-modal-line bg-white/50 px-3 py-2">
           <div className="min-w-0">
-            <p className="m-0 text-[12.5px] font-semibold text-[#374151]">Charge</p>
-            <p className="m-0 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">Off means no fee for this renewal.</p>
+            <p className="m-0 text-[12.5px] font-semibold text-[#374151]">{t("charge.chargeLabel")}</p>
+            <p className="m-0 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">{t("charge.chargeHint")}</p>
           </div>
           <ChargeSwitch on={row.charge} disabled={readOnly} onToggle={() => onPatch({ charge: !row.charge })} />
         </div>
@@ -105,26 +109,26 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
         <div className="mt-auto rounded-[10px] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] p-2 tabular-nums">
           {row.status === "pending" && (
             <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">Current</span>
+              <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
               <s className="text-[12px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
             </div>
           )}
           <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2.5 py-1.5 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">
             <span className="flex items-center gap-1 text-[10px] font-extrabold tracking-[0.6px] text-[#2f8dff]">
               <ArrowRight className="size-3 flex-none" strokeWidth={2.6} />
-              New
+              {t("charge.new")}
             </span>
             <b className="text-[13.5px] text-[#0b4fd0]">{row.periodKey ? displayDate(newExpiryOf(row, row.periodKey)) : "-"}</b>
           </div>
         </div>
       </FormCard>
 
-      <FormCard title="Share" bodyClassName="flex flex-col overflow-hidden">
+      <FormCard title={t("charge.share")} bodyClassName="flex flex-col overflow-hidden">
         <fieldset
           disabled={shareOff || readOnly}
           className={cn("m-0 flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0 transition-opacity", (shareOff || readOnly) && "opacity-50")}
         >
-          <SharePanel kindLabel={kindLabel} period={period} price={price} departments={row.departments} summary={summary} accounts={shareAccounts} onChange={setDepartment} />
+          <SharePanel kindLabel={kindLabel} period={period && { ...period, key: period.domainKey }} price={price} departments={row.departments} summary={summary} accounts={shareAccounts} onChange={setDepartment} />
         </fieldset>
       </FormCard>
     </FormModal>

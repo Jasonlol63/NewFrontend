@@ -1,0 +1,36 @@
+{
+  "filter": {
+    "company": "公司:",
+    "account": "账户:",
+    "currency": "货币:",
+    "select": "选择:",
+    "all": "全部",
+    "noCurrency": "没有可用的货币",
+    "exportPdf": "导出 PDF"
+  },
+  "balance": {
+    "currency": "货币",
+    "total": "合计"
+  },
+  "report": {
+    "currency": "货币：{{code}}",
+    "total": "合计（{{currency}}）",
+    "bf": "上期结转",
+    "cols": {
+      "date": "日期",
+      "idProduct": "产品ID",
+      "rate": "汇率",
+      "winLoss": "输赢",
+      "crDr": "收付",
+      "balance": "余额",
+      "description": "描述",
+      "remark": "备注"
+    }
+  },
+  "errors": {
+    "profile": "无法加载你的账户",
+    "currencies": "无法加载货币",
+    "history": "无法加载对账单",
+    "balances": "无法加载余额"
+  }
+}

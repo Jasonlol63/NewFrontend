@@ -3,6 +3,12 @@
   "retry": "Retry",
   "loading": "Loading…",
   "logout": "Logout",
+  "logoutDialog": {
+    "title": "Log out?",
+    "signedIn": "You're signed in as <b>{{who}}</b>.",
+    "again": "You'll need to sign in again to continue.",
+    "confirm": "Log out"
+  },
   "all": "All",
   "currency": "Currency",
   "calendar": {

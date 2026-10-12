@@ -39,13 +39,13 @@ export function balanceMap(rows) {
 // "-" instead of an empty cell
 const dash = (v) => (v ? v : "-");
 
-/** One block per shown currency from the history rows: its rows, the Win/Loss and Cr/Dr sums and the closing balance. */
-export function buildMemberBlocks(rows, currencies) {
+/** One block per shown currency from the history rows: its rows, the Win/Loss and Cr/Dr sums and the closing balance. bfLabel: how the B/F row's date reads. */
+export function buildMemberBlocks(rows, currencies, bfLabel = "B/F") {
   return currencies.map((currency) => {
     const own = rows.map(normalizeHistoryRow).filter((r) => r.currency === currency);
     const lines = own.map((r) => ({
       key: r.key,
-      date: r.bf ? "B/F" : dash(r.date),
+      date: r.bf ? bfLabel : dash(r.date),
       product: r.bf ? "-" : dash(r.product),
       rate: r.bf ? "-" : formatRate(r.rate),
       winLoss: r.bf ? 0 : r.winLoss,
