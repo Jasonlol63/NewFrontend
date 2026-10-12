@@ -80,6 +80,12 @@
     "chargeLabel": "收费",
     "chargeHint": "关闭表示这次续期不收费。",
     "current": "当前",
+    "start": "起算日",
+    "startFrom": {
+      "expiry": "当前到期日",
+      "today": "今天"
+    },
+    "startNote": "当前到期日还没到时，从该日期接着算；已经过期则从批准当天算起。",
     "new": "新到期",
     "share": "分成",
     "viewOnly": "仅查看",

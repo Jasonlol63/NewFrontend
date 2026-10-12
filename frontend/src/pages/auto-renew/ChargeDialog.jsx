@@ -10,7 +10,7 @@ import SharePanel from "@/pages/domain/SharePanel.jsx";
 import { shareSummary } from "@/pages/domain/domainSettingsRules";
 import ChargeSwitch from "./ChargeSwitch.jsx";
 import PeriodSelect from "./PeriodSelect.jsx";
-import { displayDate, newExpiryOf, periodOf, rowPrice } from "./autoRenewRules";
+import { displayDate, newExpiryOf, periodOf, rowPrice, startOf } from "./autoRenewRules";
 
 /**
  * The Comm button of an Auto Renew row: Period, Price, Charge and the Share split of that one renewal.
@@ -34,6 +34,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
   const price = rowPrice(row) ?? 0;
   const summary = shareSummary(price, row.departments);
   const shareOff = !row.charge;
+  const start = startOf(row);
   const problem = row.charge && summary.incomplete ? t("charge.chooseAccount") : row.charge && summary.over ? t("charge.over") : "";
 
   // Period and Charge only live in the page until Approve; the Share is saved here, and only when it was changed.
@@ -108,9 +109,17 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
 
         <div className="mt-auto rounded-[10px] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] p-2 tabular-nums">
           {row.status === "pending" && (
-            <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
-              <s className="text-[12px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
+            <div className="flex flex-col gap-1 px-1 pb-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
+                <span className={cn("text-[12px] font-semibold text-[#8b97a8]", row.periodKey && "line-through decoration-slate-500/70")}>{displayDate(row.expiry)}</span>
+              </div>
+              <div className="flex items-center justify-between" title={t("charge.startNote")}>
+                <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
+                <span className="text-[12px] font-semibold text-[#41588a]">
+                  {displayDate(start.date)} <small className="text-[10.5px] font-medium text-[#6b7fa5]">({t(`charge.startFrom.${start.from}`)})</small>
+                </span>
+              </div>
             </div>
           )}
           <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2.5 py-1.5 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">

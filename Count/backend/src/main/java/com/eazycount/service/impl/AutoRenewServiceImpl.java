@@ -267,10 +267,13 @@ public class AutoRenewServiceImpl implements AutoRenewService {
         }
         price = price.setScale(2, RoundingMode.HALF_UP);
 
-        // Option A: extend from current tenant expiration (fallback today if unset)
-        LocalDate baseExpiration = tenant.getExpirationDate() != null
+        // The period counts from the later of the current expiration and today: a renewal made before the
+        // expiry continues from it (no paid days are lost), a lapsed one starts today (the lapsed time is not
+        // charged again). No expiration saved = today. The Auto Renew page shows the same date (autoRenewRules.js).
+        LocalDate today = LocalDate.now();
+        LocalDate baseExpiration = tenant.getExpirationDate() != null && tenant.getExpirationDate().isAfter(today)
                 ? tenant.getExpirationDate()
-                : LocalDate.now();
+                : today;
         LocalDate newExpiration = addPeriod(baseExpiration, period);
 
         // Same Domain Fee + Commission ledger postings as Domain Confirm Charge on Save.

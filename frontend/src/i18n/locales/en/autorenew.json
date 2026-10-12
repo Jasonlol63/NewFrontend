@@ -80,6 +80,12 @@
     "chargeLabel": "Charge",
     "chargeHint": "Off means no fee for this renewal.",
     "current": "Current",
+    "start": "Starts from",
+    "startFrom": {
+      "expiry": "current expiry",
+      "today": "today"
+    },
+    "startNote": "Counted from the current expiry date while it is still ahead, otherwise from the day it is approved.",
     "new": "New",
     "share": "Share",
     "viewOnly": "View only",

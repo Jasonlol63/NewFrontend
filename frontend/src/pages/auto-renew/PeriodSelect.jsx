@@ -3,7 +3,7 @@ import { Popover } from "radix-ui";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, CalendarDays, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PERIODS, displayDate, newExpiryOf, priceOf } from "./autoRenewRules";
+import { PERIODS, displayDate, newExpiryOf, priceOf, startOf } from "./autoRenewRules";
 
 /**
  * Renew period picker. The trigger and the card under it are exactly the same width; every period
@@ -83,9 +83,15 @@ export default function PeriodSelect({ row, value, onChange, disabled, className
             {previewKey ? (
               <>
                 {/* Two full-width lines so the dates always fit inside the card: old date struck through, new date highlighted. */}
-                <div className="flex items-center justify-between px-1 pb-1">
-                  <span className="text-[9px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
-                  <s className="text-[11px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
+                <div className="flex flex-col gap-0.5 px-1 pb-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
+                    <s className="text-[11px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
+                    <span className="text-[11px] font-semibold text-[#41588a]">{displayDate(startOf(row).date)}</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2 py-1 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">
                   <span className="flex items-center gap-1 text-[9px] font-extrabold tracking-[0.6px] text-[#2f8dff]">

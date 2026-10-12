@@ -43,10 +43,19 @@ function addMonths(date, months) {
   return new Date(target.getFullYear(), target.getMonth(), Math.min(date.getDate(), last));
 }
 
-// The back end always renews from the saved expiry date (also when it has already lapsed), by calendar months / years.
+// The day a renewal counts from (same rule as the back end): the saved expiry date while it is still ahead, else today.
+// "expiry" = continuing from the saved date, "today" = it has lapsed (or lapses today), so the period starts now.
+export function startOf(row) {
+  const today = todayStart();
+  const expiry = parseIsoDate(row.expiry);
+  return expiry > today ? { date: toIsoDate(expiry), from: "expiry" } : { date: toIsoDate(today), from: "today" };
+}
+
+// The new expiry date, by calendar months / years from startOf(row). A settled row shows the date it was saved with.
+// The back end decides with its own clock when the request is approved, so a renewal approved after midnight can differ by a day.
 export function newExpiryOf(row, periodKey) {
   if (row.status !== "pending" && row.newExpiry) return row.newExpiry;
-  const expiry = parseIsoDate(row.expiry);
+  const expiry = parseIsoDate(startOf(row).date);
   switch (periodKey) {
     case "7d":
       return toIsoDate(addDays(expiry, 7));
