@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog } from "radix-ui";
 import { Check, Maximize2, MessageSquare, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { SoftButton, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 
 // The same shell and spacing variables as DeleteDialog, only wider for the text box (nearly the whole screen on a phone).
@@ -45,19 +48,19 @@ export default function BankRemarkDialog({ row, onClose, onSave }) {
 }
 
 function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
+  const { t } = useTranslation(["process", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const [text, setText] = useState(row.remark ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   const save = async () => {
     if (saving) return;
     setSaving(true);
-    setError("");
     try {
       await onSave(row, text.trim().toUpperCase());
       onClose();
     } catch (err) {
-      setError(err.message);
+      push(t("bank.errors.remark"), "error", err.message);
       setSaving(false);
     }
   };
@@ -69,7 +72,7 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           <MessageSquare className="size-5" strokeWidth={2.2} />
         </span>
         <div className="min-w-0">
-          <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-extrabold tracking-[-0.2px] text-brand-navy">Remark</Dialog.Title>
+          <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-extrabold tracking-[-0.2px] text-brand-navy">{t("bank.remarkDialog.title")}</Dialog.Title>
           <Dialog.Description className="m-0 truncate text-[12.5px] text-[#5b74a3]">
             {row.supplier} · {row.bank} · {row.cardOwner}
           </Dialog.Description>
@@ -80,7 +83,7 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="ENTER REMARKS..."
+          placeholder={t("bank.remarkDialog.placeholder")}
           autoFocus
           className={cn(
             "block w-full resize-none rounded-[14px] border border-modal-input-line bg-white px-3.5 py-3 text-[16px] leading-normal text-[#111827] uppercase shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] placeholder:text-dash-faint focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] min-[600px]:text-[15px]",
@@ -90,29 +93,24 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
         <button
           type="button"
           onClick={onToggleExpand}
-          aria-label={expanded ? "Collapse the text box" : "Expand the text box"}
+          aria-label={expanded ? t("bank.remarkDialog.collapseAria") : t("bank.remarkDialog.expandAria")}
           aria-pressed={expanded}
-          title={expanded ? "Collapse" : "Expand"}
+          title={expanded ? t("bank.remarkDialog.collapse") : t("bank.remarkDialog.expand")}
           className="absolute right-2 top-2 flex size-7 cursor-pointer items-center justify-center rounded-lg border border-[#d5deea] bg-white/90 text-[#475569] transition-colors hover:border-[#93c5fd] hover:text-brand-navy"
         >
           {expanded ? <Minimize2 className="size-3.5" strokeWidth={2.3} /> : <Maximize2 className="size-3.5" strokeWidth={2.3} />}
         </button>
       </div>
       <div className="mt-1.5 flex justify-between gap-2 text-[11.5px] text-[#8a96a8]">
-        <span>Saved in uppercase</span>
+        <span>{t("bank.remarkDialog.upper")}</span>
         <span className="font-bold text-[#3b82f6]">
-          {text.length} {text.length === 1 ? "character" : "characters"}
+          {t("bank.remarkDialog.chars", { count: text.length })}
         </span>
       </div>
-      {error && (
-        <p role="alert" className="m-0 mt-2 text-[12.5px] font-semibold text-[#dc2626]">
-          {error}
-        </p>
-      )}
       <div className="mt-(--gap) flex flex-wrap items-center justify-end gap-2">
         <Dialog.Close asChild>
           <SoftButton disabled={saving} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-60">
-            Cancel
+            {t("common:cancel")}
           </SoftButton>
         </Dialog.Close>
         <button
@@ -125,9 +123,10 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           )}
         >
           <Check className="size-[15px]" strokeWidth={2.5} />
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("bank.remarkDialog.saving") : t("bank.remarkDialog.save")}
         </button>
       </div>
+      <Toast toasts={toasts} onClose={dismiss} />
     </>
   );
 }

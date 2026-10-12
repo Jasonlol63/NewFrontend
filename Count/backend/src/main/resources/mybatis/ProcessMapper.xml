@@ -265,6 +265,14 @@
     </update>
 
     <!-- Delete Process Use -->
+    <!-- Capture headers left behind by Capture Maintenance (all lines already archived); fk_dc_process has no cascade -->
+    <delete id="deleteEmptyDataCapturesByProcessId">
+        DELETE FROM data_captures
+        WHERE process_id = #{id}
+          AND tenant_id = #{tenantId}
+          AND NOT EXISTS (SELECT 1 FROM data_capture_line dcl WHERE dcl.capture_id = data_captures.id)
+    </delete>
+
     <delete id="deleteProcessById">
         DELETE FROM process
         WHERE id = #{id}

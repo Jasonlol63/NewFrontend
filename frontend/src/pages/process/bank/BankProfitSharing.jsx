@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
@@ -33,6 +34,7 @@ function ColumnLabel({ children }) {
  * onAccount({ mode: "add" | "edit", value, apply(newValue) }): the "+" / edit button of a row asks the page to open Add / Edit Account.
  */
 export default function BankProfitSharing({ entries, onChange, accounts, profit, currency, onAccount, inert = false }) {
+  const { t } = useTranslation("process");
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState(() => [blankRow()]);
 
@@ -52,11 +54,11 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
 
   const headerRight = (
     <>
-      <CardCount>{entries.length} selected</CardCount>
+      <CardCount>{t("bank.share.selectedCount", { count: entries.length })}</CardCount>
       {inert ? null : open ? (
         <>
           <button type="button" onClick={close} className={cn(pill, "border-[#7fb2ff] bg-white/70 px-2.5 text-[#1d4ed8] hover:bg-white")}>
-            Cancel
+            {t("bank.share.cancel")}
           </button>
           <button
             type="button"
@@ -69,13 +71,13 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
             )}
           >
             <Check className="size-3.5" strokeWidth={2.8} />
-            Add{ready.length > 1 ? ` (${ready.length})` : ""}
+            {ready.length > 1 ? t("bank.share.addN", { count: ready.length }) : t("bank.share.add")}
           </button>
         </>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className={cn(pill, "border-[#7fb2ff] bg-white/70 pr-2.5 pl-1.5 text-[#1d4ed8] hover:bg-white")}>
           <Plus className="size-3.5" strokeWidth={2.8} />
-          Add
+          {t("bank.share.add")}
         </button>
       )}
     </>
@@ -83,7 +85,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
 
   return (
     <FormCard
-      title="Profit Sharing"
+      title={t("bank.share.title")}
       inert={inert}
       className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible"
       bodyClassName="flex flex-col gap-2 @max-[899px]/main:overflow-visible"
@@ -97,23 +99,23 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
             return (
               <div key={i} className="flex flex-wrap items-end gap-1.5">
                 <div className="min-w-[110px] flex-[1_1_140px]">
-                  {i === 0 && <ColumnLabel>Account</ColumnLabel>}
+                  {i === 0 && <ColumnLabel>{t("bank.share.account")}</ColumnLabel>}
                   <SelectField
                     uppercase
                     value={row.account}
                     onChange={(account) => patch(i, { account })}
                     onClear={() => patch(i, { account: "" })}
                     options={options}
-                    placeholder="Select Account"
+                    placeholder={t("bank.share.selectAccount")}
                   />
                 </div>
                 <AddButton
                   edit={Boolean(row.account)}
-                  label={row.account ? "Edit account" : "Add account"}
+                  label={row.account ? t("bank.share.editAccount") : t("bank.share.addAccount")}
                   onClick={() => onAccount?.({ mode: row.account ? "edit" : "add", value: row.account, apply: (account) => patch(i, { account }) })}
                 />
                 <div className="w-[110px] flex-none @min-[1500px]/main:w-[150px]">
-                  {i === 0 && <ColumnLabel>Amount</ColumnLabel>}
+                  {i === 0 && <ColumnLabel>{t("bank.share.amount")}</ColumnLabel>}
                   <TextInput
                     value={row.amount}
                     onChange={(e) => patch(i, { amount: numeric(e.target.value), pct: "" })}
@@ -137,13 +139,13 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                       inputMode="decimal"
                       autoComplete="off"
                       placeholder="0"
-                      aria-label="Percent of the profit"
+                      aria-label={t("bank.share.percentAria")}
                       className="min-w-0 flex-1 border-none bg-transparent px-1.5 text-right font-bold tabular-nums outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => patch(i, { pctOpen: false, pct: "" })}
-                      title="Back to typing the amount"
+                      title={t("bank.share.backToAmount")}
                       className="flex w-7 flex-none cursor-pointer items-center justify-center border-l border-[#c5dcfb] bg-[#e8f1ff] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#d6e8ff]"
                     >
                       %
@@ -154,7 +156,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                     type="button"
                     disabled={profit <= 0}
                     onClick={() => patch(i, { pctOpen: true })}
-                    title={profit > 0 ? "Work out the amount as a percentage of the profit" : "Enter Buy and Sell price first"}
+                    title={profit > 0 ? t("bank.share.pctTip") : t("bank.share.pctNeedPrice")}
                     className={cn(square, "flex-none cursor-pointer rounded-[10px] border border-[#c5dcfb] bg-[#e8f1ff] text-[13px] font-bold text-[#1d4ed8] transition-colors hover:bg-[#d6e8ff] disabled:cursor-not-allowed disabled:opacity-45")}
                   >
                     %
@@ -163,8 +165,8 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                 {rows.length > 1 && (
                   <button
                     type="button"
-                    aria-label="Remove row"
-                    title="Remove"
+                    aria-label={t("bank.share.removeRow")}
+                    title={t("bank.share.remove")}
                     onClick={() => setRows((list) => list.filter((_, j) => j !== i))}
                     className="mb-0.5 flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[#94a3b8] hover:bg-[#fee2e2] hover:text-[#ef4444]"
                   >
@@ -180,12 +182,12 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
             className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#7fb2ff] bg-[rgba(232,242,255,0.55)] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dbeaff] modal-compact:h-7"
           >
             <Plus className="size-3.5" strokeWidth={2.6} />
-            Add Account
+            {t("bank.share.addAccountBtn")}
           </button>
         </div>
       )}
 
-      {entries.length === 0 && !open && <p className="m-0 px-0.5 py-1.5 text-[12.5px] italic text-[#8a96a8]">No profit sharing selected</p>}
+      {entries.length === 0 && !open && <p className="m-0 px-0.5 py-1.5 text-[12.5px] italic text-[#8a96a8]">{t("bank.share.none")}</p>}
       {entries.map((entry) => {
         const label = accounts.find((a) => a.value === entry.account)?.label ?? entry.account;
         return (
@@ -198,7 +200,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
           {!inert && (
             <button
               type="button"
-              aria-label={`Remove ${label}`}
+              aria-label={t("bank.share.removeOf", { label })}
               onClick={() => onChange(entries.filter((e) => e.account !== entry.account))}
               className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca]"
             >

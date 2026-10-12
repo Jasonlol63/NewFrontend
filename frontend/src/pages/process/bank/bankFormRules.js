@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 // Options, validation and the request bodies of the Add / Edit Bank Process modal (/api/bank-process).
 
 export const BANK_ADD_URL = "/api/bank-process/add-bank-process";
@@ -25,7 +26,12 @@ export const CARD_OWNER_TYPES = options(["PERSONAL", "BUSINESS", "ENTERPRISE"]);
 // "1+1", "1+2", "1+3" are the compensation contracts the backend recognises, and it matches the whole text, so they are
 // stored exactly like that; only the label adds "MONTHS". The rest is free text to the backend.
 const ONE_PLUS = /^1\+[123]$/;
-export const contractLabel = (contract) => (ONE_PLUS.test(String(contract ?? "").trim()) ? `${String(contract).trim()} MONTHS` : contract);
+export const contractLabel = (contract) => {
+  const c = String(contract ?? "").trim();
+  if (ONE_PLUS.test(c)) return i18n.t("process:bank.onePlus", { value: c, defaultValue: `${c} MONTHS` });
+  const m = /^(\d+) MONTHS?$/.exec(c);
+  return m ? i18n.t("process:bank.monthsN", { n: m[1], defaultValue: c }) : contract;
+};
 export const CONTRACTS = [
   ...options(["1 MONTH", "2 MONTHS", "3 MONTHS", "6 MONTHS"]),
   ...["1+1", "1+2", "1+3"].map((value) => ({ value, label: contractLabel(value) })),
@@ -51,19 +57,19 @@ export const accountLabel = (code, name) => (name ? `${String(code).toUpperCase(
 export function validateBankForm({ isEdit, form, sharing, billingLocked = false }) {
   if (billingLocked) return "";
   if (!isEdit) {
-    if (!form.countryId) return "Country is required";
-    if (!form.bankId) return "Bank is required";
-    if (!form.type) return "Type is required";
-    if (!form.cardOwner.trim()) return "Card Owner is required";
+    if (!form.countryId) return i18n.t("process:bank.validation.country");
+    if (!form.bankId) return i18n.t("process:bank.validation.bank");
+    if (!form.type) return i18n.t("process:bank.validation.type");
+    if (!form.cardOwner.trim()) return i18n.t("process:bank.validation.cardOwner");
   }
-  if (!form.dayStart) return "Day Start is required";
-  if (!form.frequency) return "Frequency is required";
-  if (!form.supplier) return "Supplier is required";
-  if (!form.customer) return "Customer is required";
-  if (form.buyPrice === "") return "Buy Price is required";
-  if (form.sellPrice === "") return "Sell Price is required";
-  if (!form.contract) return "Contract is required";
-  if (sharing.some((e) => !(Number(e.amount) > 0))) return "Every Profit Sharing amount must be more than 0";
+  if (!form.dayStart) return i18n.t("process:bank.validation.dayStart");
+  if (!form.frequency) return i18n.t("process:bank.validation.frequency");
+  if (!form.supplier) return i18n.t("process:bank.validation.supplier");
+  if (!form.customer) return i18n.t("process:bank.validation.customer");
+  if (form.buyPrice === "") return i18n.t("process:bank.validation.buyPrice");
+  if (form.sellPrice === "") return i18n.t("process:bank.validation.sellPrice");
+  if (!form.contract) return i18n.t("process:bank.validation.contract");
+  if (sharing.some((e) => !(Number(e.amount) > 0))) return i18n.t("process:bank.validation.sharing");
   return "";
 }
 

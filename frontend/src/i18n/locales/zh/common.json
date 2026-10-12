@@ -92,7 +92,12 @@
     "accounts": "账户",
     "currency": "货币",
     "company": "公司",
-    "companies": "公司"
+    "companies": "公司",
+    "process": "合同",
+    "processes": "合同",
+    "description": "描述",
+    "bill": "账单",
+    "bank balance": "银行余额"
   },
   "verbs": {
     "Delete": "删除",

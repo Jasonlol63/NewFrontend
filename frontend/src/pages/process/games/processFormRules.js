@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { PROCESS_ADD_URL, PROCESS_UPDATE_URL } from "./processRules";
 
 // Pure rules for the Add / Edit Process form: validation, the "Process ID already in use" explanation and the
@@ -6,9 +7,9 @@ import { PROCESS_ADD_URL, PROCESS_UPDATE_URL } from "./processRules";
 // The first problem with the form, or "" when it can be saved. codes: the Process IDs about to be saved
 // (one, or several with Multi-Process).
 export function validateProcessForm({ isEdit, multi, codes, currencyId, descriptionCount }) {
-  if (!isEdit && codes.length === 0) return multi ? "Select at least one Process ID" : "Process ID is required";
-  if (!currencyId) return "Currency is required";
-  if (descriptionCount === 0) return "Select at least one description";
+  if (!isEdit && codes.length === 0) return multi ? i18n.t("process:validation.selectCodes") : i18n.t("process:validation.codeRequired");
+  if (!currencyId) return i18n.t("process:validation.currencyRequired");
+  if (descriptionCount === 0) return i18n.t("process:validation.descriptionRequired");
   return "";
 }
 
@@ -26,7 +27,7 @@ export function findProcessIdInUse(rows, code, descriptionIds, excludeId, labelB
       if (descriptionIds.has(id)) taken.add(labelById.get(id) ?? String(id));
     }
   }
-  return taken.size ? `Process ID ${code} already in use: ${[...taken].join(", ")}` : "";
+  return taken.size ? i18n.t("process:validation.inUse", { code, list: [...taken].join(", ") }) : "";
 }
 
 // Request for one process. In Add with Copy From the form already holds the copied values (possibly edited), and
@@ -37,7 +38,7 @@ export function buildProcessRequest({ isEdit, id, code, tenantId, form, descript
     currencyId: Number(form.currency),
     descriptionIds: [...descriptions],
     dayOfWeeks: [...days].sort((a, b) => a - b),
-    removeWord: form.removeWord,
+    removeWord: form.removeWord.toUpperCase(),
     replaceWordFrom: form.replaceFrom.toUpperCase(),
     replaceWordTo: form.replaceTo.toUpperCase(),
     remark: form.remark.toUpperCase(),

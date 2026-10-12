@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { localizeBackend } from "@/i18n/backendMessages";
 
 let nextId = 1;
 
@@ -31,7 +32,9 @@ export function useNotice(ms = 6000, { errorMs = 5000 } = {}) {
       if (!message) return clear();
       const id = nextId++;
       const duration = level === "error" || level === "warning" ? errorMs : ms;
-      setToasts((list) => [...list, { id, message, detail, action, level, at: Date.now(), ms: duration }]);
+      // The back end's English reasons are shown in the page language when they are known (see i18n/backendMessages.js).
+      const shown = Array.isArray(detail) ? detail.map(localizeBackend) : localizeBackend(detail);
+      setToasts((list) => [...list, { id, message, detail: shown, action, level, at: Date.now(), ms: duration }]);
       timers.current.set(id, setTimeout(() => dismiss(id), duration));
       return id;
     },

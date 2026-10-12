@@ -56,6 +56,8 @@ public interface ProcessDao {
     // Delete Process Use
     void deleteProcessById(@Param("id") Integer id, @Param("tenantId") Integer tenantId);
 
+    void deleteEmptyDataCapturesByProcessId(@Param("id") Integer id, @Param("tenantId") Integer tenantId);
+
     //Update Status of Process
     void updateProcessStatus(@Param("id") Integer id, @Param("tenantId") Integer tenantId, @Param("status") Process.Status status);
 

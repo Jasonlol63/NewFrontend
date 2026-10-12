@@ -1,4 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Info, ReceiptText, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayDate } from "@/lib/date";
@@ -6,9 +7,12 @@ import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
 import { SelectBox } from "@/components/shared/list/DataTable.jsx";
 import { earlyDatePresets, isEarlyBill, yearEndIso } from "./accountingDueRules";
+import { contractLabel } from "./bankFormRules";
 import { useAccountingDue } from "./useAccountingDue";
 
 // Accounting Due: the bills the backend has generated (by each process's schedule), plus the early ones the user can
@@ -21,7 +25,7 @@ import { useAccountingDue } from "./useAccountingDue";
 //   >= 900px: all columns | 560-899px: No / Start Date / Frequency fold under Billing Date and Card Owner | 430-559px: Contract folds under Bank | < 430px (phones): Bank and Contract fold under Card Owner
 
 const dmy = (iso) => formatDisplayDate(iso, "-");
-const shortFrequency = (f) => (f === "1st of Every Month" ? "1st of Month" : f);
+const freqShort = (t, f) => t(`bank.frequencyShort.${f}`, { defaultValue: t(`bank.frequency.${f}`, { defaultValue: f }) });
 
 function useWidth(ref) {
   const [width, setWidth] = useState(1000);
@@ -52,14 +56,14 @@ function Cell({ main, sub, className }) {
 // Columns per width: [key, width px, head]. The Card Owner column takes whatever is left.
 function columnsFor(mode) {
   if (mode === "full") {
-    return [["pick", 48], ["no", 52, "No"], ["start", 116, "Start Date"], ["billing", 130, "Billing Date"], ["frequency", 140, "Frequency"], ["owner", 0, "Card Owner"], ["bank", 110, "Bank"], ["contract", 120, "Contract"]];
+    return [["pick", 48], ["no", 52, "colNo"], ["start", 116, "colStart"], ["billing", 130, "colBilling"], ["frequency", 140, "colFrequency"], ["owner", 0, "colOwner"], ["bank", 110, "colBank"], ["contract", 120, "colContract"]];
   }
-  if (mode === "mid") return [["pick", 44], ["billing", 124, "Billing Date"], ["owner", 0, "Card Owner"], ["bank", 92, "Bank"], ["contract", 112, "Contract"]];
-  if (mode === "narrow") return [["pick", 44], ["billing", 116, "Billing Date"], ["owner", 0, "Card Owner"], ["bank", 96, "Bank"]];
-  return [["pick", 40], ["billing", 104, "Billing Date"], ["owner", 0, "Card Owner"]];
+  if (mode === "mid") return [["pick", 44], ["billing", 124, "colBilling"], ["owner", 0, "colOwner"], ["bank", 92, "colBank"], ["contract", 112, "colContract"]];
+  if (mode === "narrow") return [["pick", 44], ["billing", 116, "colBilling"], ["owner", 0, "colOwner"], ["bank", 96, "colBank"]];
+  return [["pick", 40], ["billing", 104, "colBilling"], ["owner", 0, "colOwner"]];
 }
 
-function cellFor(key, bill, mode) {
+function cellFor(key, bill, mode, t) {
   const stackStart = mode !== "full";
   switch (key) {
     case "no":
@@ -67,15 +71,15 @@ function cellFor(key, bill, mode) {
     case "start":
       return <Cell key={key} main={dmy(bill.startDate)} className="tabular-nums" />;
     case "billing":
-      return <Cell key={key} main={dmy(bill.billingDate)} sub={stackStart ? `Start ${dmy(bill.startDate)}` : undefined} className="tabular-nums" />;
+      return <Cell key={key} main={dmy(bill.billingDate)} sub={stackStart ? t("bank.due.startUnder", { date: dmy(bill.startDate) }) : undefined} className="tabular-nums" />;
     case "frequency":
-      return <Cell key={key} main={shortFrequency(bill.frequency)} />;
+      return <Cell key={key} main={freqShort(t, bill.frequency)} />;
     case "owner":
-      return <Cell key={key} main={<span title={bill.cardOwner}>{bill.cardOwner}</span>} sub={mode === "tiny" ? `${bill.bank} · ${bill.contract}` : stackStart ? shortFrequency(bill.frequency) : undefined} />;
+      return <Cell key={key} main={<span title={bill.cardOwner}>{bill.cardOwner}</span>} sub={mode === "tiny" ? `${bill.bank} · ${contractLabel(bill.contract)}` : stackStart ? freqShort(t, bill.frequency) : undefined} />;
     case "bank":
-      return <Cell key={key} main={bill.bank} sub={mode === "narrow" ? bill.contract : undefined} />;
+      return <Cell key={key} main={bill.bank} sub={mode === "narrow" ? contractLabel(bill.contract) : undefined} />;
     case "contract":
-      return <Cell key={key} main={bill.contract} />;
+      return <Cell key={key} main={contractLabel(bill.contract)} />;
     default:
       return null;
   }
@@ -85,13 +89,19 @@ const presetClass =
   "h-8 flex-none cursor-pointer whitespace-nowrap rounded-[9px] border px-3 text-[12.5px] font-bold text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
 
 export default function AccountingDueModal({ tenantId, readOnly, onClose, onChanged }) {
+  const { t } = useTranslation(["process", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const [earlyDate, setEarlyDate] = useState(yearEndIso);
   const { bills, loading, error: loadError, reload, post, skip } = useAccountingDue(tenantId, earlyDate);
+  // Bills that did not load are an error toast (once per error).
+  useEffect(() => {
+    if (loadError) push(t("bank.errors.dueLoad"), "error", loadError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadError]);
   // Bills the user unticked; everything shown is ticked until then (new ones appearing with a later date start ticked).
   const [unticked, setUnticked] = useState(() => new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState({ text: "", error: false }); // the result of the last Post / Delete, or why it failed
   const tableRef = useRef(null);
   const tableWidth = useWidth(tableRef);
   const mode = tableWidth >= 900 ? "full" : tableWidth >= 560 ? "mid" : tableWidth >= 430 ? "narrow" : "tiny";
@@ -115,37 +125,35 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
   };
   // Post (Transaction) and Delete send the ticked bills as the backend gave them, then load the list again. Whatever
   // else the backend changed (a bill that was settled elsewhere meanwhile) shows in the reloaded list.
-  const run = async (action, done) => {
+  const run = async (action, done, failTitle) => {
     if (busy) return;
     setBusy(true);
-    setMessage({ text: "", error: false });
     try {
       const result = await action(picked);
-      setMessage({ text: done(result), error: false });
+      push(done(result));
       setUnticked(new Set());
       onChanged?.();
     } catch (err) {
-      setMessage({ text: err.message, error: true });
+      push(failTitle, "error", err.message);
     } finally {
       setBusy(false);
     }
   };
-  const postPicked = () => run(post, (created) => `Posted ${created} transaction ${created === 1 ? "line" : "lines"}`);
-  const deletePicked = () => run(skip, () => "Deleted");
+  const postPicked = () => run(post, (created) => t("bank.toast.posted", { count: created }), t("bank.errors.duePost"));
+  const deletePicked = () => run(skip, () => t("bank.toast.billsDeleted", { count: picked.length }), t("bank.errors.dueDelete"));
   const refresh = () => {
-    setMessage({ text: "", error: false });
     setUnticked(new Set());
     reload({ restoreSkipped: true });
   };
-  const footerNote = message.text || loadError || (loading ? "Loading…" : "");
-  const footerIsError = message.error || Boolean(loadError);
+  const footerNote = loading ? t("common:loading") : "";
+  const footerIsError = false;
 
   const rowNumbers = new Map([...dueNow, ...early].map((b, i) => [b.id, i + 1]));
   const groupRow = (label, list, tag) =>
     list.length > 0 && (
       <tr key={`g-${label}`} className="bg-[rgba(230,239,251,0.7)]">
         <td className="h-[34px] border-b border-[rgba(130,155,195,0.16)] text-center modal-compact:h-8">
-          <SelectBox label={`Select all ${label.toLowerCase()} bills`} checked={stateOf(list)} onChange={(on) => setMany(list, on)} />
+          <SelectBox label={t("bank.due.selectAllOf", { group: label.toLowerCase() })} checked={stateOf(list)} onChange={(on) => setMany(list, on)} />
         </td>
         <td colSpan={columns.length - 1} className="h-[34px] border-b border-[rgba(130,155,195,0.16)] px-1.5 text-left text-[12px] font-extrabold text-brand-navy modal-compact:h-8">
           <span className="inline-flex items-center gap-2">
@@ -161,9 +169,9 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
     return (
       <tr key={bill.id} className="hover:bg-white/60">
         <td className={cn(td, "text-center", isEarly && "shadow-[inset_3px_0_0_#f59e0b]")}>
-          <SelectBox label={`Select ${bill.cardOwner} ${dmy(bill.billingDate)}`} checked={!unticked.has(bill.id)} onChange={(on) => setMany([bill], on)} />
+          <SelectBox label={t("bank.due.selectOne", { owner: bill.cardOwner, date: dmy(bill.billingDate) })} checked={!unticked.has(bill.id)} onChange={(on) => setMany([bill], on)} />
         </td>
-        {columns.slice(1).map(([key]) => (key === "no" ? <Cell key={key} main={rowNumbers.get(bill.id)} className="tabular-nums text-dash-sub" /> : cellFor(key, bill, mode)))}
+        {columns.slice(1).map(([key]) => (key === "no" ? <Cell key={key} main={rowNumbers.get(bill.id)} className="tabular-nums text-dash-sub" /> : cellFor(key, bill, mode, t)))}
       </tr>
     );
   };
@@ -176,25 +184,25 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         icon={ReceiptText}
         title={
           <span className="flex min-w-0 items-center gap-2.5">
-            <span className="min-w-0 truncate">Accounting Due</span>
+            <span className="min-w-0 truncate">{t("bank.due.title")}</span>
             <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[12px] leading-[22px] font-extrabold tracking-normal text-white">{visible.length}</span>
-            <span className="flex-none text-[12px] font-semibold tracking-normal text-[#b45309] @max-[599px]/main:hidden">as of {dmy(earlyDate)}</span>
+            <span className="flex-none text-[12px] font-semibold tracking-normal text-[#b45309] @max-[599px]/main:hidden">{t("bank.due.asOf", { date: dmy(earlyDate) })}</span>
           </span>
         }
         onClose={onClose}
         onSave={postPicked}
         saveLabel={
           <>
-            <span className="@max-[479px]/main:hidden">Transaction</span>
-            <span className="hidden @max-[479px]/main:inline">Post</span>
+            <span className="@max-[479px]/main:hidden">{t("bank.due.transaction")}</span>
+            <span className="hidden @max-[479px]/main:inline">{t("bank.due.post")}</span>
             <span>({picked.length})</span>
           </>
         }
         saveDisabled={readOnly || busy || loading || picked.length === 0}
         headerExtra={
-          <SoftButton onClick={refresh} disabled={busy} title="Reload the bills" aria-label="Refresh" className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+          <SoftButton onClick={refresh} disabled={busy} title={t("bank.due.reloadTip")} aria-label={t("bank.due.refresh")} className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
             <RefreshCw className="size-[15px]" strokeWidth={2.4} />
-            <span className="@max-[479px]/main:hidden">Refresh</span>
+            <span className="@max-[479px]/main:hidden">{t("bank.due.refresh")}</span>
           </SoftButton>
         }
         footerStart={
@@ -206,7 +214,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
             )}
           >
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
-            {footerNote || `${visible.length} ${visible.length === 1 ? "bill" : "bills"} awaiting accounting`}
+            {footerNote || t("bank.due.awaiting", { count: visible.length })}
           </span>
         }
         footerExtra={
@@ -221,40 +229,40 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
             )}
           >
             <Trash2 className="size-[15px]" strokeWidth={2.3} />
-            <span className="@max-[479px]/main:sr-only">Delete</span>
+            <span className="@max-[479px]:sr-only">{t("bank.due.delete")}</span>
             <span className="@max-[479px]/main:hidden">({picked.length})</span>
           </button>
         }
         bodyClassName="flex flex-col"
       >
         <section className="flex flex-none flex-wrap items-center gap-2 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card modal-compact:py-1.5">
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">Early transaction date</span>
+          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">{t("bank.due.earlyDate")}</span>
           <div className="w-[150px] flex-none">
             <DateField value={earlyDate} onChange={setEarlyDate} placeholder="DD/MM/YYYY" />
           </div>
           {presets.map((p) => (
             <button
-              key={p.label}
+              key={p.key}
               type="button"
               onClick={() => setEarlyDate(p.value)}
               className={cn(presetClass, p.value === earlyDate ? "border-[#7fb2ff] bg-[#dbeafe]" : "border-[#b9d3f5] bg-white/70 hover:bg-white")}
             >
-              {p.label}
+              {t(`bank.due.preset.${p.key}`)}
             </button>
           ))}
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 text-[12px] font-semibold text-[#92400e]">
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
-            Bills posted or deleted early won&apos;t be generated again.
+            {t("bank.due.note")}
           </span>
         </section>
 
         <FormCard
-          title="Bills"
+          title={t("bank.due.billsCard")}
           className="min-h-[160px] flex-1"
           body={false}
           right={
             <CardCount>
-              {visible.length} {visible.length === 1 ? "bill" : "bills"} · {picked.length} selected
+              {t("bank.due.bills", { count: visible.length })} · {t("bank.due.selectedCount", { count: picked.length })}
             </CardCount>
           }
         >
@@ -268,25 +276,26 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
               <thead>
                 <tr>
                   <th className={th}>
-                    <SelectBox label="Select all bills" checked={stateOf(visible)} onChange={(on) => setMany(visible, on)} />
+                    <SelectBox label={t("bank.due.selectAll")} checked={stateOf(visible)} onChange={(on) => setMany(visible, on)} />
                   </th>
                   {columns.slice(1).map(([key, , head]) => (
                     <th key={key} className={th}>
-                      {head}
+                      {head ? t(`bank.due.${head}`) : null}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {groupRow("Due now", dueNow)}
+                {groupRow(t("bank.due.dueNow"), dueNow)}
                 {dueNow.map(billRow)}
-                {groupRow("Early", early, "NOT DUE YET")}
+                {groupRow(t("bank.due.early"), early, t("bank.due.notDueYet"))}
                 {early.map(billRow)}
               </tbody>
             </table>
-            {visible.length === 0 && <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">Nothing left to post.</p>}
+            {visible.length === 0 && <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">{t("bank.due.nothing")}</p>}
           </div>
         </FormCard>
+        <Toast toasts={toasts} onClose={dismiss} />
       </FormModal>
 
       <DeleteDialog
@@ -294,7 +303,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         onOpenChange={setConfirmDelete}
         names={picked.map((b) => `${b.cardOwner} (${dmy(b.billingDate)})`)}
         noun="bill"
-        note="Deleted bills won't be generated again."
+        note={t("bank.due.deleteNote")}
         onConfirm={() => {
           setConfirmDelete(false);
           deletePicked();

@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import { Field, SelectField, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import { FIRST_OF_MONTH, FREQUENCIES } from "./bankFormRules";
@@ -28,12 +31,13 @@ function ReadOnlyBox({ children }) {
  * the dialog closes after a successful Resend.
  */
 export default function BankResendModal({ row, tenantId, onClose, onResend }) {
+  const { t } = useTranslation(["process", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const [form, setForm] = useState(() => ({
     dayStart: row.date || "",
     dayEnd: row.dayEnd || "",
     frequency: row.frequency || FIRST_OF_MONTH,
   }));
-  const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   const usesEnd = resendUsesDayEnd(form.frequency);
@@ -44,14 +48,13 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
   const save = async () => {
     if (saving) return;
     const problem = validateResend(form);
-    if (problem) return setMessage(problem);
-    setMessage("");
+    if (problem) return push(problem, "error");
     setSaving(true);
     try {
       await onResend(buildResendRequest({ row, tenantId, form }));
       onClose();
     } catch (err) {
-      setMessage(err.message);
+      push(t("bank.errors.resend"), "error", err.message);
       setSaving(false);
     }
   };
@@ -60,56 +63,50 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
     <FormModal
       compact
       icon={RotateCcw}
-      title="Resend to Accounting Due"
-      saveLabel={saving ? "Resending…" : "Resend"}
+      title={t("bank.resend.title")}
+      saveLabel={saving ? t("bank.resend.resending") : t("bank.resend.button")}
       saveDisabled={saving}
       onClose={onClose}
       onSave={save}
       className={UPPERCASE}
-      footerStart={
-        message && (
-          <p role="alert" className="m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight text-[#dc2626] normal-case @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]">
-            {message}
-          </p>
-        )
-      }
       bodyClassName="flex flex-col overflow-y-auto [scrollbar-width:thin]"
     >
-      <FormCard title="Process" className="flex-none">
+      <FormCard title={t("bank.resend.processCard")} className="flex-none">
         <div className={pair}>
-          <Field label="Supplier" as="div">
+          <Field label={t("bank.resend.supplier")} as="div">
             <ReadOnlyBox>{row.supplier}</ReadOnlyBox>
           </Field>
-          <Field label="Bank" as="div">
+          <Field label={t("bank.resend.bank")} as="div">
             <ReadOnlyBox>{[row.bank, row.cardOwner].filter(Boolean).join(" · ")}</ReadOnlyBox>
           </Field>
         </div>
       </FormCard>
 
-      <FormCard title="Schedule" className="mt-(--gap) flex-none">
+      <FormCard title={t("bank.resend.scheduleCard")} className="mt-(--gap) flex-none">
         <div className={pair}>
-          <Field label="Day Start" as="div">
+          <Field label={t("bank.resend.dayStart")} as="div">
             <DateField value={form.dayStart} onChange={(dayStart) => setForm((f) => ({ ...f, dayStart }))} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} />
           </Field>
-          <Field label="Day End" optional as="div">
+          <Field label={t("bank.resend.dayEnd")} optional as="div">
             <DateField
               value={form.dayEnd}
               onChange={(dayEnd) => setForm((f) => ({ ...f, dayEnd }))}
-              placeholder={usesEnd ? "DD/MM/YYYY" : "NOT USED"}
+              placeholder={usesEnd ? "DD/MM/YYYY" : t("bank.resend.notUsed")}
               popupClassName={DATE_POPUP}
               disabled={!usesEnd}
             />
           </Field>
         </div>
         <div className="mt-2.5">
-          <Field label="Frequency" as="div">
-            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES} placeholder="Select Frequency" />
+          <Field label={t("bank.resend.frequency")} as="div">
+            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.resend.selectFrequency")} />
           </Field>
         </div>
         <p className={cn("m-0 mt-2.5 px-0.5 text-[12px] leading-snug normal-case", summary.error ? "font-semibold text-[#dc2626]" : "text-[#475569]")}>
-          {summary.parts.map((p, i) => (typeof p === "string" ? p : <b key={i} className="text-brand-navy">{p.b}</b>))}
+          <Trans t={t} i18nKey={`bank.resend.${summary.key}`} values={summary.values} components={{ b: <b className="text-brand-navy" /> }} />
         </p>
       </FormCard>
+      <Toast toasts={toasts} onClose={dismiss} />
     </FormModal>
   );
 }

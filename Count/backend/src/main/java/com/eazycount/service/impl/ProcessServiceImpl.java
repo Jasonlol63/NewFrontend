@@ -313,10 +313,12 @@ public class ProcessServiceImpl implements ProcessService {
         AuditContext.captureBefore(id, AuditSnapshots.process(process));
 
         // Child rows (description_link / day / process_submitted) cascade from process FK.
+        // data_captures headers survive Capture Maintenance and block the FK, so clear the ones with no lines left.
+        processDao.deleteEmptyDataCapturesByProcessId(id, tenantId);
         try {
             processDao.deleteProcessById(id, tenantId);
         } catch (Exception e) {
-            throw new BusinessException("Failed to delete process");
+            throw new BusinessException("Process still has data capture records, cannot be deleted!");
         }
     }
 

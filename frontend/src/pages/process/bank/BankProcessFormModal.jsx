@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CalendarDays, FilePen, FilePlus2, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
 import ExpandableTextarea from "@/components/shared/form-modal/ExpandableTextarea.jsx";
@@ -14,7 +17,7 @@ import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import BankProfitSharing from "./BankProfitSharing.jsx";
 import CountryBankAdder from "./CountryBankAdder.jsx";
-import { LOCKED_EDIT_TITLE, formatMoney, isBankLocked } from "./bankProcessRules";
+import { formatMoney, isBankLocked } from "./bankProcessRules";
 import {
   BANK_BALANCE_DELETE_URL,
   CARD_OWNER_TYPES,
@@ -23,6 +26,7 @@ import {
   FREQUENCIES,
   accountLabel,
   buildBankRequest,
+  contractLabel,
   isBankPickAccount,
   money,
   profitOf,
@@ -140,12 +144,13 @@ function ReadOnlyBox({ children }) {
  * Bank Balance was deleted here.
  */
 export default function BankProcessFormModal({ mode = "add", process, tenantId, accountCompanyOptions = [], onClose, onSave, onBalanceDeleted }) {
+  const { t } = useTranslation(["process", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const isEdit = mode === "edit";
   // Official, E-Invoice and Block: only SOP, Remark and Insurance can change; the billing fields below are read-only.
   const billingLocked = isEdit && isBankLocked(process);
   const [form, setForm] = useState(() => formOf(isEdit ? process : null));
   const [sharing, setSharing] = useState(() => sharingOf(isEdit ? process : null));
-  const [message, setMessage] = useState(""); // validation problem or the backend's error
   const [saving, setSaving] = useState(false);
   // Edit, frequency 1st of Every Month: the Day End switch. On = Day End is locked (the last month bills up to it), Off (the default) = editable.
   const [dayEndLocked, setDayEndLocked] = useState(() => Boolean(isEdit && process?.dayEndMonthlyCapEnabled));
@@ -158,6 +163,19 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
   const bankData = useBankOptions(isEdit ? null : tenantId, form.countryId);
   const accountData = useAccountRows(tenantId);
   const hidden = useHiddenBankOptions(tenantId);
+  // Lists that did not load are error toasts (once per error).
+  useEffect(() => {
+    if (countryData.error) push(t("bank.errors.countries"), "error", countryData.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryData.error]);
+  useEffect(() => {
+    if (bankData.error) push(t("bank.errors.banks"), "error", bankData.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankData.error]);
+  useEffect(() => {
+    if (accountData.error) push(t("bank.errors.accounts"), "error", accountData.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountData.error]);
 
   const countries = countryData.countries;
   const countryCode = countries.find((c) => String(c.id) === form.countryId)?.code ?? "";
@@ -269,14 +287,14 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
 
   const deleteBalance = async () => {
     setDeleteBalanceOpen(false);
-    setMessage("");
     try {
       await postJson(BANK_BALANCE_DELETE_URL, { id: process.id, tenantId });
       setBalanceLocked(false);
       set("bankBalance")("");
       onBalanceDeleted?.();
+      push(t("bank.toast.balanceDeleted"));
     } catch (err) {
-      setMessage(err.message);
+      push(t("bank.errors.balance"), "error", err.message);
     }
   };
 
@@ -289,26 +307,23 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
     if (saving) return;
     const problem = validateBankForm({ isEdit, form, sharing, billingLocked });
     if (problem) {
-      setMessage(problem);
+      push(problem, "error");
       return;
     }
-    setMessage("");
     setSaving(true);
     try {
       await onSave(buildBankRequest({ isEdit, id: process?.id, tenantId, form, sharing, dayEndLocked, balanceLocked, billingLocked }));
     } catch (err) {
-      setMessage(err.message);
+      push(isEdit ? t("bank.errors.update") : t("bank.errors.add"), "error", err.message);
       setSaving(false);
     }
   };
 
-  const footerNote = message || countryData.error || bankData.error || accountData.error;
-
   return (
     <FormModal
       icon={isEdit ? FilePen : FilePlus2}
-      title={isEdit ? "Edit Process" : "Add Process"}
-      saveLabel={isEdit ? "Update Process" : "Add Process"}
+      title={isEdit ? t("bank.form.edit") : t("bank.form.add")}
+      saveLabel={isEdit ? t("bank.form.update") : t("bank.form.add")}
       onClose={onClose}
       onSave={save}
       saveDisabled={saving}
@@ -316,9 +331,9 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       overlay={
         editor && (
           <TextEditorSheet
-            title={editor === "sop" ? "SOP" : "Remark"}
-            subtitle={isEdit ? [process.supplier, process.bank, process.cardOwner].filter(Boolean).join(" · ") : "Add Process"}
-            placeholder={editor === "sop" ? "ENTER SOP..." : "ENTER REMARKS..."}
+            title={editor === "sop" ? t("bank.form.sop") : t("bank.form.remark")}
+            subtitle={isEdit ? [process.supplier, process.bank, process.cardOwner].filter(Boolean).join(" · ") : t("bank.form.editorTitle")}
+            placeholder={editor === "sop" ? t("bank.form.sopPlaceholder") : t("bank.form.remarkPlaceholder")}
             value={form[editor]}
             onChange={set(editor)}
             onClose={() => setEditor(null)}
@@ -330,23 +345,18 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         billingLocked && (
           <span
             role="note"
-            title={LOCKED_EDIT_TITLE}
-            aria-label={LOCKED_EDIT_TITLE}
+            title={t("bank.page.lockedTitle")}
+            aria-label={t("bank.page.lockedTitle")}
             className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-3 text-[12px] font-bold text-[#92400e] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:px-2"
           >
             <Lock className="size-3.5 flex-none" strokeWidth={2.4} />
-            <span className="truncate @max-[1099px]/main:hidden">Billing locked · only SOP, Remark and Insurance can be changed</span>
-            <span className="hidden truncate @max-[1099px]/main:inline @max-[599px]/main:hidden">Billing locked</span>
+            <span className="truncate @max-[1099px]/main:hidden">{t("bank.form.lockedChip")}</span>
+            <span className="hidden truncate @max-[1099px]/main:inline @max-[599px]/main:hidden">{t("bank.form.lockedShort")}</span>
           </span>
         )
       }
       footerStart={
         <>
-          {footerNote && (
-            <p role="alert" className="m-0 basis-full text-[12.5px] font-semibold leading-tight text-[#dc2626] @max-[599px]/main:text-[12px]">
-              {footerNote}
-            </p>
-          )}
           {isEdit && <RecordBar modified={{ at: process?.updatedAt, by: process?.updatedBy }} created={{ at: process?.createdAt, by: process?.createdBy }} />}
         </>
       }
@@ -356,21 +366,21 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <FormCard title="Bank Information" className={cardFlex} bodyClassName={cardBody}>
+        <FormCard title={t("bank.form.infoCard")} className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
-            <Field label="Country (Currency)" as="div">
+            <Field label={t("bank.form.countryCurrency")} as="div">
               {isEdit ? <ReadOnlyBox>{form.country}</ReadOnlyBox> : <SelectWithAdd
                   addOnly
                   value={form.countryId}
                   onChange={pickCountry}
                   options={countryOptions}
-                  placeholder="Select Country"
+                  placeholder={t("bank.form.selectCountry")}
                   button={(anchorEl) => (
                     <CountryBankAdder
                       anchorEl={anchorEl}
                       noun="country"
-                      title="Add country"
-                      hint="Also creates a currency of that name"
+                      title={t("bank.adder.addTitle", { noun: t("bank.adder.noun.country") })}
+                      hint={t("bank.adder.hintCountry")}
                       items={countries.map((c) => c.code)}
                       onAdd={addCountry}
                       onRemove={removeCountry}
@@ -380,62 +390,62 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                   )}
                 />}
             </Field>
-            <Field label="Bank" as="div">
+            <Field label={t("bank.form.bank")} as="div">
               {isEdit ? <ReadOnlyBox>{form.bank}</ReadOnlyBox> : <SelectWithAdd
                   addOnly
                   value={form.bankId}
                   onChange={set("bankId")}
                   options={bankOptions}
-                  placeholder="Select Bank"
+                  placeholder={t("bank.form.selectBank")}
                   disabled={!form.countryId}
                   button={(anchorEl) => (
                     <CountryBankAdder
                       anchorEl={anchorEl}
                       key={form.countryId}
                       noun="bank"
-                      title="Add bank"
-                      hint={"Added under " + countryCode}
+                      title={t("bank.adder.addTitle", { noun: t("bank.adder.noun.bank") })}
+                      hint={t("bank.adder.hintBank", { country: countryCode })}
                       items={bankData.banks.map((b) => b.name)}
                       onAdd={addBank}
                       onRemove={removeBank}
                       isOn={(name) => !hidden.isHidden(bankKey(name))}
                       onToggle={toggleBank}
-                      disabledReason={form.countryId ? "" : "Pick a country first"}
+                      disabledReason={form.countryId ? "" : t("bank.adder.pickCountry")}
                     />
                   )}
                 />}
             </Field>
           </div>
           <div className={pair}>
-            <Field label="Type" as="div">
-              {isEdit ? <ReadOnlyBox>{form.type}</ReadOnlyBox> : <SelectField uppercase value={form.type} onChange={set("type")} options={CARD_OWNER_TYPES} placeholder="Select Type" />}
+            <Field label={t("bank.form.type")} as="div">
+              {isEdit ? <ReadOnlyBox>{t(`bank.cardType.${form.type}`, { defaultValue: form.type })}</ReadOnlyBox> : <SelectField uppercase value={form.type} onChange={set("type")} options={CARD_OWNER_TYPES.map((o) => ({ ...o, label: t(`bank.cardType.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectType")} />}
             </Field>
-            <Field label="Card Owner" as="div">
-              {isEdit ? <ReadOnlyBox>{form.cardOwner}</ReadOnlyBox> : <TextInput value={form.cardOwner} onChange={setText("cardOwner")} autoComplete="off" placeholder="ENTER CARD OWNER" className="uppercase" />}
+            <Field label={t("bank.form.cardOwner")} as="div">
+              {isEdit ? <ReadOnlyBox>{form.cardOwner}</ReadOnlyBox> : <TextInput value={form.cardOwner} onChange={setText("cardOwner")} autoComplete="off" placeholder={t("bank.form.cardOwnerPlaceholder")} className="uppercase" />}
             </Field>
           </div>
         </FormCard>
 
-        <FormCard title="Schedule" className={cardFlex} bodyClassName={cardBody}>
+        <FormCard title={t("bank.form.scheduleCard")} className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
-            <Field label="Day Start" as="div">
+            <Field label={t("bank.form.dayStart")} as="div">
               <DateField value={form.dayStart} onChange={set("dayStart")} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} disabled={billingLocked} />
             </Field>
             <div className="block min-w-0">
               <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
                 <span className="truncate text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px]">
-                  Day End <span className="text-[10px] font-medium text-[#8a96a8]">(opt.)</span>
+                  {t("bank.form.dayEnd")} <span className="text-[10px] font-medium text-[#8a96a8]">{t("bank.form.opt")}</span>
                 </span>
                 {showDayEndSwitch && (
-                  <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? "ON" : "OFF"} className="font-bold" />
+                  <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? t("bank.form.on") : t("bank.form.off")} className="font-bold" />
                 )}
               </div>
               {billingLocked || dayEndOff || dayEndIsLocked ? (
                 <div
-                  title={billingLocked ? LOCKED_EDIT_TITLE : dayEndOff ? "This frequency has no Day End" : "Locked while the switch is on"}
+                  title={billingLocked ? t("bank.page.lockedTitle") : dayEndOff ? t("bank.form.dayEndNone") : t("bank.form.dayEndLockedTip")}
                   className={cn(inputClass, "flex cursor-not-allowed items-center gap-2 bg-modal-off text-[#6b7280] tabular-nums")}
                 >
-                  <span className="min-w-0 flex-1 truncate">{dayEndOff ? "Not used" : form.dayEnd || "DD/MM/YYYY"}</span>
+                  <span className="min-w-0 flex-1 truncate">{dayEndOff ? t("bank.form.notUsed") : form.dayEnd || "DD/MM/YYYY"}</span>
                   <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
                 </div>
               ) : (
@@ -443,89 +453,89 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
               )}
             </div>
           </div>
-          <Field label="Frequency">
-            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES} placeholder="Select Frequency" disabled={billingLocked} />
+          <Field label={t("bank.form.frequency")}>
+            <SelectField uppercase value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.form.selectFrequency")} disabled={billingLocked} />
           </Field>
         </FormCard>
 
-        <FormCard title="SOP and Remark" className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible" bodyClassName="flex flex-col @max-[899px]/main:overflow-visible">
+        <FormCard title={t("bank.form.sopCard")} className="flex-1 @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible" bodyClassName="flex flex-col @max-[899px]/main:overflow-visible">
           <div className={cn(pair, "min-h-0 flex-1")}>
-            <Field label="SOP" optional className="flex min-h-[64px] flex-col">
-              <ExpandableTextarea value={form.sop} onChange={setText("sop")} placeholder="ENTER SOP..." onExpand={() => setEditor("sop")} className="uppercase" />
+            <Field label={t("bank.form.sop")} optional className="flex min-h-[64px] flex-col">
+              <ExpandableTextarea value={form.sop} onChange={setText("sop")} placeholder={t("bank.form.sopPlaceholder")} onExpand={() => setEditor("sop")} className="uppercase" />
             </Field>
-            <Field label="Remark" optional className="flex min-h-[64px] flex-col">
-              <ExpandableTextarea value={form.remark} onChange={setText("remark")} placeholder="ENTER REMARKS..." onExpand={() => setEditor("remark")} className="uppercase" />
+            <Field label={t("bank.form.remark")} optional className="flex min-h-[64px] flex-col">
+              <ExpandableTextarea value={form.remark} onChange={setText("remark")} placeholder={t("bank.form.remarkPlaceholder")} onExpand={() => setEditor("remark")} className="uppercase" />
             </Field>
           </div>
         </FormCard>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-col gap-(--gap) @max-[899px]/main:contents">
-        <FormCard title="Detail" className={cardFlex} bodyClassName={cardBody}>
+        <FormCard title={t("bank.form.detail")} className={cardFlex} bodyClassName={cardBody}>
           <div className={pair}>
-            <Field label="Supplier" as="div">
+            <Field label={t("bank.form.supplier")} as="div">
               <SelectWithAdd
-                addLabel="Add supplier account"
-                editLabel="Edit supplier account"
+                addLabel={t("bank.form.addAccountOf", { role: t("bank.role.supplier") })}
+                editLabel={t("bank.form.editAccountOf", { role: t("bank.role.supplier") })}
                 value={form.supplier}
                 disabled={billingLocked}
                 onChange={set("supplier")}
                 onClear={() => set("supplier")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.supplier, role: "SUPPLIER", apply: set("supplier") })}
                 options={accountOptions}
-                placeholder="Select Account"
+                placeholder={t("bank.form.selectAccount")}
               />
             </Field>
-            <Field label="Buy Price">
+            <Field label={t("bank.form.buyPrice")}>
               <TextInput value={form.buyPrice} onChange={setMoney("buyPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
             </Field>
           </div>
           <div className={pair}>
-            <Field label="Customer" as="div">
+            <Field label={t("bank.form.customer")} as="div">
               <SelectWithAdd
-                addLabel="Add customer account"
-                editLabel="Edit customer account"
+                addLabel={t("bank.form.addAccountOf", { role: t("bank.role.customer") })}
+                editLabel={t("bank.form.editAccountOf", { role: t("bank.role.customer") })}
                 value={form.customer}
                 disabled={billingLocked}
                 onChange={set("customer")}
                 onClear={() => set("customer")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.customer, role: "", apply: set("customer") })}
                 options={accountOptions}
-                placeholder="Select Account"
+                placeholder={t("bank.form.selectAccount")}
               />
             </Field>
-            <Field label="Sell Price">
+            <Field label={t("bank.form.sellPrice")}>
               <TextInput value={form.sellPrice} onChange={setMoney("sellPrice")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
             </Field>
           </div>
           <div className={pair}>
-            <Field label="Company" as="div" optional>
+            <Field label={t("bank.form.company")} as="div" optional>
               <SelectWithAdd
-                addLabel="Add company account"
-                editLabel="Edit company account"
+                addLabel={t("bank.form.addAccountOf", { role: t("bank.role.company") })}
+                editLabel={t("bank.form.editAccountOf", { role: t("bank.role.company") })}
                 value={form.company}
                 disabled={billingLocked}
                 onChange={set("company")}
                 onClear={() => set("company")("")}
                 onAccount={(accountMode) => openAccount({ mode: accountMode, value: form.company, role: "", apply: set("company") })}
                 options={accountOptions}
-                placeholder="Select Account"
+                placeholder={t("bank.form.selectAccount")}
               />
             </Field>
-            <Field label="Profit" plain as="div">
+            <Field label={t("bank.form.profit")} plain as="div">
               <div className={cn(inputClass, "flex items-center bg-modal-off tabular-nums", profit ? "font-semibold text-[#374151]" : "text-dash-faint")}>{profit.toFixed(2)}</div>
             </Field>
           </div>
           <div className={pair}>
-            <Field label="Contract" as="div">
-              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract)} placeholder="Contract" disabled={billingLocked} />
+            <Field label={t("bank.form.contract")} as="div">
+              <SelectField uppercase value={form.contract} onChange={set("contract")} options={withCurrent(CONTRACTS, form.contract).map((o) => ({ ...o, label: contractLabel(o.value) }))} placeholder={t("bank.form.contract")} disabled={billingLocked} />
             </Field>
             <div className={pair}>
-              <Field label="Insurance" optional>
-                <TextInput value={form.insurance} onChange={setMoney("insurance")} inputMode="decimal" autoComplete="off" placeholder="Enter amount" />
+              <Field label={t("bank.form.insurance")} optional>
+                <TextInput value={form.insurance} onChange={setMoney("insurance")} inputMode="decimal" autoComplete="off" placeholder={t("bank.form.insurancePlaceholder")} />
               </Field>
               {balanceLocked ? (
-                <Field label="Bank Balance" as="div" plain>
+                <Field label={t("bank.form.bankBalance")} as="div" plain>
                   <div className={cn(inputClass, "flex items-center gap-1.5 bg-modal-off pr-1 text-[#6b7280]")}>
                     <Lock className="size-3.5 flex-none" strokeWidth={2.2} />
                     <span className="min-w-0 flex-1 truncate font-semibold tabular-nums text-[#374151]">{formatMoney(process?.bankBalance)}</span>
@@ -533,8 +543,8 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                       <button
                         type="button"
                         onClick={() => setDeleteBalanceOpen(true)}
-                        aria-label="Delete Bank Balance"
-                        title="Delete Bank Balance"
+                        aria-label={t("bank.form.deleteBalance")}
+                        title={t("bank.form.deleteBalance")}
                         className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-md border border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]"
                       >
                         <Trash2 className="size-3.5" strokeWidth={2.2} />
@@ -542,11 +552,11 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                     )}
                   </div>
                   <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8]">
-                    {billingLocked ? "Change the status first to delete it." : "Settled by a Contra. Delete it to enter a new amount."}
+                    {billingLocked ? t("bank.form.balanceLockedHint") : t("bank.form.balanceSettled")}
                   </span>
                 </Field>
               ) : (
-                <Field label="Bank Balance" optional>
+                <Field label={t("bank.form.bankBalance")} optional>
                   <TextInput value={form.bankBalance} onChange={setMoney("bankBalance")} inputMode="decimal" autoComplete="off" placeholder="0.00" disabled={billingLocked} className={LOCKED_INPUT} />
                 </Field>
               )}
@@ -557,6 +567,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         <BankProfitSharing entries={sharing} onChange={setSharing} accounts={accountOptions} profit={profit} currency={form.country || countryCode || "MYR"} onAccount={(request) => openAccount({ ...request, role: "" })} inert={billingLocked} />
       </div>
 
+      <Toast toasts={toasts} onClose={dismiss} />
       {/* Add / Edit Account open right on top (same modal as the Account page); a new account is picked in the select it was opened from. */}
       {accountForm && (
         <AccountFormModal
@@ -574,7 +585,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
         onOpenChange={setDeleteBalanceOpen}
         names={[formatMoney(process?.bankBalance)]}
         noun="bank balance"
-        note="This also removes its Contra between the Supplier and the Customer."
+        note={t("bank.form.balanceNote")}
         onConfirm={deleteBalance}
       />
     </FormModal>

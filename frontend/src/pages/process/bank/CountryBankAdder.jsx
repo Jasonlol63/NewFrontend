@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Lock, Trash2, X } from "lucide-react";
 import { Popover } from "radix-ui";
 import { cn } from "@/lib/utils";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { AddButton, TextInput } from "@/components/shared/form-modal/fields.jsx";
 
 /**
@@ -10,9 +13,11 @@ import { AddButton, TextInput } from "@/components/shared/form-modal/fields.jsx"
  * removed (shown as a lock in remove mode), or "". isOn(item) / onToggle(item): clicking a chip shows it in the select (blue) or hides it (grey); the Remove button switches the chips to remove mode. anchorEl: the select + button row (element), so the popup is as wide as that row. disabledReason: when set the button is greyed and shows it as its tooltip.
  */
 export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRemove, lockedReason, isOn, onToggle, disabledReason, anchorEl }) {
+  const { t } = useTranslation("process");
+  const { toasts, push, dismiss } = useNotice(5000);
+  const nounText = t(`bank.adder.noun.${noun}`, { defaultValue: noun });
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
   // Remove mode: the chips turn into remove buttons instead of show / hide switches (so a stray click can't delete one).
   const [removing, setRemoving] = useState(false);
   // The popup is as wide as the select + button row; the button is the row's right end, so it hangs from there (align end).
@@ -21,16 +26,16 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     const next = name.trim().toUpperCase();
-    if (!next) return setError("Enter a " + noun + " name");
-    if (items.some((i) => i.toUpperCase() === next)) return setError("That " + noun + " already exists");
+    if (!next) return push(t("bank.errors.enterName", { noun: nounText }), "error");
+    if (items.some((i) => i.toUpperCase() === next)) return push(t("bank.errors.exists", { noun: nounText }), "error");
     if (busy) return;
     setBusy(true);
     try {
       await onAdd(next);
       setName("");
-      setError("");
+      push(noun === "country" ? t("bank.toast.countryAdded", { name: next }) : t("bank.toast.bankAdded", { name: next }));
     } catch (err) {
-      setError(err.message);
+      push(t("bank.errors.adderAdd", { noun: nounText }), "error", err.message);
     } finally {
       setBusy(false);
     }
@@ -38,11 +43,11 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
   const remove = async (item) => {
     if (busy) return;
     setBusy(true);
-    setError("");
     try {
       await onRemove(item);
+      push(noun === "country" ? t("bank.toast.countryRemoved", { name: item }) : t("bank.toast.bankRemoved", { name: item }));
     } catch (err) {
-      setError(err.message);
+      push(t("bank.errors.adderRemove", { noun: nounText }), "error", err.message);
     } finally {
       setBusy(false);
     }
@@ -52,7 +57,6 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
     setOpen(next);
     if (!next) {
       setName("");
-      setError("");
       setRemoving(false);
     }
   };
@@ -60,7 +64,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
   if (disabledReason) {
     return (
       <span title={disabledReason} className="flex-none">
-        <AddButton label={"Add " + noun} disabled />
+        <AddButton label={t("bank.adder.addAria", { noun: nounText })} disabled />
       </span>
     );
   }
@@ -68,7 +72,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
-        <AddButton label={"Add " + noun} className={cn(open && "border-solid bg-[#d6e8ff]")} />
+        <AddButton label={t("bank.adder.addAria", { noun: nounText })} className={cn(open && "border-solid bg-[#d6e8ff]")} />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
@@ -85,10 +89,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
             <TextInput
               autoFocus
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setError("");
-              }}
+              onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -96,7 +97,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                 }
               }}
               autoComplete="off"
-              placeholder={"NEW " + noun.toUpperCase()}
+              placeholder={t("bank.adder.newPlaceholder", { noun: nounText.toUpperCase() })}
               className="h-8 min-w-0 flex-1 uppercase"
             />
             <button
@@ -105,14 +106,13 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               disabled={busy}
               className="h-8 flex-none cursor-pointer rounded-lg border-none bg-brand-sweep px-3 disabled:cursor-not-allowed disabled:opacity-60 text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)] hover:brightness-105"
             >
-              Add
+              {t("bank.adder.add")}
             </button>
           </div>
-          {error && <p className="m-0 mt-1 text-[11.5px] font-medium text-dash-down">{error}</p>}
 
           <div className="mt-3 mb-2 flex items-center justify-between gap-2">
             <p className="m-0 text-[11.5px] font-semibold text-dash-sub">
-              {!items.length ? "None yet" : removing ? "Click a name to remove it" : "Existing, click to show or hide in the list"}
+              {!items.length ? t("bank.adder.none") : removing ? t("bank.adder.removeMode") : t("bank.adder.existing")}
             </p>
             {items.length > 0 && (
               <button
@@ -124,7 +124,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                 )}
               >
                 <Trash2 className="size-3.5" strokeWidth={2.2} />
-                {removing ? "Done" : "Remove"}
+                {removing ? t("bank.adder.done") : t("bank.adder.remove")}
               </button>
             )}
           </div>
@@ -144,7 +144,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                     <button
                       key={item}
                       type="button"
-                      title={"Remove " + item}
+                      title={t("bank.adder.removeOf", { item })}
                       onClick={() => remove(item)}
                       className={cn(chip, "cursor-pointer border-[#fca5a5] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]")}
                     >
@@ -158,7 +158,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                     key={item}
                     type="button"
                     aria-pressed={on}
-                    title={on ? "Shown in the list, click to hide" : "Hidden from the list, click to show"}
+                    title={on ? t("bank.adder.shown") : t("bank.adder.hidden")}
                     onClick={() => onToggle(item)}
                     className={cn(chip, "cursor-pointer", on ? "border-[#7fb2ff] bg-[#e8f1ff] text-[#1d4ed8] hover:bg-[#d6e8ff]" : "border-[#dbe2ec] bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e8edf3]")}
                   >
@@ -170,6 +170,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
           )}
         </Popover.Content>
       </Popover.Portal>
+      <Toast toasts={toasts} onClose={dismiss} />
     </Popover.Root>
   );
 }

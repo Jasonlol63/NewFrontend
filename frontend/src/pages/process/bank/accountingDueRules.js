@@ -3,7 +3,6 @@
 // periodType, billingStart, billingEnd, cardOwner, bankName, frequency, dayStart, contract, ... }. "Early" is anything
 // whose billing (posted) date is still in the future: the user can post or delete those ahead of time.
 import { addDays, toIsoDate } from "@/lib/date";
-import { FREQUENCIES, contractLabel } from "./bankFormRules";
 
 export const DUE_INBOX_URL = "/api/bank-process/accounting-due/inbox";
 export const DUE_POST_URL = "/api/bank-process/accounting-due/post";
@@ -18,15 +17,13 @@ export const yearEndIso = () => `${new Date().getFullYear()}-12-31`;
 export function earlyDatePresets() {
   const now = new Date();
   return [
-    { label: "Today", value: toIsoDate(now) },
-    { label: "+1 Week", value: toIsoDate(addDays(now, 7)) },
-    { label: "+2 Weeks", value: toIsoDate(addDays(now, 14)) },
-    { label: "+1 Month", value: toIsoDate(new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())) },
-    { label: "Year End", value: yearEndIso() },
+    { key: "today", value: toIsoDate(now) },
+    { key: "week1", value: toIsoDate(addDays(now, 7)) },
+    { key: "week2", value: toIsoDate(addDays(now, 14)) },
+    { key: "month1", value: toIsoDate(new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())) },
+    { key: "yearEnd", value: yearEndIso() },
   ];
 }
-
-const FREQUENCY_LABEL = Object.fromEntries(FREQUENCIES.map((f) => [f.value, f.label]));
 
 // One inbox row -> the flat bill the table works with. `raw` is the row as the backend sent it: Post and Delete send it
 // back unchanged, because the backend finds the period by bankProcessId + postedDate + periodType.
@@ -36,8 +33,8 @@ export function normalizeDue(dto) {
     id: `${dto.bankProcessId}|${dto.postedDate}|${dto.periodType}`,
     cardOwner: dto.cardOwner ?? "",
     bank: dto.bankName ?? "",
-    frequency: FREQUENCY_LABEL[dto.frequency] ?? dto.frequency ?? "",
-    contract: contractLabel(dto.contract ?? ""),
+    frequency: dto.frequency ?? "", // the back end's key; shown through the `process:bank.frequency` texts
+    contract: dto.contract ?? "", // shown through contractLabel()
     startDate: dto.dayStart ?? dto.postedDate,
     billingDate: dto.postedDate,
     raw: dto,

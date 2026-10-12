@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Inbox, MessageSquare, Plus, RotateCcw, Search, SquarePen } from "lucide-react";
 import { Popover } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import DataTable, { ROW_HEIGHT, SelectBox } from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
 import { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -10,6 +11,8 @@ import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import FilterRow from "@/components/shared/FilterRow.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { postJson } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -24,7 +27,6 @@ import { contractLabel } from "./bankFormRules";
 import {
   BANK_PICKABLE_STATUSES,
   BANK_STATUS_BADGE,
-  LOCKED_EDIT_TITLE,
   filterBankProcesses,
   formatMoney,
   isBankLocked,
@@ -33,19 +35,11 @@ import {
 } from "./bankProcessRules";
 import { useBankCountries, useBankProcesses } from "./useBankProcesses";
 
-const ALL_CURRENCIES = [{ value: "ALL", label: "All" }];
-
-const CHIPS = [
-  ["showAll", "Show All"],
-  ["showActive", "Active"],
-  ["showInactive", "Inactive"],
-  ["showOfficial", "Official"],
-  ["showEInvoice", "E-Invoice"],
-  ["showBlocked", "Blocked"],
-];
+const CHIPS = ["showAll", "showActive", "showInactive", "showOfficial", "showEInvoice", "showBlocked"];
 
 // Next to Add Process; the count is how many processes are due for accounting.
 function AccountingDueButton({ count, onClick }) {
+  const { t } = useTranslation("process");
   return (
     <button
       type="button"
@@ -53,7 +47,7 @@ function AccountingDueButton({ count, onClick }) {
       className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 text-[13px] font-bold whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
     >
       <Inbox className="size-4" strokeWidth={2.2} />
-      Accounting Due
+      {t("bank.page.accountingDue")}
       <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center text-[11px] leading-[18px] font-bold text-white">{count}</span>
     </button>
   );
@@ -96,16 +90,18 @@ const searchShell =
   "flex h-9 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]";
 
 function SearchBox({ value, onChange }) {
+  const { t } = useTranslation("process");
   return (
     <label className={cn(searchShell, "order-2 min-w-[120px] max-w-[180px] flex-[1_1_120px]")}>
       <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint" placeholder="Search" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint" placeholder={t("bank.page.search")} />
     </label>
   );
 }
 
 // When the row is short of room: just the magnifier; a click opens a short search box over the chips.
 function SearchIcon({ value, onChange }) {
+  const { t } = useTranslation("process");
   const [open, setOpen] = useState(false);
   const input = useRef(null);
   useEffect(() => {
@@ -115,7 +111,7 @@ function SearchIcon({ value, onChange }) {
     <div className="relative order-2 flex-none">
       <button
         type="button"
-        aria-label="Search"
+        aria-label={t("bank.page.search")}
         onClick={() => setOpen(true)}
         className="relative flex size-9 cursor-pointer items-center justify-center rounded-[10px] border border-dash-line bg-white text-dash-faint shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-colors hover:text-[#2563eb]"
       >
@@ -132,7 +128,7 @@ function SearchIcon({ value, onChange }) {
             onBlur={() => setOpen(false)}
             onKeyDown={(e) => (e.key === "Escape" || e.key === "Enter") && setOpen(false)}
             className="w-full min-w-0 bg-transparent outline-none placeholder:text-dash-faint"
-            placeholder="Search"
+            placeholder={t("bank.page.search")}
           />
         </label>
       )}
@@ -154,15 +150,16 @@ const STATUS_POPUP_WIDTH = "w-[88px] min-[1366px]:w-[98px] min-[1536px]:w-[110px
 // The status badge is also the control: a click opens a small popup with the statuses to choose from. The popup is
 // portalled, so the table never clips or covers it.
 function StatusPicker({ status, readOnly, onChange }) {
+  const { t } = useTranslation("process");
   const [open, setOpen] = useState(false);
   const current = BANK_STATUS_BADGE[status];
-  if (readOnly) return <Badge className={cn("px-1.5", STATUS_WIDTH, current.className)} style={TIGHT}>{current.label}</Badge>;
+  if (readOnly) return <Badge className={cn("px-1.5", STATUS_WIDTH, current.className)} style={TIGHT}>{t(`bank.status.${status}`)}</Badge>;
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" aria-label={`Status: ${current.label}. Change status`} className="cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6]/40">
+        <button type="button" aria-label={t("bank.page.statusAria", { label: t(`bank.status.${status}`) })} className="cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6]/40">
           <Badge className={cn("px-1.5 transition-[filter] hover:brightness-95", STATUS_WIDTH, current.className)} style={TIGHT}>
-            {current.label}
+            {t(`bank.status.${status}`)}
           </Badge>
         </button>
       </Popover.Trigger>
@@ -186,7 +183,7 @@ function StatusPicker({ status, readOnly, onChange }) {
                 }}
                 className="flex w-full cursor-pointer justify-center rounded-lg py-0.5 outline-none hover:bg-[#f1f6fd] focus-visible:bg-[#f1f6fd]"
               >
-                <Badge className={cn("w-full justify-center px-1.5", picked ? option.className : cn("border-transparent bg-transparent", option.text))}>{option.label}</Badge>
+                <Badge className={cn("w-full justify-center px-1.5", picked ? option.className : cn("border-transparent bg-transparent", option.text))}>{t(`bank.status.${s}`)}</Badge>
               </button>
             );
           })}
@@ -215,9 +212,10 @@ const thisYear = () => {
 // Bank Process list (shown for Bank companies). Same card look as the Games list; the table folds its least
 // important columns into two-line cells instead of scrolling sideways (see DataTable `altColumns`).
 export default function BankProcessView({ scope, readOnly }) {
+  const { t } = useTranslation(["process", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const { rows: allRows, error: listError, loading, changeStatus, saveRemark, resend, deleteRows, reload } = useBankProcesses(scope.tenantId);
   const [statusPending, setStatusPending] = useState(() => new Set()); // process ids whose status is being changed
-  const [actionError, setActionError] = useState("");
   const [remarkRow, setRemarkRow] = useState(null);
   const [resendRow, setResendRow] = useState(null);
   const closeResend = useCallback(() => setResendRow(null), []);
@@ -241,16 +239,18 @@ export default function BankProcessView({ scope, readOnly }) {
   const accountCompanyOptions =
     scope.company === null && scope.group ? [{ value: scope.group, label: scope.group, tenantId: scope.tenantId }] : scope.companyOptions;
 
-  // Posts what the modal built ({ url, body }); on success the modal closes and the list is fetched again. A failure goes
-  // back to the modal, which shows the message.
+  // Posts what the modal built ({ url, body }); on success the modal closes, the list is fetched again and a toast says so. A failure
+  // goes back to the modal, which shows it as a toast.
   const submitBank = useCallback(
     async ({ url, body }) => {
       await postJson(url, body);
+      const editing = Boolean(editRow);
       closeAdd();
       closeEdit();
       reload();
+      push(editing ? t("bank.toast.updated") : t("bank.toast.added"));
     },
-    [closeAdd, closeEdit, reload]
+    [closeAdd, closeEdit, reload, push, t, editRow]
   );
 
   const scoped = useMemo(
@@ -265,19 +265,19 @@ export default function BankProcessView({ scope, readOnly }) {
     noun: "process",
     label: (p) => `${p.supplier} (${p.bank})`,
     onDeleted: view.clearSelection,
+    push,
   });
 
   const money = (key) => (p) => formatMoney(p[key]);
   const contract = (p) => <ContractBadge row={p} />;
-  // The backend also opens or closes the process's accounting dues for the new status; a refusal shows in the banner.
+  // The backend also opens or closes the process's accounting dues for the new status; a refusal is an error toast.
   const pickStatus = async (p, next) => {
     if (next === p.status) return;
-    setActionError("");
     setStatusPending((s) => new Set(s).add(p.id));
     try {
       await changeStatus(p, next);
     } catch (err) {
-      setActionError(err.message);
+      push(t("bank.errors.status"), "error", err.message);
     } finally {
       setStatusPending((s) => {
         const rest = new Set(s);
@@ -302,9 +302,9 @@ export default function BankProcessView({ scope, readOnly }) {
     key: "action",
     label: (
       <span className="inline-flex w-[84px] items-center justify-between">
-        Action
+        {t("col.action")}
         {pageSelectable.length > 0 && (
-          <SelectBox onHeader label="Select all inactive rows on this page" checked={headChecked} onChange={(checked) => toggleMany(pageSelectable, checked)} />
+          <SelectBox onHeader label={t("common:table.selectAllInactive")} checked={headChecked} onChange={(checked) => toggleMany(pageSelectable, checked)} />
         )}
       </span>
     ),
@@ -317,47 +317,47 @@ export default function BankProcessView({ scope, readOnly }) {
           icon={SquarePen}
           onClick={() => setEditRow(p)}
           disabled={readOnly}
-          title={readOnly ? "Read-only login" : isBankLocked(p) ? LOCKED_EDIT_TITLE : "Edit process"}
-          aria-label="Edit process"
+          title={readOnly ? t("readOnly") : isBankLocked(p) ? t("bank.page.lockedTitle") : t("page.edit")}
+          aria-label={t("page.edit")}
         />
         <IconAction
           icon={MessageSquare}
           onClick={() => setRemarkRow(p)}
           disabled={readOnly}
-          title={readOnly ? "Read-only login" : p.remark ? `Remark: ${p.remark}` : "Remark"}
-          aria-label="Remark"
+          title={readOnly ? t("readOnly") : p.remark ? t("bank.page.remarkTip", { text: p.remark }) : t("bank.page.remark")}
+          aria-label={t("bank.page.remark")}
         />
         {p.status === "INACTIVE" ? (
-          <SelectBox label="Select row" checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
+          <SelectBox label={t("common:table.selectRow")} checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
         ) : (
           <IconAction
             icon={RotateCcw}
             onClick={() => setResendRow(p)}
             disabled={readOnly || !canResend(p)}
-            title={readOnly ? "Read-only login" : canResend(p) ? "Resend to Accounting Due" : "Resend isn't available in this status"}
-            aria-label="Resend"
+            title={readOnly ? t("readOnly") : canResend(p) ? t("bank.page.resend") : t("bank.page.resendNA")}
+            aria-label={t("bank.resend.button")}
           />
         )}
       </span>
     ),
   };
-  const noColumn = { key: "no", label: "No", sortable: false, className: "w-[40px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n };
+  const noColumn = { key: "no", label: t("col.no"), sortable: false, className: "w-[40px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n };
 
   // One line per row while it fits ...
   const columns = [
     noColumn,
-    { key: "supplier", label: "Supplier", cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.supplier },
-    { key: "country", label: "Country", render: (p) => p.country },
-    { key: "bank", label: "Bank", fit: true, fitMin: 76, render: (p) => p.bank },
-    { key: "cardOwner", label: "Card Owner", fit: true, fitMin: 88, render: (p) => p.cardOwner },
-    { key: "contract", label: "Contract", render: contract },
-    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
-    { key: "customer", label: "Cust.", render: (p) => p.customer },
-    { key: "cost", label: "Cost", cellClassName: "tabular-nums", render: money("cost") },
-    { key: "price", label: "Price", cellClassName: "tabular-nums", render: money("price") },
-    { key: "profit", label: "Profit", cellClassName: "tabular-nums", render: money("profit") },
-    { key: "status", label: "Status", render: status },
-    { key: "date", label: "Date", cellClassName: "tabular-nums whitespace-nowrap", render: (p) => p.date },
+    { key: "supplier", label: t("bank.col.supplier"), cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.supplier },
+    { key: "country", label: t("bank.col.country"), render: (p) => p.country },
+    { key: "bank", label: t("bank.col.bank"), fit: true, fitMin: 76, render: (p) => p.bank },
+    { key: "cardOwner", label: t("bank.col.cardOwner"), fit: true, fitMin: 88, render: (p) => p.cardOwner },
+    { key: "contract", label: t("bank.col.contract"), render: contract },
+    { key: "insurance", label: t("bank.col.ins"), cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
+    { key: "customer", label: t("bank.col.cust"), render: (p) => p.customer },
+    { key: "cost", label: t("bank.col.cost"), cellClassName: "tabular-nums", render: money("cost") },
+    { key: "price", label: t("bank.col.price"), cellClassName: "tabular-nums", render: money("price") },
+    { key: "profit", label: t("bank.col.profit"), cellClassName: "tabular-nums", render: money("profit") },
+    { key: "status", label: t("bank.col.status"), render: status },
+    { key: "date", label: t("bank.col.date"), cellClassName: "tabular-nums whitespace-nowrap", render: (p) => p.date },
     actionColumn,
   ];
 
@@ -376,24 +376,33 @@ export default function BankProcessView({ scope, readOnly }) {
   );
   // No "No" column here: on a narrow card the row number is the least useful thing to spend 40px on.
   const twoLineColumns = [
-    { key: "supplier", label: head2("Supplier", "Customer"), render: (p) => stacked(<span className="font-semibold">{p.supplier}</span>, p.customer) },
-    { key: "bank", label: head2("Bank", "Card Owner"), fit: true, fitMin: 76, render: (p) => stacked(p.bank, p.cardOwner) },
-    { key: "country", label: head2("Country", "Contract"), render: (p) => stacked(p.country, contract(p)) },
-    { key: "insurance", label: "Ins.", cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
-    { key: "cost", label: "Cost", cellClassName: "tabular-nums", render: money("cost") },
-    { key: "price", label: "Price", cellClassName: "tabular-nums", render: money("price") },
-    { key: "profit", label: "Profit", cellClassName: "tabular-nums", render: money("profit") },
-    { key: "status", label: head2("Status", "Date"), render: (p) => stacked(status(p), p.date) },
+    { key: "supplier", label: head2(t("bank.col.supplier"), t("bank.col.customer")), render: (p) => stacked(<span className="font-semibold">{p.supplier}</span>, p.customer) },
+    { key: "bank", label: head2(t("bank.col.bank"), t("bank.col.cardOwner")), fit: true, fitMin: 76, render: (p) => stacked(p.bank, p.cardOwner) },
+    { key: "country", label: head2(t("bank.col.country"), t("bank.col.contract")), render: (p) => stacked(p.country, contract(p)) },
+    { key: "insurance", label: t("bank.col.ins"), cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
+    { key: "cost", label: t("bank.col.cost"), cellClassName: "tabular-nums", render: money("cost") },
+    { key: "price", label: t("bank.col.price"), cellClassName: "tabular-nums", render: money("price") },
+    { key: "profit", label: t("bank.col.profit"), cellClassName: "tabular-nums", render: money("profit") },
+    { key: "status", label: head2(t("bank.col.status"), t("bank.col.date")), render: (p) => stacked(status(p), p.date) },
     actionColumn,
   ];
 
-  const pageError = scope.error || listError || actionError;
+  // A list or company that did not load is an error toast (once per error).
+  useEffect(() => {
+    if (listError) push(t("errors.list"), "error", listError, { label: t("common:retry"), onClick: reload });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listError]);
+  useEffect(() => {
+    if (scope.error) push(t("errors.scope"), "error", scope.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.error]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex flex-none flex-wrap items-center gap-2.5">
-        <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? "Read-only login" : undefined}>
-          Add Process
+        <PrimaryButton icon={Plus} onClick={() => setAddOpen(true)} disabled={readOnly} title={readOnly ? t("readOnly") : undefined}>
+          {t("page.add")}
         </PrimaryButton>
         <AccountingDueButton count={dueNowCount(dueBills.bills)} onClick={() => setDueOpen(true)} />
       </div>
@@ -409,8 +418,8 @@ export default function BankProcessView({ scope, readOnly }) {
             <SearchBox value={view.search} onChange={view.setSearch} />
           )}
           <div className={cn("flex items-center", layout.slim ? "gap-1.5" : "gap-2", layout.wrap ? "order-4 basis-full flex-wrap" : "order-3 flex-none")}>
-            {CHIPS.map(([key, label]) => (
-              <FilterChip key={key} label={label} compact={layout.slim} checked={Boolean(view.chips[key])} onChange={(v) => view.setChip(key, v)} />
+            {CHIPS.map((key) => (
+              <FilterChip key={key} label={t(`bank.chip.${key}`)} compact={layout.slim} checked={Boolean(view.chips[key])} onChange={(v) => view.setChip(key, v)} />
             ))}
           </div>
           <div className={cn("ml-auto flex-none", layout.wrap ? "order-3" : "order-4")}>
@@ -420,28 +429,31 @@ export default function BankProcessView({ scope, readOnly }) {
 
         <div className="flex flex-col gap-2 px-4 pb-2.5 short:gap-1.5 short:pb-2">
           {scope.showGroups && (
-            <FilterRow label="Group ID:">
+            <FilterRow label={t("common:list.group")}>
               <SegmentGroup options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
             </FilterRow>
           )}
           {scope.companyOptions.length > 0 && (
-            <FilterRow label="Company:">
+            <FilterRow label={t("common:list.company")}>
               <SegmentGroup options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
             </FilterRow>
           )}
-          <FilterRow label="Currency:">
-            <SegmentGroup leading={ALL_CURRENCIES} options={currencyOptions} value={currency} onChange={setCurrency} wrap onReorder={setCurrencyOrder} />
+          <FilterRow label={`${t("common:currency")}:`}>
+            <SegmentGroup leading={[{ value: "ALL", label: t("common:all") }]} options={currencyOptions} value={currency} onChange={setCurrency} wrap onReorder={setCurrencyOrder} />
           </FilterRow>
         </div>
       </section>
 
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>
-      )}
-
       <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" loading={loading} boxedPager fitWidth dense minWidth="min-w-0" {...view.table} />
       {actions.dialogs}
-      <BankRemarkDialog row={remarkRow} onClose={closeRemark} onSave={saveRemark} />
+      <BankRemarkDialog
+        row={remarkRow}
+        onClose={closeRemark}
+        onSave={async (row, text) => {
+          await saveRemark(row, text);
+          push(t("bank.toast.remarkSaved"));
+        }}
+      />
 
       {addOpen && (
         <BankProcessFormModal tenantId={scope.tenantId} accountCompanyOptions={accountCompanyOptions} onClose={closeAdd} onSave={submitBank} />
@@ -460,6 +472,7 @@ export default function BankProcessView({ scope, readOnly }) {
       {resendRow && <BankResendModal row={resendRow} tenantId={scope.tenantId} onClose={closeResend} onResend={async (request) => {
           await resend(request);
           dueBills.refresh(); // a resend adds a bill to Accounting Due
+          push(t("bank.toast.resent"));
         }} />}
       {dueOpen && <AccountingDueModal tenantId={scope.tenantId} readOnly={readOnly} onClose={closeDue} onChanged={dueBills.refresh} />}
     </div>

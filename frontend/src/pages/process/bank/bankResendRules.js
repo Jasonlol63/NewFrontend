@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 // Rules for the Resend dialog (POST /api/bank-process/resend): which window of dates the backend resends for each frequency.
 import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
 import { FIRST_OF_MONTH } from "./bankFormRules";
@@ -19,29 +20,23 @@ function addOneMonth(iso) {
   return toIsoDate(new Date(d.getFullYear(), d.getMonth() + 1, Math.min(d.getDate(), last)));
 }
 
-/** { parts: [string | { b: string }], error: boolean }: the sentence under the fields (the { b } parts are bold). */
+/** { key, values, error }: the sentence under the fields. `key` names the text in the `process:bank.resend` set (its <b> parts are the dates). */
 export function resendSummary({ frequency, dayStart, dayEnd }) {
-  if (!dayStart) return { parts: ["Pick a Day Start to see what will be resent."], error: false };
-  if (resendUsesDayEnd(frequency) && dayEnd && dayEnd < dayStart) return { parts: ["Day End can't be before Day Start."], error: true };
-  const b = (text) => ({ b: text });
+  if (!dayStart) return { key: "pickDayStart", values: {}, error: false };
+  if (resendUsesDayEnd(frequency) && dayEnd && dayEnd < dayStart) return { key: "endBefore", values: {}, error: true };
   if (frequency === FIRST_OF_MONTH) {
-    return {
-      parts: dayEnd
-        ? ["Resends every month from ", b(dayStart), " to ", b(dayEnd), ", billed on the 1st."]
-        : ["Resends only the month of ", b(dayStart), ", billed on the 1st."],
-      error: false,
-    };
+    return dayEnd ? { key: "everyMonth", values: { start: dayStart, end: dayEnd }, error: false } : { key: "onlyMonth", values: { start: dayStart }, error: false };
   }
-  if (frequency === "MONTHLY") return { parts: ["Resends one month: ", b(dayStart), " to ", b(addOneMonth(dayStart)), "."], error: false };
-  if (frequency === "WEEK") return { parts: ["Resends one week: ", b(dayStart), " to ", b(toIsoDate(addDays(parseIsoDate(dayStart), 6))), "."], error: false };
-  return { parts: ["Resends one day only: ", b(dayStart), "."], error: false };
+  if (frequency === "MONTHLY") return { key: "oneMonth", values: { start: dayStart, end: addOneMonth(dayStart) }, error: false };
+  if (frequency === "WEEK") return { key: "oneWeek", values: { start: dayStart, end: toIsoDate(addDays(parseIsoDate(dayStart), 6)) }, error: false };
+  return { key: "oneDay", values: { start: dayStart }, error: false };
 }
 
 /** The first problem with the form (a message), or "". */
 export function validateResend({ frequency, dayStart, dayEnd }) {
-  if (!frequency) return "Select a frequency";
-  if (!dayStart) return "Select a Day Start";
-  if (resendUsesDayEnd(frequency) && dayEnd && dayEnd < dayStart) return "Day End can't be before Day Start";
+  if (!frequency) return i18n.t("process:bank.validation.resendFrequency");
+  if (!dayStart) return i18n.t("process:bank.validation.resendDayStart");
+  if (resendUsesDayEnd(frequency) && dayEnd && dayEnd < dayStart) return i18n.t("process:bank.validation.dayEndBefore");
   return "";
 }
 
