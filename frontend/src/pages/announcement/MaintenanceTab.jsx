@@ -7,23 +7,17 @@ import { Field, SoftButton, TextInput, primaryButtonClass } from "@/components/s
 import PanelCard, { StatusPill } from "./PanelCard.jsx";
 import RichTextEditor, { RichContent } from "./RichText.jsx";
 import { DELETE_ACTION_CLASS } from "./AnnouncementList.jsx";
-import { hasText } from "./announcementRules";
+import MaintenanceNotice from "@/pages/login/components/MaintenanceNotice.jsx";
+import { hasText, noticeLine } from "./announcementRules";
 
 // grows to take the free height, never shrinks below its content (the tab scrolls instead)
 const GROW = "flex-[1_0_auto]";
 
-// The yellow notice strip users see (also the preview while writing).
+// The preview while writing: the same scrolling pill the login page shows (same text flattening too).
 function NoticeBanner({ prefix, content }) {
   const { t } = useTranslation("announcement");
-  return (
-    <div className="flex gap-2.5 rounded-[14px] border border-[#f6d98b] bg-[#fff6dc] p-[clamp(12px,2dvh,16px)] text-[13px] leading-[1.55] text-notice-warn">
-      <i className="mt-[7px] size-2 flex-none rounded-full bg-notice-warn-dot shadow-[0_0_0_3px_rgba(245,165,36,0.25)]" />
-      <div className="min-w-0">
-        <b className={prefix.trim() ? "break-words" : "font-medium opacity-60"}>{prefix.trim() || t("maintenance.prefix")}</b>
-        {hasText(content) ? <RichContent html={content} className="mt-0.5" /> : <p className="m-0 mt-0.5 opacity-60">{t("preview.contentPlaceholder")}</p>}
-      </div>
-    </div>
-  );
+  const text = hasText(content) ? noticeLine(content) : "";
+  return <MaintenanceNotice prefix={prefix.trim() || t("maintenance.prefix")} text={text || t("preview.contentPlaceholder")} />;
 }
 
 // Bigger than the shared ToggleSwitch: this one switch is a serious action, so it should be easy to see and hit.
