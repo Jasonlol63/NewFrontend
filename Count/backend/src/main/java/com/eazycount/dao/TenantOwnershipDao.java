@@ -51,5 +51,6 @@ public interface TenantOwnershipDao {
 
     void updateLiveOwnershipReadOnlyForUser(@Param("userId") Integer userId, @Param("readOnly") Integer readOnly);
 
-    void updateTenantParentId(@Param("tenantId") Integer tenantId, @Param("parentId") Integer parentId, @Param("ownerId") Integer ownerId);
+    /** Rows changed: 0 when no tenant matched (not the login's own company, or not an active company). */
+    int updateTenantParentId(@Param("tenantId") Integer tenantId, @Param("parentId") Integer parentId, @Param("ownerId") Integer ownerId);
 }

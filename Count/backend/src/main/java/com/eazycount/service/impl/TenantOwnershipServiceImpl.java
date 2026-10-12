@@ -519,10 +519,16 @@ public class TenantOwnershipServiceImpl implements TenantOwnershipService {
             parentId = group.getId();
         }
 
+        int changed;
         try {
-            tenantOwnershipDao.updateTenantParentId(tenantId, parentId, sessionUser.user_id);
+            changed = tenantOwnershipDao.updateTenantParentId(tenantId, parentId, sessionUser.user_id);
         } catch (Exception e) {
             throw new BusinessException("Error updating tenant parent id");
+        }
+        // The update only matches a company that belongs to this login and is active: when nothing matched, say so
+        // instead of answering success for a change that never happened.
+        if (changed == 0) {
+            throw new BusinessException("Group not changed: this company does not belong to your login, or it is not an active company");
         }
     }
 }
