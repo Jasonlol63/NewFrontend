@@ -127,15 +127,9 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> deleteAccountLink(@PathVariable long id) {
         try {
             userService.deleteAccountLinkById(id);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Account link deleted successfully",
-                    "data", null));
+            return ok("Account link deleted successfully");
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -145,15 +139,9 @@ public class UserController {
             @RequestParam("tenant_id") int tenantId) {
         try {
             userService.deleteAccountLinkByAccountId(accountId, tenantId);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Account links deleted successfully",
-                    "data", null));
+            return ok("Account links deleted successfully");
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -164,15 +152,9 @@ public class UserController {
             @RequestParam("tenant_id") int tenantId) {
         try {
             userService.deleteAccountLinkByPair(accountId1, accountId2, tenantId);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Account link deleted successfully",
-                    "data", null));
+            return ok("Account link deleted successfully");
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -187,10 +169,7 @@ public class UserController {
                     "message", "Linked accounts retrieved successfully",
                     "data", data));
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -205,10 +184,7 @@ public class UserController {
                     "message", "Account links retrieved successfully",
                     "data", data));
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -223,10 +199,7 @@ public class UserController {
                     "message", "All linked accounts retrieved successfully",
                     "data", data));
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
     }
 
@@ -234,15 +207,27 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> updateAccountLink(@RequestBody UserLink userLink) {
         try {
             userService.updateAccountLink(userLink);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Account link updated successfully",
-                    "data", null));
+            return ok("Account link updated successfully");
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage(),
-                    "data", null));
+            return fail(e);
         }
+    }
+
+    /** Success reply without data. (Map.of can not hold a null value, so these are built by hand.) */
+    private static ResponseEntity<Map<String, Object>> ok(String message) {
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", message);
+        body.put("data", null);
+        return ResponseEntity.ok(body);
+    }
+
+    /** Failure reply; an exception without a message still gets a readable one. */
+    private static ResponseEntity<Map<String, Object>> fail(Exception e) {
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", false);
+        body.put("message", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+        body.put("data", null);
+        return ResponseEntity.ok(body);
     }
 }
