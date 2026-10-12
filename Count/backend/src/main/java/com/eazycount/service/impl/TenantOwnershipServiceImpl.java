@@ -43,6 +43,73 @@ public class TenantOwnershipServiceImpl implements TenantOwnershipService {
                 || (sessionUser.permissions != null && sessionUser.permissions.contains("ownership"));
     }
 
+    /* Only the Owner and an Admin may switch a Read Only on or off; a partnership account never can (not even its own). */
+    private boolean canChangeReadOnly(SessionUser sessionUser) {
+        return "owner".equalsIgnoreCase(sessionUser.role) || "admin".equalsIgnoreCase(sessionUser.role);
+    }
+
+    private static int toFlag(Object value, int fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = value.toString().trim();
+        if (text.equalsIgnoreCase("true")) {
+            return 1;
+        }
+        if (text.equalsIgnoreCase("false")) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(text) != 0 ? 1 : 0;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * Settles every row's read_only before a save and returns the rows to save (copies; the request is left alone).
+     * A partnership user's Read Only is the login's own flag, shared with the Admin page (user.read_only):
+     *  - not Owner / Admin: the switches cannot be changed, every row keeps the value it has now (a new row starts read only);
+     *  - Owner / Admin, live list: a changed user row is collected in userChanges and written to the login after the save;
+     *  - a past month: the value only goes into that month's copy, the login is not touched.
+     */
+    private List<Map<String, Object>> applyReadOnlyRules(SessionUser sessionUser, Integer tenantId, List<Map<String, Object>> payload,
+                                                         String historicalMonth, Map<Integer, Integer> userChanges) {
+        boolean privileged = canChangeReadOnly(sessionUser);
+        List<TenantOwnershipDTO> existing = historicalMonth == null
+                ? tenantOwnershipDao.getActiveOwnershipList(tenantId)
+                : tenantOwnershipDao.getHistoricalOwnershipList(tenantId, historicalMonth + "-01");
+        Map<String, Integer> current = new HashMap<>();
+        for (TenantOwnershipDTO row : existing) {
+            current.put(row.getAccountId(), row.getReadOnly() != null ? row.getReadOnly() : 1);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> row : payload) {
+            Map<String, Object> copy = new LinkedHashMap<>(row);
+            String accountId = String.valueOf(row.get("account_id"));
+            boolean isUser = accountId.startsWith("U_");
+            Integer userId = isUser ? Integer.valueOf(accountId.substring(2)) : null;
+
+            if (!privileged) {
+                Integer keep = current.get(accountId);
+                if (keep == null && isUser) {
+                    keep = tenantOwnershipDao.findUserReadOnly(userId);
+                }
+                copy.put("read_only", keep != null ? keep : 1);
+            } else if (isUser && historicalMonth == null) {
+                int requested = toFlag(row.get("read_only"), 1);
+                Integer now = tenantOwnershipDao.findUserReadOnly(userId);
+                if (now == null || now != requested) {
+                    userChanges.put(userId, requested);
+                }
+                copy.put("read_only", requested);
+            }
+            result.add(copy);
+        }
+        return result;
+    }
+
     @Override
     public List<TenantOwnershipDTO> getOwnershipList(Integer tenantId, String month) {
         SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
@@ -403,23 +470,31 @@ public class TenantOwnershipServiceImpl implements TenantOwnershipService {
         }
         // 判定保存目标（历史月 vs 实时+当前月）
         boolean saveHistoryOnly = (month != null && !month.isBlank() && !isCurrentMonth(month));
+        Map<Integer, Integer> userReadOnlyChanges = new LinkedHashMap<>();
+        List<Map<String, Object>> owners = applyReadOnlyRules(sessionUser, tenantId, ownersPayload,
+                saveHistoryOnly ? month.trim() : null, userReadOnlyChanges);
         if (saveHistoryOnly) {
             // 分流处理：仅写入特定历史月份
             String effectiveMonth = month.trim() + "-01";
-            this.saveHistoricalOwnership(tenantId, ownersPayload, effectiveMonth, sessionUser.login_id);
+            this.saveHistoricalOwnership(tenantId, owners, effectiveMonth, sessionUser.login_id);
         } else { // 分流处理：同时写入实时表和当月快照表
             // 保存到实时表
-            this.saveLiveOwnership(tenantId, ownersPayload);
+            this.saveLiveOwnership(tenantId, owners);
             // 存入当前月份历史快照
             String currentEffectiveMonth = YearMonth.now().toString() + "-01";
-            this.saveHistoricalOwnership(tenantId, ownersPayload, currentEffectiveMonth, sessionUser.login_id);
+            this.saveHistoricalOwnership(tenantId, owners, currentEffectiveMonth, sessionUser.login_id);
             // 处理历史月份的追溯写入
             if (retrofillMonths != null && !retrofillMonths.isEmpty()) {
                 for (String retroMonth : retrofillMonths) {
                     String retroEffectiveMonth = retroMonth.trim() + "-01";
-                    this.saveHistoricalOwnership(tenantId, ownersPayload, retroEffectiveMonth, sessionUser.login_id);
+                    this.saveHistoricalOwnership(tenantId, owners, retroEffectiveMonth, sessionUser.login_id);
                 }
             }
+        }
+        // Admin page and Ownership share one switch: write the change to the login itself and to its live ownership rows.
+        for (Map.Entry<Integer, Integer> change : userReadOnlyChanges.entrySet()) {
+            tenantOwnershipDao.updateUserReadOnly(change.getKey(), change.getValue());
+            tenantOwnershipDao.updateLiveOwnershipReadOnlyForUser(change.getKey(), change.getValue());
         }
     }
 

@@ -69,3 +69,19 @@ export async function sendJson(method, url, data, { signal } = {}) {
   }
   return body;
 }
+
+// Like postJson, but gives the body back whatever its status says, for replies that carry data without being a success
+// (Ownership's Link Partner answers { status: "conflict", data }). A reply that is not JSON at all still throws.
+export async function postJsonRaw(url, data, { signal } = {}) {
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    signal,
+  });
+  leaveIfSignedOut(res);
+  const body = await res.json().catch(() => null);
+  if (!body) throw new Error("Network error, please try again");
+  return body;
+}

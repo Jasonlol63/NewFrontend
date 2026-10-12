@@ -39,8 +39,9 @@ function TrashIcon() {
  *  - noun: singular noun ("user", "account")
  *  - note: optional extra line under the warning
  *  - verb / verbPast: the action when it isn't a plain delete ("Reject" / "rejected"); default "Delete" / "deleted"
+ *  - irreversible: false drops the "can't be undone" line, for an action that can simply be done the other way round (Ungroup)
  */
-export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, verb = "Delete", verbPast = "deleted", onConfirm }) {
+export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, verb = "Delete", verbPast = "deleted", irreversible = true, onConfirm }) {
   const count = names.length;
   const single = count === 1;
 
@@ -64,8 +65,12 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
             ) : (
               <>The {count} selected {noun}s will be {verbPast}.</>
             )}
-            <br />
-            This action can't be undone.
+            {irreversible && (
+              <>
+                <br />
+                This action can't be undone.
+              </>
+            )}
             {note && (
               <>
                 <br />

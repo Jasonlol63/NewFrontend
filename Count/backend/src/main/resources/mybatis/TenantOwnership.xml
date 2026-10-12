@@ -8,7 +8,9 @@
             co.tenant_id AS tenantId,
             co.percentage AS percentage,
             co.owner_type AS ownerType,
-            co.read_only AS readOnly,
+            <!-- A partnership user's Read Only is the login's own flag (user.read_only, the Admin page's switch), so the two
+                 pages always show the same value; every other row keeps the value stored on the ownership row. -->
+            CASE WHEN co.owner_type = 'user' THEN COALESCE(u.read_only, co.read_only) ELSE co.read_only END AS readOnly,
             co.partner_tenant_id AS partnerTenantId,
             
             CASE
@@ -138,6 +140,7 @@
               o.owner_code AS accountName,
               o.name AS name,
               'OWNER' AS role,
+              NULL AS readOnly,
               0 AS isExternalPartner
           FROM owner o
                    JOIN tenant t ON o.id = t.owner_id
@@ -154,6 +157,7 @@
               u.login_id AS accountName,
               u.name AS name,
               'PARTNERSHIP' AS role,
+              u.read_only AS readOnly,
               0 AS isExternalPartner
           FROM user u
                    JOIN user_role ur ON u.role_id = ur.id
@@ -173,6 +177,7 @@
               CONCAT('Group: ', g.code) AS accountName,
               'Group Equity' AS name,
               'GROUP' AS role,
+              NULL AS readOnly,
               0 AS isExternalPartner
           FROM tenant t
                    JOIN tenant g ON g.id = t.parent_id
@@ -276,6 +281,19 @@
     <delete id="deleteHistoricalOwnership">
         DELETE FROM tenant_ownership_history WHERE tenant_id = #{tenantId} AND effective_month = #{effectiveMonth}
     </delete>
+
+    <!-- Read Only of a partnership user: the login's flag (read by every page) and the copy on its live ownership rows -->
+    <select id="findUserReadOnly" resultType="java.lang.Integer">
+        SELECT read_only FROM user WHERE id = #{userId}
+    </select>
+
+    <update id="updateUserReadOnly">
+        UPDATE user SET read_only = #{readOnly} WHERE id = #{userId}
+    </update>
+
+    <update id="updateLiveOwnershipReadOnlyForUser">
+        UPDATE tenant_ownership SET read_only = #{readOnly} WHERE owner_type = 'user' AND account_id = #{userId}
+    </update>
 
     <!-- update Tenant Parent Id -->
     <update id="updateTenantParentId">

@@ -44,5 +44,12 @@ public interface TenantOwnershipDao {
 
     void deleteLiveOwnership(@Param("tenantId") Integer tenantId);
 
+    // Read Only of a partnership user (user.read_only) and its copy on the live ownership rows
+    Integer findUserReadOnly(@Param("userId") Integer userId);
+
+    void updateUserReadOnly(@Param("userId") Integer userId, @Param("readOnly") Integer readOnly);
+
+    void updateLiveOwnershipReadOnlyForUser(@Param("userId") Integer userId, @Param("readOnly") Integer readOnly);
+
     void updateTenantParentId(@Param("tenantId") Integer tenantId, @Param("parentId") Integer parentId, @Param("ownerId") Integer ownerId);
 }
