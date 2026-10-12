@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Tooltip } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import { LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +36,7 @@ function RailTip({ label, children }) {
 // button) open the full sidebar as a drawer instead of navigating.
 export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, onLogout, badges }) {
   const { loading, items, userName } = useSidebarData();
+  const { t } = useTranslation();
   const { pathname } = useLocation();
 
   return (
@@ -43,22 +45,22 @@ export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, on
         className="relative flex h-full w-16 flex-none flex-col items-center gap-3 overflow-hidden py-3.5 text-[#eaf1ff] shadow-[6px_0_24px_-8px_rgba(4,15,40,0.55)] short:gap-2 short:py-2.5"
         style={SIDEBAR_BG_STYLE}
       >
-        <RailTip label="Menu">
+        <RailTip label={t("sidebar:menuTip")}>
           <button
             type="button"
             onClick={onOpenMenu}
-            aria-label="Open menu"
+            aria-label={t("sidebar:openMenu")}
             className={cn(ITEM_CLASS, "text-white hover:bg-white/10")}
           >
             <Menu size={22} />
           </button>
         </RailTip>
 
-        <RailTip label={userName || "Profile"}>
+        <RailTip label={userName || t("sidebar:profile")}>
           <button
             type="button"
             onClick={onOpenMenu}
-            aria-label={`${userName} profile`}
+            aria-label={t("sidebar:profileOf", { name: userName })}
             className="relative size-10 flex-none cursor-pointer rounded-full border-none p-[2px] shadow-[0_0_10px_1px_rgba(56,189,248,0.5)] short:size-9"
             style={{ backgroundImage: "conic-gradient(from 180deg, #38bdf8, #0a3fc9, #38bdf8)" }}
           >
@@ -121,11 +123,11 @@ export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, on
           })}
         </nav>
 
-        <RailTip label="Logout">
+        <RailTip label={t("logout")}>
           <button
             type="button"
             onClick={onLogout}
-            aria-label="Logout"
+            aria-label={t("logout")}
             className={cn(
               ITEM_CLASS,
               "bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)]"

@@ -1,0 +1,11 @@
+{
+  "title": "公告",
+  "subtitle": "来自 EAZY COUNT 团队的系统更新",
+  "newCount": "{{count}} 条新",
+  "markAllRead": "全部标为已读",
+  "empty": "暂无公告。",
+  "version": "版本 {{version}}",
+  "unread": "未读",
+  "showMore": "展开",
+  "showLess": "收起"
+}

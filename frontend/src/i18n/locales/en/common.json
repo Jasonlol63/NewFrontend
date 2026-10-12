@@ -1,0 +1,50 @@
+{
+  "close": "Close",
+  "retry": "Retry",
+  "loading": "Loading…",
+  "logout": "Logout",
+  "all": "All",
+  "currency": "Currency",
+  "calendar": {
+    "presets": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This Week",
+      "lastWeek": "Last Week",
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "thisYear": "This Year",
+      "lastYear": "Last Year"
+    },
+    "custom": "Custom range",
+    "previous": "Previous",
+    "next": "Next",
+    "selectEnd": "Select an end date",
+    "months": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ]
+  },
+  "errors": {
+    "network": "Network error. Check your connection and try again."
+  }
+}

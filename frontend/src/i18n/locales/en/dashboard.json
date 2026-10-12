@@ -1,0 +1,34 @@
+{
+  "filter": {
+    "dateRange": "Date Range:",
+    "group": "Group:",
+    "company": "Company:",
+    "currency": "Currency:",
+    "noCurrency": "No currency available"
+  },
+  "kpi": {
+    "profit": "Profit",
+    "expenses": "Expenses",
+    "netProfit": "Net Profit",
+    "earnings": "Earnings",
+    "vsLastMonth": "than last month",
+    "vsPrevious": "than previous period"
+  },
+  "trend": {
+    "title": "Trend Chart",
+    "range": "{{from}} to {{to}}"
+  },
+  "breakdown": {
+    "netProfit": "Net Profit · {{currency}}",
+    "includes": "Includes multi-currency conversion",
+    "share": "Share of total",
+    "amount": "Amount ({{currency}})",
+    "original": "Original Amount",
+    "rate": "Rate",
+    "noData": "No data for this period"
+  },
+  "errors": {
+    "load": "Couldn't load the data",
+    "switch": "Couldn't switch company"
+  }
+}

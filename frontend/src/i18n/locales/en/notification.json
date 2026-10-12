@@ -1,0 +1,11 @@
+{
+  "title": "Announcements",
+  "subtitle": "System updates from the EAZY COUNT team",
+  "newCount": "{{count}} new",
+  "markAllRead": "Mark all as read",
+  "empty": "No announcements yet.",
+  "version": "Version {{version}}",
+  "unread": "Unread",
+  "showMore": "Show more",
+  "showLess": "Show less"
+}

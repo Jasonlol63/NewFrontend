@@ -1,26 +1,27 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover } from "radix-ui";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MONTHS, WEEKDAYS, monthGrid } from "@/lib/calendar";
+import { monthGrid } from "@/lib/calendar";
 import { addDays, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date";
 
 // Weeks start on Sunday, matching the calendar grid.
 const PRESETS = [
-  { label: "Today", range: (t) => [t, t] },
-  { label: "Yesterday", range: (t) => [addDays(t, -1), addDays(t, -1)] },
-  { label: "This Week", range: (t) => [addDays(t, -t.getDay()), addDays(t, 6 - t.getDay())] },
-  { label: "Last Week", range: (t) => [addDays(t, -t.getDay() - 7), addDays(t, -t.getDay() - 1)] },
+  { key: "today", range: (t) => [t, t] },
+  { key: "yesterday", range: (t) => [addDays(t, -1), addDays(t, -1)] },
+  { key: "thisWeek", range: (t) => [addDays(t, -t.getDay()), addDays(t, 6 - t.getDay())] },
+  { key: "lastWeek", range: (t) => [addDays(t, -t.getDay() - 7), addDays(t, -t.getDay() - 1)] },
   {
-    label: "This Month",
+    key: "thisMonth",
     range: (t) => [new Date(t.getFullYear(), t.getMonth(), 1), new Date(t.getFullYear(), t.getMonth() + 1, 0)],
   },
   {
-    label: "Last Month",
+    key: "lastMonth",
     range: (t) => [new Date(t.getFullYear(), t.getMonth() - 1, 1), new Date(t.getFullYear(), t.getMonth(), 0)],
   },
-  { label: "This Year", range: (t) => [new Date(t.getFullYear(), 0, 1), new Date(t.getFullYear(), 11, 31)] },
-  { label: "Last Year", range: (t) => [new Date(t.getFullYear() - 1, 0, 1), new Date(t.getFullYear() - 1, 11, 31)] },
+  { key: "thisYear", range: (t) => [new Date(t.getFullYear(), 0, 1), new Date(t.getFullYear(), 11, 31)] },
+  { key: "lastYear", range: (t) => [new Date(t.getFullYear() - 1, 0, 1), new Date(t.getFullYear() - 1, 11, 31)] },
 ];
 
 function presetRange(preset) {
@@ -77,6 +78,10 @@ const tileActive = "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,
  */
 export default function DateRangePicker({ from, to, onChange, align = "start", className, compact = false, small = false }) {
   const S = small ? SIZE_SMALL : SIZE;
+  const { t } = useTranslation();
+  const presetLabel = (preset) => t(`calendar.presets.${preset.key}`);
+  const MONTHS = t("calendar.months", { returnObjects: true });
+  const WEEKDAYS = t("calendar.weekdays", { returnObjects: true });
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(to || toIsoDate(new Date())));
@@ -167,14 +172,14 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                 onClick={() => setPresetOpen((v) => !v)}
                 className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-dash-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1e3a6e]"
               >
-                {activePreset?.label ?? "Custom range"}
+                {activePreset ? presetLabel(activePreset) : t("calendar.custom")}
                 <ChevronDown className={cn("size-3.5 transition-transform", presetOpen && "rotate-180")} strokeWidth={2.6} />
               </button>
               {presetOpen && (
                 <div className="absolute inset-x-2 top-[calc(100%-4px)] z-10 flex flex-col rounded-[10px] border border-dash-line bg-white p-1 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]">
                   {PRESETS.map((preset) => (
                   <button
-                    key={preset.label}
+                    key={preset.key}
                     type="button"
                     onClick={() => commit(presetRange(preset))}
                     className={cn(
@@ -183,7 +188,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                       preset === activePreset ? tileActive : "text-[#1e3a6e] hover:bg-white"
                     )}
                   >
-                    {preset.label}
+                    {presetLabel(preset)}
                   </button>
                   ))}
                 </div>
@@ -194,7 +199,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
             <div className={cn("flex flex-none flex-col border-r border-dash-line bg-[#f4f8fe]", S.presetColumn)}>
               {PRESETS.map((preset) => (
                 <button
-                  key={preset.label}
+                  key={preset.key}
                   type="button"
                   onClick={() => commit(presetRange(preset))}
                   className={cn(
@@ -203,7 +208,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                     preset === activePreset ? tileActive : "text-[#1e3a6e] hover:bg-white"
                   )}
                 >
-                  {preset.label}
+                  {presetLabel(preset)}
                 </button>
               ))}
             </div>
@@ -216,7 +221,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                 type="button"
                 onClick={() => step(-1)}
                 className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", S.navButton)}
-                aria-label="Previous"
+                aria-label={t("calendar.previous")}
               >
                 <ChevronLeft className="size-4" strokeWidth={2.4} />
               </button>
@@ -252,7 +257,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                 type="button"
                 onClick={() => step(1)}
                 className={cn("flex cursor-pointer items-center justify-center rounded-lg text-[#1e3a6e] hover:bg-slate-100", S.navButton)}
-                aria-label="Next"
+                aria-label={t("calendar.next")}
               >
                 <ChevronRight className="size-4" strokeWidth={2.4} />
               </button>
@@ -358,7 +363,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
             )}
 
             {anchor && view === "day" && (
-              <p className="mt-2 text-center text-[11px] font-medium text-dash-faint">Select an end date</p>
+              <p className="mt-2 text-center text-[11px] font-medium text-dash-faint">{t("calendar.selectEnd")}</p>
             )}
           </div>
         </Popover.Content>

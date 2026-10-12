@@ -1,0 +1,34 @@
+{
+  "filter": {
+    "dateRange": "日期范围:",
+    "group": "集团:",
+    "company": "公司:",
+    "currency": "货币:",
+    "noCurrency": "暂无可用货币"
+  },
+  "kpi": {
+    "profit": "利润",
+    "expenses": "支出",
+    "netProfit": "净利润",
+    "earnings": "收益",
+    "vsLastMonth": "较上月",
+    "vsPrevious": "较上一周期"
+  },
+  "trend": {
+    "title": "趋势图",
+    "range": "{{from}} 至 {{to}}"
+  },
+  "breakdown": {
+    "netProfit": "净利润 · {{currency}}",
+    "includes": "已含多货币折算",
+    "share": "占总额比例",
+    "amount": "金额 ({{currency}})",
+    "original": "初始金额",
+    "rate": "汇率",
+    "noData": "该时段暂无数据"
+  },
+  "errors": {
+    "load": "无法加载数据",
+    "switch": "无法切换公司"
+  }
+}

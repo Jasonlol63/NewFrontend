@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
@@ -21,6 +22,7 @@ export default function DashboardFilterPanel({
   onCurrencyReorder,
   loading,
 }) {
+  const { t } = useTranslation("dashboard");
   return (
     <section
       className={cn(
@@ -29,16 +31,16 @@ export default function DashboardFilterPanel({
       )}
     >
       <div className="flex flex-col gap-2 px-4 py-2.5">
-        <FilterRow label="Date Range:">
+        <FilterRow label={t("filter.dateRange")}>
           <DateRangePicker from={dateRange.from} to={dateRange.to} onChange={onDateRangeChange} />
         </FilterRow>
         {groupOptions.length > 1 && (
-          <FilterRow label="Group ID:">
+          <FilterRow label={t("filter.group")}>
             <SegmentGroup options={groupOptions} value={group} onChange={onGroupChange} allowDeselect={allowNoGroup} />
           </FilterRow>
         )}
         {showCompany && (
-          <FilterRow label="Company:">
+          <FilterRow label={t("filter.company")}>
             <SegmentGroup
               options={companyOptions}
               value={company}
@@ -47,7 +49,7 @@ export default function DashboardFilterPanel({
             />
           </FilterRow>
         )}
-        <FilterRow label="Currency:">
+        <FilterRow label={t("filter.currency")}>
           {currencyOptions.length ? (
             <SegmentGroup
               options={currencyOptions}
@@ -56,7 +58,7 @@ export default function DashboardFilterPanel({
               wrap onReorder={onCurrencyReorder}
             />
           ) : (
-            <span className="text-xs font-medium text-dash-faint">No currency available</span>
+            <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
           )}
         </FilterRow>
       </div>

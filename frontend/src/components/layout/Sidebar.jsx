@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 import { Bell, ChevronRight, Clock, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,7 @@ const LANG_OPTIONS = [
 // badges: { [menu key]: number } shown as a red count at the end of that menu item (Auto Renew: requests waiting).
 export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, onOpenNotifications, unreadCount = 0, badges, className }) {
   const { loading, items, userName, userRole, expiryLabel } = useSidebarData();
-  const [lang, setLang] = useState("en");
+  const { t, i18n } = useTranslation();
   // Only one submenu open at a time; starts collapsed, even when the current page is inside one.
   const [openKey, setOpenKey] = useState(null);
   const { pathname } = useLocation();
@@ -56,7 +57,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
         <button
           type="button"
           onClick={onOpenNotifications}
-          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+          aria-label={unreadCount > 0 ? t("sidebar:notificationsUnread", { count: unreadCount }) : t("sidebar:notifications")}
           className="relative flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[10px] border border-[rgba(120,170,255,0.4)] bg-[rgba(30,58,120,0.55)] cursor-pointer"
         >
           <Bell size={14} className="stroke-[#cfe0ff]" />
@@ -79,7 +80,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
           >
             <img
               src={avatarSrc}
-              alt={`${userName} avatar`}
+              alt={t("sidebar:avatarOf", { name: userName })}
               className="h-full w-full rounded-full border-2 border-[#0c2452] object-cover"
             />
             <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#12305f] bg-[#31d67a] short:size-2.5" />
@@ -99,7 +100,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
           </div>
         </div>
         <div className="self-center">
-          <PillSwitch options={LANG_OPTIONS} value={lang} onChange={setLang} itemWidth={59} size="sm" />
+          <PillSwitch options={LANG_OPTIONS} value={i18n.resolvedLanguage} onChange={(lng) => i18n.changeLanguage(lng)} itemWidth={59} size="sm" />
         </div>
       </div>
 
@@ -185,12 +186,12 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
         <button
           type="button"
           onClick={onLogout}
-          aria-label="Logout"
-          title="Logout"
+          aria-label={t("logout")}
+          title={t("logout")}
           className="flex items-center justify-center gap-2 rounded-[11px] border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] py-2 text-[13px] font-bold text-white shadow-[0_10px_20px_-6px_rgba(20,90,220,0.6),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.3)] cursor-pointer short:px-3"
         >
           <LogOut size={15} className="stroke-white" />
-          <span className="short:sr-only">Logout</span>
+          <span className="short:sr-only">{t("logout")}</span>
         </button>
       </div>
     </aside>

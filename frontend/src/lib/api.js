@@ -1,3 +1,26 @@
+import i18n from "@/i18n";
+
+// A failed API call. `code` is "network" when the server could not be reached or sent nothing usable (the message is then
+// translated into the current language); otherwise the message is the server's own and `code` is "server".
+export class ApiError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+  }
+}
+const apiError = (serverMessage) => (serverMessage ? new ApiError(serverMessage, "server") : new ApiError(i18n.t("errors.network"), "network"));
+
+// fetch that turns the browser's "Failed to fetch" (offline, server down) into a translated ApiError; an abort passes through.
+async function request(url, init) {
+  try {
+    return await fetch(url, init);
+  } catch (err) {
+    if (err.name === "AbortError") throw err;
+    throw apiError();
+  }
+}
+
 // A 401 means there is no valid session (never logged in, idle timeout, kicked by maintenance mode);
 // wrong passwords and other business errors come back as 200. Send the user to the login page, except
 // on the pages that run before a session exists.
@@ -12,7 +35,7 @@ function leaveIfSignedOut(res) {
 // body: most endpoints send `status: "success"`, the secondary-password verify
 // endpoints send `success: true`.
 export async function postForm(url, params) {
-  const res = await fetch(url, {
+  const res = await request(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -21,24 +44,24 @@ export async function postForm(url, params) {
   leaveIfSignedOut(res);
   const body = await res.json().catch(() => null);
   if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
-    throw new Error(body?.message || "Network error, please try again");
+    throw apiError(body?.message);
   }
   return body;
 }
 
 export async function getJson(url, params, { signal } = {}) {
   const query = params ? `?${new URLSearchParams(params)}` : "";
-  const res = await fetch(`${url}${query}`, { credentials: "include", signal });
+  const res = await request(`${url}${query}`, { credentials: "include", signal });
   leaveIfSignedOut(res);
   const body = await res.json().catch(() => null);
   if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
-    throw new Error(body?.message || "Network error, please try again");
+    throw apiError(body?.message);
   }
   return body;
 }
 
 export async function postJson(url, data, { signal } = {}) {
-  const res = await fetch(url, {
+  const res = await request(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -48,14 +71,14 @@ export async function postJson(url, data, { signal } = {}) {
   leaveIfSignedOut(res);
   const body = await res.json().catch(() => null);
   if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
-    throw new Error(body?.message || "Network error, please try again");
+    throw apiError(body?.message);
   }
   return body;
 }
 
 // Same as postJson for other verbs (PUT, DELETE). `data` is optional; DELETE endpoints take their ids in the url.
 export async function sendJson(method, url, data, { signal } = {}) {
-  const res = await fetch(url, {
+  const res = await request(url, {
     method,
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -65,7 +88,7 @@ export async function sendJson(method, url, data, { signal } = {}) {
   leaveIfSignedOut(res);
   const body = await res.json().catch(() => null);
   if (!res.ok || !body || (body.status !== "success" && body.success !== true)) {
-    throw new Error(body?.message || "Network error, please try again");
+    throw apiError(body?.message);
   }
   return body;
 }
@@ -73,7 +96,7 @@ export async function sendJson(method, url, data, { signal } = {}) {
 // Like postJson, but gives the body back whatever its status says, for replies that carry data without being a success
 // (Ownership's Link Partner answers { status: "conflict", data }). A reply that is not JSON at all still throws.
 export async function postJsonRaw(url, data, { signal } = {}) {
-  const res = await fetch(url, {
+  const res = await request(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -82,6 +105,6 @@ export async function postJsonRaw(url, data, { signal } = {}) {
   });
   leaveIfSignedOut(res);
   const body = await res.json().catch(() => null);
-  if (!body) throw new Error("Network error, please try again");
+  if (!body) throw apiError();
   return body;
 }

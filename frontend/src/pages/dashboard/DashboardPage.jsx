@@ -1,9 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/context/session";
 import { currentLoginStamp, useSavedState } from "@/hooks/useSavedState";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
+import { useNotice } from "@/hooks/useNotice";
+import Toast from "@/components/shared/Toast.jsx";
 import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
 import KpiCard from "./components/KpiCard.jsx";
 import TrendChartCard from "./components/TrendChartCard.jsx";
@@ -69,6 +72,8 @@ function resolveSelection(directory, saved, tenantId) {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation(["dashboard", "common"]);
+  const { notice, push, clear } = useNotice(5000, { stickyErrors: true });
   const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
   const { user, switchCompany } = useSession();
   const [switchError, setSwitchError] = useState("");
@@ -101,8 +106,8 @@ export default function DashboardPage() {
   const switchGroup = group === INDEPENDENT ? firstOpenableGroup(directory) : null;
   const allowNoCompany = group === INDEPENDENT ? Boolean(switchGroup) : canViewGroupItself(directory, group);
   const groupOptions = useMemo(
-    () => [{ value: ALL, label: "All" }, ...(directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code }))],
-    [directory]
+    () => [{ value: ALL, label: t("common:all") }, ...(directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code }))],
+    [directory, t]
   );
   // Clicking the active Group again switches to the independent companies, when there are any.
   const allowNoGroup = group !== ALL && group !== INDEPENDENT && hasIndependentCompanies(directory);
@@ -110,8 +115,8 @@ export default function DashboardPage() {
   // A Group with no companies has nothing to pick, so the Company row is hidden.
   const showCompany = groupCompanies.length > 0;
   const companyOptions = useMemo(
-    () => [{ value: ALL, label: "All" }, ...groupCompanies.map((c) => ({ value: c.code, label: c.code }))],
-    [groupCompanies]
+    () => [{ value: ALL, label: t("common:all") }, ...groupCompanies.map((c) => ({ value: c.code, label: c.code }))],
+    [groupCompanies, t]
   );
   // Currency chips in the order the user dragged them into (saved in the browser).
   const [currencyOptions, setCurrencyOrder] = useOrderedCurrencies(currencyCodes);
@@ -149,21 +154,27 @@ export default function DashboardPage() {
   const handleCurrencyChange = (next) => save({ currency: next });
 
   const compareLabel = isFullMonth(kpi?.previousDateFrom, kpi?.previousDateTo)
-    ? "than last month"
-    : "than previous period";
+    ? t("kpi.vsLastMonth")
+    : t("kpi.vsPrevious");
   const showEarnings = Boolean(kpi?.showEarnings);
   const cards = [
-    { label: "Profit", icon: DollarSign, color: "#2563eb", tint: "#e8f1ff", value: kpi?.profit, previous: kpi?.previousProfit },
-    { label: "Expenses", icon: TrendingDown, color: "#ef4444", tint: "#ffdfdf", value: kpi?.expenses, previous: kpi?.previousExpenses },
-    { label: "Net Profit", icon: ChartLine, color: "#10b981", tint: "#d6f7e7", value: kpi?.netProfit, previous: kpi?.previousNetProfit },
+    { id: "profit", label: t("kpi.profit"), icon: DollarSign, color: "#2563eb", tint: "#e8f1ff", value: kpi?.profit, previous: kpi?.previousProfit },
+    { id: "expenses", label: t("kpi.expenses"), icon: TrendingDown, color: "#ef4444", tint: "#ffdfdf", value: kpi?.expenses, previous: kpi?.previousExpenses },
+    { id: "netProfit", label: t("kpi.netProfit"), icon: ChartLine, color: "#10b981", tint: "#d6f7e7", value: kpi?.netProfit, previous: kpi?.previousNetProfit },
     ...(showEarnings
-      ? [{ label: "Earnings", icon: Wallet, color: "#d97706", tint: "#fff3da", value: kpi?.earnings, previous: kpi?.previousEarnings }]
+      ? [{ id: "earnings", label: t("kpi.earnings"), icon: Wallet, color: "#d97706", tint: "#fff3da", value: kpi?.earnings, previous: kpi?.previousEarnings }]
       : []),
   ];
   const pageError = directoryError || switchError || error;
+  // What went wrong is shown as a toast: the headline in the current language, the reason as the server gave it.
+  useEffect(() => {
+    if (pageError) push(t(switchError ? "errors.switch" : "errors.load"), "error", pageError);
+    else clear();
+  }, [pageError, switchError, push, clear, t]);
 
   return (
-    <div className="flex flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)] lg:h-full lg:min-h-[520px]">
+    <div className="relative flex flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)] lg:h-full lg:min-h-[520px]">
+      <Toast notice={notice} onClose={clear} />
       <DashboardFilterPanel
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
@@ -183,15 +194,9 @@ export default function DashboardPage() {
         loading={initialLoading}
       />
 
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
-
       <section className={cn("grid flex-none grid-cols-1 gap-[clamp(8px,1.5dvh,12px)]", showEarnings ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3")}>
         {cards.map((card) => (
-          <KpiCard key={card.label} {...card} compareLabel={compareLabel} loading={loading} />
+          <KpiCard key={card.id} {...card} compareLabel={compareLabel} loading={loading} />
         ))}
       </section>
 

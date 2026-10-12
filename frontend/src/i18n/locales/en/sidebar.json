@@ -1,0 +1,51 @@
+{
+  "menu": {
+    "home": "Home",
+    "winLoss": "Win/Loss",
+    "domain": "Domain",
+    "announcement": "Announcement",
+    "autoRenew": "Auto Renew",
+    "admin": "Admin",
+    "account": "Account",
+    "ownership": "Ownership",
+    "process": "Process",
+    "dataCapture": "Data Capture",
+    "transactionPayment": "Transaction Payment",
+    "report": "Report",
+    "reportCustomer": "Customer",
+    "reportDomain": "Domain",
+    "maintenance": "Maintenance",
+    "maintenanceDataCapture": "Data Capture",
+    "maintenanceTransaction": "Transaction",
+    "maintenancePayment": "Payment",
+    "maintenanceFormula": "Formula",
+    "maintenanceBankProcess": "Bank Process"
+  },
+  "role": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "manager": "Manager",
+    "supervisor": "Supervisor",
+    "accountant": "Accountant",
+    "audit": "Audit",
+    "customer_service": "Customer Service",
+    "partnership": "Partnership",
+    "it": "IT"
+  },
+  "expiry": {
+    "none": "No expiry",
+    "expired": "Expired",
+    "today": "Expires today",
+    "left": "Exp: {{time}} left",
+    "months": "{{count}}m",
+    "days": "{{count}}d",
+    "separator": " "
+  },
+  "notifications": "Notifications",
+  "notificationsUnread": "Notifications, {{count}} unread",
+  "menuTip": "Menu",
+  "openMenu": "Open menu",
+  "profile": "Profile",
+  "profileOf": "{{name}} profile",
+  "avatarOf": "{{name}} avatar"
+}

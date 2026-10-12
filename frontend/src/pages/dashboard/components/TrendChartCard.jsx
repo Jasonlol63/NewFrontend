@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { formatDisplayDate, formatMoney } from "../dashboardFormat";
 
@@ -37,6 +38,7 @@ function ChartTooltip({ active, payload }) {
 }
 
 export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
+  const { t } = useTranslation("dashboard");
   const [hidden, setHidden] = useState(() => new Set());
 
   const { rows, series, multiMonth } = useMemo(() => {
@@ -50,10 +52,10 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
     }));
     return {
       rows,
-      series: SERIES.filter((s) => s.key !== "earnings" || hasEarnings),
+      series: SERIES.filter((s) => s.key !== "earnings" || hasEarnings).map((s) => ({ ...s, label: t(`kpi.${s.key}`) })),
       multiMonth: dateFrom?.slice(0, 7) !== dateTo?.slice(0, 7),
     };
-  }, [trend, dateFrom, dateTo]);
+  }, [trend, dateFrom, dateTo, t]);
 
   const toggle = (key) =>
     setHidden((prev) => {
@@ -74,7 +76,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
       )}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-dash-ink">Trend Chart</h3>
+        <h3 className="text-base font-bold text-dash-ink">{t("trend.title")}</h3>
         <div className="flex flex-wrap gap-4">
           {series.map((s) => (
             <button
@@ -92,7 +94,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
           ))}
         </div>
         <span className="rounded-lg border border-dash-line bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-[#374151]">
-          {formatDisplayDate(dateFrom, "-")} to {formatDisplayDate(dateTo, "-")}
+          {t("trend.range", { from: formatDisplayDate(dateFrom, "-"), to: formatDisplayDate(dateTo, "-") })}
         </span>
       </div>
 

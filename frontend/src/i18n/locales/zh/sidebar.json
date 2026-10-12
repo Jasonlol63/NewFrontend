@@ -1,0 +1,51 @@
+{
+  "menu": {
+    "home": "首页",
+    "winLoss": "流水报表",
+    "domain": "域名",
+    "announcement": "公告",
+    "autoRenew": "续期",
+    "admin": "管理员",
+    "account": "账户",
+    "ownership": "股权",
+    "process": "合同",
+    "dataCapture": "数据采集",
+    "transactionPayment": "交易付款",
+    "report": "报表",
+    "reportCustomer": "客户",
+    "reportDomain": "域名",
+    "maintenance": "维护",
+    "maintenanceDataCapture": "数据采集",
+    "maintenanceTransaction": "数据明细",
+    "maintenancePayment": "交易明细",
+    "maintenanceFormula": "公式明细",
+    "maintenanceBankProcess": "银行明细"
+  },
+  "role": {
+    "owner": "所有者",
+    "admin": "管理员",
+    "manager": "经理",
+    "supervisor": "主管",
+    "accountant": "会计",
+    "audit": "审计",
+    "customer_service": "客服",
+    "partnership": "合伙人",
+    "it": "技术员"
+  },
+  "expiry": {
+    "none": "无到期日",
+    "expired": "已到期",
+    "today": "今天到期",
+    "left": "剩余 {{time}}",
+    "months": "{{count}}个月",
+    "days": "{{count}}天",
+    "separator": " "
+  },
+  "notifications": "通知",
+  "notificationsUnread": "通知，{{count}} 条未读",
+  "menuTip": "菜单",
+  "openMenu": "打开菜单",
+  "profile": "个人资料",
+  "profileOf": "{{name}} 的个人资料",
+  "avatarOf": "{{name}} 的头像"
+}
