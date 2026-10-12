@@ -1,0 +1,84 @@
+{
+  "readOnly": "只读账号",
+  "filter": {
+    "process": "合同:",
+    "selectProcess": "选择合同",
+    "searchProcess": "搜索合同",
+    "dateRange": "日期范围:",
+    "currency": "货币:",
+    "all": "全部",
+    "noCurrency": "没有可用的货币",
+    "transactionType": "交易类型:",
+    "transactionTypeLabel": "交易类型",
+    "allTypes": "全部类型"
+  },
+  "search": {
+    "capture": "搜索合同、产品、货币",
+    "transaction": "搜索产品、账户、描述",
+    "payment": "搜索账户、描述",
+    "formula": "搜索合同、账户、产品",
+    "bankProcess": "搜索账户、付款方、描述"
+  },
+  "empty": {
+    "noData": "没有找到数据，请调整搜索条件后重试。",
+    "pickProcess": "请选择合同以查看记录。"
+  },
+  "cols": {
+    "no": "序号",
+    "dtsCreated": "创建时间",
+    "createdAt": "创建时间",
+    "product": "产品",
+    "process": "合同",
+    "currency": "货币",
+    "wlGroup": "输赢组",
+    "submittedBy": "提交人",
+    "deletedBy": "删除人",
+    "idProduct": "产品ID",
+    "account": "账户",
+    "description": "描述",
+    "remark": "备注",
+    "percent": "比例",
+    "rate": "汇率",
+    "cr": "贷",
+    "dr": "借",
+    "submitter": "提交人",
+    "toAccount": "收款账户",
+    "fromAccount": "付款账户",
+    "amount": "金额",
+    "deleter": "删除人",
+    "source": "来源",
+    "inputMethod": "输入方式",
+    "formula": "公式",
+    "action": "操作",
+    "from": "付款方"
+  },
+  "errors": {
+    "scope": "无法加载公司列表",
+    "processes": "无法加载合同",
+    "list": "无法加载记录",
+    "accounts": "无法加载账户"
+  },
+  "payment": {
+    "rateNote": "删除汇兑（RATE）时会连同它的所有记录一起删除：两种货币、中间人和手续费。"
+  },
+  "formula": {
+    "edit": "编辑公式",
+    "editRow": "编辑公式",
+    "info": "公式信息",
+    "process": "合同",
+    "product": "产品",
+    "currency": "货币",
+    "source": "来源 %",
+    "account": "账户",
+    "selectAccount": "选择账户",
+    "inputMethod": "输入方式",
+    "selectMethod": "选择输入方式",
+    "description": "描述",
+    "formulaCard": "公式",
+    "hint": "只能包含数字、列字母和 + - * / ( ) . $ [ ] ,。已有的字母可以保留或删除，但不能新增字母。",
+    "copies": "如果该公式是其他复制公式的来源，相同的修改也会应用到这些副本。",
+    "saving": "保存中...",
+    "saved": "公式已更新",
+    "notSaved": "公式未保存"
+  }
+}

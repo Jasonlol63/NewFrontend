@@ -23,7 +23,7 @@ import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
 import { useGameProcesses } from "../shared/useGameProcesses";
 import { useSubmittedProcesses } from "../shared/useSubmittedProcesses";
-import { useErrorToasts } from "../shared/useErrorToasts";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
 
 const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "", replaceTo: "", remark: "" };

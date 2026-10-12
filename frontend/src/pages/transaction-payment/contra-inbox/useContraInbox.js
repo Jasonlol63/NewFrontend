@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import i18n from "@/i18n";
 import { postJson } from "@/lib/api";
 import { touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { APPROVE_URL, normalizePending, PENDING_URL, REJECT_URL, sortPending } from "./contraInboxRules";
@@ -48,7 +49,7 @@ export function useContraInbox(tenantId, enabled) {
           done += 1;
         }
       } catch (err) {
-        throw new Error(done ? `${done} of ${rows.length} done. ${err.message}` : err.message);
+        throw new Error(done ? i18n.t("transaction:inbox.partial", { done, total: rows.length, message: err.message }) : err.message);
       } finally {
         reload();
       }

@@ -163,21 +163,21 @@ export function middleManTotal({ amount1, rate, mul, fee, pt }) {
   return total > 0 ? String(Math.round(total * 100) / 100) : "";
 }
 
-/** The /api/transaction/submit body of the form, or throws the message to show. `f` is the form state, `cur` the resolved currencies. */
-export function buildSubmitRequest({ tenantId, type, f, cur }) {
+/** The /api/transaction/submit body of the form, or throws the message to show (written with t, the `transaction` namespace's t). `f` is the form state, `cur` the resolved currencies. */
+export function buildSubmitRequest({ tenantId, type, f, cur, t }) {
   const base = { tenantId, transactionType: type };
   if (type === "RATE") {
     const rate = parseRate(f.rRate);
-    if (!f.rTo1 || !f.rFrom1) throw new Error("Select the To and From account of the first currency");
-    if (!f.rTo2 || !f.rFrom2) throw new Error("Select the To and From account of the second currency");
-    if (cur.rate1 === cur.rate2) throw new Error("The two currencies must be different");
-    if (!positive(f.rAmt1)) throw new Error("Enter the amount");
-    if (!rate) throw new Error("Enter a valid rate");
+    if (!f.rTo1 || !f.rFrom1) throw new Error(t("errors.toFirst"));
+    if (!f.rTo2 || !f.rFrom2) throw new Error(t("errors.toSecond"));
+    if (cur.rate1 === cur.rate2) throw new Error(t("errors.sameCurrency"));
+    if (!positive(f.rAmt1)) throw new Error(t("errors.enterAmount"));
+    if (!rate) throw new Error(t("errors.validRate"));
     const mul = plain(f.rMul);
     const fee = plain(f.rFee);
     const pt = plain(f.rPT);
-    if ((mul || fee || pt) && !f.rMid) throw new Error("Select the Middle-Man account");
-    if (f.rMid && !mul && !fee && !pt) throw new Error("Enter the Middle-Man Rate-Mul, Fee or PT-Fee");
+    if ((mul || fee || pt) && !f.rMid) throw new Error(t("errors.middleMan"));
+    if (f.rMid && !mul && !fee && !pt) throw new Error(t("errors.middleManRate"));
     return {
       ...base,
       leg1ToAccountId: idOf(f.rTo1),
@@ -197,12 +197,12 @@ export function buildSubmitRequest({ tenantId, type, f, cur }) {
   }
   if (type === "ADJUSTMENT") {
     const amount = toNumber(f.aAmt);
-    if (!f.aAcc) throw new Error("Select the account");
-    if (!Number.isFinite(amount) || amount === 0) throw new Error("Enter a non-zero amount");
+    if (!f.aAcc) throw new Error(t("errors.selectAccount"));
+    if (!Number.isFinite(amount) || amount === 0) throw new Error(t("errors.nonZero"));
     return { ...base, toAccountId: idOf(f.aAcc), currencyCode: cur.adj, amount: plain(f.aAmt), remark: f.aRemark.trim() || null };
   }
-  if (!f.to || !f.from) throw new Error("Select the To and From account");
-  if (f.to === f.from) throw new Error("The To and From account must be different");
-  if (!positive(f.amount)) throw new Error("Enter an amount above 0");
+  if (!f.to || !f.from) throw new Error(t("errors.toFrom"));
+  if (f.to === f.from) throw new Error(t("errors.differentAccounts"));
+  if (!positive(f.amount)) throw new Error(t("errors.amountAbove0"));
   return { ...base, toAccountId: idOf(f.to), fromAccountId: idOf(f.from), currencyCode: cur.std, amount: plain(f.amount), remark: f.remark.trim() || null };
 }

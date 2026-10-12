@@ -1,0 +1,31 @@
+{
+  "currency": "货币:",
+  "noCurrency": "没有可用的货币",
+  "account": "账户:",
+  "dateRange": "日期范围:",
+  "process": "合同:",
+  "showAll": "显示全部",
+  "selectProcess": "选择合同",
+  "searchProcess": "搜索合同",
+  "searchAccount": "搜索账户",
+  "allAccounts": "全部账户",
+  "allProcess": "全部合同",
+  "empty": "没有找到数据，请调整搜索条件后重试。",
+  "cols": {
+    "account": "账户",
+    "name": "名称",
+    "currency": "货币",
+    "process": "合同",
+    "turnover": "营业额",
+    "win": "赢",
+    "lose": "输",
+    "winLose": "输赢"
+  },
+  "total": "合计",
+  "totalColon": "合计：",
+  "errors": {
+    "scope": "无法加载公司列表",
+    "processes": "无法加载合同",
+    "report": "无法加载报表"
+  }
+}

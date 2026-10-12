@@ -1,5 +1,9 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo } from "react";
+import Toast from "@/components/shared/Toast.jsx";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
+import { useTranslation } from "react-i18next";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
@@ -12,38 +16,39 @@ const AMOUNT = "text-right tabular-nums";
 
 // Every cell stays on one line. Id_Product, Description and Remark are the columns that give way
 // if the row is still wider than the card.
-const columns = [
-  { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-  { key: "createdAt", label: "Created At", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "idProduct", label: "Id_Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.idProduct },
-  { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.account },
-  { key: "description", label: "Description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
-  { key: "remark", label: "Remark", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
-  { key: "percent", label: "Percent", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.percent) },
-  { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
-  { key: "rate", label: "Rate", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.rate) },
-  { key: "cr", label: "Cr", sortable: false, className: "pl-2 text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.cr },
-  { key: "dr", label: "Dr", sortable: false, className: "text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.dr },
-  { key: "createdBy", label: "Submitter", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
+const baseColumns = [
+  { key: "no", label: "no", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+  { key: "createdAt", label: "createdAt", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
+  { key: "process", label: "process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "idProduct", label: "idProduct", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.idProduct },
+  { key: "account", label: "account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.account },
+  { key: "description", label: "description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "remark", label: "remark", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
+  { key: "percent", label: "percent", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.percent) },
+  { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
+  { key: "rate", label: "rate", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.rate) },
+  { key: "cr", label: "cr", sortable: false, className: "pl-2 text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.cr },
+  { key: "dr", label: "dr", sortable: false, className: "text-right", cellClassName: `${AMOUNT} whitespace-nowrap`, render: (r) => r.dr },
+  { key: "createdBy", label: "submitter", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
 ];
 
 export default function TransactionMaintenancePage() {
+  const { t } = useTranslation(["maintenance", "common", "transaction"]);
+  const { toasts, push, dismiss } = useNotice(5000);
+  const columns = useMemo(() => baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })), [t]);
   const filters = useMaintenanceFilters();
   const list = useMaintenanceList(TRANSACTION_LIST_URL, filters.request, normalizeTransactionRow, touchesLedger);
   const rows = useMemo(() => filterTransactionRows(list.rows, filters.search), [list.rows, filters.search]);
 
-  const pageError = filters.error || list.error;
+  useErrorToasts(push, [
+    [filters.error, t("errors.processes")],
+    [list.error, t("errors.list"), list.reload],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
-      <MaintenanceFilterCard filters={filters} searchPlaceholder="Search Product, Account, Description" />
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
+      <MaintenanceFilterCard filters={filters} searchPlaceholder={t("search.transaction")} />
 
       <DataTable
         columns={columns}
@@ -52,7 +57,7 @@ export default function TransactionMaintenancePage() {
         rows={rows}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage={filters.processSelected ? "No data found. Please adjust your search criteria and try again." : "Select a process to view the records."}
+        emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}
       />
     </div>
   );

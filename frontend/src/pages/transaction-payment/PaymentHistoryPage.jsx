@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { Download, History, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
+import { localizeBackend } from "@/i18n/backendMessages";
 import ExportPdfModal from "./ExportPdfModal.jsx";
 import { closingBalances, flowAmount, formatRate, parseHistoryParams } from "./paymentHistoryRules";
 import { fmt } from "./transactionPaymentRules";
@@ -12,16 +14,16 @@ const amountTone = (n) => (n > 0 ? "font-bold text-[#1d4ed8]" : n < 0 ? "font-bo
 
 // Column widths in %; Description takes what is left. Remark gets more room on narrower screens so it is never cut.
 const COLS = [
-  ["Date", "text-left", "w-[8%] max-[1250px]:w-[10.5%]"],
-  ["ID Product", "text-left", "w-[8.5%]"],
-  ["Currency", "text-center", "w-[6.5%]"],
-  ["Rate", "text-center", "w-[5%]"],
-  ["Win/Loss", "text-right", "w-[7%]"],
-  ["Cr/Dr", "text-right", "w-[8.5%]"],
-  ["Balance", "text-right", "w-[8.5%]"],
-  ["Description", "text-left", ""],
-  ["Remark", "text-center", "w-[12%] max-[1250px]:w-[16%]"],
-  ["Creater", "text-center", "w-[7.5%]"],
+  ["date", "text-left", "w-[8%] max-[1250px]:w-[10.5%]"],
+  ["idProduct", "text-left", "w-[8.5%]"],
+  ["currency", "text-center", "w-[6.5%]"],
+  ["rate", "text-center", "w-[5%]"],
+  ["winLoss", "text-right", "w-[7%]"],
+  ["crDr", "text-right", "w-[8.5%]"],
+  ["balance", "text-right", "w-[8.5%]"],
+  ["description", "text-left", ""],
+  ["remark", "text-center", "w-[12%] max-[1250px]:w-[16%]"],
+  ["creator", "text-center", "w-[7.5%]"],
 ];
 
 const TH =
@@ -35,6 +37,7 @@ const TD =
  * address (see openPaymentHistory); the rows from /api/transaction/history. The PDF button opens the export dialog.
  */
 export default function PaymentHistoryPage() {
+  const { t } = useTranslation("transaction");
   const routeAccount = decodeURIComponent(useParams().account ?? "");
   const [search] = useSearchParams();
   const request = useMemo(() => parseHistoryParams(search), [search]);
@@ -43,7 +46,7 @@ export default function PaymentHistoryPage() {
 
   const code = history.account?.accountId || routeAccount;
   const name = history.account?.name || code;
-  const title = `Payment History - ${name} (${code})`;
+  const title = t("history.title", { name, code });
   useEffect(() => {
     document.title = title;
   }, [title]);
@@ -77,9 +80,9 @@ export default function PaymentHistoryPage() {
               <Download className="size-[15px]" strokeWidth={2.3} />
               PDF
             </button>
-            <SoftButton onClick={() => window.close()} aria-label="Close" className="h-9 px-4 max-[900px]:px-3">
+            <SoftButton onClick={() => window.close()} aria-label={t("history.close")} className="h-9 px-4 max-[900px]:px-3">
               <X className="size-[15px]" strokeWidth={2.5} />
-              <span className="max-[900px]:hidden">Close</span>
+              <span className="max-[900px]:hidden">{t("history.close")}</span>
             </SoftButton>
           </div>
         </header>
@@ -88,7 +91,7 @@ export default function PaymentHistoryPage() {
           <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
             {history.error && (
               <div role="alert" className="flex-none border-b border-red-200 bg-red-50 px-3.5 py-2 text-[13px] font-medium text-dash-down">
-                {history.error}
+                {localizeBackend(history.error)}
               </div>
             )}
             <div className={cn("min-h-0 flex-1 overflow-auto transition-opacity [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]", history.loading && "opacity-60")}>
@@ -102,7 +105,7 @@ export default function PaymentHistoryPage() {
                   <tr>
                     {COLS.map(([name, align]) => (
                       <th key={name} className={cn(TH, align)}>
-                        {name}
+                        {t(`history.cols.${name}`)}
                       </th>
                     ))}
                   </tr>
@@ -112,7 +115,7 @@ export default function PaymentHistoryPage() {
                   {rows.map((r, i) =>
                     r.bf ? (
                       <tr key={r.key} className="bg-[rgba(214,230,250,0.92)] font-extrabold text-brand-navy">
-                        <td className={cn(TD, "text-left")}>B/F</td>
+                        <td className={cn(TD, "text-left")}>{t("history.bf")}</td>
                         <td className={cn(TD, "text-left")}>-</td>
                         <td className={cn(TD, "text-center")}>{r.currency}</td>
                         <td className={cn(TD, "text-center")}>-</td>
@@ -140,7 +143,7 @@ export default function PaymentHistoryPage() {
                   )}
                   {!history.loading && !history.error && !rows.length && (
                     <tr>
-                      <td colSpan={COLS.length} className={cn(TD, "text-center text-dash-sub")}>No records found</td>
+                      <td colSpan={COLS.length} className={cn(TD, "text-center text-dash-sub")}>{t("history.none")}</td>
                     </tr>
                   )}
                 </tbody>
@@ -149,15 +152,15 @@ export default function PaymentHistoryPage() {
             <div className="flex flex-none items-center justify-between gap-3 border-t border-[rgba(130,155,195,0.3)] bg-white/60 px-3.5 py-[7px] text-xs text-dash-sub">
               <span>
                 {history.loading ? (
-                  "Loading..."
+                  t("history.loading")
                 ) : (
                   <>
-                    Showing <b className="text-brand-navy">{rows.length}</b> records
+                    {t("history.showingBefore")}<b className="text-brand-navy">{rows.length}</b>{t("history.showingAfter")}
                   </>
                 )}
               </span>
               <span>
-                Closing balance
+                {t("history.closing")}
                 {closing.map(([currency, balance]) => (
                   <b key={currency} className={cn("ml-2", balance < 0 ? "text-[#dc2626]" : "text-brand-navy")}>
                     {closing.length > 1 && `${currency} `}

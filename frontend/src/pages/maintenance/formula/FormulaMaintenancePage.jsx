@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import Toast from "@/components/shared/Toast.jsx";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
+import { useTranslation } from "react-i18next";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { IconAction } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -18,18 +22,20 @@ const dash = (v) => v || "-";
 // Every cell stays on one line. Formula and Description are the columns that give way (with "..."
 // and the full text on hover) if the row is still wider than the card.
 const baseColumns = [
-  { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "account", label: "Account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
-  { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.currency) },
-  { key: "source", label: "Source", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.source) },
-  { key: "product", label: "Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
-  { key: "inputMethod", label: "Input Method", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
-  { key: "formula", label: "Formula", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
-  { key: "description", label: "Description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "no", label: "no", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+  { key: "process", label: "process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "account", label: "account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
+  { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.currency) },
+  { key: "source", label: "source", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.source) },
+  { key: "product", label: "product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
+  { key: "inputMethod", label: "inputMethod", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
+  { key: "formula", label: "formula", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
+  { key: "description", label: "description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
 ];
 
 export default function FormulaMaintenancePage() {
+  const { t } = useTranslation(["maintenance", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
@@ -49,10 +55,10 @@ export default function FormulaMaintenancePage() {
 
   const columns = useMemo(
     () => [
-      ...baseColumns,
+      ...baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })),
       {
         key: "action",
-        label: "Action",
+        label: t("cols.action"),
         sortable: false,
         className: "text-center",
         cellClassName: "whitespace-nowrap text-center",
@@ -60,13 +66,13 @@ export default function FormulaMaintenancePage() {
           <IconAction
             disabled={readOnly}
             onClick={() => setEditing(r)}
-            aria-label={readOnly ? "Read-only login" : "Edit formula"}
-            title={readOnly ? "Read-only login" : "Edit formula"}
+            aria-label={readOnly ? t("readOnly") : t("formula.editRow")}
+            title={readOnly ? t("readOnly") : t("formula.editRow")}
           />
         ),
       },
     ],
-    [readOnly]
+    [readOnly, t]
   );
 
   const canSelect = () => !readOnly;
@@ -77,25 +83,24 @@ export default function FormulaMaintenancePage() {
       list.reload();
     },
     noun: "formula",
+    push,
     label: (r) => [r.process, r.account, r.product].filter(Boolean).join(" "),
     onDeleted: () => setSelected(new Set()),
   });
 
-  const pageError = filters.error || list.error;
+  useErrorToasts(push, [
+    [filters.error, t("errors.processes")],
+    [list.error, t("errors.list"), list.reload],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <MaintenanceFilterCard
         filters={filters}
-        searchPlaceholder="Search Process, Account, Product"
+        searchPlaceholder={t("search.formula")}
         actions={<DeleteButton count={selectedRows.length} onClick={() => actions.requestDelete(selectedRows)} />}
       />
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
 
       <DataTable
         columns={columns}
@@ -107,13 +112,13 @@ export default function FormulaMaintenancePage() {
         canSelect={canSelect}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage={filters.processSelected ? "No data found. Please adjust your search criteria and try again." : "Select a process to view the records."}
+        emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}
       />
 
       {actions.dialogs}
 
       {editing && (
-        <FormulaEditModal row={editing} tenantId={tenantId} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => list.reload()} />
+        <FormulaEditModal row={editing} tenantId={tenantId} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => list.reload()} notify={push} />
       )}
     </div>
   );

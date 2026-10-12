@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useListScope } from "@/components/shared/list/useListScope";
 import { toIsoDate } from "@/lib/date";
 import { processOptions } from "@/pages/report/domain/domainReportRules";
@@ -21,6 +22,7 @@ export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId,
  * onChange runs when Group / Company, Process or the dates change, e.g. to clear a row selection.
  */
 export function useMaintenanceFilters({ onChange, dated = true } = {}) {
+  const { t } = useTranslation("report");
   // null = nothing picked yet: the user chooses All Process or one process before any list loads.
   const [processPick, setProcessPick] = useState(null);
   const [search, setSearch] = useState("");
@@ -40,7 +42,7 @@ export function useMaintenanceFilters({ onChange, dated = true } = {}) {
   const isGroupOwn = Boolean(tenantId) && scope.company === null;
 
   const { processes, error: processError } = useProcesses(tenantId);
-  const processChoices = useMemo(() => processOptions(processes, isGroupOwn), [processes, isGroupOwn]);
+  const processChoices = useMemo(() => processOptions(processes, isGroupOwn, t("allProcess")), [processes, isGroupOwn, t]);
   // A Group has no "All Process" option; a pick that no longer exists (other Group / Company) counts as none.
   const processSelected = processChoices.some((o) => o.value === processPick);
   const processId = processSelected ? processPick : null;

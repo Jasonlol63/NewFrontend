@@ -1,5 +1,9 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
+import Toast from "@/components/shared/Toast.jsx";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
+import { useTranslation } from "react-i18next";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
 import { useListScope } from "@/components/shared/list/useListScope";
@@ -24,15 +28,18 @@ import {
 
 const AMOUNT = "text-right tabular-nums";
 
-const columns = [
-  { key: "account", label: "Account", sortable: false, cellClassName: "font-extrabold whitespace-nowrap", render: (r) => r.accountCode },
-  { key: "name", label: "Name", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.name },
-  { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
-  { key: "win", label: "Win", sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${WIN_CLASS}`, render: (r) => formatAmount(r.win) },
-  { key: "lose", label: "Lose", sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${LOSE_CLASS}`, render: (r) => formatAmount(r.lose) },
+const baseColumns = [
+  { key: "account", label: "account", sortable: false, cellClassName: "font-extrabold whitespace-nowrap", render: (r) => r.accountCode },
+  { key: "name", label: "name", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.name },
+  { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
+  { key: "win", label: "win", sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${WIN_CLASS}`, render: (r) => formatAmount(r.win) },
+  { key: "lose", label: "lose", sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${LOSE_CLASS}`, render: (r) => formatAmount(r.lose) },
 ];
 
 export default function CustomerReportPage() {
+  const { t } = useTranslation(["report", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
+  const columns = useMemo(() => baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })), [t]);
   const [accountPick, setAccountPick] = useState("");
   const [currencyPick, setCurrencyPick] = useState(null);
   const [showAll, setShowAll] = useState(false);
@@ -45,7 +52,7 @@ export default function CustomerReportPage() {
   const { tenantId } = scope;
 
   const { rows: accounts } = useTenantList("/api/account", tenantId, { normalize: normalizeAccountRow });
-  const accountChoices = useMemo(() => accountOptions(accounts), [accounts]);
+  const accountChoices = useMemo(() => accountOptions(accounts, t("allAccounts")), [accounts, t]);
   const accountId = accountChoices.some((o) => o.value === accountPick) ? accountPick : "";
 
   const currencyCodes = useCurrencyOptions(tenantId ? [tenantId] : []);
@@ -69,19 +76,23 @@ export default function CustomerReportPage() {
   const rows = useMemo(() => report.rows.map(normalizeCustomerRow), [report.rows]);
 
   const totalRow = report.total && [
-    { span: 3, className: "text-right text-brand-navy", content: "Total:" },
+    { span: 3, className: "text-right text-brand-navy", content: t("totalColon") },
     { className: `${AMOUNT} ${WIN_CLASS}`, content: formatAmount(report.total.winAmount) },
     { className: `${AMOUNT} ${LOSE_CLASS}`, content: formatAmount(report.total.loseAmount) },
   ];
 
-  const pageError = scope.error || report.error;
+  useErrorToasts(push, [
+    [scope.error, t("errors.scope")],
+    [report.error, t("errors.report")],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <ReportFilterCard
         scope={scope}
         extraRows={
-          <FilterRow label="Currency:">
+          <FilterRow label={t("currency")}>
             {currencyCodes.length ? (
               <SegmentGroup
                 options={currencyOptions}
@@ -90,32 +101,26 @@ export default function CustomerReportPage() {
                 wrap onReorder={setCurrencyOrder}
               />
             ) : (
-              <span className="text-xs font-medium text-dash-faint">No currency available</span>
+              <span className="text-xs font-medium text-dash-faint">{t("noCurrency")}</span>
             )}
           </FilterRow>
         }
       >
-        <Field label="Account:">
+        <Field label={t("account")}>
           <DropdownSelect
             options={accountChoices}
             value={accountId}
             onChange={setAccountPick}
             searchable
-            searchPlaceholder="Search account"
-            ariaLabel="Account"
+            searchPlaceholder={t("searchAccount")}
+            ariaLabel={t("cols.account")}
           />
         </Field>
-        <Field label="Date Range:">
+        <Field label={t("dateRange")}>
           <DateRangePicker from={range.from} to={range.to} onChange={setRange} />
         </Field>
-        <FilterChip label="Show All" checked={showAll} onChange={setShowAll} />
+        <FilterChip label={t("showAll")} checked={showAll} onChange={setShowAll} />
       </ReportFilterCard>
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
 
       <DataTable
         columns={columns}
@@ -125,7 +130,7 @@ export default function CustomerReportPage() {
         rows={rows}
         totalRow={totalRow}
         minWidth="min-w-[560px]"
-        emptyMessage="No data found. Please adjust your search criteria and try again."
+        emptyMessage={t("empty")}
       />
     </div>
   );

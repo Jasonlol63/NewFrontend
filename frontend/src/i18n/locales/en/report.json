@@ -1,0 +1,31 @@
+{
+  "currency": "Currency:",
+  "noCurrency": "No currency available",
+  "account": "Account:",
+  "dateRange": "Date Range:",
+  "process": "Process:",
+  "showAll": "Show All",
+  "selectProcess": "Select process",
+  "searchProcess": "Search process",
+  "searchAccount": "Search account",
+  "allAccounts": "All Accounts",
+  "allProcess": "All Process",
+  "empty": "No data found. Please adjust your search criteria and try again.",
+  "cols": {
+    "account": "Account",
+    "name": "Name",
+    "currency": "Currency",
+    "process": "Process",
+    "turnover": "Turnover",
+    "win": "Win",
+    "lose": "Lose",
+    "winLose": "Win/Lose"
+  },
+  "total": "Total",
+  "totalColon": "Total:",
+  "errors": {
+    "scope": "Couldn't load the companies",
+    "processes": "Couldn't load the processes",
+    "report": "Couldn't load the report"
+  }
+}

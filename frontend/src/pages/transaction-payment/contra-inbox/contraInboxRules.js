@@ -69,4 +69,5 @@ export function totalsByCurrency(rows) {
   return [...totals];
 }
 
-export const rowLabel = (r) => `${typeLabel(r.type)} ${r.from || "—"} → ${r.to || "—"} · ${r.currency} ${money(r.amount)}`;
+// label: how the type is named (default: Contra); the modal passes the page-language one.
+export const rowLabel = (r, label = typeLabel) => `${label(r.type)} ${r.from || "—"} → ${r.to || "—"} · ${r.currency} ${money(r.amount)}`;

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { ArrowLeft, Download, ExternalLink, Eye, FileText, Loader2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { localizeBackend } from "@/i18n/backendMessages";
 import { postJson } from "@/lib/api";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
@@ -52,6 +54,7 @@ const dmy = (iso) => iso.split("-").reverse().join("/");
  * request: { tenantId, accountId, dateFrom, dateTo, currencyCodes } of the history page; account: { code, name }.
  */
 export default function ExportPdfModal({ open, onClose, request, account, member = false }) {
+  const { t } = useTranslation(["transaction", "common"]);
   const { codes: available, loading: loadingCurrencies, error: currencyError } = useAccountCurrencies(open, request.tenantId, request.accountId, member);
   const [range, setRange] = useState({ from: request.dateFrom, to: request.dateTo });
   // null = the history's own currencies until the user picks; then the list of picked codes.
@@ -94,8 +97,8 @@ export default function ExportPdfModal({ open, onClose, request, account, member
 
   // One request for every picked currency, then one table per currency that has rows.
   const generate = async () => {
-    if (!range.from || !range.to) throw new Error("Select a date range.");
-    if (!selected.length) throw new Error("Select at least one currency.");
+    if (!range.from || !range.to) throw new Error(t("pdf.errRange"));
+    if (!selected.length) throw new Error(t("pdf.errCurrency"));
     const body = await postJson(member ? MEMBER_HISTORY_URL : HISTORY_URL, {
       ...(member ? {} : { tenantId: request.tenantId }),
       accountId: request.accountId,
@@ -105,7 +108,7 @@ export default function ExportPdfModal({ open, onClose, request, account, member
     });
     const rows = (body.data?.history || []).map(normalizeHistoryRow);
     const sections = selected.map((currency) => ({ currency, rows: rows.filter((r) => r.currency === currency) })).filter((s) => s.rows.length);
-    if (!sections.length) throw new Error("No records found for the selected period and currencies.");
+    if (!sections.length) throw new Error(t("pdf.errNoRecords"));
     return buildHistoryPdf({
       sections,
       accountCode: account.code,
@@ -130,7 +133,7 @@ export default function ExportPdfModal({ open, onClose, request, account, member
       previewRef.current = { url, doc, pages: doc.getNumberOfPages() };
       setPreview(previewRef.current);
     } catch (err) {
-      setError(err.message || "Couldn't make the PDF. Try again.");
+      setError(err.message || t("pdf.errMake"));
     } finally {
       setBusy("");
     }
@@ -162,15 +165,15 @@ export default function ExportPdfModal({ open, onClose, request, account, member
                 {previewing ? <Eye className="size-5" strokeWidth={2.2} /> : <FileText className="size-5" strokeWidth={2.2} />}
               </div>
               <div className="min-w-0">
-                <Dialog.Title className="m-0 truncate text-base font-bold text-brand-navy">{previewing ? `Preview - ${title}` : title}</Dialog.Title>
+                <Dialog.Title className="m-0 truncate text-base font-bold text-brand-navy">{previewing ? t("pdf.previewTitle", { title }) : title}</Dialog.Title>
                 <div className="truncate text-xs text-[#64748b]">
                   {previewing
-                    ? `${selected.join(", ")} · ${dmy(range.from)} – ${dmy(range.to)} · ${preview.pages} ${preview.pages === 1 ? "page" : "pages"}`
+                    ? `${selected.join(", ")} · ${dmy(range.from)} – ${dmy(range.to)} · ${t("pdf.pages", { count: preview.pages })}`
                     : subtitle}
                 </div>
               </div>
             </div>
-            <Dialog.Close aria-label="Close" className="flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[#64748b] hover:bg-slate-100">
+            <Dialog.Close aria-label={t("common:close")} className="flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[#64748b] hover:bg-slate-100">
               <X className="size-[18px]" />
             </Dialog.Close>
           </div>
@@ -178,28 +181,28 @@ export default function ExportPdfModal({ open, onClose, request, account, member
           {previewing ? (
             <>
               <div className="min-h-0 flex-1 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-[#e5e7eb]">
-                <iframe title="PDF preview" src={preview.url} className="size-full border-0" />
+                <iframe title={t("pdf.frame")} src={preview.url} className="size-full border-0" />
               </div>
               <div className="mt-2.5 flex flex-none items-center justify-between gap-3">
                 <a href={preview.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#1d4ed8] hover:underline">
                   <ExternalLink className="size-3.5" />
-                  Open in a new tab
+                  {t("pdf.openTab")}
                 </a>
                 <div className="flex gap-2">
                   <button type="button" className={GHOST} onClick={dropPreview}>
                     <ArrowLeft className="size-4" />
-                    Back
+                    {t("pdf.back")}
                   </button>
                   <button type="button" className={SOLID} onClick={download}>
                     <Download className="size-4" />
-                    Download PDF
+                    {t("pdf.download")}
                   </button>
                 </div>
               </div>
             </>
           ) : (
             <>
-              <span className={LABEL}>Date range</span>
+              <span className={LABEL}>{t("pdf.dateRange")}</span>
               <DateRangePicker
                 from={range.from}
                 to={range.to}
@@ -210,43 +213,43 @@ export default function ExportPdfModal({ open, onClose, request, account, member
                 className="mb-3.5 h-[34px]! w-full! rounded-lg!"
               />
 
-              <span className={LABEL}>Currency</span>
+              <span className={LABEL}>{t("pdf.currency")}</span>
               <div className="mb-1.5 min-h-8">
                 {loadingCurrencies ? (
-                  <span className="text-xs font-medium text-dash-faint">Loading currencies...</span>
+                  <span className="text-xs font-medium text-dash-faint">{t("pdf.loadingCurrencies")}</span>
                 ) : available.length ? (
                   <SegmentGroup
                     wrap
                     itemClassName="px-3.5 py-1.5"
-                    leading={available.length > 1 ? [{ value: "ALL", label: "ALL" }] : []}
+                    leading={available.length > 1 ? [{ value: "ALL", label: t("filter.all") }] : []}
                     options={options}
                     value={allOn ? ["ALL", ...selected] : selected}
                     onChange={toggle}
                   />
                 ) : (
-                  <span className="text-xs font-medium text-dash-faint">No currency available</span>
+                  <span className="text-xs font-medium text-dash-faint">{t("pdf.noCurrency")}</span>
                 )}
               </div>
               <div className="mb-3.5 text-xs text-[#64748b]">
-                {selected.length === 1 ? "1 currency selected." : `${selected.length} currencies selected. Each one gets its own table in the PDF.`}
+                {t("pdf.selected", { count: selected.length })}
               </div>
 
               {(error || currencyError) && (
                 <div role="alert" className="mb-3.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[12.5px] text-dash-down">
-                  {error || currencyError}
+                  {error || localizeBackend(currencyError)}
                 </div>
               )}
 
               <div className="flex items-center justify-end gap-2.5 border-t border-[#e5e7eb] pt-3">
                 <div className="flex flex-none gap-2">
-                  <Dialog.Close className={GHOST}>Cancel</Dialog.Close>
+                  <Dialog.Close className={GHOST}>{t("common:cancel")}</Dialog.Close>
                   <button type="button" className={OUTLINE} disabled={Boolean(busy) || loadingCurrencies} onClick={() => run("preview")}>
                     {busy === "preview" ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
-                    {busy === "preview" ? "Generating..." : "Preview"}
+                    {busy === "preview" ? t("pdf.generating") : t("pdf.preview")}
                   </button>
                   <button type="button" className={SOLID} disabled={Boolean(busy) || loadingCurrencies} onClick={() => run("export")}>
                     {busy === "export" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                    {busy === "export" ? "Exporting..." : "Export PDF"}
+                    {busy === "export" ? t("pdf.exporting") : t("pdf.export")}
                   </button>
                 </div>
               </div>

@@ -1,5 +1,9 @@
 import { REALTIME_DOMAINS } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
+import Toast from "@/components/shared/Toast.jsx";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
+import { useTranslation } from "react-i18next";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -12,18 +16,21 @@ import { useMaintenanceList } from "../shared/useMaintenanceList";
 import { CAPTURE_DELETE_URL, CAPTURE_LIST_URL, filterCaptureRows, normalizeCaptureRow } from "./captureMaintenanceRules";
 
 // Every cell stays on one line; the text columns give way with "..." only when the row does not fit the card.
-const columns = [
-  { key: "no", label: "No.", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-  { key: "created", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-  { key: "product", label: "Product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
-  { key: "process", label: "Process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "currency", label: "Currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
-  { key: "wlGroup", label: "W/L Group", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
-  { key: "createdBy", label: "Submitted By", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
-  { key: "deletedBy", label: "Deleted By", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.deletedBy || "-" },
+const baseColumns = [
+  { key: "no", label: "no", sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+  { key: "created", label: "dtsCreated", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
+  { key: "product", label: "product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
+  { key: "process", label: "process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
+  { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
+  { key: "wlGroup", label: "wlGroup", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
+  { key: "createdBy", label: "submittedBy", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
+  { key: "deletedBy", label: "deletedBy", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.deletedBy || "-" },
 ];
 
 export default function CaptureMaintenancePage() {
+  const { t } = useTranslation(["maintenance", "common", "transaction"]);
+  const { toasts, push, dismiss } = useNotice(5000);
+  const columns = useMemo(() => baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })), [t]);
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
@@ -41,25 +48,24 @@ export default function CaptureMaintenancePage() {
       captures.reload();
     },
     noun: "capture",
+    push,
     label: (r) => `${r.process} ${r.created}`,
     onDeleted: () => setSelected(new Set()),
   });
 
-  const pageError = filters.error || captures.error;
+  useErrorToasts(push, [
+    [filters.error, t("errors.processes")],
+    [captures.error, t("errors.list"), captures.reload],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <MaintenanceFilterCard
         filters={filters}
-        searchPlaceholder="Search Process, Product, Currency"
+        searchPlaceholder={t("search.capture")}
         actions={<DeleteButton count={selectedRows.length} onClick={() => actions.requestDelete(selectedRows)} />}
       />
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
 
       <DataTable
         columns={columns}
@@ -73,7 +79,7 @@ export default function CaptureMaintenancePage() {
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage={filters.processSelected ? "No data found. Please adjust your search criteria and try again." : "Select a process to view the records."}
+        emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}
       />
 
       {actions.dialogs}

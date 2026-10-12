@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 import ReportFilterCard, { Field } from "@/pages/report/shared/ReportFilterCard.jsx";
@@ -11,27 +12,28 @@ import ReportFilterCard, { Field } from "@/pages/report/shared/ReportFilterCard.
  * With no `range` the Date Range is left out; `extraRows` go under Company (Currency).
  */
 export default function MaintenanceFilterCard({ filters, searchPlaceholder, actions, field, extraRows }) {
+  const { t } = useTranslation("maintenance");
   const { scope, isGroupOwn, processChoices, processId, range } = filters;
 
   const first =
     field ??
     (processChoices && (
-      <Field label="Process:">
+      <Field label={t("filter.process")}>
         <DropdownSelect
           options={processChoices}
           value={processId}
           onChange={filters.setProcessPick}
-          placeholder="Select process"
+          placeholder={t("filter.selectProcess")}
           clearable
           searchable={!isGroupOwn}
-          searchPlaceholder="Search process"
-          ariaLabel="Process"
+          searchPlaceholder={t("filter.searchProcess")}
+          ariaLabel={t("filter.process")}
         />
       </Field>
     ));
 
   const dates = range && (
-    <Field label="Date Range:">
+    <Field label={t("filter.dateRange")}>
       <DateRangePicker from={range.from} to={range.to} onChange={filters.setRange} />
     </Field>
   );

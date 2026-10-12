@@ -1,5 +1,9 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
 import { useMemo, useState } from "react";
+import Toast from "@/components/shared/Toast.jsx";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
+import { useTranslation } from "react-i18next";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
 import { DeleteButton } from "@/components/shared/list/ListToolbar.jsx";
@@ -21,19 +25,22 @@ import {
 const dash = (v) => v || "-";
 
 // Every cell stays on one line; only Description may end in "..." when the row is wider than the card.
-const columns = [
-  { key: "no", label: "No.", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-  { key: "createdAt", label: "Dts Created", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
-  { key: "account", label: "Account", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.account },
-  { key: "from", label: "From", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.from) },
-  { key: "amount", label: "Amount", sortable: false, className: "pl-2 text-right", cellClassName: "text-right whitespace-nowrap tabular-nums", render: (r) => r.amount },
-  { key: "description", label: "Description", sortable: false, fit: true, fitMax: 230, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
-  { key: "remark", label: "Remark", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
-  { key: "createdBy", label: "Submitted By", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.createdBy) },
-  { key: "deletedBy", label: "Deleted By", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.deletedBy) },
+const baseColumns = [
+  { key: "no", label: "no", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+  { key: "createdAt", label: "dtsCreated", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => <DateText value={r.createdAt} variant="gradient" separator="/" /> },
+  { key: "account", label: "account", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.account },
+  { key: "from", label: "from", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.from) },
+  { key: "amount", label: "amount", sortable: false, className: "pl-2 text-right", cellClassName: "text-right whitespace-nowrap tabular-nums", render: (r) => r.amount },
+  { key: "description", label: "description", sortable: false, fit: true, fitMax: 230, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "remark", label: "remark", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.remark) },
+  { key: "createdBy", label: "submittedBy", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.createdBy) },
+  { key: "deletedBy", label: "deletedBy", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.deletedBy) },
 ];
 
 export default function BankProcessMaintenancePage() {
+  const { t } = useTranslation(["maintenance", "common", "transaction"]);
+  const { toasts, push, dismiss } = useNotice(5000);
+  const columns = useMemo(() => baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })), [t]);
   const user = useCurrentUser();
   const readOnly = Boolean(user?.readOnly);
   const [selected, setSelected] = useState(() => new Set());
@@ -59,26 +66,25 @@ export default function BankProcessMaintenancePage() {
       list.reload();
     },
     noun: "bank process",
+    push,
     label: (r) => `${r.account} ${r.amount}`,
     onDeleted: clearSelection,
   });
 
-  const pageError = filters.scope.error || list.error;
+  useErrorToasts(push, [
+    [filters.scope.error, t("errors.scope")],
+    [list.error, t("errors.list"), list.reload],
+  ]);
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <MaintenanceFilterCard
         filters={filters}
-        searchPlaceholder="Search Account, From, Description"
+        searchPlaceholder={t("search.bankProcess")}
         actions={<DeleteButton count={selectedRows.length} onClick={() => actions.requestDelete(selectedRows)} />}
         extraRows={<CurrencyFilterRow filters={filters} />}
       />
-
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">
-          {pageError}
-        </div>
-      )}
 
       <DataTable
         columns={columns}
@@ -92,7 +98,7 @@ export default function BankProcessMaintenancePage() {
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage="No data found. Please adjust your search criteria and try again."
+        emptyMessage={t("empty.noData")}
       />
 
       {actions.dialogs}

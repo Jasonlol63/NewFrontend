@@ -1,0 +1,84 @@
+{
+  "readOnly": "Read-only login",
+  "filter": {
+    "process": "Process:",
+    "selectProcess": "Select process",
+    "searchProcess": "Search process",
+    "dateRange": "Date Range:",
+    "currency": "Currency:",
+    "all": "All",
+    "noCurrency": "No currency available",
+    "transactionType": "Transaction Type:",
+    "transactionTypeLabel": "Transaction Type",
+    "allTypes": "All Types"
+  },
+  "search": {
+    "capture": "Search Process, Product, Currency",
+    "transaction": "Search Product, Account, Description",
+    "payment": "Search Account, Description",
+    "formula": "Search Process, Account, Product",
+    "bankProcess": "Search Account, From, Description"
+  },
+  "empty": {
+    "noData": "No data found. Please adjust your search criteria and try again.",
+    "pickProcess": "Select a process to view the records."
+  },
+  "cols": {
+    "no": "No.",
+    "dtsCreated": "Dts Created",
+    "createdAt": "Created At",
+    "product": "Product",
+    "process": "Process",
+    "currency": "Currency",
+    "wlGroup": "W/L Group",
+    "submittedBy": "Submitted By",
+    "deletedBy": "Deleted By",
+    "idProduct": "Id_Product",
+    "account": "Account",
+    "description": "Description",
+    "remark": "Remark",
+    "percent": "Percent",
+    "rate": "Rate",
+    "cr": "Cr",
+    "dr": "Dr",
+    "submitter": "Submitter",
+    "toAccount": "Account(To)",
+    "fromAccount": "Account(From)",
+    "amount": "Amount",
+    "deleter": "Deleter",
+    "source": "Source",
+    "inputMethod": "Input Method",
+    "formula": "Formula",
+    "action": "Action",
+    "from": "From"
+  },
+  "errors": {
+    "scope": "Couldn't load the companies",
+    "processes": "Couldn't load the processes",
+    "list": "Couldn't load the records",
+    "accounts": "Couldn't load the accounts"
+  },
+  "payment": {
+    "rateNote": "A RATE is deleted together with all its entries: both currencies, the Middle-Man and the fees."
+  },
+  "formula": {
+    "edit": "Edit Formula",
+    "editRow": "Edit formula",
+    "info": "Formula information",
+    "process": "Process",
+    "product": "Product",
+    "currency": "Currency",
+    "source": "Source %",
+    "account": "Account",
+    "selectAccount": "Select account",
+    "inputMethod": "Input Method",
+    "selectMethod": "Select input method",
+    "description": "Description",
+    "formulaCard": "Formula",
+    "hint": "Numbers, column letters and + - * / ( ) . $ [ ] , only. Letters can be kept or removed, but new ones can't be added.",
+    "copies": "If this formula is the source of copied formulas, the same changes are applied to the copies.",
+    "saving": "Saving...",
+    "saved": "Formula updated",
+    "notSaved": "Formula not saved"
+  }
+}

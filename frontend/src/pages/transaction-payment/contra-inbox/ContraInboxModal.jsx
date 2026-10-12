@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Inbox, Info, RefreshCw, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { formatDisplayDate } from "@/lib/date";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
@@ -50,15 +51,17 @@ function columnsFor(mode) {
 }
 
 function TypeTag({ type }) {
+  const { t } = useTranslation("transaction");
   const [bg, fg] = typeTone(type);
   return (
-    <span className="inline-flex h-[20px] items-center rounded-md px-2 text-[10.5px] font-extrabold tracking-[0.2px]" style={{ background: bg, color: fg }}>
-      {type}
+    <span className="inline-flex h-[20px] items-center rounded-md px-2 text-[10.5px] font-extrabold tracking-[0.2px] uppercase" style={{ background: bg, color: fg }}>
+      {t(`types.${type}`, { defaultValue: type })}
     </span>
   );
 }
 
 function AgoBadge({ days }) {
+  const { t } = useTranslation("transaction");
   const old = days > OLD_AFTER_DAYS;
   return (
     <span
@@ -67,12 +70,13 @@ function AgoBadge({ days }) {
         old ? "border-[#fca5a5] bg-[#fee2e2] text-[#991b1b]" : "border-[#f3d27a] bg-[#fef3c7] text-[#92400e]"
       )}
     >
-      {days}d back
+      {t("inbox.daysBack", { days })}
     </span>
   );
 }
 
 function RowButton({ tone, iconOnly, disabled, onClick, label }) {
+  const { t } = useTranslation("transaction");
   const Icon = tone === "approve" ? Check : X;
   return (
     <button
@@ -88,7 +92,7 @@ function RowButton({ tone, iconOnly, disabled, onClick, label }) {
       )}
     >
       {iconOnly && <Icon className="size-3.5" strokeWidth={2.6} />}
-      {!iconOnly && (tone === "approve" ? "Approve" : "Reject")}
+      {!iconOnly && (tone === "approve" ? t("inbox.approve") : t("inbox.reject"))}
     </button>
   );
 }
@@ -96,13 +100,15 @@ function RowButton({ tone, iconOnly, disabled, onClick, label }) {
 const presetClass =
   "inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-3 text-[12.5px] font-bold text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
 
-export default function ContraInboxModal({ inbox, onClose }) {
-  const { rows, loading, error: loadError, reload, approve, reject } = inbox;
+export default function ContraInboxModal({ inbox, onClose, notify }) {
+  const { t } = useTranslation(["transaction", "common"]);
+  const typeText = (type) => t(`types.${type}`, { defaultValue: typeLabel(type) });
+  const label = (r) => rowLabel(r, typeText);
+  const { rows, loading, reload, approve, reject } = inbox;
   const [filter, setFilter] = useState("ALL");
   const [selected, setSelected] = useState(() => new Set()); // nothing is ticked until the approver picks it
   const [rejecting, setRejecting] = useState(null); // the rows waiting for the Reject confirmation
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState({ text: "", error: false });
   const tableRef = useRef(null);
   const tableWidth = useWidth(tableRef);
   const mode = tableWidth >= 900 ? "full" : tableWidth >= 640 ? "mid" : tableWidth >= 520 ? "narrow" : "tiny";
@@ -126,12 +132,11 @@ export default function ContraInboxModal({ inbox, onClose }) {
   const run = async (action, list, done) => {
     if (busy || list.length === 0) return;
     setBusy(true);
-    setMessage({ text: "", error: false });
     try {
       await action(list);
-      setMessage({ text: done(list.length), error: false });
+      notify?.(done(list.length));
     } catch (err) {
-      setMessage({ text: err.message, error: true });
+      notify?.(t("inbox.failed"), "error", err.message);
     } finally {
       setSelected((prev) => {
         const next = new Set(prev);
@@ -141,15 +146,11 @@ export default function ContraInboxModal({ inbox, onClose }) {
       setBusy(false);
     }
   };
-  const approveRows = (list) => run(approve, list, (n) => `Approved ${n} ${n === 1 ? "transaction" : "transactions"}, posted to the books`);
-  const rejectRows = (list) => run(reject, list, (n) => `Rejected ${n} ${n === 1 ? "transaction" : "transactions"}`);
-  const refresh = () => {
-    setMessage({ text: "", error: false });
-    reload();
-  };
+  const approveRows = (list) => run(approve, list, (count) => t("inbox.approved", { count }));
+  const rejectRows = (list) => run(reject, list, (count) => t("inbox.rejected", { count }));
+  const refresh = () => reload();
 
-  const footerError = message.error || Boolean(loadError);
-  const footerNote = message.text || loadError || (loading ? "Loading…" : "");
+  const footerNote = loading ? t("inbox.loading") : "";
   const idle = busy || loading;
   const actionClass = "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1 @max-[479px]/main:w-11 @max-[479px]/main:flex-none @max-[479px]/main:px-0";
 
@@ -180,7 +181,7 @@ export default function ContraInboxModal({ inbox, onClose }) {
               <span className="text-[#534ab7]">{r.to || "—"}</span>
             </div>
             {(mode === "mid" || mode === "narrow") && <div className={subText}>{r.submittedBy} · {r.submittedAt}</div>}
-            {mode === "tiny" && <div className={subText}>{typeLabel(r.type)} · {r.submittedBy}</div>}
+            {mode === "tiny" && <div className={subText}>{typeText(r.type)} · {r.submittedBy}</div>}
           </td>
         );
       case "amount":
@@ -201,15 +202,15 @@ export default function ContraInboxModal({ inbox, onClose }) {
         return (
           <td key={key} className={cn(td, "text-left")}>
             <div className="truncate" title={r.description}>{r.description || "—"}</div>
-            <div className={subText} title={r.remark}>{r.remark ? `Remark: ${r.remark}` : "No remark"}</div>
+            <div className={subText} title={r.remark}>{r.remark ? t("inbox.remark", { remark: r.remark }) : t("inbox.noRemark")}</div>
           </td>
         );
       case "action":
         return (
           <td key={key} className={td}>
             <span className="inline-flex items-center gap-1.5">
-              <RowButton tone="approve" iconOnly={iconOnly} disabled={idle} label={`Approve ${rowLabel(r)}`} onClick={() => approveRows([r])} />
-              <RowButton tone="reject" iconOnly={iconOnly} disabled={idle} label={`Reject ${rowLabel(r)}`} onClick={() => setRejecting([r])} />
+              <RowButton tone="approve" iconOnly={iconOnly} disabled={idle} label={t("inbox.approveRow", { label: label(r) })} onClick={() => approveRows([r])} />
+              <RowButton tone="reject" iconOnly={iconOnly} disabled={idle} label={t("inbox.rejectRow", { label: label(r) })} onClick={() => setRejecting([r])} />
             </span>
           </td>
         );
@@ -224,7 +225,7 @@ export default function ContraInboxModal({ inbox, onClose }) {
         icon={Inbox}
         title={
           <span className="flex min-w-0 items-center gap-2.5">
-            <span className="min-w-0 truncate">Contra Inbox</span>
+            <span className="min-w-0 truncate">{t("inbox.title")}</span>
             <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[12px] leading-[22px] font-extrabold tracking-normal text-white">{rows.length}</span>
           </span>
         }
@@ -232,28 +233,28 @@ export default function ContraInboxModal({ inbox, onClose }) {
         onSave={() => approveRows(picked)}
         saveLabel={
           <>
-            <span className="@max-[479px]/main:hidden">Approve</span>
+            <span className="@max-[479px]/main:hidden">{t("inbox.approve")}</span>
             <span>({picked.length})</span>
           </>
         }
         saveDisabled={idle || picked.length === 0}
         headerExtra={
-          <SoftButton onClick={refresh} disabled={busy} title="Reload the inbox" aria-label="Refresh" className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+          <SoftButton onClick={refresh} disabled={busy} title={t("inbox.refreshTitle")} aria-label={t("inbox.refresh")} className="h-9 px-4 @max-[479px]/main:hidden modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
             <RefreshCw className="size-[15px]" strokeWidth={2.4} />
-            <span className="@max-[479px]/main:hidden">Refresh</span>
+            <span className="@max-[479px]/main:hidden">{t("inbox.refresh")}</span>
           </SoftButton>
         }
         footerStart={
           <span
-            role={footerError ? "alert" : "status"}
-            className={cn("mr-auto inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold @max-[599px]/main:basis-full", footerError ? "text-[#dc2626]" : "text-[#5b7196]")}
+            role="status"
+            className="mr-auto inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold text-[#5b7196] @max-[599px]/main:basis-full"
           >
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
             <span className="truncate">
               {footerNote ||
                 (totals.length ? (
                   <>
-                    Selected total:{" "}
+                    {t("inbox.selectedTotal")}{" "}
                     {totals.map(([cur, sum], i) => (
                       <span key={cur}>
                         {i > 0 && " · "}
@@ -262,7 +263,7 @@ export default function ContraInboxModal({ inbox, onClose }) {
                     ))}
                   </>
                 ) : (
-                  `${rows.length} ${rows.length === 1 ? "item" : "items"} awaiting approval`
+                  t("inbox.awaiting", { count: rows.length })
                 ))}
             </span>
           </span>
@@ -279,38 +280,38 @@ export default function ContraInboxModal({ inbox, onClose }) {
             )}
           >
             <X className="size-[15px]" strokeWidth={2.4} />
-            <span className="@max-[479px]/main:sr-only">Reject</span>
+            <span className="@max-[479px]/main:sr-only">{t("inbox.reject")}</span>
             <span className="@max-[479px]/main:hidden">({picked.length})</span>
           </button>
         }
         bodyClassName="flex flex-col"
       >
         <section className="flex flex-none flex-wrap items-center gap-2 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card modal-compact:py-1.5">
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">Type</span>
-          {["ALL", ...types].map((t) => (
+          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">{t("inbox.type")}</span>
+          {["ALL", ...types].map((ty) => (
             <button
-              key={t}
+              key={ty}
               type="button"
-              onClick={() => setFilter(t)}
-              className={cn(presetClass, t === activeFilter ? "border-[#7fb2ff] bg-[#dbeafe]" : "border-[#b9d3f5] bg-white/70 hover:bg-white")}
+              onClick={() => setFilter(ty)}
+              className={cn(presetClass, ty === activeFilter ? "border-[#7fb2ff] bg-[#dbeafe]" : "border-[#b9d3f5] bg-white/70 hover:bg-white")}
             >
-              {t === "ALL" ? "All" : typeLabel(t)}
-              <span className="font-semibold text-[#5b7196]">{t === "ALL" ? rows.length : rows.filter((r) => r.type === t).length}</span>
+              {ty === "ALL" ? t("inbox.all") : typeText(ty)}
+              <span className="font-semibold text-[#5b7196]">{ty === "ALL" ? rows.length : rows.filter((r) => r.type === ty).length}</span>
             </button>
           ))}
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 text-[12px] font-semibold text-[#92400e] @max-[639px]/main:hidden">
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
-            Nothing posts to the books until it is approved.
+            {t("inbox.note")}
           </span>
         </section>
 
         <FormCard
-          title="Pending approval"
+          title={t("inbox.pending")}
           className="min-h-[160px] flex-1"
           body={false}
           right={
             <CardCount>
-              {visible.length} {visible.length === 1 ? "item" : "items"} · {picked.length} selected
+              {t("inbox.items", { count: visible.length })} · {t("inbox.selectedCount", { count: picked.length })}
             </CardCount>
           }
         >
@@ -325,11 +326,11 @@ export default function ContraInboxModal({ inbox, onClose }) {
                 <thead>
                   <tr>
                     <th className={th}>
-                      <SelectBox label="Select all transactions" checked={state} onChange={(on) => setMany(visible, on)} />
+                      <SelectBox label={t("inbox.selectAll")} checked={state} onChange={(on) => setMany(visible, on)} />
                     </th>
-                    {columns.slice(1).map(([key, , head]) => (
+                    {columns.slice(1).map(([key]) => (
                       <th key={key} className={cn(th, key === "desc" && "text-left")}>
-                        {head}
+                        {t(`inbox.cols.${key}`)}
                       </th>
                     ))}
                   </tr>
@@ -338,7 +339,7 @@ export default function ContraInboxModal({ inbox, onClose }) {
                   {visible.map((r) => (
                     <tr key={r.id} className={cn("hover:bg-white/60", selected.has(r.id) && "bg-[rgba(219,234,254,0.45)]")}>
                       <td className={td}>
-                        <SelectBox label={`Select ${rowLabel(r)}`} checked={selected.has(r.id)} onChange={(on) => setMany([r], on)} />
+                        <SelectBox label={t("inbox.selectRow", { label: label(r) })} checked={selected.has(r.id)} onChange={(on) => setMany([r], on)} />
                       </td>
                       {columns.slice(1).map(([key]) => cellFor(key, r))}
                     </tr>
@@ -347,7 +348,7 @@ export default function ContraInboxModal({ inbox, onClose }) {
               </table>
             )}
             {visible.length === 0 && (
-              <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">{loading ? "Loading…" : "Nothing waiting for approval."}</p>
+              <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">{loading ? t("inbox.loading") : t("inbox.empty")}</p>
             )}
           </div>
         </FormCard>
@@ -356,11 +357,11 @@ export default function ContraInboxModal({ inbox, onClose }) {
       <DeleteDialog
         open={Boolean(rejecting)}
         onOpenChange={(open) => !open && setRejecting(null)}
-        names={(rejecting ?? []).map(rowLabel)}
+        names={(rejecting ?? []).map(label)}
         noun="transaction"
         verb="Reject"
         verbPast="rejected"
-        note="Rejected transactions are removed and never post to the books."
+        note={t("inbox.rejectNote")}
         onConfirm={() => {
           const list = rejecting;
           setRejecting(null);

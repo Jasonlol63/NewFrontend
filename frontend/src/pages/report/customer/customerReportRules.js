@@ -26,11 +26,11 @@ export function buildCustomerRequest({ tenantId, dateFrom, dateTo, accountId, cu
   };
 }
 
-// Account dropdown: All Accounts first, then the tenant's accounts by code.
-export function accountOptions(accounts) {
+// Account dropdown: All Accounts first (allLabel), then the tenant's accounts by code.
+export function accountOptions(accounts, allLabel = "All Accounts") {
   const sorted = [...accounts].sort((a, b) => a.accountId.localeCompare(b.accountId, undefined, { numeric: true }));
   return [
-    { value: "", label: "All Accounts" },
+    { value: "", label: allLabel },
     ...sorted.map((a) => ({ value: a.id, label: `${a.accountId} - ${a.name}` })),
   ];
 }

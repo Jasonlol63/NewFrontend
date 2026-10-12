@@ -84,6 +84,12 @@
     "deletedMany": "已删除 {{count}} 个{{noun}}"
   },
   "nouns": {
+    "records": "记录",
+    "capture": "采集记录",
+    "payment": "付款记录",
+    "formula": "公式",
+    "bank process": "银行合同",
+    "transaction": "交易",
     "row": "行",
     "domain": "域名",
     "domains": "域名",
@@ -103,10 +109,12 @@
     "bank balance": "银行余额"
   },
   "verbs": {
+    "Reject": "拒绝",
     "Delete": "删除",
     "Ungroup": "移出集团"
   },
   "verbsPast": {
+    "rejected": "拒绝",
     "deleted": "删除"
   },
   "list": {

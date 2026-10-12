@@ -18,7 +18,7 @@ import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
 import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
 import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
-import { useErrorToasts } from "../shared/useErrorToasts";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
 
 const EMPTY_FORM = { process: "", currency: "", remark: "" };

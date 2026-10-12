@@ -17,10 +17,10 @@ export function normalizeProcess(dto) {
 
 // The Group's own data reports its BANK processes; a company reports GAME ones and can also
 // ask for all of them ("All Process").
-export function processOptions(processes, isGroupOwn) {
+export function processOptions(processes, isGroupOwn, allLabel = "All Process") {
   const own = processes.filter((p) => (p.category === "BANK") === isGroupOwn);
   const list = own.map((p) => ({ value: p.id, label: p.label }));
-  return isGroupOwn ? list : [{ value: "", label: "All Process" }, ...list];
+  return isGroupOwn ? list : [{ value: "", label: allLabel }, ...list];
 }
 
 export function buildDomainRequest({ tenantId, dateFrom, dateTo, processId, isGroupOwn }) {

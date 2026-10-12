@@ -1,9 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { Inbox } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import Toast from "@/components/shared/Toast.jsx";
 import { useListScope } from "@/components/shared/list/useListScope";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useErrorToasts } from "@/hooks/useErrorToasts";
+import { useNotice } from "@/hooks/useNotice";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -25,6 +29,8 @@ import { useTenantCurrencies, useTransactionSearch } from "./useTransactionData"
  * to /api/transaction/submit and the list reloads after it.
  */
 export default function TransactionPaymentPage() {
+  const { t } = useTranslation(["transaction", "common"]);
+  const { toasts, push, dismiss } = useNotice(5000);
   const [filters, setFilters] = useState(() => {
     const today = toIsoDate(new Date());
     return { categories: new Set(), range: { from: today, to: today }, pills: {} };
@@ -82,10 +88,17 @@ export default function TransactionPaymentPage() {
   );
   const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range, currencies: shown });
 
-  const pageError = scope.error || currencyError || accountError || search.error;
+  useErrorToasts(push, [
+    [scope.error, t("errors.scope")],
+    [currencyError, t("errors.currencies")],
+    [accountError, t("errors.accounts")],
+    [search.error, t("errors.search"), reloadSearch],
+    [inbox.error, t("inbox.loadFailed"), reloadInbox],
+  ]);
 
   return (
-    <div className="flex min-h-full flex-col gap-(--gap) p-[clamp(10px,2dvh,18px)] [--gap:clamp(8px,1.5dvh,14px)]">
+    <div className="relative flex min-h-full flex-col gap-(--gap) p-[clamp(10px,2dvh,18px)] [--gap:clamp(8px,1.5dvh,14px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       {canApprove && (
         <div className="flex flex-none">
           <button
@@ -94,7 +107,7 @@ export default function TransactionPaymentPage() {
             className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 text-[13px] font-bold whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
           >
             <Inbox className="size-4" strokeWidth={2.2} />
-            Contra Inbox
+            {t("inbox.title")}
             {inbox.rows.length > 0 && (
               <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center text-[11px] leading-[18px] font-bold text-white">{inbox.rows.length}</span>
             )}
@@ -108,15 +121,12 @@ export default function TransactionPaymentPage() {
           scope={scope}
           currency={{ options: currencyOptions, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: setCurrencyOrder }}
         />
-        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} />
+        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} notify={push} />
       </div>
-      {pageError && (
-        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-medium text-dash-down">{pageError}</div>
-      )}
       <div className={cn("transition-opacity", search.loading && "opacity-60")}>
         <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} />
       </div>
-      {inboxOpen && <ContraInboxModal inbox={inbox} onClose={closeInbox} />}
+      {inboxOpen && <ContraInboxModal inbox={inbox} onClose={closeInbox} notify={push} />}
     </div>
   );
 }

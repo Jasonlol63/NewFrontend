@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import MultiSelectField from "@/components/shared/form-modal/MultiSelectField.jsx";
@@ -68,26 +70,28 @@ function Pill({ label, checked, onChange }) {
 
 /** Left top card: Category + Capture Date, the Show toggles, then Group ID / Company / Currency. */
 export default function FilterCard({ filters, onChange, scope, currency }) {
+  const { t } = useTranslation(["transaction", "common", "account"]);
   const { categories, range, pills } = filters;
   const wide = useMediaQuery("(min-width: 1700px)");
+  const categoryItems = useMemo(() => CATEGORY_ITEMS.map((c) => ({ value: c.value, label: t(`account:role.${c.value}`, { defaultValue: c.label }) })), [t]);
   return (
     <section className={cn("@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
       {/* Category and Capture Date always share one row. Big screens: the 330px date box with the preset column; below
           1700px the date box and its popup shrink (same layout, smaller). */}
       <div className="flex items-end gap-2.5">
         <div className="min-w-0 flex-1">
-          <span className={cn(LABEL, "mb-0.5 ml-0.5 block")}>Category</span>
+          <span className={cn(LABEL, "mb-0.5 ml-0.5 block")}>{t("filter.category")}</span>
           <MultiSelectField
-            items={CATEGORY_ITEMS}
+            items={categoryItems}
             selected={categories}
             onChange={(v) => onChange({ categories: v })}
-            placeholder="--Select All--"
-            searchPlaceholder="Search role"
+            placeholder={t("filter.categoryAll")}
+            searchPlaceholder={t("filter.categorySearch")}
             className="min-h-[30px]! rounded-lg! py-0.5!"
           />
         </div>
         <div className={cn("flex-none", wide ? "w-[330px]" : "w-[clamp(236px,15.5vw,290px)]")}>
-          <span className={cn(LABEL, "mb-0.5 ml-0.5 block")}>Capture Date</span>
+          <span className={cn(LABEL, "mb-0.5 ml-0.5 block")}>{t("filter.captureDate")}</span>
           <DateRangePicker
             small={!wide}
             align="end"
@@ -100,35 +104,35 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
       </div>
 
       <div className="flex gap-2">
-        {PILLS.map(({ key, label }) => (
-          <Pill key={key} label={label} checked={Boolean(pills[key])} onChange={(v) => onChange({ pills: { ...pills, [key]: v } })} />
+        {PILLS.map(({ key }) => (
+          <Pill key={key} label={t(`pills.${key}`)} checked={Boolean(pills[key])} onChange={(v) => onChange({ pills: { ...pills, [key]: v } })} />
         ))}
       </div>
       <div className="my-0.5 h-px bg-[rgba(130,155,195,0.3)]" />
 
       {scope.showGroups && (
-        <Row label="Group ID:">
+        <Row label={t("common:list.group")}>
           <Seg options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
         </Row>
       )}
       {scope.companyOptions.length > 0 && (
-        <Row label="Company:">
+        <Row label={t("common:list.company")}>
           <Seg options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
         </Row>
       )}
-      <Row label="Currency:" grow>
+      <Row label={t("filter.currency")} grow>
         {currency.options.length ? (
           <SegmentGroup
             wrap
             itemClassName="px-[11px] py-1"
-            leading={currency.options.length > 1 ? [{ value: "ALL", label: "ALL" }] : []}
+            leading={currency.options.length > 1 ? [{ value: "ALL", label: t("filter.all") }] : []}
             options={currency.options}
             value={currency.allOn ? ["ALL", ...currency.selected] : currency.selected}
             onChange={(v) => (v === "ALL" ? currency.onAll() : currency.onToggle(v))}
             onReorder={currency.onReorder}
           />
         ) : (
-          <span className="text-xs font-medium text-dash-faint">No currency available</span>
+          <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
         )}
       </Row>
     </section>

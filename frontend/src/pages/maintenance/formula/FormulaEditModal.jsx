@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Info, SquarePen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
-import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import {
   FORMULA_UPDATE_URL,
   INPUT_METHOD_OPTIONS,
@@ -28,11 +28,12 @@ const textareaClass =
  * visible). Mount it only while open.
  * row: the list row (normalizeFormulaRow); accounts: the company's active accounts ([{ id, accountId, name }]).
  * onSaved() runs after the API accepted the change, e.g. to reload the list (copies of a source formula change too).
+ * notify(message, level, detail): the toast of the page (hooks/useNotice push) for what a save did.
  */
-export default function FormulaEditModal({ row, tenantId, accounts, onClose, onSaved }) {
+export default function FormulaEditModal({ row, tenantId, accounts, onClose, onSaved, notify }) {
+  const { t } = useTranslation(["maintenance", "common", "capture"]);
   const [form, setForm] = useState(() => formFromRow(row));
   const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState("");
   const set = (key, value) => setForm((cur) => ({ ...cur, [key]: value }));
 
   // The row's own account stays pickable even when it is no longer active; an unknown Input Method shows as it is stored.
@@ -43,13 +44,10 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
     }
     return options;
   }, [accounts, row]);
-  const methodOptions = useMemo(
-    () =>
-      row.inputMethod && !INPUT_METHOD_OPTIONS.some((o) => o.value === row.inputMethod)
-        ? [{ value: row.inputMethod, label: row.inputMethod }, ...INPUT_METHOD_OPTIONS]
-        : INPUT_METHOD_OPTIONS,
-    [row.inputMethod]
-  );
+  const methodOptions = useMemo(() => {
+    const known = INPUT_METHOD_OPTIONS.map((o) => ({ value: o.value, label: t(`capture:summary.methods.${o.value}`, { defaultValue: o.label }) }));
+    return row.inputMethod && !known.some((o) => o.value === row.inputMethod) ? [{ value: row.inputMethod, label: row.inputMethod }, ...known] : known;
+  }, [row.inputMethod, t]);
 
   const canSave = isFormFilled(form) && isFormChanged(form, row) && !saving;
 
@@ -59,9 +57,10 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
     try {
       await postJson(FORMULA_UPDATE_URL, buildFormulaUpdateRequest({ tenantId, row, form }));
       await onSaved();
+      notify?.(t("formula.saved"));
       onClose();
     } catch (err) {
-      setFailure(err.message);
+      notify?.(t("formula.notSaved"), "error", err.message);
     } finally {
       setSaving(false);
     }
@@ -71,28 +70,28 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
     <>
       <FormModal
         icon={SquarePen}
-        title="Edit Formula"
+        title={t("formula.edit")}
         onClose={onClose}
         onSave={save}
-        saveLabel={saving ? "Saving..." : "Save"}
+        saveLabel={saving ? t("formula.saving") : t("common:save")}
         saveDisabled={!canSave}
         bodyClassName={cn(
           "grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] grid-rows-[minmax(0,1fr)]",
           "@max-[899px]/main:grid-cols-1 @max-[899px]/main:grid-rows-[max-content_max-content] @max-[899px]/main:content-start @max-[899px]/main:overflow-y-auto"
         )}
       >
-        <FormCard title="Formula information" bodyClassName="@container @max-[899px]/main:overflow-visible">
+        <FormCard title={t("formula.info")} bodyClassName="@container @max-[899px]/main:overflow-visible">
           <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 @max-[330px]:grid-cols-1 modal-compact:gap-y-2">
-            <Field label="Process" plain>
+            <Field label={t("formula.process")} plain>
               <TextInput value={row.process} title={row.process} readOnly tabIndex={-1} className={cn("uppercase", readOnlyClass)} />
             </Field>
-            <Field label="Product" plain>
+            <Field label={t("formula.product")} plain>
               <TextInput value={row.product} title={row.product} readOnly tabIndex={-1} className={cn("uppercase", readOnlyClass)} />
             </Field>
-            <Field label="Currency" plain>
+            <Field label={t("formula.currency")} plain>
               <TextInput value={row.currency} title={row.currency} readOnly tabIndex={-1} className={cn("uppercase", readOnlyClass)} />
             </Field>
-            <Field label="Source %">
+            <Field label={t("formula.source")}>
               <TextInput
                 value={form.source}
                 onChange={(e) => set("source", sourceAfterTyping(form.source, e.target.value))}
@@ -100,25 +99,25 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
                 autoComplete="off"
               />
             </Field>
-            <Field label="Account" optional className="col-span-full">
+            <Field label={t("formula.account")} optional className="col-span-full">
               <SelectField
                 value={form.accountId}
                 onChange={(v) => set("accountId", v)}
                 onClear={() => set("accountId", "")}
                 options={accountOptions}
-                placeholder="Select account"
+                placeholder={t("formula.selectAccount")}
               />
             </Field>
-            <Field label="Input Method" optional className="col-span-full">
+            <Field label={t("formula.inputMethod")} optional className="col-span-full">
               <SelectField
                 value={form.inputMethod}
                 onChange={(v) => set("inputMethod", v)}
                 onClear={() => set("inputMethod", "")}
                 options={methodOptions}
-                placeholder="Select input method"
+                placeholder={t("formula.selectMethod")}
               />
             </Field>
-            <Field label="Description" optional className="col-span-full">
+            <Field label={t("formula.description")} optional className="col-span-full">
               <TextInput
                 value={form.description}
                 onChange={(e) => set("description", e.target.value.toUpperCase())}
@@ -129,33 +128,24 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
           </div>
         </FormCard>
 
-        <FormCard title="Formula" bodyClassName="flex flex-col gap-2.5 @max-[899px]/main:overflow-visible modal-compact:gap-2">
+        <FormCard title={t("formula.formulaCard")} bodyClassName="flex flex-col gap-2.5 @max-[899px]/main:overflow-visible modal-compact:gap-2">
           <textarea
             value={form.formula}
             onChange={(e) => set("formula", formulaAfterTyping(form.formula, e.target.value))}
-            aria-label="Formula"
+            aria-label={t("formula.formulaCard")}
             spellCheck={false}
             autoComplete="off"
             className={cn(textareaClass, "@max-[899px]/main:min-h-[160px]")}
           />
           <p className="m-0 flex-none text-xs leading-snug text-[#64748b] modal-tiny:text-[11.5px]">
-            Numbers, column letters and + - * / ( ) . $ [ ] , only. Letters can be kept or removed, but new ones can't be added.
+            {t("formula.hint")}
           </p>
           <div className="flex flex-none items-start gap-1.5 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff]/90 px-2.5 py-[7px] text-[12.5px] leading-snug text-[#1e40af] modal-tiny:text-[12px]">
             <Info className="mt-0.5 size-3.5 flex-none" strokeWidth={2.2} />
-            <span>If this formula is the source of copied formulas, the same changes are applied to the copies.</span>
+            <span>{t("formula.copies")}</span>
           </div>
         </FormCard>
       </FormModal>
-
-      <StatusDialog
-        open={Boolean(failure)}
-        onOpenChange={(open) => !open && setFailure("")}
-        type="error"
-        title="Formula not saved"
-        description={failure}
-        confirmText="OK"
-      />
     </>
   );
 }

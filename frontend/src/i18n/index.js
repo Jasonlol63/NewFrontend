@@ -10,6 +10,9 @@ import enAccount from "./locales/en/account.json";
 import enOwnership from "./locales/en/ownership.json";
 import enProcess from "./locales/en/process.json";
 import enCapture from "./locales/en/capture.json";
+import enTransaction from "./locales/en/transaction.json";
+import enReport from "./locales/en/report.json";
+import enMaintenance from "./locales/en/maintenance.json";
 import enNotification from "./locales/en/notification.json";
 import zhCommon from "./locales/zh/common.json";
 import zhSidebar from "./locales/zh/sidebar.json";
@@ -21,6 +24,9 @@ import zhAccount from "./locales/zh/account.json";
 import zhOwnership from "./locales/zh/ownership.json";
 import zhProcess from "./locales/zh/process.json";
 import zhCapture from "./locales/zh/capture.json";
+import zhTransaction from "./locales/zh/transaction.json";
+import zhReport from "./locales/zh/report.json";
+import zhMaintenance from "./locales/zh/maintenance.json";
 import zhNotification from "./locales/zh/notification.json";
 
 export const LANGUAGES = ["en", "zh"];
@@ -39,13 +45,13 @@ function initialLanguage() {
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount, ownership: enOwnership, process: enProcess, capture: enCapture },
-    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount, ownership: zhOwnership, process: zhProcess, capture: zhCapture },
+    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount, ownership: enOwnership, process: enProcess, capture: enCapture, transaction: enTransaction, report: enReport, maintenance: enMaintenance },
+    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount, ownership: zhOwnership, process: zhProcess, capture: zhCapture, transaction: zhTransaction, report: zhReport, maintenance: zhMaintenance },
   },
   lng: initialLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account", "ownership", "process", "capture"],
+  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account", "ownership", "process", "capture", "transaction", "report", "maintenance"],
   interpolation: { escapeValue: false },
 });
 
