@@ -45,15 +45,15 @@ function CurrencyDonut({ rows, activeCode }) {
         ))}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <b className="text-[22px] leading-none font-bold text-dash-ink tabular-nums">{share.toFixed(1)}%</b>
-        <span className="mt-1 text-[10px] font-bold text-dash-sub uppercase">{activeCode}</span>
-        <span className="text-[9px] text-dash-faint">{t("breakdown.share")}</span>
+        <b className="text-heading leading-none font-semibold text-dash-ink tabular-nums">{share.toFixed(1)}%</b>
+        <span className="mt-1 text-[0.6875rem] font-semibold text-dash-sub uppercase">{activeCode}</span>
+        <span className="text-[0.6875rem] text-dash-faint">{t("breakdown.share")}</span>
       </div>
     </div>
   );
 }
 
-const TH = "border-b border-slate-200 pb-2 font-bold";
+const TH = "border-b border-slate-200 pb-2 font-medium";
 const TD = "py-[7px] group-hover:bg-slate-50";
 
 export default function CurrencyBreakdownCard({ breakdown, currency, loading }) {
@@ -81,21 +81,21 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
     >
       <div className="mb-4 short:mb-2 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="mb-1 text-[11px] font-bold tracking-wider text-[#374151]">
+          <div className="mb-1 text-caption font-medium tracking-wider text-[#374151]">
             {t("breakdown.netProfit", { currency: currency || "—" })}
           </div>
-          <div className="text-[28px] leading-tight font-bold tracking-tight text-dash-ink tabular-nums">
+          <div className="text-display leading-tight font-semibold tracking-tight text-dash-ink tabular-nums">
             {formatMoney(total)}
           </div>
-          <div className="mt-1 text-xs text-slate-500">{t("breakdown.includes")}</div>
+          <div className="mt-1 text-caption text-slate-500">{t("breakdown.includes")}</div>
         </div>
         <CurrencyDonut rows={rows} activeCode={currency} />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-        <table className="w-full border-separate border-spacing-0 text-[13px]">
+        <table className="w-full border-separate border-spacing-0 text-body">
           <thead className="sticky top-0 z-[1] bg-white">
-            <tr className="text-[10.5px] tracking-wider text-[#374151]">
+            <tr className="text-caption tracking-wider text-[#374151]">
               <th className={cn(TH, "text-left")}>{t("common:currency")}</th>
               <th className={cn(TH, "text-right")}>{t("breakdown.amount", { currency: currency || "—" })}</th>
               <th className={cn(TH, "text-right")}>{t("breakdown.original")}</th>
@@ -105,13 +105,13 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
           <tbody>
             {rows.map((r) => (
               <tr key={r.code} className={cn("group", r.code === currency && "[&>td]:bg-slate-50")}>
-                <td className={cn(TD, "rounded-l-lg pl-1 font-bold text-dash-ink")}>
+                <td className={cn(TD, "rounded-l-lg pl-1 font-medium text-dash-ink")}>
                   <span className="flex items-center gap-2">
                     <span className="size-2 rounded-full" style={{ background: currencyColor(r.code) }} />
                     {r.code}
                   </span>
                 </td>
-                <td className={cn(TD, "text-right font-bold text-dash-ink tabular-nums")}>{formatMoney(r.amount)}</td>
+                <td className={cn(TD, "text-right font-medium text-dash-ink tabular-nums")}>{formatMoney(r.amount)}</td>
                 <td className={cn(TD, "text-right text-dash-sub tabular-nums")}>
                   {r.code === currency ? "—" : formatMoney(r.originalAmount)}
                 </td>
@@ -120,7 +120,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-xs font-medium text-dash-faint">
+                <td colSpan={4} className="py-8 text-center text-caption font-medium text-dash-faint">
                   {loading ? t("common:loading") : t("breakdown.noData")}
                 </td>
               </tr>

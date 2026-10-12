@@ -357,7 +357,37 @@ body {
   }
   html {
     @apply font-sans;
+    font-size: 100%;
   }
+  /* Bigger screens raise the root size, so every rem value (text-*, p-*, gap-*, size-*) grows together;
+     below 1440 nothing changes. */
+  @media (min-width: 1440px) {
+    html { font-size: 106.25%; }
+  }
+  @media (min-width: 1920px) {
+    html { font-size: 112.5%; }
+  }
+  @media (min-width: 2400px) {
+    html { font-size: 125%; }
+  }
+}
+
+/* Type scale: use these instead of text-[12.5px] style one-offs. Sizes are rem so they follow the root size above.
+   caption: table headers, hints, badges    body: table cells, inputs    label: form labels, buttons, menu items
+   title: card / dialog titles              heading: page titles         display: KPI numbers */
+@theme {
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.45;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.45;
+  --text-title: 1rem;
+  --text-title--line-height: 1.35;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.1;
 }
 
 /* Add / Edit Formula dialog (pages/data-capture/FormulaDialog.jsx): every row lines up across the left and right

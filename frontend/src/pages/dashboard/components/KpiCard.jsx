@@ -28,17 +28,17 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
         <span className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.08)]">
           <Icon className="size-[18px]" strokeWidth={2.2} style={{ color }} />
         </span>
-        <span className="text-sm font-bold text-dash-ink">{label}</span>
+        <span className="text-label font-medium text-dash-ink">{label}</span>
       </div>
 
       <div className="relative flex flex-wrap items-center gap-2.5">
-        <span className="text-[28px] short:text-[24px] leading-none font-bold tracking-tight text-dash-ink tabular-nums">
+        <span className="text-display short:text-[1.5rem] leading-none font-semibold tracking-tight text-dash-ink tabular-nums">
           {hasValue ? formatMoney(value) : "—"}
         </span>
         {showDelta && (
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+              "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-caption font-medium",
               delta.up ? "bg-green-500/15 text-dash-up" : "bg-red-500/12 text-dash-down"
             )}
           >
@@ -48,10 +48,10 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
         )}
       </div>
 
-      <div className="relative min-h-[18px] text-[12.5px]">
+      <div className="relative min-h-[18px] text-body">
         {showDelta && (
           <>
-            <b className={cn("font-bold", delta.up ? "text-dash-up" : "text-dash-down")}>
+            <b className={cn("font-semibold", delta.up ? "text-dash-up" : "text-dash-down")}>
               {formatSignedMoney(delta.diff)}
             </b>{" "}
             <span className="text-dash-faint">{compareLabel}</span>

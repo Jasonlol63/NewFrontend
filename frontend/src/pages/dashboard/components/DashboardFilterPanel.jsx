@@ -58,7 +58,7 @@ export default function DashboardFilterPanel({
               wrap onReorder={onCurrencyReorder}
             />
           ) : (
-            <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
+            <span className="text-caption font-medium text-dash-faint">{t("filter.noCurrency")}</span>
           )}
         </FilterRow>
       </div>

@@ -12,7 +12,7 @@ const SERIES = [
   { key: "earnings", label: "Earnings", color: "#f59e0b" },
 ];
 
-const AXIS_TICK = { fontSize: 10.5, fill: "#94a3b8" };
+const AXIS_TICK = { fontSize: "0.6875rem", fill: "#94a3b8" };
 
 // Lines and fills draw in left to right when data first arrives, and glide to the new shape when
 // a filter changes. Skipped for people who ask their system for reduced motion.
@@ -22,8 +22,8 @@ const DRAW_MS = 1200;
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="min-w-[160px] rounded-lg border border-dash-line bg-white/95 px-3 py-2 text-xs shadow-[0_8px_20px_-6px_rgba(15,23,42,0.25)] backdrop-blur">
-      <div className="mb-1 font-bold text-dash-ink">{formatDisplayDate(payload[0].payload.date, "-")}</div>
+    <div className="min-w-[160px] rounded-lg border border-dash-line bg-white/95 px-3 py-2 text-caption shadow-[0_8px_20px_-6px_rgba(15,23,42,0.25)] backdrop-blur">
+      <div className="mb-1 font-semibold text-dash-ink">{formatDisplayDate(payload[0].payload.date, "-")}</div>
       {payload.map((item) => (
         <div key={item.dataKey} className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5 text-dash-sub">
@@ -76,7 +76,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
       )}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-dash-ink">{t("trend.title")}</h3>
+        <h3 className="text-title font-semibold text-dash-ink">{t("trend.title")}</h3>
         <div className="flex flex-wrap gap-4">
           {series.map((s) => (
             <button
@@ -84,7 +84,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
               type="button"
               onClick={() => toggle(s.key)}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 text-[12.5px] font-semibold text-[#374151] transition-opacity",
+                "flex cursor-pointer items-center gap-1.5 text-body font-medium text-[#374151] transition-opacity",
                 hidden.has(s.key) && "opacity-35"
               )}
             >
@@ -93,7 +93,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
             </button>
           ))}
         </div>
-        <span className="rounded-lg border border-dash-line bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-[#374151]">
+        <span className="rounded-lg border border-dash-line bg-slate-50 px-3 py-1.5 text-body font-medium text-[#374151]">
           {t("trend.range", { from: formatDisplayDate(dateFrom, "-"), to: formatDisplayDate(dateTo, "-") })}
         </span>
       </div>
