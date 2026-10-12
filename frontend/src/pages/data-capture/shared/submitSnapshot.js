@@ -202,3 +202,12 @@ export function loadCaptureSession() {
     return null;
   }
 }
+
+/** The copy is of no use once the summary was submitted. */
+export function clearCaptureSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}

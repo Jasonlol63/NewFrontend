@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "test": "node --test \"src/pages/data-capture/shared/**/*.test.js\"",
+    "test": "node --test \"src/pages/data-capture/shared/**/*.test.js\" \"src/pages/data-capture/summary/*.test.js\"",
     "preview": "vite preview"
   },
   "dependencies": {

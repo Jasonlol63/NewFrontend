@@ -24,7 +24,8 @@ Files: `frontend/src/pages/data-capture/` (split like Process: an entry page plu
 | `shared/dataCaptureRules.js` | Capture constants (sheet size, modes, date options, mock submitted list) |
 | `summary/DataCaptureSummaryPage.jsx` | The summary list (see "Summary page") |
 | `summary/FormulaDialog.jsx` | Add / Edit Formula dialog |
-| `summary/summaryRules.js` | Mock summary / captured data, `parseRate`, `rowAmount`, `capturedCells`, `evalFormula` |
+| `summary/summaryRules.js` | Row model (main / sub rows), rows from the captured sheet, delete, Submit check, the TEMPORARY example |
+| `summary/summaryMath.js` | Amount rules (Decimal): formula, `$n` / `[ID,n]` references, Source, Input Method, Rate, truncation, display; `summaryMath.test.js` |
 
 Design previews (plain HTML, open with Live Server): `docs/data-capture-preview.html`,
 `docs/data-capture-summary-preview.html` (summary + dialog, add `?frame=1` for the outer frame draft),
@@ -167,6 +168,22 @@ Not wired yet (no submit API); Back goes to `/data-capture`.
 
 1920x950, 1600x800, 1536x730, 1440x760, 1366x610, 1280x560, 1100x700. At 1100 wide the Account column truncates
 with an ellipsis; everything else is complete.
+
+### Behaviour (phase 1: everything but the API)
+
+- **Rows:** one main row per filled Id Product cell of the captured sheet (router state `table`); opened directly, an example.
+  A main row keeps its Id Product; a **sub row** (same Id Product, another account / formula) sits under it, numbered 1..n.
+  The "+" beside the Account fills an empty main row, or adds a sub row when the row already has an account.
+- **Source** is a multiplier (1, 2, 0.5), not a percent: amount = formula x Source, then the Input Method, then the Rate
+  (cut down to 8 decimals), and the stored / totalled amount is cut down to 6; the list shows half up to 2 decimals.
+- **Formula column** shows the `$n` references as the captured numbers; `$n` = column n of the row's own sheet row (data starts
+  at `$2`), `[ID,n]` = column n of another Id Product.
+- **In place:** double click Formula, Source or Rate Value (rows with an account); Enter / leaving saves, Escape drops.
+- **Rate bar:** Select All / None ticks the rows with an account; Submit writes the rate into the ticked rows and unticks them.
+- **Delete:** asks first; a sub row is removed, a main row is cleared (account, formula... but not the Id Product).
+- **Submit check:** a row with an account needs a valid formula, a currency and a known account; a COMM split goes in whole
+  (both legs or none); the total, half up to 2 decimals, must be within +-0.05. A refused row is highlighted.
+- A notice (top, goes by itself), a loading state on Refresh and an empty state (a captured sheet with no Id Product) are in.
 
 ## Add / Edit Formula dialog
 
