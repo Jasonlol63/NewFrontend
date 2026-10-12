@@ -11,7 +11,7 @@ import Toast from "@/components/shared/Toast.jsx";
 import { useNotice } from "@/hooks/useNotice";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
 import { SelectBox } from "@/components/shared/list/DataTable.jsx";
-import { earlyDatePresets, isEarlyBill, yearEndIso } from "./accountingDueRules";
+import { earlyDatePresets, isEarlyBill, todayIso } from "./accountingDueRules";
 import { contractLabel } from "./bankFormRules";
 import { useAccountingDue } from "./useAccountingDue";
 
@@ -91,7 +91,7 @@ const presetClass =
 export default function AccountingDueModal({ tenantId, readOnly, onClose, onChanged }) {
   const { t } = useTranslation(["process", "common"]);
   const { toasts, push, dismiss } = useNotice(5000);
-  const [earlyDate, setEarlyDate] = useState(yearEndIso);
+  const [earlyDate, setEarlyDate] = useState(todayIso);
   const { bills, loading, error: loadError, reload, post, skip } = useAccountingDue(tenantId, earlyDate);
   // Bills that did not load are an error toast (once per error).
   useEffect(() => {

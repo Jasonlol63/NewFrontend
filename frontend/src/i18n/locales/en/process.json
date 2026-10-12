@@ -344,7 +344,7 @@
       "addAria": "Add {{noun}}",
       "hintCountry": "Also creates a currency of that name",
       "hintBank": "Added under {{country}}",
-      "newPlaceholder": "NEW {{noun}}",
+      "newPlaceholder": "New {{noun}}",
       "add": "Add",
       "none": "None yet",
       "removeMode": "Click a name to remove it",

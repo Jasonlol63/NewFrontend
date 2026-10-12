@@ -248,9 +248,10 @@ export default function BankProcessView({ scope, readOnly }) {
       closeAdd();
       closeEdit();
       reload();
+      dueBills.refresh(); // a new / edited process can create a bill that is due at once
       push(editing ? t("bank.toast.updated") : t("bank.toast.added"));
     },
-    [closeAdd, closeEdit, reload, push, t, editRow]
+    [closeAdd, closeEdit, reload, dueBills.refresh, push, t, editRow]
   );
 
   const scoped = useMemo(

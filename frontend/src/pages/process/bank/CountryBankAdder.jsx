@@ -81,7 +81,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
           sideOffset={6}
           collisionPadding={8}
           style={width ? { width } : undefined}
-          className="z-50 max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-16px)] min-w-[260px] overflow-y-auto uppercase [&_input]:uppercase rounded-xl border border-dash-line bg-white p-3 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          className="z-50 max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-16px)] min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-3 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
         >
           <p className="m-0 text-[12.5px] font-bold text-brand-navy">{title}</p>
           {hint && <p className="m-0 mt-0.5 text-[11.5px] text-dash-sub">{hint}</p>}
@@ -97,8 +97,8 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                 }
               }}
               autoComplete="off"
-              placeholder={t("bank.adder.newPlaceholder", { noun: nounText.toUpperCase() })}
-              className="h-8 min-w-0 flex-1 uppercase"
+              placeholder={t("bank.adder.newPlaceholder", { noun: nounText })}
+              className="h-8 min-w-0 flex-1 uppercase placeholder:normal-case"
             />
             <button
               type="button"

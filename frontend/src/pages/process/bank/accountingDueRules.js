@@ -10,7 +10,7 @@ export const DUE_SKIP_URL = "/api/bank-process/accounting-due/skip";
 
 export const todayIso = () => toIsoDate(new Date());
 
-// Year End of this year (the default of the Early transaction date; the backend allows today up to this day).
+// Year End of this year (the last Early transaction date the backend allows; the default is today, so no early bills show).
 export const yearEndIso = () => `${new Date().getFullYear()}-12-31`;
 
 // Quick picks for the Early transaction date.
