@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Building2, Layers, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
@@ -15,9 +16,6 @@ import { COMPANY_TYPES, buildSettings, expiryOf, periodOf, priceFor, settingsPro
 // stays behind it) and only the layout below 700px wide stacks the two cards.
 
 const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
-const PERIOD_OPTIONS = PRICE_PERIODS.map((p) => ({ value: p.key, label: p.label }));
-// Only Owner / Partnership / Admin may pick No Expiry (the back end checks it too).
-const PERMANENT_OPTION = { value: NO_EXPIRY, label: "No Expiry Date" };
 
 /**
  * kind: "company" | "group"; code: its ID
@@ -28,8 +26,9 @@ const PERMANENT_OPTION = { value: NO_EXPIRY, label: "No Expiry Date" };
  * onSave(settings, expiryDate) / onClose(). Mount it only while open.
  */
 export default function SettingsModal({ kind, code, saved, fallbackDate, prices, accounts, canPermanent, onClose, onSave }) {
+  const { t } = useTranslation("domain");
   const isCompany = kind === "company";
-  const kindLabel = isCompany ? "Company" : "Group";
+  const kindLabel = t(`settings.kind_${kind}`);
   const [initial] = useState(() => saved ?? buildSettings(kind));
   const [s, setS] = useState(initial);
 
@@ -43,14 +42,16 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
   const summary = shareSummary(price, s.departments);
   const expiry = expiryOf(s) || fallbackDate || "-";
   const problem = settingsProblem(kind, s, summary, price);
-  const periodOptions = canPermanent ? [...PERIOD_OPTIONS, PERMANENT_OPTION] : PERIOD_OPTIONS;
+  // Only Owner / Partnership / Admin may pick No Expiry (the back end checks it too).
+  const PERIOD_OPTIONS = PRICE_PERIODS.map((p) => ({ value: p.key, label: t(`period.${p.key}`) }));
+  const periodOptions = canPermanent ? [...PERIOD_OPTIONS, { value: NO_EXPIRY, label: t("settings.noExpiryDate") }] : PERIOD_OPTIONS;
   // The eligible accounts, plus any already on a row (so a saved share never loses its account from the list).
   const shareAccounts = [...new Set([...accounts, ...Object.values(s.departments).flat().map((r) => r.account).filter(Boolean)])];
 
   return (
     <FormModal
       icon={isCompany ? Building2 : Layers}
-      title={`${kindLabel} Settings`}
+      title={t(`settings.title_${kind}`)}
       onClose={onClose}
       onSave={() => onSave(s, expiryOf(s) || fallbackDate || "")}
       saveDisabled={Boolean(problem)}
@@ -68,7 +69,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
           className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] text-[#c0392b] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1"
         >
           <RotateCcw className="size-[14px]" strokeWidth={2.4} />
-          Reset
+          {t("settings.reset")}
         </SoftButton>
       }
       bodyClassName={cn(
@@ -76,27 +77,27 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
         "@max-[699px]/main:grid-cols-1 @max-[699px]/main:grid-rows-[max-content_max-content] @max-[699px]/main:content-start @max-[699px]/main:overflow-y-auto",
       )}
     >
-      <FormCard title={`${kindLabel} settings`} bodyClassName="flex flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
-        <Field label={`${kindLabel} ID`} plain>
+      <FormCard title={t(`settings.card_${kind}`)} bodyClassName="flex flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
+        <Field label={t(`settings.id_${kind}`)} plain>
           <TextInput value={code} readOnly tabIndex={-1} className={readOnlyClass} />
         </Field>
 
         <div className="grid grid-cols-2 gap-2.5 modal-tiny:gap-2">
-          <Field label="Start Date" as="div">
+          <Field label={t("settings.startDate")} as="div">
             <DateField value={s.startDate} onChange={(startDate) => set({ startDate })} />
           </Field>
-          <Field label="Period" as="div">
-            <SelectField value={s.period ?? ""} onChange={setPeriod} options={periodOptions} placeholder={s.currentExpiry ? "Keep expiry" : "Select Period"} />
+          <Field label={t("settings.period")} as="div">
+            <SelectField value={s.period ?? ""} onChange={setPeriod} options={periodOptions} placeholder={s.currentExpiry ? t("settings.keepExpiry") : t("settings.selectPeriod")} />
           </Field>
         </div>
-        <p className="m-0 -mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">Select the start date for calculating the expiration date.</p>
+        <p className="m-0 -mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">{t("settings.startHint")}</p>
 
-        <Field label="Expiration Date" plain>
+        <Field label={t("settings.expirationDate")} plain>
           <TextInput value={expiry} readOnly tabIndex={-1} className={cn(readOnlyClass, "text-center font-semibold tracking-[0.3px] tabular-nums")} />
         </Field>
 
         {isCompany && (
-          <Field label="Company type (Process List and Data Capture)" plain as="div">
+          <Field label={t("settings.companyType")} plain as="div">
             <div className="flex gap-1.5">
               {COMPANY_TYPES.map((type) => {
                 const on = s.type === type;
@@ -113,26 +114,23 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
                         : "border-[#9dbcf5] bg-white/60 text-brand-blue hover:bg-white/90",
                     )}
                   >
-                    {type}
+                    {t(`settings.type.${type}`)}
                   </button>
                 );
               })}
             </div>
-            <p className="m-0 mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">
-              Select the one option this company can access in Process List and Data Capture.
-            </p>
           </Field>
         )}
       </FormCard>
 
       <FormCard
-        title="Share"
+        title={t("settings.share")}
         right={
           <ToggleSwitch
             on={s.shareOn}
             onToggle={() => set({ shareOn: !s.shareOn })}
             disabled={s.period === NO_EXPIRY}
-            label={s.shareOn ? "On" : "Off"}
+            label={s.shareOn ? t("settings.on") : t("settings.off")}
             className="flex-row-reverse"
           />
         }

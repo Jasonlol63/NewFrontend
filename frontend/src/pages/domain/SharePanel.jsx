@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { CalendarDays, Lock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
@@ -21,6 +22,7 @@ const PROFIT_COLOR = "#2f6fef";
  * The panel is disabled while Share is off (wrap it in a disabled fieldset).
  */
 export default function SharePanel({ kindLabel, period, price, departments, summary, accounts, onChange }) {
+  const { t } = useTranslation("domain");
   const [active, setActive] = useState(DEPARTMENTS[0].key);
   const activeIndex = DEPARTMENTS.findIndex((d) => d.key === active);
   const department = DEPARTMENTS[activeIndex];
@@ -48,24 +50,24 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
         {period ? (
           <>
             <span className="min-w-0 truncate">
-              {kindLabel} price for <b className="font-bold text-brand-navy">{period.label}</b>
+              <Trans t={t} i18nKey="share.priceFor" values={{ kind: kindLabel, period: t(`period.${period.key}`) }} components={{ b: <b className="font-bold text-brand-navy" /> }} />
             </span>
-            <b className="ml-auto flex-none font-bold tabular-nums text-brand-navy">{noPrice ? "Not set" : `${fmt(price)} · 100%`}</b>
+            <b className="ml-auto flex-none font-bold tabular-nums text-brand-navy">{noPrice ? t("share.notSet") : `${fmt(price)} · 100%`}</b>
           </>
         ) : (
-          <span>Pick a Period to set the share</span>
+          <span>{t("share.pickPeriod")}</span>
         )}
       </div>
 
       <div className="relative flex flex-none flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden rounded-xl border border-l-0 border-white/70 bg-[linear-gradient(100deg,rgba(255,255,255,0.62)_0%,rgba(214,232,255,0.55)_100%)] py-[13px] pr-4 pb-[17px] pl-[19px] modal-compact:py-2.5 modal-compact:pb-3.5 modal-snug:py-2 modal-snug:pb-3">
         <span className="absolute inset-y-0 left-0 w-[3px] bg-brand-blue" />
-        <b className="text-[18px] font-extrabold text-brand-navy modal-compact:text-[16px] modal-snug:text-[15px]">Profit</b>
+        <b className="text-[18px] font-extrabold text-brand-navy modal-compact:text-[16px] modal-snug:text-[15px]">{t("share.profit")}</b>
         <span className="flex min-w-0 items-center gap-1 text-[14px] font-bold text-brand-navy modal-compact:text-[13px]">
           {PROFIT_ACCOUNT}
           <Lock className="size-3.5 flex-none text-dash-faint" strokeWidth={2.4} />
         </span>
         <div className="ml-auto flex flex-none flex-col items-end leading-[1.15]">
-          <span className="text-[10.5px] font-semibold tracking-[0.3px] text-[#6b7fa5] modal-snug:hidden">TOTAL AMOUNT</span>
+          <span className="text-[10.5px] font-semibold tracking-[0.3px] text-[#6b7fa5] modal-snug:hidden">{t("share.totalAmount")}</span>
           <div className="flex items-baseline gap-2.5">
             <b
               className={cn(
@@ -90,7 +92,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
 
       <div
         role="tablist"
-        aria-label="Departments"
+        aria-label={t("share.departments")}
         style={{
           "--c": department.color,
           "--i": activeIndex,
@@ -115,22 +117,22 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
       >
         <span className="absolute inset-y-0 left-0 w-[3px] bg-(--c)" />
         <div className="flex flex-none items-center gap-2">
-          <b className="text-[14px] font-extrabold text-brand-navy">{department.label}</b>
-          <span className="min-w-0 truncate text-[11.5px] text-[#6b7fa5] @max-[599px]/main:hidden">Commission · amount per account</span>
+          <b className="text-[14px] font-extrabold text-brand-navy">{t(`department.${department.key}`)}</b>
+          <span className="min-w-0 truncate text-[11.5px] text-[#6b7fa5] @max-[599px]/main:hidden">{t("share.commission")}</span>
           <button
             type="button"
             disabled={noPrice || !rows.length || spent.pct <= 0}
             onClick={() => onChange(active, splitEqually(rows))}
             className="ml-auto flex-none cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-brand-blue hover:underline disabled:cursor-not-allowed disabled:text-dash-faint disabled:no-underline"
           >
-            Split equally
+            {t("share.splitEqually")}
           </button>
         </div>
 
         {rows.length > 0 && (
           <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] gap-2 px-1.5 @max-[479px]/main:hidden text-[10px] font-semibold tracking-[0.3px] text-[#6b7fa5]">
-            <span>ACCOUNT</span>
-            <span className="text-right">AMOUNT</span>
+            <span>{t("share.account")}</span>
+            <span className="text-right">{t("share.amount")}</span>
             <span className="text-right">%</span>
             <span />
           </div>
@@ -148,7 +150,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
               onRemove={() => removeRow(row.id)}
             />
           ))}
-          {!rows.length && <p className="m-0 flex-none py-1 text-[12px] text-[#8a96a8]">No accounts yet. Add one to share part of the price.</p>}
+          {!rows.length && <p className="m-0 flex-none py-1 text-[12px] text-[#8a96a8]">{t("share.noAccounts")}</p>}
           <button
             type="button"
             onClick={addRow}
@@ -156,12 +158,12 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
             className="flex h-9 flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#9dbcf5] bg-white/40 text-[13px] font-bold text-brand-blue transition-colors hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-8 modal-tiny:h-7"
           >
             <Plus className="size-3.5" strokeWidth={2.6} />
-            Add Account
+            {t("share.addAccount")}
           </button>
         </div>
 
         <div className="flex flex-none items-center justify-between border-t border-[rgba(130,155,195,0.25)] pt-1.5 text-[12px] text-[#41588a]">
-          <span>{department.label} total</span>
+          <span>{t("share.departmentTotal", { department: t(`department.${department.key}`) })}</span>
           <b className="font-bold tabular-nums text-brand-navy">
             {fmt(spent.amount)} · {pct2(spent.pct)}
           </b>
@@ -188,6 +190,7 @@ function ShareBar({ summary }) {
 // One department tab: a small card with its line at the left, its name and account count, its amount and share,
 // and a thin bar of its share. The picked one gets its colour in the background and a stronger line.
 function DepartmentTab({ department, total, on, onPick }) {
+  const { t } = useTranslation("domain");
   return (
     <button
       type="button"
@@ -207,8 +210,8 @@ function DepartmentTab({ department, total, on, onPick }) {
     >
       <span className={cn("absolute inset-y-0 left-0 w-[3px] bg-(--c) transition-opacity", on ? "opacity-100" : "opacity-50")} />
       <span className="flex min-w-0 items-baseline gap-[5px] text-[14.5px] font-extrabold whitespace-nowrap modal-compact:text-[13px] modal-roomy:text-[16px] modal-tall:text-[17px]">
-        {department.label}
-        <small className="text-[10.5px] font-semibold text-[#6b7fa5] modal-roomy:text-[11.5px] modal-snug:hidden">{total.count ? `${total.count} acc.` : "Not set"}</small>
+        {t(`department.${department.key}`)}
+        <small className="text-[10.5px] font-semibold text-[#6b7fa5] modal-roomy:text-[11.5px] modal-snug:hidden">{total.count ? t("share.accShort", { count: total.count }) : t("share.notSet")}</small>
       </span>
       <span className={cn("ml-auto flex items-baseline gap-1.5 whitespace-nowrap tabular-nums", total.count ? "text-brand-navy" : "text-[#8a96a8]")}>
         <b className="text-[17px] font-extrabold modal-compact:text-[13.5px] modal-roomy:text-[20px] modal-tall:text-[22px]">{fmt(total.amount)}</b>
@@ -226,6 +229,7 @@ function DepartmentTab({ department, total, on, onPick }) {
  * being typed in keeps exactly what was typed until it loses focus.
  */
 function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
+  const { t } = useTranslation("domain");
   const [edit, setEdit] = useState(null); // { field: "amount" | "pct", text }
 
   const shown = (field) => {
@@ -242,7 +246,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
   return (
     <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] items-center gap-2 @max-[479px]/main:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22px] rounded-[11px] border border-white/70 bg-white/50 px-1.5 py-1 hover:bg-white/70 modal-compact:py-0.5">
       <div className="min-w-0 @max-[479px]/main:col-span-2 @max-[479px]/main:row-start-1">
-        <SelectField value={row.account} onChange={(account) => onChange({ ...row, account })} options={options} placeholder="Select account" />
+        <SelectField value={row.account} onChange={(account) => onChange({ ...row, account })} options={options} placeholder={t("share.selectAccount")} />
       </div>
       <TextInput
         value={shown("amount")}
@@ -250,7 +254,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
         onBlur={() => setEdit(null)}
         inputMode="decimal"
         disabled={noPrice}
-        aria-label={`${row.account || "Account"} amount`}
+        aria-label={t("share.amountLabel", { account: row.account || t("share.accountFallback") })}
         className="px-2.5 text-right tabular-nums disabled:cursor-not-allowed disabled:opacity-60 @max-[479px]/main:row-start-2"
       />
       <div className="relative @max-[479px]/main:row-start-2">
@@ -259,7 +263,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
           onChange={(e) => type("pct", e.target.value)}
           onBlur={() => setEdit(null)}
           inputMode="decimal"
-          aria-label={`${row.account || "Account"} percentage`}
+          aria-label={t("share.percentageLabel", { account: row.account || t("share.accountFallback") })}
           className="pr-6 pl-2 text-right tabular-nums"
         />
         <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[11px] text-dash-faint">%</span>
@@ -267,7 +271,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`Remove ${row.account || "account"}`}
+        aria-label={t("share.removeAccount", { account: row.account || t("share.accountFallbackLower") })}
         className="grid size-[22px] flex-none cursor-pointer place-items-center @max-[479px]/main:col-start-3 @max-[479px]/main:row-start-1 rounded-md border-none bg-transparent p-0 text-[#8a98b0] hover:bg-[#ffe4e8] hover:text-[#d4566a]"
       >
         <X className="size-3.5" strokeWidth={2.6} />

@@ -62,7 +62,7 @@ export default function AutoRenewPage() {
   const [loadedKey, setLoadedKey] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [busyId, setBusyId] = useState(null);
-  const { notice, push, clear } = useNotice(5000, { stickyErrors: true });
+  const { toasts, push, dismiss } = useNotice(5000);
   const [confirm, setConfirm] = useState(null); // { row, action: "reject" | "undo" }
   const [ledger, setLedger] = useState({ accounts: [], shareAccounts: [] });
   const [tab, setTab] = useState("company");
@@ -114,7 +114,6 @@ export default function AutoRenewPage() {
   const decide = async (row, action) => {
     if (busyId != null) return;
     setBusyId(row.id);
-    clear();
     try {
       if (action === "approve") await approveRequest(row.id, periodCodeOf(row.periodKey), row.charge);
       else if (action === "reject") await rejectRequest(row.id);
@@ -273,7 +272,7 @@ export default function AutoRenewPage() {
 
   return (
     <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
-      <Toast notice={notice} onClose={clear} />
+      <Toast toasts={toasts} onClose={dismiss} />
       <AutoRenewFilterCard
         tab={tab}
         onTabChange={changeTab}

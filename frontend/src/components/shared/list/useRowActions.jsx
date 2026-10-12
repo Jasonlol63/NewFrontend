@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 
@@ -11,6 +12,7 @@ import StatusDialog from "@/components/shared/StatusDialog.jsx";
  *    to render once in the page.
  */
 export function useRowActions({ toggleStatus, deleteRows, noun = "item", label = (row) => row.id, note, onDeleted }) {
+  const { t } = useTranslation();
   const [pendingIds, setPendingIds] = useState(() => new Set());
   const [toDelete, setToDelete] = useState(null); // rows awaiting confirmation
   const [failure, setFailure] = useState(null); // { title, description }
@@ -20,7 +22,7 @@ export function useRowActions({ toggleStatus, deleteRows, noun = "item", label =
     try {
       await toggleStatus(row);
     } catch (err) {
-      setFailure({ title: "Status not changed", description: err.message });
+      setFailure({ title: t("rowActions.statusFailed"), description: err.message });
     } finally {
       setPendingIds((s) => {
         const next = new Set(s);
@@ -36,7 +38,7 @@ export function useRowActions({ toggleStatus, deleteRows, noun = "item", label =
     try {
       await deleteRows(rows);
     } catch (err) {
-      setFailure({ title: "Delete failed", description: err.message });
+      setFailure({ title: t("rowActions.deleteFailed"), description: err.message });
     }
     onDeleted?.();
   };
@@ -57,7 +59,7 @@ export function useRowActions({ toggleStatus, deleteRows, noun = "item", label =
         type="error"
         title={failure?.title}
         description={failure?.description}
-        confirmText="OK"
+        confirmText={t("ok")}
       />
     </>
   );

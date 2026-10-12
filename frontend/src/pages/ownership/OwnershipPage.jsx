@@ -46,7 +46,7 @@ export default function OwnershipPage() {
   const viewer = useCurrentUser();
   const readOnly = Boolean(viewer?.readOnly);
   const mayChangeReadOnly = canSetReadOnly(viewer?.role);
-  const { notice, push, clear } = useNotice(5500, { stickyErrors: true });
+  const { toasts, push, dismiss } = useNotice(5500);
   const [tab, setTab] = useState("ownership");
   const [picked, setPicked] = useState(null); // the Group chip, null = the first one
   const [openId, setOpenId] = useState(null); // tenantId of the card being managed
@@ -123,7 +123,7 @@ export default function OwnershipPage() {
 
   return (
     <div className="relative py-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] gap-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] text-[length:max(12px,clamp(10.14px,calc(2.07dvh_-_2.09px),13px))] xl-screen:px-7 xl-screen:py-[22px] xl-screen:gap-[18px] flex h-full min-h-[520px] flex-col">
-      <Toast notice={notice} onClose={clear} />
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex flex-none items-center gap-3 px-1">
         <SlideTabs
           options={TABS}

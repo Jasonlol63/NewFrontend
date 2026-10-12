@@ -4,7 +4,7 @@
   "newCount": "{{count}} 条新",
   "markAllRead": "全部标为已读",
   "empty": "暂无公告。",
-  "version": "版本 {{version}}",
+  "version": "Version {{version}}",
   "unread": "未读",
   "showMore": "展开",
   "showLess": "收起"

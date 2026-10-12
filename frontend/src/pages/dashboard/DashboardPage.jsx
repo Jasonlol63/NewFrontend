@@ -73,7 +73,7 @@ function resolveSelection(directory, saved, tenantId) {
 
 export default function DashboardPage() {
   const { t } = useTranslation(["dashboard", "common"]);
-  const { notice, push, clear } = useNotice(5000, { stickyErrors: true });
+  const { toasts, push, dismiss } = useNotice(5000);
   const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
   const { user, switchCompany } = useSession();
   const [switchError, setSwitchError] = useState("");
@@ -169,12 +169,13 @@ export default function DashboardPage() {
   // What went wrong is shown as a toast: the headline in the current language, the reason as the server gave it.
   useEffect(() => {
     if (pageError) push(t(switchError ? "errors.switch" : "errors.load"), "error", pageError);
-    else clear();
-  }, [pageError, switchError, push, clear, t]);
+    // one toast per new error (a language switch must not add another)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageError, switchError]);
 
   return (
     <div className="relative flex flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)] lg:h-full lg:min-h-[520px]">
-      <Toast notice={notice} onClose={clear} />
+      <Toast toasts={toasts} onClose={dismiss} />
       <DashboardFilterPanel
         dateRange={dateRange}
         onDateRangeChange={setDateRange}

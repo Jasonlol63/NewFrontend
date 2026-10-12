@@ -1,4 +1,5 @@
 import { Dialog } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import { drawFirst, drawLate } from "@/components/shared/StatusDialog.jsx";
 
 // Sizes scale continuously with the viewport (no breakpoints), so the dialog keeps the
@@ -42,8 +43,12 @@ function TrashIcon() {
  *  - irreversible: false drops the "can't be undone" line, for an action that can simply be done the other way round (Ungroup)
  */
 export default function DeleteDialog({ open, onOpenChange, names = [], noun = "item", note, verb = "Delete", verbPast = "deleted", irreversible = true, onConfirm }) {
+  const { t } = useTranslation();
   const count = names.length;
   const single = count === 1;
+  const nounText = t(`nouns.${noun}`, { defaultValue: noun });
+  const verbText = t(`verbs.${verb}`, { defaultValue: verb });
+  const verbPastText = t(`verbsPast.${verbPast}`, { defaultValue: verbPast });
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -55,20 +60,20 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
         >
           <TrashIcon />
           <Dialog.Title className="m-0 mb-1.5 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">
-            {single ? `${verb} ${noun}?` : `${verb} ${count} ${noun}s?`}
+            {single ? t("deleteDialog.titleOne", { verb: verbText, noun: nounText }) : t("deleteDialog.titleMany", { verb: verbText, count, noun: nounText })}
           </Dialog.Title>
           <Dialog.Description className="m-0 break-words text-[clamp(13px,1.8dvh,14px)] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
             {single ? (
               <>
-                Are you sure you want to {verb.toLowerCase()} <b>{names[0]}</b>?
+                {t("deleteDialog.confirmBefore", { verb: verbText.toLowerCase() })}<b>{names[0]}</b>{t("deleteDialog.confirmAfter")}
               </>
             ) : (
-              <>The {count} selected {noun}s will be {verbPast}.</>
+              <>{t("deleteDialog.many", { count, noun: nounText, verbPast: verbPastText })}</>
             )}
             {irreversible && (
               <>
                 <br />
-                This action can't be undone.
+                {t("deleteDialog.irreversible")}
               </>
             )}
             {note && (
@@ -80,14 +85,14 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
           </Dialog.Description>
           <div className="mt-(--gap) flex gap-2.5">
             <Dialog.Close className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
-              Cancel
+              {t("cancel")}
             </Dialog.Close>
             <button
               type="button"
               onClick={onConfirm}
               className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2"
             >
-              {verb}
+              {verbText}
             </button>
           </div>
         </Dialog.Content>

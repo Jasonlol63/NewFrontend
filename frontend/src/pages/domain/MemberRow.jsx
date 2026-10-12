@@ -1,4 +1,5 @@
 import { Check, ChevronDown, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { NO_GROUP } from "./domainFormRules";
@@ -23,6 +24,7 @@ export default function MemberRow({
   onSet,
   onRemove,
 }) {
+  const { t } = useTranslation("domain");
   const hasGroupChip = Boolean(groups);
   return (
     <div
@@ -42,7 +44,7 @@ export default function MemberRow({
             type="button"
             role="checkbox"
             aria-checked={picked}
-            aria-label={`Select ${code}`}
+            aria-label={t("form.selectCode", { code })}
             onClick={onPick}
             className={cn(
               "flex size-[18px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] p-0 text-white",
@@ -55,7 +57,7 @@ export default function MemberRow({
         <b className="text-[13px] font-bold text-brand-navy">{code}</b>
         {change && (
           <i
-            title={change === "new" ? "New: saved with Save" : "Changed: saved with Save"}
+            title={change === "new" ? t("form.newTip") : t("form.changedTip")}
             className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]"
           />
         )}
@@ -67,7 +69,7 @@ export default function MemberRow({
       {date ? (
         <span className="justify-self-center text-[12.5px] font-semibold tabular-nums whitespace-nowrap text-[#475569]">{date}</span>
       ) : (
-        <span className="justify-self-center text-[12.5px] font-medium whitespace-nowrap text-[#9aa7ba] italic">Not set</span>
+        <span className="justify-self-center text-[12.5px] font-medium whitespace-nowrap text-[#9aa7ba] italic">{t("form.notSet")}</span>
       )}
 
       <div className="flex items-center gap-3.5 justify-self-end modal-compact:gap-3 modal-tiny:gap-2.5">
@@ -76,13 +78,13 @@ export default function MemberRow({
           onClick={onSet}
           className="h-[30px] min-w-[62px] cursor-pointer rounded-[9px] border-none bg-brand-sweep px-[18px] text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:brightness-105 modal-compact:h-7 modal-compact:min-w-14 modal-compact:px-3.5 modal-tiny:h-[26px] modal-tiny:min-w-[52px] modal-tiny:px-3 modal-tiny:text-[12px]"
         >
-          Set
+          {t("form.set")}
         </button>
         <button
           type="button"
           onClick={onRemove}
-          aria-label={`Remove ${code}`}
-          title={`Remove ${code}`}
+          aria-label={t("form.removeCode", { code })}
+          title={t("form.removeCode", { code })}
           className="flex size-[26px] flex-none cursor-pointer items-center justify-center rounded-lg border border-[rgba(130,155,195,0.35)] bg-white/65 text-[#8a98b0] transition-colors hover:border-[#f5b9c2] hover:bg-[linear-gradient(180deg,#fff6f7_0%,#ffe4e8_100%)] hover:text-[#d4566a] modal-tiny:size-6"
         >
           <X className="size-3.5" strokeWidth={2.6} />
@@ -97,13 +99,14 @@ const chipBase =
 
 // The group of a company as a small chip; click it to move the company (or take it out of its group).
 function GroupChip({ group, groups, onMove, disabled, moved }) {
+  const { t } = useTranslation("domain");
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
           disabled={disabled}
-          title="Change group"
+          title={t("form.changeGroup")}
           className={cn(
             chipBase,
             group ? "bg-[#dbeafe] text-[#1d4ed8]" : "bg-white/70 font-semibold text-[#8a96a8]",
@@ -111,7 +114,7 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
             disabled ? "cursor-default" : "cursor-pointer hover:ring-2 hover:ring-[rgba(59,130,246,0.25)]"
           )}
         >
-          {group ? `Group ${group}` : "No group"}
+          {group ? t("form.groupName", { group }) : t("form.noGroup")}
           <ChevronDown className="size-[11px] opacity-70" strokeWidth={2.8} />
         </button>
       </DropdownMenu.Trigger>
@@ -123,7 +126,7 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
           className="z-50 flex min-w-[150px] flex-col gap-0.5 rounded-xl border border-modal-line bg-modal-float p-[5px] shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl"
         >
           {groups.length ? (
-            [{ value: NO_GROUP, label: "No group" }, ...groups.map((g) => ({ value: g.code, label: g.code }))].map((o) => {
+            [{ value: NO_GROUP, label: t("form.noGroup") }, ...groups.map((g) => ({ value: g.code, label: g.code }))].map((o) => {
               const on = (o.value === NO_GROUP ? "" : o.value) === group;
               return (
                 <DropdownMenu.Item
@@ -148,7 +151,7 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
             })
           ) : (
             <DropdownMenu.Item disabled className="flex min-h-[34px] items-center rounded-[9px] px-2.5 text-[13px] font-semibold text-[#8a96a8]">
-              No groups created
+              {t("form.noGroupsCreated")}
             </DropdownMenu.Item>
           )}
         </DropdownMenu.Content>

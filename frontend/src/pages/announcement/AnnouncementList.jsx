@@ -1,4 +1,5 @@
 import { Clock, Trash2, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { IconAction } from "@/components/shared/list/cells.jsx";
 import { RichContent } from "./RichText.jsx";
@@ -8,6 +9,7 @@ import { DEFAULT_LIST_TITLE, THANKS_LINE, versionOf } from "./announcementRules"
 export const DELETE_ACTION_CLASS = "text-[#dc2626] enabled:hover:bg-[#fee8e8]";
 
 function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
+  const { t } = useTranslation("announcement");
   const version = versionOf(a.content);
   return (
     <article
@@ -20,17 +22,17 @@ function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
       <header className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
           <h3 className="m-0 min-w-0 break-words text-[14.5px] font-extrabold tracking-[-0.2px] text-brand-navy">{a.title}</h3>
-          {version && <span className="rounded-full bg-[#e8f1ff] px-2.5 py-px text-[11px] font-bold text-[#0b4fd0]">Version {version}</span>}
+          {version && <span className="rounded-full bg-[#e8f1ff] px-2.5 py-px text-[11px] font-bold text-[#0b4fd0]">{t("page.version", { version })}</span>}
           {latest && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#e6f8ee] px-2.5 py-px text-[11px] font-bold text-[#15803d]">
               <i className="size-1.5 rounded-full bg-[#22c55e]" />
-              Latest
+              {t("page.latest")}
             </span>
           )}
         </div>
         <div className="flex flex-none items-center gap-0.5">
-          <IconAction title="Edit announcement" aria-label="Edit announcement" onClick={() => onEdit(a)} />
-          <IconAction icon={Trash2} className={DELETE_ACTION_CLASS} title="Delete announcement" aria-label="Delete announcement" onClick={() => onDelete(a)} />
+          <IconAction aria-label={t("page.editAria")} onClick={() => onEdit(a)} />
+          <IconAction icon={Trash2} className={DELETE_ACTION_CLASS} aria-label={t("page.deleteAria")} onClick={() => onDelete(a)} />
         </div>
       </header>
 
@@ -43,7 +45,7 @@ function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
       <footer className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11.5px] text-dash-sub">
         <span className="inline-flex items-center gap-1.5">
           <User className="size-3.5 text-dash-faint" strokeWidth={2.2} />
-          Created by {a.createdBy}
+          {t("page.createdBy", { name: a.createdBy })}
         </span>
         <span className="inline-flex items-center gap-1.5 tabular-nums">
           <Clock className="size-3.5 text-dash-faint" strokeWidth={2.2} />

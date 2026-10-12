@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Building2, Check, Globe, Layers, ListChecks, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { Field, PasswordInput, SelectField, SoftButton, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import MemberRow from "./MemberRow.jsx";
@@ -14,6 +17,7 @@ import {
   canSave,
   companyChange,
   countChanges,
+  isEmailValid,
   isSecondaryPasswordValid,
   normalizeCode,
   snapshotOf,
@@ -53,6 +57,7 @@ const addButton = cn(
  * readOnly: a read-only login (Save is off); saving: a save is running
  */
 export default function DomainFormModal({ mode = "add", domain, prices, accounts, canPermanent, canEditSecondary, readOnly, saving, onClose, onSave }) {
+  const { t } = useTranslation(["domain", "common"]);
   const isEdit = mode === "edit";
   const [initial] = useState(() => buildDraft(isEdit ? domain : null));
   const [owner, setOwner] = useState(initial.owner);
@@ -64,9 +69,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   const [groupInput, setGroupInput] = useState("");
   const [companyInput, setCompanyInput] = useState("");
   const [companyGroup, setCompanyGroup] = useState(NO_GROUP);
-  const [groupError, setGroupError] = useState("");
-  const [companyError, setCompanyError] = useState("");
-  const [notice, setNotice] = useState("");
+  const { toasts, push, dismiss } = useNotice(4000);
 
   // Set dialog: which group / company is open ({ kind, code } or null) and what was saved for each ("kind:code").
   const [settingsFor, setSettingsFor] = useState(null);
@@ -79,12 +82,6 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   const [picked, setPicked] = useState(() => new Set());
   const [target, setTarget] = useState(""); // "" = not chosen yet, NO_GROUP = take out of their group
 
-  useEffect(() => {
-    if (!notice) return undefined;
-    const timer = setTimeout(() => setNotice(""), 3200);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
   const setField = (key) => (e) => setOwner((o) => ({ ...o, [key]: e.target.value }));
   const setSecondary = (e) =>
     setOwner((o) => ({ ...o, secondaryPassword: e.target.value.replace(/\D/g, "").slice(0, SECONDARY_PASSWORD_LENGTH) }));
@@ -94,22 +91,23 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   const secondaryBad = showSecondary && owner.secondaryPassword.length > 0 && !isSecondaryPasswordValid(owner.secondaryPassword);
 
   const groupOptions = groups.length
-    ? [{ value: NO_GROUP, label: "No group" }, ...groups.map((g) => ({ value: g.code, label: g.code }))]
-    : [{ value: NO_GROUP, label: "No groups created" }];
+    ? [{ value: NO_GROUP, label: t("form.noGroup") }, ...groups.map((g) => ({ value: g.code, label: g.code }))]
+    : [{ value: NO_GROUP, label: t("form.noGroupsCreated") }];
 
   const addGroup = () => {
     const code = normalizeCode(groupInput);
-    if (!code) return setGroupError("Enter a Group ID");
-    if (groups.some((g) => g.code === code)) return setGroupError(`${code} is already added`);
-    setGroupError("");
+    if (!code) return push(t("form.enterGroup"), "error");
+    if (groups.some((g) => g.code === code)) return push(t("form.alreadyAdded", { code }), "error");
+    // A Group and a Company of one domain can not share a name.
+    if (companies.some((c) => c.code === code)) return push(t("form.usedByCompany", { code }), "error");
     setGroups((list) => [...list, { code, date: "" }]);
     setGroupInput("");
   };
   const addCompany = () => {
     const code = normalizeCode(companyInput);
-    if (!code) return setCompanyError("Enter a Company ID");
-    if (companies.some((c) => c.code === code)) return setCompanyError(`${code} is already added`);
-    setCompanyError("");
+    if (!code) return push(t("form.enterCompany"), "error");
+    if (companies.some((c) => c.code === code)) return push(t("form.alreadyAdded", { code }), "error");
+    if (groups.some((g) => g.code === code)) return push(t("form.usedByGroup", { code }), "error");
     setCompanies((list) => [...list, { code, group: companyGroup === NO_GROUP ? "" : companyGroup, date: "" }]);
     setCompanyInput("");
   };
@@ -138,7 +136,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   };
   const moveCompany = (code, group) => {
     setCompanies((list) => list.map((c) => (c.code === code ? { ...c, group } : c)));
-    setNotice(group ? `${code} moved to ${group}` : `${code} left its group`);
+    push(group ? t("form.movedTo", { code, group }) : t("form.leftGroup", { code }), "success");
   };
 
   const exitMulti = () => {
@@ -159,7 +157,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
     const count = picked.size;
     setCompanies((list) => list.map((c) => (picked.has(c.code) ? { ...c, group } : c)));
     exitMulti();
-    setNotice(`${count} ${count === 1 ? "company" : "companies"} ${group ? `moved to ${group}` : "taken out of their group"}`);
+    push(group ? t("form.bulkMoved", { count, group }) : t("form.bulkLeft", { count }), "success");
   };
 
   const saveSettings = (values, expiry) => {
@@ -169,6 +167,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
     if (kind === "group") setGroups(setDate);
     else setCompanies(setDate);
     setSettingsFor(null);
+    push(t(`toast.settingsSaved_${kind}`, { code }));
   };
 
   // One that is not saved yet just goes; a saved one asks first (Save is what removes it from the database).
@@ -189,12 +188,15 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
   const settingsStart = settingsFor && (settings[`${settingsFor.kind}:${settingsFor.code}`] ?? (settingsItem?.saved ? settingsFromTenant(settingsFor.kind, settingsItem.saved, accounts) : null));
 
   const changes = countChanges(base, { groups, companies });
-  const save = () => onSave?.({ owner, groups, companies, settings });
+  const save = () => {
+    if (!isEmailValid(owner.email)) return push(t("form.emailInvalid"), "error");
+    return onSave?.({ owner, groups, companies, settings });
+  };
 
   return (
     <FormModal
       icon={Globe}
-      title={isEdit ? "Edit Domain" : "Add Domain"}
+      title={isEdit ? t("form.edit") : t("form.add")}
       onClose={onClose}
       onSave={save}
       saveDisabled={!canSave(isEdit, owner) || readOnly || saving}
@@ -203,8 +205,8 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
         changes > 0 && (
           <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
-            {changes} unsaved change{changes === 1 ? "" : "s"}
-            <span className="font-medium text-[#8a96a8] @max-[899px]/main:hidden">applied when you press Save</span>
+            {t("form.unsaved", { count: changes })}
+            <span className="font-medium text-[#8a96a8] @max-[899px]/main:hidden">{t("form.applied")}</span>
           </p>
         )
       }
@@ -213,7 +215,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
         "@max-[899px]/main:grid-cols-1 @max-[899px]/main:grid-rows-[max-content_minmax(340px,auto)_minmax(340px,auto)] @max-[899px]/main:content-start @max-[899px]/main:overflow-y-auto"
       )}
     >
-      <FormCard title="Domain Information" className="col-span-full" bodyClassName="overflow-visible">
+      <FormCard title={t("form.info")} className="col-span-full" bodyClassName="overflow-visible">
         <div
           className={cn(
             "grid gap-3 modal-compact:gap-2.5 modal-tiny:gap-2",
@@ -223,7 +225,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
             "@max-[899px]/main:grid-cols-2"
           )}
         >
-          <Field label="Owner Code">
+          <Field label={t("form.ownerCode")}>
             <TextInput
               value={owner.ownerCode}
               onChange={setField("ownerCode")}
@@ -233,41 +235,40 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               className={cn("uppercase", isEdit && readOnlyClass)}
             />
           </Field>
-          <Field label="Name">
+          <Field label={t("form.name")}>
             <TextInput value={owner.name} onChange={setName} autoComplete="off" className="uppercase" />
           </Field>
-          <Field label="Email">
+          <Field label={t("form.email")}>
             <TextInput type="email" inputMode="email" value={owner.email} onChange={setField("email")} autoComplete="off" />
           </Field>
-          <Field label="Password" optional={isEdit}>
+          <Field label={t("form.password")} optional={isEdit}>
             <PasswordInput value={owner.password} onChange={setField("password")} />
           </Field>
           {showSecondary && (
-            <Field label="Secondary Password" optional={isEdit} as="div">
+            <Field label={t("form.secondary")} optional={isEdit} as="div">
               <PasswordInput
                 value={owner.secondaryPassword}
                 onChange={setSecondary}
                 inputMode="numeric"
-                placeholder="6 digits only"
+                placeholder={t("form.digitsOnly")}
                 aria-invalid={secondaryBad || undefined}
                 className={secondaryBad ? "border-[#ef4444] focus:border-[#ef4444] focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : undefined}
               />
               <p className={cn("m-0 mt-1 ml-0.5 text-[11px] modal-compact:hidden", secondaryBad ? "text-[#dc2626]" : "text-[#8a96a8]")}>
-                Must be exactly 6 digits (0-9)
+                {t("form.digitsHint")}
               </p>
             </Field>
           )}
         </div>
       </FormCard>
 
-      <FormCard title="Groups" right={<CardCount>{groups.length} added</CardCount>} bodyClassName="flex flex-col gap-2.5 overflow-hidden modal-compact:gap-2">
+      <FormCard title={t("form.groups")} right={<CardCount>{t("form.addedCount", { count: groups.length })}</CardCount>} bodyClassName="flex flex-col gap-2.5 overflow-hidden modal-compact:gap-2">
         <AddRow
-          label="Group ID"
-          placeholder="GROUP ID"
+          label={t("form.groupInput")}
+          placeholder={t("form.groupInput")}
           value={groupInput}
           onChange={setGroupInput}
           onAdd={addGroup}
-          error={groupError}
         />
         <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {groups.length ? (
@@ -275,16 +276,16 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               <MemberRow key={g.code} code={g.code} date={g.date} onSet={() => setSettingsFor({ kind: "group", code: g.code })} onRemove={() => askRemove("group", g.code)} />
             ))
           ) : (
-            <EmptyList icon={Layers} text="No groups added yet" />
+            <EmptyList icon={Layers} text={t("form.noGroupsYet")} />
           )}
         </div>
       </FormCard>
 
       <FormCard
-        title="Companies"
+        title={t("form.companies")}
         right={
           <>
-            <CardCount>{companies.length} added</CardCount>
+            <CardCount>{t("form.addedCount", { count: companies.length })}</CardCount>
             <SoftButton
               aria-pressed={multi}
               onClick={() => (multi ? exitMulti() : setMulti(true))}
@@ -294,7 +295,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               )}
             >
               <ListChecks className="size-[13px]" strokeWidth={2.4} />
-              Multiple Choice
+              {t("form.multiple")}
             </SoftButton>
           </>
         }
@@ -303,19 +304,19 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
         {multi ? (
           <div className="flex flex-none flex-wrap items-center gap-2 rounded-xl border border-[#cfe0fa] bg-[linear-gradient(90deg,#eaf3ff_0%,#f7fbff_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] modal-tiny:p-1.5 @min-[1100px]/main:flex-nowrap">
             <div className="flex flex-none items-center gap-2.5 text-[12.5px] text-brand-navy">
-              <b className="font-extrabold">{picked.size} selected</b>
+              <b className="font-extrabold">{t("form.selected", { count: picked.size })}</b>
               <button type="button" disabled={!companies.length} onClick={() => setPicked(new Set(companies.map((c) => c.code)))} className="cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-[#1d7bff] hover:underline disabled:cursor-not-allowed disabled:text-dash-faint">
-                All
+                {t("form.all")}
               </button>
               <button type="button" onClick={() => setPicked(new Set())} className="cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-[#1d7bff] hover:underline">
-                Clear
+                {t("form.clear")}
               </button>
             </div>
             <div className="max-w-[210px] min-w-[110px] flex-[1_1_130px]">
-              <SelectField value={target} onChange={setTarget} options={groupOptions} placeholder="Move to group…" />
+              <SelectField value={target} onChange={setTarget} options={groupOptions} placeholder={t("form.moveTo")} />
             </div>
             <SoftButton onClick={exitMulti} className={smallButton}>
-              Cancel
+              {t("common:cancel")}
             </SoftButton>
             <button
               type="button"
@@ -324,28 +325,22 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               className={cn(primaryButtonClass, smallButton, "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
             >
               <Check className="size-3.5" strokeWidth={2.5} />
-              {picked.size ? `Done (${picked.size})` : "Done"}
+              {picked.size ? t("form.doneCount", { count: picked.size }) : t("form.done")}
             </button>
           </div>
         ) : (
           <AddRow
-            label="Company ID"
-            placeholder="COMPANY ID"
+            label={t("form.companyInput")}
+            placeholder={t("form.companyInput")}
             value={companyInput}
             onChange={setCompanyInput}
             onAdd={addCompany}
-            error={companyError}
             extra={
-              <Field label="Group" optional className="max-w-[170px] flex-none basis-[170px]">
+              <Field label={t("form.companyGroup")} optional className="max-w-[170px] flex-none basis-[170px]">
                 <SelectField value={companyGroup} onChange={setCompanyGroup} options={groupOptions} />
               </Field>
             }
           />
-        )}
-        {notice && (
-          <p role="status" className="m-0 -mt-1 ml-0.5 flex-none text-[11.5px] font-semibold text-[#0f7a4f]">
-            {notice}
-          </p>
         )}
         <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {companies.length ? (
@@ -366,7 +361,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               />
             ))
           ) : (
-            <EmptyList icon={Building2} text="No companies added yet" />
+            <EmptyList icon={Building2} text={t("form.noCompaniesYet")} />
           )}
         </div>
       </FormCard>
@@ -383,18 +378,14 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
           onSave={saveSettings}
         />
       )}
+      <Toast toasts={toasts} onClose={dismiss} />
       <StatusDialog
         open={Boolean(removeAsk)}
         onOpenChange={(open) => !open && setRemoveAsk(null)}
         type="warning"
-        title={removeAsk ? `Remove ${removeAsk.code}?` : ""}
-        description={
-          removeAsk?.kind === "group"
-            ? "It is removed from this domain when you press Save. Its companies stay, in no group. Its account under C168 is kept."
-            : "It is removed from this domain when you press Save. Its account under C168 is kept."
-        }
-        confirmText="Remove"
-        cancelText="Cancel"
+        title={removeAsk ? t("form.removeTitle", { code: removeAsk.code }) : ""}
+        confirmText={t("form.remove")}
+        cancelText={t("common:cancel")}
         onConfirm={confirmRemove}
       />
     </FormModal>
@@ -403,7 +394,8 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
 
 // "Group ID [input] [Add]" with an optional extra control (the group of a new company) and an error line.
 // The labels go on short screens: the placeholders already say what each box is.
-function AddRow({ label, placeholder, value, onChange, onAdd, error, extra }) {
+function AddRow({ label, placeholder, value, onChange, onAdd, extra }) {
+  const { t } = useTranslation("domain");
   return (
     <div className="flex-none">
       <div className="flex items-end gap-2 modal-short:items-center modal-short:[&_label>span]:hidden">
@@ -423,14 +415,9 @@ function AddRow({ label, placeholder, value, onChange, onAdd, error, extra }) {
         {extra}
         <button type="button" onClick={onAdd} className={addButton}>
           <Plus className="size-[15px]" strokeWidth={2.5} />
-          Add
+          {t("form.add_button")}
         </button>
       </div>
-      {error && (
-        <p role="alert" className="m-0 mt-1 ml-0.5 text-[11px] font-medium text-[#dc2626]">
-          {error}
-        </p>
-      )}
     </div>
   );
 }

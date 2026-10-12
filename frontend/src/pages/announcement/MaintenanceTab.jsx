@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bell, Check, Clock, Info, LogOut, Trash2, User, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconAction } from "@/components/shared/list/cells.jsx";
@@ -8,18 +9,18 @@ import RichTextEditor, { RichContent } from "./RichText.jsx";
 import { DELETE_ACTION_CLASS } from "./AnnouncementList.jsx";
 import { hasText } from "./announcementRules";
 
-const SUBTITLE = "Banner shown to all users";
 // grows to take the free height, never shrinks below its content (the tab scrolls instead)
 const GROW = "flex-[1_0_auto]";
 
 // The yellow notice strip users see (also the preview while writing).
 function NoticeBanner({ prefix, content }) {
+  const { t } = useTranslation("announcement");
   return (
     <div className="flex gap-2.5 rounded-[14px] border border-[#f6d98b] bg-[#fff6dc] p-[clamp(12px,2dvh,16px)] text-[13px] leading-[1.55] text-notice-warn">
       <i className="mt-[7px] size-2 flex-none rounded-full bg-notice-warn-dot shadow-[0_0_0_3px_rgba(245,165,36,0.25)]" />
       <div className="min-w-0">
-        <b className={prefix.trim() ? "break-words" : "font-medium opacity-60"}>{prefix.trim() || "Prefix"}</b>
-        {hasText(content) ? <RichContent html={content} className="mt-0.5" /> : <p className="m-0 mt-0.5 opacity-60">The content you write appears here.</p>}
+        <b className={prefix.trim() ? "break-words" : "font-medium opacity-60"}>{prefix.trim() || t("maintenance.prefix")}</b>
+        {hasText(content) ? <RichContent html={content} className="mt-0.5" /> : <p className="m-0 mt-0.5 opacity-60">{t("preview.contentPlaceholder")}</p>}
       </div>
     </div>
   );
@@ -27,6 +28,7 @@ function NoticeBanner({ prefix, content }) {
 
 // Bigger than the shared ToggleSwitch: this one switch is a serious action, so it should be easy to see and hit.
 function BigSwitch({ on, onToggle, label }) {
+  const { t } = useTranslation("announcement");
   return (
     <button
       type="button"
@@ -39,7 +41,7 @@ function BigSwitch({ on, onToggle, label }) {
       <span className={cn("relative h-[26px] w-[48px] rounded-full transition-colors", on ? "bg-[linear-gradient(100deg,#ef4444,#dc2626)]" : "bg-[#cbd5e1]")}>
         <span className={cn("absolute top-[3px] size-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[left]", on ? "left-[25px]" : "left-[3px]")} />
       </span>
-      {on ? "On" : "Off"}
+      {on ? t("maintenance.on") : t("maintenance.off")}
     </button>
   );
 }
@@ -78,20 +80,21 @@ function KickSwitch({ on, onToggle, title, note, active, className }) {
  * `kick` is the current state of the global sign-out switch; `onSave` may return a promise (the form is left to the tab).
  */
 function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
+  const { t } = useTranslation("announcement");
   const editing = Boolean(notice);
   const [prefix, setPrefix] = useState(notice?.prefix ?? "");
   const [content, setContent] = useState(notice?.content ?? "");
   // Create form only: the switch just marks the choice; nobody is signed out until Publish is pressed.
   const [kickChoice, setKickChoice] = useState(null); // null = follow the real switch (it may still be loading)
   const kickUsers = kickChoice ?? kick;
-  const problem = !prefix.trim() ? "Enter a prefix." : !hasText(content) ? "Enter the maintenance content." : "";
+  const problem = !prefix.trim() ? t("maintenance.enterPrefix") : !hasText(content) ? t("maintenance.enterContent") : "";
 
   return (
     <PanelCard
       icon={Wrench}
-      accent="amber" subtitle={SUBTITLE}
-      title={editing ? "Edit Maintenance Notice" : "Create Maintenance Notice"}
-      right={!editing && <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">No notice yet</span>}
+      accent="amber" subtitle={t("maintenance.subtitle")}
+      title={editing ? t("maintenance.editTitle") : t("maintenance.createTitle")}
+      right={!editing && <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">{t("maintenance.noNoticeYet")}</span>}
       className={GROW}
       footer={
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -103,7 +106,7 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
           )}
           {editing && (
             <SoftButton onClick={onCancel} className="h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] text-[13.5px]">
-              Cancel
+              {t("common:cancel")}
             </SoftButton>
           )}
           <button
@@ -113,22 +116,22 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
             className={cn(primaryButtonClass, "h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
           >
             <Check className="size-[15px]" strokeWidth={2.5} />
-            {editing ? "Save" : "Publish"}
+            {editing ? t("common:save") : t("form.publish")}
           </button>
         </div>
       }
     >
       <div className="grid flex-1 grid-cols-[minmax(0,6fr)_minmax(0,5fr)] grid-rows-[minmax(min-content,1fr)] gap-x-[18px] gap-y-3 @max-[799px]/page:grid-cols-1 @max-[799px]/page:grid-rows-none">
         <div className="flex min-w-0 flex-col gap-2.5">
-          <Field label="Prefix">
-            <TextInput value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="e.g. System Maintenance:" autoFocus={editing} />
+          <Field label={t("maintenance.prefix")}>
+            <TextInput value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder={t("maintenance.prefixPlaceholder")} autoFocus={editing} />
           </Field>
-          <Field label="Content" as="div" className="flex min-h-0 flex-1 flex-col">
+          <Field label={t("form.content")} as="div" className="flex min-h-0 flex-1 flex-col">
             <RichTextEditor
               value={content}
               onChange={setContent}
-              label="Maintenance content"
-              placeholder="Enter maintenance content"
+              label={t("maintenance.contentLabel")}
+              placeholder={t("maintenance.contentPlaceholder")}
               className="min-h-[160px] flex-1 modal-compact:min-h-[130px] @max-[799px]/page:min-h-[220px]"
             />
           </Field>
@@ -137,20 +140,20 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
         <div className="flex min-w-0 flex-col gap-2.5 border-l border-modal-divider pl-[18px] @max-[799px]/page:border-l-0 @max-[799px]/page:pl-0">
           <h3 className="m-0 flex items-center gap-[7px] text-[13px] font-bold text-brand-navy">
             <Bell className="size-4 text-brand-blue" strokeWidth={2.2} />
-            Notice preview
+            {t("maintenance.noticePreview")}
           </h3>
           <NoticeBanner prefix={prefix} content={content} />
           <p className="m-0 flex gap-2 rounded-xl border border-modal-line bg-modal-card px-3 py-2 text-[12px] leading-[1.45] text-[#41588a]">
             <Info className="mt-px size-[15px] flex-none text-brand-blue" strokeWidth={2.2} />
-            <span>Only one maintenance notice can exist at a time. Delete it to publish a different one.</span>
+            <span>{t("maintenance.onlyOne")}</span>
           </p>
           {isIt && !editing && (
             <KickSwitch
               on={kickUsers}
               onToggle={() => setKickChoice(!kickUsers)}
-              title="Sign out online users"
+              title={t("maintenance.kickTitle")}
               active={kickUsers}
-              note={kickUsers ? "Everyone online is signed out the moment you press Publish." : "Off: the notice is shown and users stay signed in."}
+              note={kickUsers ? t("maintenance.kickCreateOn") : t("maintenance.kickCreateOff")}
             />
           )}
         </div>
@@ -167,6 +170,7 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
  *    notice: the page confirms, then signs users out
  */
 export default function MaintenanceTab({ notice, isIt, kick, onSave, onDelete, onKickChange }) {
+  const { t } = useTranslation("announcement");
   const [editing, setEditing] = useState(false);
 
   if (!notice || editing) {
@@ -185,20 +189,20 @@ export default function MaintenanceTab({ notice, isIt, kick, onSave, onDelete, o
   }
 
   return (
-    <PanelCard icon={Wrench} accent="amber" subtitle={SUBTITLE} title="Maintenance Notice" right={<StatusPill className="@max-[479px]/page:hidden">Published</StatusPill>} className={GROW}>
+    <PanelCard icon={Wrench} accent="amber" subtitle={t("maintenance.subtitle")} title={t("maintenance.title")} right={<StatusPill className="@max-[479px]/page:hidden">{t("maintenance.published")}</StatusPill>} className={GROW}>
       <article className="relative flex-none rounded-[14px] bg-white py-3.5 pl-[22px] pr-3.5 [filter:drop-shadow(0_2px_3px_rgba(15,23,42,0.1))] before:absolute before:inset-y-0 before:left-0 before:w-[5px] before:rounded-l-[14px] before:bg-[linear-gradient(180deg,#ffb347,#f5841f)]">
         <header className="flex items-start gap-2">
           <h3 className="m-0 min-w-0 flex-1 break-words text-[15px] font-extrabold text-brand-navy">{notice.prefix}</h3>
           <div className="flex flex-none items-center gap-0.5">
-            <IconAction title="Edit notice" aria-label="Edit notice" onClick={() => setEditing(true)} />
-            <IconAction icon={Trash2} className={DELETE_ACTION_CLASS} title="Delete notice" aria-label="Delete notice" onClick={onDelete} />
+            <IconAction aria-label={t("maintenance.editAria")} onClick={() => setEditing(true)} />
+            <IconAction icon={Trash2} className={DELETE_ACTION_CLASS} aria-label={t("maintenance.deleteAria")} onClick={onDelete} />
           </div>
         </header>
         <RichContent html={notice.content} className="mt-1.5 text-[13.5px] leading-[1.6] text-[#374151]" />
         <footer className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-0.5 border-t border-[#eef1f6] pt-2.5 text-[11.5px] text-dash-sub">
           <span className="inline-flex items-center gap-1.5">
             <User className="size-3.5 text-dash-faint" strokeWidth={2.2} />
-            Created by {notice.createdBy}
+            {t("page.createdBy", { name: notice.createdBy })}
           </span>
           <span className="inline-flex items-center gap-1.5 tabular-nums">
             <Clock className="size-3.5 text-dash-faint" strokeWidth={2.2} />
@@ -211,9 +215,9 @@ export default function MaintenanceTab({ notice, isIt, kick, onSave, onDelete, o
         <KickSwitch
           on={kick}
           onToggle={() => onKickChange(!kick)}
-          title="Sign out online users"
+          title={t("maintenance.kickTitle")}
           active={kick}
-          note={kick ? "On: online users were signed out and cannot sign in until this is turned off." : "Turning this on signs out everyone who is online right away."}
+          note={kick ? t("maintenance.kickOn") : t("maintenance.kickOff")}
         />
       )}
     </PanelCard>

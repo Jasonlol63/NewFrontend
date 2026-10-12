@@ -46,5 +46,40 @@
   },
   "errors": {
     "network": "Network error. Check your connection and try again."
-  }
+  },
+  "cancel": "Cancel",
+  "ok": "OK",
+  "save": "Save",
+  "back": "Back",
+  "optional": "(opt.)",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "clear": "Clear",
+  "select": "Select",
+  "search": "Search",
+  "table": {
+    "previous": "Previous page",
+    "next": "Next page",
+    "summaryPaged": "Showing {{from}}–{{to}} of {{total}} {{noun}}",
+    "summaryAll": "Showing all {{total}} {{noun}}",
+    "empty": "No {{noun}} found",
+    "selectAllInactive": "Select all inactive rows on this page",
+    "selectRow": "Select row",
+    "alreadyDeleted": "Already deleted"
+  },
+  "deleteDialog": {
+    "titleOne": "{{verb}} {{noun}}?",
+    "titleMany": "{{verb}} {{count}} {{noun}}s?",
+    "confirmBefore": "Are you sure you want to {{verb}} ",
+    "confirmAfter": "?",
+    "many": "The {{count}} selected {{noun}}s will be {{verbPast}}.",
+    "irreversible": "This action can't be undone."
+  },
+  "rowActions": {
+    "statusFailed": "Status not changed",
+    "deleteFailed": "Delete failed"
+  },
+  "nouns": {},
+  "verbs": {},
+  "verbsPast": {}
 }

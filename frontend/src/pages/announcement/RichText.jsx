@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bold, Check, Code, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting, Strikethrough, Underline } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "./announcementRules";
@@ -42,6 +43,7 @@ const Divider = () => <span aria-hidden="true" className="mx-0.5 h-4 w-px flex-n
  * Pasted text is inserted as plain text so no foreign styling gets in.
  */
 export default function RichTextEditor({ value, onChange, placeholder, label, className }) {
+  const { t } = useTranslation("announcement");
   const ref = useRef(null);
   const savedRange = useRef(null);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -105,9 +107,9 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
         className
       )}
     >
-      <div role="toolbar" aria-label="Text formatting" className="flex flex-none flex-wrap items-center gap-0.5 border-b border-modal-divider bg-white/40 px-1.5 py-1">
+      <div role="toolbar" aria-label={t("editor.toolbar")} className="flex flex-none flex-wrap items-center gap-0.5 border-b border-modal-divider bg-white/40 px-1.5 py-1">
         <select
-          aria-label="Text style"
+          aria-label={t("editor.textStyle")}
           defaultValue="p"
           onChange={(e) => {
             run("formatBlock", e.target.value);
@@ -115,41 +117,41 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
           }}
           className="h-7 flex-none cursor-pointer rounded-[7px] border-none bg-transparent px-1 text-[12.5px] font-semibold text-[#4b5d80] outline-none hover:bg-[#e4eefc] modal-tiny:h-6"
         >
-          <option value="p">Normal</option>
-          <option value="h3">Heading</option>
+          <option value="p">{t("editor.normal")}</option>
+          <option value="h3">{t("editor.heading")}</option>
         </select>
         <Divider />
-        <ToolButton label="Bold" onClick={() => run("bold")}>
+        <ToolButton label={t("editor.bold")} onClick={() => run("bold")}>
           <Bold className="size-4" strokeWidth={2.4} />
         </ToolButton>
-        <ToolButton label="Italic" onClick={() => run("italic")}>
+        <ToolButton label={t("editor.italic")} onClick={() => run("italic")}>
           <Italic className="size-4" strokeWidth={2.2} />
         </ToolButton>
-        <ToolButton label="Underline" onClick={() => run("underline")}>
+        <ToolButton label={t("editor.underline")} onClick={() => run("underline")}>
           <Underline className="size-4" strokeWidth={2.2} />
         </ToolButton>
-        <ToolButton label="Strikethrough" onClick={() => run("strikeThrough")}>
+        <ToolButton label={t("editor.strike")} onClick={() => run("strikeThrough")}>
           <Strikethrough className="size-4" strokeWidth={2.2} />
         </ToolButton>
         <Divider />
-        <ToolButton label="Numbered list" onClick={() => run("insertOrderedList")}>
+        <ToolButton label={t("editor.numbered")} onClick={() => run("insertOrderedList")}>
           <ListOrdered className="size-4" strokeWidth={2.2} />
         </ToolButton>
-        <ToolButton label="Bulleted list" onClick={() => run("insertUnorderedList")}>
+        <ToolButton label={t("editor.bulleted")} onClick={() => run("insertUnorderedList")}>
           <List className="size-4" strokeWidth={2.2} />
         </ToolButton>
         <Divider />
-        <ToolButton label="Quote" onClick={() => run("formatBlock", "blockquote")}>
+        <ToolButton label={t("editor.quote")} onClick={() => run("formatBlock", "blockquote")}>
           <Quote className="size-4" strokeWidth={2.2} />
         </ToolButton>
-        <ToolButton label="Code (select text first)" onClick={wrapCode}>
+        <ToolButton label={t("editor.code")} onClick={wrapCode}>
           <Code className="size-4" strokeWidth={2.2} />
         </ToolButton>
-        <ToolButton label="Link" onClick={openLink}>
+        <ToolButton label={t("editor.link")} onClick={openLink}>
           <Link2 className="size-4" strokeWidth={2.2} />
         </ToolButton>
         <ToolButton
-          label="Clear formatting"
+          label={t("editor.clear")}
           onClick={() => {
             run("removeFormat");
             run("formatBlock", "p");
@@ -176,14 +178,14 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
                 setLinkOpen(false);
               }
             }}
-            aria-label="Link address"
+            aria-label={t("editor.linkAddress")}
             placeholder="https://"
             className="h-7 min-w-0 flex-1 rounded-lg border border-modal-input-line bg-white/80 px-2 text-[12.5px] outline-none focus:border-[#3b82f6]"
           />
           <button
             type="button"
             onClick={applyLink}
-            aria-label="Apply link"
+            aria-label={t("editor.applyLink")}
             className="grid size-7 flex-none cursor-pointer place-items-center rounded-lg border-none bg-brand-sweep text-white"
           >
             <Check className="size-3.5" strokeWidth={3} />

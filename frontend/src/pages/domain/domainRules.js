@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
 import { formatDisplayDate } from "@/lib/date";
 
@@ -35,7 +36,7 @@ export function isoOf(value) {
 }
 
 /** "08-09-2027", or "No Expiry" for the permanent date; "" when there is none. */
-export const formatExpiry = (iso) => (iso === PERMANENT_EXPIRY ? "No Expiry" : formatDisplayDate(iso, "-"));
+export const formatExpiry = (iso) => (iso === PERMANENT_EXPIRY ? i18n.t("domain:expiry.none") : formatDisplayDate(iso, "-"));
 
 // ===== Prices (Price dialog <-> /api/domain/list-fee, /add-fee) =====
 const priceSection = (source) => Object.fromEntries(PRICE_PERIODS.map((p) => [p.key, source?.[p.api] == null ? "0" : String(source[p.api])]));

@@ -224,7 +224,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
   const navigate = useNavigate();
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const { user } = useSession();
-  const { notice, push, clear } = useNotice(5500, { stickyErrors: true });
+  const { toasts, push, dismiss } = useNotice(5500);
   const captured = useMemo(() => capturedFromTable(capture.table), [capture.table]);
   const signature = draftSignature(capture);
   const defaultCurrency = data.currencies.find((c) => c.id === capture.currencyId)?.code ?? String(capture.currency ?? "");
@@ -388,7 +388,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
 
   return (
     <div className="relative h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
-      <Toast notice={notice} onClose={clear} />
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex h-full min-h-[480px] flex-col gap-[clamp(6px,1.3dvh,10px)] overflow-hidden rounded-[22px] border border-white/55 bg-modal-bg px-[clamp(12px,1.8vw,24px)] py-[clamp(10px,2dvh,18px)] shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px] backdrop-saturate-[1.15]">
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
           <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">

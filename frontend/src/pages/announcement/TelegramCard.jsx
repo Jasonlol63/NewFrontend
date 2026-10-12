@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, Clock, ExternalLink, RotateCcw, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SoftButton, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
@@ -41,6 +42,7 @@ function useWide(ref) {
  *  - saved: { handle, updatedBy, updatedAt }; onSave(handle)
  */
 export default function TelegramCard({ saved, onSave }) {
+  const { t } = useTranslation("announcement");
   const ref = useRef(null);
   const wide = useWide(ref);
   const [input, setInput] = useState(saved.handle);
@@ -48,7 +50,7 @@ export default function TelegramCard({ saved, onSave }) {
   const valid = isValidHandle(handle);
   const changed = handle !== saved.handle;
   const url = telegramUrl(saved.handle);
-  const status = url ? "Active" : "Hidden";
+  const status = url ? t("telegram.active") : t("telegram.hidden");
 
   const save = () => {
     onSave(handle);
@@ -61,15 +63,15 @@ export default function TelegramCard({ saved, onSave }) {
   const statusPill = url ? (
     <span className="inline-flex flex-none items-center gap-1.5 rounded-full bg-[#e6f8ee] px-2.5 py-0.5 text-[11px] font-bold text-[#15803d]">
       <i className="size-1.5 rounded-full bg-[#22c55e]" />
-      Active
+      {t("telegram.active")}
     </span>
   ) : (
-    <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">Hidden</span>
+    <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">{t("telegram.hidden")}</span>
   );
 
   const handleBox = (heightClass, textClass) => (
     <div
-      title="Paste a full t.me link or just the handle. Leave empty and save to hide the button."
+      title={t("telegram.pasteHint")}
       className={cn(
         heightClass,
         "flex min-w-[150px] flex-1 overflow-hidden rounded-[10px] border bg-modal-input shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-[border-color,box-shadow] focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]",
@@ -80,9 +82,9 @@ export default function TelegramCard({ saved, onSave }) {
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        aria-label="Telegram support link"
+        aria-label={t("telegram.ariaLabel")}
         aria-invalid={!valid}
-        placeholder="yourSupportHandle"
+        placeholder={t("telegram.placeholder")}
         className={cn("min-w-0 flex-1 border-none bg-transparent px-3 text-[#111827] outline-none", textClass)}
       />
     </div>
@@ -97,7 +99,7 @@ export default function TelegramCard({ saved, onSave }) {
         title={url}
         className={cn("inline-flex flex-none items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 font-bold text-brand-navy hover:bg-white/75", className)}
       >
-        Test link
+        {t("telegram.test")}
         <ExternalLink className="size-3.5" strokeWidth={2.2} />
       </a>
     );
@@ -106,7 +108,7 @@ export default function TelegramCard({ saved, onSave }) {
     <>
       <SoftButton onClick={() => setInput(saved.handle)} disabled={!changed} className={cn(buttonClass, "disabled:cursor-not-allowed disabled:opacity-50")}>
         <RotateCcw className="size-3.5" strokeWidth={2.4} />
-        Reset
+        {t("telegram.reset")}
       </SoftButton>
       <button
         type="button"
@@ -115,7 +117,7 @@ export default function TelegramCard({ saved, onSave }) {
         className={cn(primaryButtonClass, buttonClass, "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
       >
         <Check className="size-[15px]" strokeWidth={2.5} />
-        Save
+        {t("telegram.save")}
       </button>
     </>
   );
@@ -150,8 +152,8 @@ export default function TelegramCard({ saved, onSave }) {
             {statusDot("size-3")}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[clamp(15px,2.2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">Telegram Support Link</h2>
-            <p className="m-0 text-[11.5px] font-medium text-[#6b7fa5]">Floating button on the login page</p>
+            <h2 className="m-0 text-[clamp(15px,2.2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
+            <p className="m-0 text-[11.5px] font-medium text-[#6b7fa5]">{t("telegram.subtitle")}</p>
           </div>
           {statusPill}
         </div>
@@ -165,18 +167,18 @@ export default function TelegramCard({ saved, onSave }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[14px] border border-modal-line bg-white/60 px-3.5 py-2.5 text-[12px]">
-          <span className="text-[10.5px] font-bold uppercase tracking-[0.6px] text-[#6b7fa5]">Current link</span>
+          <span className="text-[10.5px] font-bold uppercase tracking-[0.6px] text-[#6b7fa5]">{t("telegram.currentLink")}</span>
           {url ? (
             <a href={url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-[13.5px] font-bold text-[#0b4fd0] underline">
               {url}
             </a>
           ) : (
-            <span className="text-[#8a96a8]">No link set; the button is hidden on the login page.</span>
+            <span className="text-[#8a96a8]">{t("telegram.noLink")}</span>
           )}
           {updated("ml-auto")}
         </div>
 
-        {invalidNote || <p className="m-0 ml-0.5 text-[12px] text-[#6b7fa5]">Paste a full t.me link or just the handle. Leave empty and save to hide the button.</p>}
+        {invalidNote || <p className="m-0 ml-0.5 text-[12px] text-[#6b7fa5]">{t("telegram.pasteHint")}</p>}
       </section>
     );
   }
@@ -192,10 +194,10 @@ export default function TelegramCard({ saved, onSave }) {
             {statusDot("size-3")}
           </span>
           <div className="min-w-0">
-            <h2 className="m-0 whitespace-nowrap text-[clamp(14px,2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">Telegram Support Link</h2>
+            <h2 className="m-0 whitespace-nowrap text-[clamp(14px,2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
             <p className="m-0 whitespace-nowrap text-[11.5px] font-medium text-[#6b7fa5] @max-[999px]/page:hidden">
               <b className={url ? "font-bold text-[#15803d]" : "font-bold text-[#64748b]"}>{status}</b>
-              {" · Login page button"}
+              {t("telegram.loginButton")}
             </p>
           </div>
         </div>

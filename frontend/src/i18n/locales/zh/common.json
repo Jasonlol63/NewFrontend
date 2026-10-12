@@ -46,5 +46,49 @@
   },
   "errors": {
     "network": "网络异常，请检查网络后重试。"
+  },
+  "cancel": "取消",
+  "ok": "确定",
+  "save": "保存",
+  "back": "返回",
+  "optional": "(可选)",
+  "showPassword": "显示密码",
+  "hidePassword": "隐藏密码",
+  "clear": "清除",
+  "select": "请选择",
+  "search": "搜索",
+  "table": {
+    "previous": "上一页",
+    "next": "下一页",
+    "summaryPaged": "显示第 {{from}}–{{to}} 条，共 {{total}} 个{{noun}}",
+    "summaryAll": "共 {{total}} 个{{noun}}",
+    "empty": "暂无{{noun}}",
+    "selectAllInactive": "选择本页所有已停用行",
+    "selectRow": "选择此行",
+    "alreadyDeleted": "已删除"
+  },
+  "deleteDialog": {
+    "titleOne": "{{verb}}{{noun}}？",
+    "titleMany": "{{verb}} {{count}} 个{{noun}}？",
+    "confirmBefore": "确定要{{verb}} ",
+    "confirmAfter": " 吗？",
+    "many": "所选的 {{count}} 个{{noun}}将被{{verbPast}}。",
+    "irreversible": "此操作无法撤销。"
+  },
+  "rowActions": {
+    "statusFailed": "状态未更改",
+    "deleteFailed": "删除失败"
+  },
+  "nouns": {
+    "domain": "域名",
+    "domains": "域名",
+    "announcement": "公告",
+    "maintenance notice": "维护通知"
+  },
+  "verbs": {
+    "Delete": "删除"
+  },
+  "verbsPast": {
+    "deleted": "删除"
   }
 }

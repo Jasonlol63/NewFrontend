@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Square, SquareCheck, SquareMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCellTip } from "./CellTip.jsx";
@@ -58,6 +59,7 @@ const BOX_TRAY =
   "gap-[2px] rounded-[10px] p-0.5 [@media(min-height:760px)]:gap-[3px] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:p-1";
 
 function Pager({ page, pageCount, onPageChange, boxed }) {
+  const { t } = useTranslation();
   // boxed (cards variant): the whole pager sits in one rounded-square tray with a soft white-to-sky gradient;
   // the current page is a glowing blue gradient square.
   const btn = boxed
@@ -74,7 +76,7 @@ function Pager({ page, pageCount, onPageChange, boxed }) {
   }
   return (
     <div className={boxed ? `flex items-center ${BOX_TRAY} ${TRAY}` : "flex items-center gap-1"}>
-      <button type="button" className={btn} disabled={page === 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page">
+      <button type="button" className={btn} disabled={page === 1} onClick={() => onPageChange(page - 1)} aria-label={t("table.previous")}>
         <ChevronLeft className={boxed ? BOX_ICON : "size-4"} />
       </button>
       {pages.map((n, i) =>
@@ -86,7 +88,7 @@ function Pager({ page, pageCount, onPageChange, boxed }) {
           <button key={n} type="button" className={btn} onClick={() => onPageChange(n)}>{n}</button>
         )
       )}
-      <button type="button" className={btn} disabled={page === pageCount} onClick={() => onPageChange(page + 1)} aria-label="Next page">
+      <button type="button" className={btn} disabled={page === pageCount} onClick={() => onPageChange(page + 1)} aria-label={t("table.next")}>
         <ChevronRight className={boxed ? BOX_ICON : "size-4"} />
       </button>
     </div>
@@ -323,9 +325,11 @@ export default function DataTable({
     onSelectedChange(next);
   };
 
+  const { t } = useTranslation();
+  const nounText = t(`nouns.${noun}`, { defaultValue: noun });
   const summary = paged
-    ? `Showing ${rows.length ? offset + 1 : 0}–${offset + rows.length} of ${total} ${noun}`
-    : `Showing all ${total} ${noun}`;
+    ? t("table.summaryPaged", { from: rows.length ? offset + 1 : 0, to: offset + rows.length, total, noun: nounText })
+    : t("table.summaryAll", { total, noun: nounText });
 
   return (
     <section
@@ -390,7 +394,7 @@ export default function DataTable({
                 <th className={cn("w-[44px] py-2.5 pr-4", cards && "bg-[#e4eefc] last:rounded-r-[10px]")}>
                   <SelectBox
                     onHeader={!cards}
-                    label="Select all inactive rows on this page"
+                    label={t("table.selectAllInactive")}
                     checked={headChecked}
                     onChange={(checked) => setMany(selectable, checked)}
                   />
@@ -436,10 +440,10 @@ export default function DataTable({
                     {showSelect && (
                       <td className={cn(cell, "pr-4")}>
                         {canSelect(row) && (
-                          <SelectBox label="Select row" checked={isSelected} onChange={(checked) => setMany([row], checked)} />
+                          <SelectBox label={t("table.selectRow")} checked={isSelected} onChange={(checked) => setMany([row], checked)} />
                         )}
                         {!canSelect(row) && lockedSelect(row) && (
-                          <SelectBox disabled label="Already deleted" checked={false} onChange={noop} />
+                          <SelectBox disabled label={t("table.alreadyDeleted")} checked={false} onChange={noop} />
                         )}
                       </td>
                     )}
@@ -449,7 +453,7 @@ export default function DataTable({
             ) : (
               <tr>
                 <td colSpan={cols.length + (showSelect ? 1 : 0)} className="py-10 text-center text-dash-faint">
-                  {loading ? "Loading…" : (emptyMessage ?? `No ${noun} found`)}
+                  {loading ? t("loading") : (emptyMessage ?? t("table.empty", { noun: nounText }))}
                 </td>
               </tr>
             )}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, Eye, EyeOff, Plus, Search, SquarePen, X } from "lucide-react";
 import { Popover, Select } from "radix-ui";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 // Form controls of the full-area form modals (Add / Edit User, Add / Edit Account).
@@ -22,12 +23,13 @@ export function TextInput({ className, ...props }) {
 // plain: neither mark (read-only boxes).
 // as="div" for controls that hold several buttons (a click on a <label> is forwarded to its first button).
 export function Field({ label, optional, plain, as: Tag = "label", className, children }) {
+  const { t } = useTranslation();
   return (
     <Tag className={cn("block min-w-0", className)}>
       <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]">
         {label}{" "}
         {plain ? null : optional ? (
-          <span className="text-[10px] font-medium text-[#8a96a8] @max-[219px]/info:hidden">(opt.)</span>
+          <span className="text-[10px] font-medium text-[#8a96a8] @max-[219px]/info:hidden">{t("optional")}</span>
         ) : (
           <i className="not-italic text-[#ef4444]">*</i>
         )}
@@ -39,6 +41,7 @@ export function Field({ label, optional, plain, as: Tag = "label", className, ch
 
 // Password box with its own show / hide eye.
 export function PasswordInput({ value, onChange, className, ...props }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -53,7 +56,7 @@ export function PasswordInput({ value, onChange, className, ...props }) {
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("hidePassword") : t("showPassword")}
         className="absolute right-1.5 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-1 text-dash-faint hover:text-[#64748b]"
       >
         {visible ? <EyeOff className="size-4" strokeWidth={2} /> : <Eye className="size-4" strokeWidth={2} />}
@@ -71,7 +74,9 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * uppercase: the shown value, the placeholder and the options are all upper case (the popup is outside the modal, so it
  * needs the class itself).
  */
-export function SelectField({ value, onChange, options, placeholder = "Select", disabled = false, onClear, uppercase = false, capped = false }) {
+export function SelectField({ value, onChange, options, placeholder: placeholderProp, disabled = false, onClear, uppercase = false, capped = false }) {
+  const { t } = useTranslation();
+  const placeholder = placeholderProp ?? t("select");
   const label = options.find((o) => o.value === value)?.label;
   const clearable = Boolean(onClear && value && !disabled);
   const select = (
@@ -138,8 +143,8 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
       {clearable && (
         <button
           type="button"
-          aria-label="Clear"
-          title="Clear"
+          aria-label={t("clear")}
+          title={t("clear")}
           onClick={onClear}
           className="absolute top-1/2 right-7 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 text-[#94a3b8] transition-colors hover:bg-[#fee2e2] hover:text-[#ef4444]"
         >
@@ -154,7 +159,10 @@ export function SelectField({ value, onChange, options, placeholder = "Select", 
  * A SelectField for a long list: the list is at most 240px high and scrolls, and a search box on top narrows it
  * (typed letters show in capitals, the match ignores case; Enter picks the first match). options: [{ value, label }].
  */
-export function SearchSelectField({ value, onChange, options, placeholder = "Select", searchPlaceholder = "Search", disabled = false }) {
+export function SearchSelectField({ value, onChange, options, placeholder: placeholderProp, searchPlaceholder: searchProp, disabled = false }) {
+  const { t } = useTranslation();
+  const placeholder = placeholderProp ?? t("select");
+  const searchPlaceholder = searchProp ?? t("search");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const label = options.find((o) => o.value === value)?.label;

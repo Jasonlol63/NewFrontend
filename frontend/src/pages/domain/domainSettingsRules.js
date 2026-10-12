@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
 import { NO_EXPIRY, PERMANENT_EXPIRY, PRICE_PERIODS, formatExpiry } from "./domainRules";
 
@@ -111,14 +112,14 @@ export function shareSummary(price, departments) {
 export function settingsProblem(kind, settings, summary, price) {
   const period = periodOf(settings.period);
   // A tenant that already has an expiry date can be saved without picking a period again.
-  if (!settings.period && !settings.currentExpiry) return "Pick a Period";
-  if (period && !settings.startDate) return "Pick a Start Date";
-  if (kind === "company" && !settings.type) return "Pick a company type";
+  if (!settings.period && !settings.currentExpiry) return i18n.t("domain:settings.problem.pickPeriod");
+  if (period && !settings.startDate) return i18n.t("domain:settings.problem.pickStart");
+  if (kind === "company" && !settings.type) return i18n.t("domain:settings.problem.pickType");
   if (settings.shareOn) {
-    if (!period) return "Pick a Period to charge the share";
-    if (price <= 0) return "Set the price of this period first (Price)";
-    if (summary.incomplete) return "Choose an account for every share row";
-    if (summary.over) return "The share is over 100%";
+    if (!period) return i18n.t("domain:settings.problem.pickPeriodShare");
+    if (price <= 0) return i18n.t("domain:settings.problem.setPrice");
+    if (summary.incomplete) return i18n.t("domain:settings.problem.chooseAccount");
+    if (summary.over) return i18n.t("domain:settings.problem.over");
   }
   return "";
 }
@@ -161,7 +162,7 @@ export function tenantSettingBody({ ownerId, tenantId, kind, code, settings, acc
 
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
   const profit = profitAccountOf(accounts);
-  if (!profit) throw new Error("No active Profit account (role PROFIT) was found, so the share cannot be saved");
+  if (!profit) throw new Error(i18n.t("domain:errors.noProfit"));
 
   const rows = [];
   let taken = 0;

@@ -1,9 +1,11 @@
 import { REALTIME_DOMAINS, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CircleDollarSign, Plus, Search, Trash2 } from "lucide-react";
 import DataTable from "@/components/shared/list/DataTable.jsx";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
-import StatusDialog from "@/components/shared/StatusDialog.jsx";
+import Toast from "@/components/shared/Toast.jsx";
+import { useNotice } from "@/hooks/useNotice";
 import { PrimaryButton, SecondaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { IconAction } from "@/components/shared/list/cells.jsx";
 import { useListView } from "@/components/shared/list/useListView";
@@ -33,7 +35,6 @@ import { tenantSettingBody } from "./domainSettingsRules";
 const ROW_GAP = 8;
 
 const buttonSize = "h-9 py-0";
-const READ_ONLY = "Read-only login";
 
 const NO_ROWS = [];
 const NO_ACCOUNTS = [];
@@ -48,6 +49,8 @@ const NO_ACCOUNTS = [];
  *    refuses an owner that has transactions under C168 and the run stops there.
  */
 export default function DomainPage() {
+  const { t } = useTranslation(["domain", "common"]);
+  const READ_ONLY = t("page.readOnly");
   const { user } = useSession();
   const viewer = useCurrentUser();
   const readOnly = Boolean(viewer?.readOnly);
@@ -60,7 +63,7 @@ export default function DomainPage() {
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState(null); // { title, message } of a failed action
+  const { toasts, push, dismiss } = useNotice(5000);
 
   // null = closed, { mode: "add" } or { mode: "edit", domain } = open
   const [domainForm, setDomainForm] = useState(null);
@@ -82,7 +85,18 @@ export default function DomainPage() {
         setAccounts(accountList);
         setLoadError("");
       })
-      .catch((e) => alive && setLoadError(e.message))
+      .catch((e) => {
+        if (!alive) return;
+        setLoadError(e.message);
+        push(t("errors.load"), "error", e.message, {
+          label: t("common:retry"),
+          onClick: () => {
+            setLoadError("");
+            setLoading(true);
+            setReloadKey((k) => k + 1);
+          },
+        });
+      })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -101,7 +115,7 @@ export default function DomainPage() {
       await action();
       return true;
     } catch (e) {
-      setProblem({ title, message: e.message });
+      push(title, "error", e.message);
       return false;
     } finally {
       setBusy(false);
@@ -110,8 +124,11 @@ export default function DomainPage() {
 
   const savePriceList = async (next) => {
     if (busy) return;
-    const ok = await run("Could not save the prices", async () => setPrices(toPrices(await savePrices(toPriceBody(next)))));
-    if (ok) setPriceOpen(false);
+    const ok = await run(t("errors.savePrices"), async () => setPrices(toPrices(await savePrices(toPriceBody(next)))));
+    if (ok) {
+      setPriceOpen(false);
+      push(t("toast.pricesSaved"));
+    }
   };
 
   // The owner first; then every group / company whose Set was saved in the modal, one after the other (the back end charges the
@@ -126,7 +143,7 @@ export default function DomainPage() {
       saved = await (isEdit ? updateDomain(body) : createDomain(body));
     } catch (e) {
       setBusy(false);
-      setProblem({ title: isEdit ? "Could not save the domain" : "Could not add the domain", message: e.message });
+      push(isEdit ? t("errors.saveDomain") : t("errors.addDomain"), "error", e.message);
       return;
     }
 
@@ -148,12 +165,14 @@ export default function DomainPage() {
     try {
       await reloadRows();
     } catch (e) {
-      failed.push(`The list could not be refreshed: ${e.message}`);
+      failed.push(t("errors.refresh", { message: e.message }));
     }
     setBusy(false);
     setDomainForm(null);
     if (failed.length) {
-      setProblem({ title: "Domain saved, but some settings were not", message: `${failed.join("; ")}. Open Edit and press Set again for these.` });
+      push(t("errors.partial"), "error", t("errors.partialHint", { list: failed.join("; ") }));
+    } else {
+      push(isEdit ? t("toast.saved") : t("toast.added", { code: owner.ownerCode.trim().toUpperCase() }));
     }
   };
 
@@ -175,44 +194,46 @@ export default function DomainPage() {
     try {
       await reloadRows();
     } catch (e) {
-      failure ||= `The list could not be refreshed: ${e.message}`;
+      failure ||= t("errors.refresh", { message: e.message });
     }
     view.clearSelection();
     setBusy(false);
-    if (failure) setProblem({ title: done ? `Deleted ${done}, then stopped` : "Could not delete the domain", message: failure });
+    if (failure) push(done ? t("errors.deletedThenStopped", { count: done }) : t("errors.deleteFailed"), "error", failure);
+    else push(done === 1 ? t("toast.deleted") : t("toast.deletedMany", { count: done }));
   };
 
   const columns = [
-    { key: "no", label: "No", sortable: false, className: "w-[48px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "ownerCode", label: "Owner Code", cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.ownerCode },
-    { key: "name", label: "Name", fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.name },
-    { key: "email", label: "Email", fit: true, cellClassName: "text-[#374151]", render: (r) => r.email },
+    { key: "no", label: t("col.no"), sortable: false, className: "w-[48px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
+    { key: "ownerCode", label: t("col.ownerCode"), cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.ownerCode },
+    { key: "name", label: t("col.name"), fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.name },
+    { key: "email", label: t("col.email"), fit: true, cellClassName: "text-[#374151]", render: (r) => r.email },
     {
       key: "groups",
-      label: "Groups",
+      label: t("col.groups"),
       sortable: false,
       render: (r) => <CodeChips codes={r.groups} max={MAX_GROUPS} tone="group" />,
     },
     {
       key: "companies",
-      label: "Companies",
+      label: t("col.companies"),
       sortable: false,
       render: (r) => <CodeChips codes={r.companies} max={MAX_COMPANIES} tone="company" />,
     },
-    { key: "createdBy", label: "Created By", cellClassName: "whitespace-nowrap", render: (r) => r.createdBy || "-" },
+    { key: "createdBy", label: t("col.createdBy"), cellClassName: "whitespace-nowrap", render: (r) => r.createdBy || "-" },
     {
       key: "action",
-      label: "Action",
+      label: t("col.action"),
       sortable: false,
       className: "text-center",
-      render: (r) => <IconAction title="Edit domain" aria-label="Edit domain" onClick={() => setDomainForm({ mode: "edit", domain: r })} />,
+      render: (r) => <IconAction title={t("page.editDomain")} aria-label={t("page.editDomain")} onClick={() => setDomainForm({ mode: "edit", domain: r })} />,
     },
   ];
 
   const selected = view.selectedRows.length;
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+    <div className="relative flex h-full min-h-[520px] flex-col gap-[clamp(8px,1.5dvh,12px)] p-[clamp(10px,2dvh,16px)]">
+      <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex flex-none flex-wrap items-center gap-2.5 px-1">
         <PrimaryButton
           icon={Plus}
@@ -221,7 +242,7 @@ export default function DomainPage() {
           title={readOnly ? READ_ONLY : undefined}
           onClick={() => setDomainForm({ mode: "add" })}
         >
-          Add Domain
+          {t("page.add")}
         </PrimaryButton>
 
         <label className="flex h-9 w-full max-w-[280px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
@@ -230,7 +251,7 @@ export default function DomainPage() {
             value={view.search}
             onChange={(e) => view.setSearch(e.target.value)}
             className="w-full bg-transparent uppercase outline-none placeholder:normal-case placeholder:text-dash-faint"
-            placeholder="Search by Owner Name/Company"
+            placeholder={t("page.search")}
           />
         </label>
 
@@ -241,7 +262,7 @@ export default function DomainPage() {
           disabled={loading || Boolean(loadError)}
           onClick={() => setPriceOpen(true)}
         >
-          Price
+          {t("page.price")}
         </SecondaryButton>
 
         {/* Always red, like the old page; it only acts when owners are ticked. */}
@@ -253,28 +274,11 @@ export default function DomainPage() {
           className="ml-auto inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] bg-[linear-gradient(180deg,#ff6b6b_0%,#dc2626_100%)] px-4 text-[13px] font-bold text-white shadow-[0_6px_14px_-6px_rgba(220,38,38,0.6)] transition-[filter] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100"
         >
           <Trash2 className="size-4" strokeWidth={2.2} />
-          Delete ({selected})
+          {t("page.delete", { count: selected })}
         </button>
       </div>
 
-      {loadError && (
-        <div role="alert" className="flex flex-none items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-dash-down">
-          <span className="min-w-0">{loadError}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setLoadError("");
-              setLoading(true);
-              setReloadKey((k) => k + 1);
-            }}
-            className="flex-none cursor-pointer border-none bg-transparent text-[12px] font-bold text-[#1d7bff]"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      <DataTable variant="cards" columns={columns} noun="domains" minWidth="min-w-0" fitWidth emptyMessage={loading ? "Loading…" : "No domains found"} {...view.table} />
+      <DataTable variant="cards" columns={columns} noun="domains" minWidth="min-w-0" fitWidth emptyMessage={loading ? t("common:loading") : t("page.noDomains")} {...view.table} />
 
       {priceOpen && <PriceDialog prices={prices} onSave={savePriceList} onClose={closePrice} />}
 
@@ -299,16 +303,9 @@ export default function DomainPage() {
         onOpenChange={(open) => !open && setToDelete(null)}
         names={(toDelete ?? []).map((r) => r.ownerCode)}
         noun="domain"
-        note="Its groups and companies, and their accounts under C168, are deleted too."
+        irreversible={false}
+        note={t("page.deleteNote")}
         onConfirm={confirmDelete}
-      />
-      <StatusDialog
-        open={Boolean(problem)}
-        onOpenChange={(open) => !open && setProblem(null)}
-        type="error"
-        title={problem?.title ?? ""}
-        description={problem?.message ?? ""}
-        confirmText="OK"
       />
     </div>
   );

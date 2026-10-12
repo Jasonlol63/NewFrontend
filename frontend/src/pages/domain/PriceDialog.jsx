@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useId, useState } from "react";
-import { Building2, Check, CircleDollarSign, Info, Users, X } from "lucide-react";
+import { Building2, Check, CircleDollarSign, Users, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
 import { SoftButton, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import { PRICE_PERIODS } from "./domainRules";
@@ -22,13 +23,13 @@ const AMOUNT = /^\d*(\.\d{0,2})?$/;
 const SECTIONS = [
   {
     key: "company",
-    label: "Company Price",
+    labelKey: "priceDialog.company",
     icon: Building2,
     iconClass: "text-brand-blue",
   },
   {
     key: "group",
-    label: "Group Price",
+    labelKey: "priceDialog.group",
     icon: Users,
     iconClass: "text-dash-up",
   },
@@ -41,6 +42,7 @@ const SECTIONS = [
  * Mount it only while open so every opening starts from the saved values.
  */
 export default function PriceDialog({ prices, onSave, onClose }) {
+  const { t } = useTranslation(["domain", "common"]);
   const [values, setValues] = useState(prices);
   const titleId = useId();
 
@@ -73,12 +75,12 @@ export default function PriceDialog({ prices, onSave, onClose }) {
               <CircleDollarSign className="size-5 short:size-[18px]" strokeWidth={2.2} />
             </div>
             <h1 id={titleId} className="m-0 flex-1 text-[clamp(17px,2.4dvh,19px)] font-extrabold tracking-[-0.3px] text-brand-navy">
-              Price
+              {t("priceDialog.title")}
             </h1>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common:close")}
               className="grid size-8 flex-none cursor-pointer place-items-center rounded-[9px] border-none bg-transparent text-[#7d8fb0] outline-none transition-colors hover:bg-[#eef3fb] focus-visible:ring-2 focus-visible:ring-brand-blue/40"
             >
               <X className="size-[18px]" strokeWidth={2.2} />
@@ -86,25 +88,21 @@ export default function PriceDialog({ prices, onSave, onClose }) {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-(--pad-x) pb-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
-            <p className="m-0 mb-1.5 flex gap-2 rounded-xl border border-modal-line bg-modal-card px-3 py-2 text-[clamp(11.5px,1.7dvh,12px)] leading-[1.45] text-[#41588a]">
-              <Info className="mt-px size-[15px] flex-none text-brand-blue" strokeWidth={2.2} />
-              Set default amounts for the company and group respectively. Company prices apply to company settings; group prices apply to group settings.
-            </p>
-            <p className="m-0 mb-2 ml-0.5 text-[11px] text-[#8a96a8] @max-[463px]:hidden">Enter amounts for each period (up to 2 decimal places).</p>
+            <p className="m-0 mb-2 ml-0.5 text-[11px] text-[#8a96a8] @max-[463px]:hidden">{t("priceDialog.hint")}</p>
 
             {/* The divider is its own 1px track so both columns, and so all ten inputs, are exactly the same width. */}
             <div className="grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-3.5 @max-[463px]:grid-cols-1 @max-[463px]:gap-y-2.5">
-              {SECTIONS.map(({ key, label, icon: Icon, iconClass }, i) => (
+              {SECTIONS.map(({ key, labelKey, icon: Icon, iconClass }, i) => (
                 <Fragment key={key}>
                   {i === 1 && <div aria-hidden="true" className="bg-modal-divider @max-[463px]:h-px" />}
                   <section className="min-w-0">
                     <h2 className="m-0 mb-2 flex items-center gap-[7px] text-[13px] font-bold text-brand-navy">
                       <Icon className={`size-4 ${iconClass}`} strokeWidth={2.2} />
-                      {label}
+                      {t(labelKey)}
                     </h2>
-                    {PRICE_PERIODS.map(({ key: period, label: periodLabel }) => (
+                    {PRICE_PERIODS.map(({ key: period }) => (
                       <label key={period} className="mb-1.5 grid grid-cols-[clamp(58px,17vw,68px)_minmax(0,1fr)] items-center gap-2 last:mb-0">
-                        <span className="whitespace-nowrap text-xs text-[#5b74a3]">{periodLabel}</span>
+                        <span className="whitespace-nowrap text-xs text-[#5b74a3]">{t(`period.${period}`)}</span>
                         <input
                           value={values[key][period]}
                           onChange={(e) => change(key, period, e.target.value)}
@@ -121,7 +119,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
 
           <footer className="flex flex-none justify-end gap-2 border-t border-modal-line px-(--pad-x) pb-[calc(var(--pad-y)*0.9)] pt-2.5">
             <SoftButton onClick={onClose} className="h-(--btn-h) min-w-[104px] px-[22px] text-[13.5px] @max-[463px]:min-w-0 @max-[463px]:flex-1">
-              Cancel
+              {t("common:cancel")}
             </SoftButton>
             <button
               type="button"
@@ -129,7 +127,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
               className={`${primaryButtonClass} h-(--btn-h) min-w-[104px] px-[22px] text-[13.5px] @max-[463px]:min-w-0 @max-[463px]:flex-1`}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
-              Save
+              {t("common:save")}
             </button>
           </footer>
         </div>

@@ -22,7 +22,7 @@
     "maintenanceBankProcess": "银行明细"
   },
   "role": {
-    "owner": "所有者",
+    "owner": "户主",
     "admin": "管理员",
     "manager": "经理",
     "supervisor": "主管",

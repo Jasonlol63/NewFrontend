@@ -78,6 +78,9 @@ export function countChanges(base, { groups, companies }) {
   );
 }
 
+// name@domain.tld: something, one @, a domain with a dot and at least 2 letters after the last dot, no spaces.
+export const isEmailValid = (value) => /^[^s@]+@[^s@.]+(.[^s@.]+)*.[^s@.]{2,}$/.test(String(value ?? "").trim());
+
 export const isSecondaryPasswordValid = (value) => value.length === SECONDARY_PASSWORD_LENGTH;
 
 // Add needs every field and a 6 digit secondary password; Edit only the owner's name fields (both passwords stay as they are when

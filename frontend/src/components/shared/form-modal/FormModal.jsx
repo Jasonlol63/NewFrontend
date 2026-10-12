@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { Check, ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import MainOverlay from "@/components/layout/MainOverlay.jsx";
 import { SoftButton, primaryButtonClass } from "./fields.jsx";
@@ -36,7 +37,7 @@ export default function FormModal({
   title,
   onClose,
   onSave,
-  saveLabel = "Save",
+  saveLabel,
   saveDisabled = false,
   footerStart,
   footerExtra,
@@ -47,6 +48,7 @@ export default function FormModal({
   compact = false,
   children,
 }) {
+  const { t } = useTranslation();
   const titleId = useId();
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -107,9 +109,9 @@ export default function FormModal({
             </div>
             <div className="flex flex-none items-center gap-2">
               {headerExtra}
-              <SoftButton onClick={onClose} aria-label="Back" className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+              <SoftButton onClick={onClose} aria-label={t("back")} className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
                 <ChevronLeft className="size-[15px]" strokeWidth={2.5} />
-                <span className="@max-[479px]/main:hidden">Back</span>
+                <span className="@max-[479px]/main:hidden">{t("back")}</span>
               </SoftButton>
             </div>
           </header>
@@ -119,7 +121,7 @@ export default function FormModal({
           <footer className="flex flex-none flex-wrap items-center justify-end gap-2 border-t border-modal-line px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
             {footerStart}
             <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
-              Cancel
+              {t("cancel")}
             </SoftButton>
             {footerExtra}
             <button
@@ -133,7 +135,7 @@ export default function FormModal({
               )}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
-              {saveLabel}
+              {saveLabel ?? t("save")}
             </button>
           </footer>
           {overlay}
