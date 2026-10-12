@@ -357,7 +357,6 @@
     "remarkDialog": {
       "title": "Remark",
       "placeholder": "ENTER REMARKS...",
-      "upper": "Saved in uppercase",
       "chars_one": "{{count}} character",
       "chars_other": "{{count}} characters",
       "collapseAria": "Collapse the text box",

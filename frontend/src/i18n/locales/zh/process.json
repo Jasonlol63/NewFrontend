@@ -356,7 +356,6 @@
     "remarkDialog": {
       "title": "备注",
       "placeholder": "请输入备注…",
-      "upper": "将以大写保存",
       "chars_other": "{{count}} 个字符",
       "collapseAria": "收起文本框",
       "expandAria": "展开文本框",

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { History, UserPlus } from "lucide-react";
 import { formatRecordTime } from "./recordTime.js";
 
@@ -12,9 +13,10 @@ export function ByTag({ children }) {
  * modified / created: { at, by }.
  */
 export default function RecordBar({ modified, created }) {
+  const { t } = useTranslation();
   const items = [
-    { icon: History, label: "Modified", ...modified },
-    { icon: UserPlus, label: "Created", ...created },
+    { icon: History, label: t("recordModified"), ...modified },
+    { icon: UserPlus, label: t("recordCreated"), ...created },
   ];
   return (
     <div className="mr-auto flex min-w-0 flex-[1_1_320px] flex-wrap items-center gap-x-4 gap-y-1">

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
-import { AddButton, SelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
+import { AddButton, SearchSelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
 
 // Profit Sharing of the Bank Process modal, filled in right inside the card (no pop-up):
 //   "+ Select" opens a panel at the top with one row per account (Account, "+" / Edit, Amount, "%"); "+ Add Account" adds
@@ -100,7 +100,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
               <div key={i} className="flex flex-wrap items-end gap-1.5">
                 <div className="min-w-[110px] flex-[1_1_140px]">
                   {i === 0 && <ColumnLabel>{t("bank.share.account")}</ColumnLabel>}
-                  <SelectField
+                  <SearchSelectField
                     uppercase
                     value={row.account}
                     onChange={(account) => patch(i, { account })}

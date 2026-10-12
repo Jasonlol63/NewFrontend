@@ -55,6 +55,8 @@
   "showPassword": "显示密码",
   "hidePassword": "隐藏密码",
   "clear": "清除",
+  "recordModified": "修改者",
+  "recordCreated": "创建者",
   "select": "请选择",
   "search": "搜索",
   "table": {

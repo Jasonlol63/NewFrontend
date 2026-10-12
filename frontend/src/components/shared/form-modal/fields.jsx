@@ -161,13 +161,14 @@ export function SelectField({ value, onChange, options, placeholder: placeholder
  * A SelectField for a long list: the list is at most 240px high and scrolls, and a search box on top narrows it
  * (typed letters show in capitals, the match ignores case; Enter picks the first match). options: [{ value, label }].
  */
-export function SearchSelectField({ value, onChange, options, placeholder: placeholderProp, searchPlaceholder: searchProp, disabled = false }) {
+export function SearchSelectField({ value, onChange, options, placeholder: placeholderProp, searchPlaceholder: searchProp, disabled = false, onClear, uppercase = false }) {
   const { t } = useTranslation();
   const placeholder = placeholderProp ?? t("select");
   const searchPlaceholder = searchProp ?? t("search");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const label = options.find((o) => o.value === value)?.label;
+  const clearable = Boolean(onClear && value && !disabled);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
@@ -177,7 +178,7 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
     setOpen(false);
   };
 
-  return (
+  const field = (
     <Popover.Root
       open={open}
       onOpenChange={(next) => {
@@ -191,12 +192,13 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
           title={label}
           className={cn(
             inputClass,
+            uppercase && "uppercase",
             "group flex cursor-pointer items-center gap-2 pr-2.5 text-left hover:border-[#93c5fd]",
             open && openFieldClass,
             "disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint disabled:hover:border-modal-input-line"
           )}
         >
-          <span className={cn("min-w-0 flex-1 truncate", !label && "text-dash-faint")}>{label ?? placeholder}</span>
+          <span className={cn("min-w-0 flex-1 truncate", !label && "text-dash-faint", clearable && "pr-6")}>{label ?? placeholder}</span>
           <ChevronDown className={cn("size-3.5 flex-none text-dash-faint transition-transform", open && "rotate-180 text-[#3b82f6]")} strokeWidth={2.4} />
         </button>
       </Popover.Trigger>
@@ -206,7 +208,7 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl"
+          className={cn("z-50 w-(--radix-popover-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl", uppercase && "uppercase")}
         >
           <label className="flex items-center gap-2 border-b border-modal-input-line px-3 py-2">
             <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
@@ -241,11 +243,28 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
                 )}
               </button>
             ))}
-            {shown.length === 0 && <p className="m-0 px-2.5 py-2 text-center text-[12px] text-dash-faint">No results found</p>}
+            {shown.length === 0 && <p className="m-0 px-2.5 py-2 text-center text-[12px] text-dash-faint">{t("noResults")}</p>}
           </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+  if (!onClear) return field;
+  return (
+    <div className="relative">
+      {field}
+      {clearable && (
+        <button
+          type="button"
+          aria-label={t("clear")}
+          title={t("clear")}
+          onClick={onClear}
+          className="absolute top-1/2 right-7 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 text-[#94a3b8] transition-colors hover:bg-[#fee2e2] hover:text-[#ef4444]"
+        >
+          <X className="size-3.5" strokeWidth={2.6} />
+        </button>
+      )}
+    </div>
   );
 }
 

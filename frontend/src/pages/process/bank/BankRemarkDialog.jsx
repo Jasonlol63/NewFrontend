@@ -101,8 +101,7 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           {expanded ? <Minimize2 className="size-3.5" strokeWidth={2.3} /> : <Maximize2 className="size-3.5" strokeWidth={2.3} />}
         </button>
       </div>
-      <div className="mt-1.5 flex justify-between gap-2 text-[11.5px] text-[#8a96a8]">
-        <span>{t("bank.remarkDialog.upper")}</span>
+      <div className="mt-1.5 flex justify-end gap-2 text-[11.5px] text-[#8a96a8]">
         <span className="font-bold text-[#3b82f6]">
           {t("bank.remarkDialog.chars", { count: text.length })}
         </span>

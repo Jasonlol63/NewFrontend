@@ -55,6 +55,8 @@
   "showPassword": "Show password",
   "hidePassword": "Hide password",
   "clear": "Clear",
+  "recordModified": "Modified",
+  "recordCreated": "Created",
   "select": "Select",
   "search": "Search",
   "table": {

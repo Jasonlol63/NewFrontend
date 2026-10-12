@@ -12,7 +12,7 @@ import RecordBar from "@/components/shared/form-modal/RecordBar.jsx";
 import ExpandableTextarea from "@/components/shared/form-modal/ExpandableTextarea.jsx";
 import TextEditorSheet from "@/components/shared/form-modal/TextEditorSheet.jsx";
 import DeleteDialog from "@/components/shared/DeleteDialog.jsx";
-import { AddButton, Field, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
+import { AddButton, Field, SearchSelectField, SelectField, TextInput, ToggleSwitch, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import AccountFormModal from "@/pages/account/form/AccountFormModal.jsx";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import BankProfitSharing from "./BankProfitSharing.jsx";
@@ -116,13 +116,14 @@ const withCurrent = (options, value) => (value && !options.some((o) => o.value =
 // A select with the button beside it (`button`, or a function of the row element, replaces the default one): "+" (opens Add Account) while nothing is chosen, the edit pen (opens Edit Account
 // for the chosen one) once something is. While something is chosen a small x in the box clears it.
 // addOnly: the button stays "+" whatever is chosen (Country, Bank).
-function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = false, button, ...select }) {
+// searchable: a long list (accounts): a search box on top and a list of a set height.
+function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = false, searchable = false, button, ...select }) {
   const chosen = Boolean(select.value) && !addOnly;
   const [row, setRow] = useState(null);
   return (
     <div ref={setRow} className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
-        <SelectField uppercase onClear={onClear} {...select} />
+        {searchable ? <SearchSelectField uppercase onClear={onClear} {...select} /> : <SelectField uppercase onClear={onClear} {...select} />}
       </div>
       {(typeof button === "function" ? button(row) : button) ?? <AddButton edit={chosen} label={chosen ? editLabel : addLabel} disabled={select.disabled} onClick={() => onAccount?.(chosen ? "edit" : "add")} />}
     </div>
@@ -475,6 +476,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           <div className={pair}>
             <Field label={t("bank.form.supplier")} as="div">
               <SelectWithAdd
+                searchable
                 addLabel={t("bank.form.addAccountOf", { role: t("bank.role.supplier") })}
                 editLabel={t("bank.form.editAccountOf", { role: t("bank.role.supplier") })}
                 value={form.supplier}
@@ -493,6 +495,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           <div className={pair}>
             <Field label={t("bank.form.customer")} as="div">
               <SelectWithAdd
+                searchable
                 addLabel={t("bank.form.addAccountOf", { role: t("bank.role.customer") })}
                 editLabel={t("bank.form.editAccountOf", { role: t("bank.role.customer") })}
                 value={form.customer}
@@ -511,6 +514,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
           <div className={pair}>
             <Field label={t("bank.form.company")} as="div" optional>
               <SelectWithAdd
+                searchable
                 addLabel={t("bank.form.addAccountOf", { role: t("bank.role.company") })}
                 editLabel={t("bank.form.editAccountOf", { role: t("bank.role.company") })}
                 value={form.company}

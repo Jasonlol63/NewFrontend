@@ -2,7 +2,8 @@ import { useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover } from "radix-ui";
 import { cn } from "@/lib/utils";
-import { MONTHS, WEEKDAYS, monthGrid } from "@/lib/calendar";
+import { useTranslation } from "react-i18next";
+import { monthGrid } from "@/lib/calendar";
 import { parseIsoDate, toIsoDate } from "@/lib/date";
 import { inputClass, openFieldClass } from "./fields.jsx";
 
@@ -16,7 +17,10 @@ const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-s
  * Dashboard calendar (month / year views). Picking a day sets it and closes the popup.
  * value / onChange use ISO "yyyy-mm-dd" strings.
  */
-export default function DateField({ value, onChange, placeholder = "Select date", popupClassName, disabled = false }) {
+export default function DateField({ value, onChange, placeholder, popupClassName, disabled = false }) {
+  const { t } = useTranslation();
+  const MONTHS = t("calendar.months", { returnObjects: true });
+  const WEEKDAYS = t("calendar.weekdays", { returnObjects: true });
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day"); // "day" | "month" | "year"
   const [viewDate, setViewDate] = useState(() => parseIsoDate(value || toIsoDate(new Date())));
@@ -51,7 +55,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
             open && openFieldClass
           )}
         >
-          <span className={cn("min-w-0 flex-1 truncate tabular-nums", !value && "text-dash-faint")}>{value || placeholder}</span>
+          <span className={cn("min-w-0 flex-1 truncate tabular-nums", !value && "text-dash-faint")}>{value || placeholder || t("select")}</span>
           <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
         </button>
       </Popover.Trigger>
@@ -68,7 +72,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
           )}
         >
           <div className="mb-2 flex items-center justify-between modal-short:mb-1">
-            <NavButton onClick={() => step(-1)} label="Previous">
+            <NavButton onClick={() => step(-1)} label={t("calendar.previous")}>
               <ChevronLeft className="size-4" strokeWidth={2.4} />
             </NavButton>
             <div className="inline-flex overflow-hidden rounded-lg border border-dash-line">
@@ -79,7 +83,7 @@ export default function DateField({ value, onChange, placeholder = "Select date"
                 {year}
               </HeadButton>
             </div>
-            <NavButton onClick={() => step(1)} label="Next">
+            <NavButton onClick={() => step(1)} label={t("calendar.next")}>
               <ChevronRight className="size-4" strokeWidth={2.4} />
             </NavButton>
           </div>
