@@ -98,7 +98,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
         >
           <div className="flex flex-none flex-wrap items-center gap-3">
             <WarningIcon />
-            <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">{t("changes.title")}</Dialog.Title>
+            <Dialog.Title className="m-0 fm-section tracking-[-0.2px] text-brand-navy">{t("changes.title")}</Dialog.Title>
             <div className="ml-auto flex flex-wrap gap-1.5">
               {removedTotal > 0 && <SumChip className="bg-[#fee2e2] text-[#b91c1c]">{t("changes.removed", { count: removedTotal })}</SumChip>}
               {addedTotal > 0 && <SumChip className="bg-[#d1fae5] text-[#047857]">{t("changes.added", { count: addedTotal })}</SumChip>}
@@ -119,13 +119,13 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                     type="button"
                     onClick={() => pick(c)}
                     className={cn(
-                      "flex h-[38px] w-full flex-none cursor-pointer items-center gap-2 rounded-[10px] border px-2.5 text-left text-[13px] font-extrabold text-brand-navy max-[640px]:w-auto max-[640px]:min-w-[92px]",
+                      "flex h-[38px] w-full flex-none cursor-pointer items-center gap-2 rounded-[10px] border px-2.5 text-left fm-btn text-brand-navy max-[640px]:w-auto max-[640px]:min-w-[92px]",
                       on ? "border-[#7fb2ff] bg-row-stripe" : "border-transparent bg-transparent hover:bg-[#f1f6fd]",
                       empty && "opacity-45"
                     )}
                   >
                     {c.currency}
-                    <span className="ml-auto flex gap-1.5 text-[11px] font-extrabold">
+                    <span className="ml-auto flex gap-1.5 fm-opt font-semibold!">
                       {c.left.removed.length > 0 && <span className="text-[#b91c1c]">−{c.left.removed.length}</span>}
                       {c.left.added.length > 0 && <span className="text-[#047857]">+{c.left.added.length}</span>}
                     </span>
@@ -152,11 +152,11 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                     </TabButton>
                   )}
                 </div>
-                <span className="hidden min-w-0 truncate text-[11.5px] text-dash-faint min-[821px]:block">{t("changes.clickUndo")}</span>
+                <span className="hidden min-w-0 truncate fm-help text-dash-faint min-[821px]:block">{t("changes.clickUndo")}</span>
                 <button
                   type="button"
                   onClick={toggleAll}
-                  className="ml-auto inline-flex h-7 flex-none cursor-pointer items-center gap-1.5 rounded-lg border border-[#dbe5f3] bg-white px-2.5 text-xs font-bold text-brand-navy hover:bg-[#f1f6fd]"
+                  className="ml-auto inline-flex h-7 flex-none cursor-pointer items-center gap-1.5 rounded-lg border border-[#dbe5f3] bg-white px-2.5 fm-btn-sm text-brand-navy hover:bg-[#f1f6fd]"
                 >
                   {allUndone ? <Redo2 className="size-3" strokeWidth={2.8} /> : <Undo2 className="size-3" strokeWidth={2.8} />}
                   {allUndone ? t("changes.redoAll") : t("changes.undoAll")}
@@ -176,8 +176,8 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                         undone ? pillClass.undone : pillClass[shownTab]
                       )}
                     >
-                      <b className={cn("truncate text-[13px] font-extrabold", undone && "line-through")}>{id}</b>
-                      <span className="truncate text-[10.5px] font-bold uppercase opacity-75">{accountsById.get(id)?.name}</span>
+                      <b className={cn("truncate type-table-cell font-semibold!", undone && "line-through")}>{id}</b>
+                      <span className="truncate type-caption font-semibold! uppercase opacity-75">{accountsById.get(id)?.name}</span>
                       <i className={cn("absolute right-2 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md", undone ? "bg-[#e6edf8] text-[#64748b]" : "bg-white/80")}>
                         {undone ? <Redo2 className="size-3" strokeWidth={2.8} /> : <Undo2 className="size-3" strokeWidth={2.8} />}
                       </i>
@@ -189,14 +189,14 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
           </div>
 
           <div className="mt-3.5 flex flex-none gap-2.5">
-            <Dialog.Close className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
+            <Dialog.Close className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white fm-btn text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
               {t("changes.back")}
             </Dialog.Close>
             <button
               type="button"
               disabled={!total || saving}
               onClick={() => onConfirm(restoredList())}
-              className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:bg-[#e5484d]"
+              className="h-[clamp(36px,5dvh,42px)] flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] fm-btn text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:bg-[#e5484d]"
             >
               {saving ? t("changes.saving") : total ? t("changes.confirm", { count: total }) : t("changes.nothing")}
             </button>
@@ -208,7 +208,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
 }
 
 function SumChip({ className, children }) {
-  return <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-xs font-extrabold", className)}>{children}</span>;
+  return <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 fm-btn-sm", className)}>{children}</span>;
 }
 
 function TabButton({ on, tone, className, children, ...props }) {
@@ -217,7 +217,7 @@ function TabButton({ on, tone, className, children, ...props }) {
       type="button"
       {...props}
       className={cn(
-        "h-[26px] cursor-pointer whitespace-nowrap rounded-lg border-none px-3 text-xs font-extrabold disabled:cursor-default",
+        "h-[26px] cursor-pointer whitespace-nowrap rounded-lg border-none px-3 fm-btn-sm disabled:cursor-default",
         on ? cn("bg-white shadow-[0_1px_4px_rgba(20,51,107,0.15)]", tone === "removed" ? "text-[#b91c1c]" : "text-[#047857]") : "bg-transparent text-[#64748b]",
         className
       )}

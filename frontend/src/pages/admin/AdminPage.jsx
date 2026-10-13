@@ -89,12 +89,14 @@ export default function AdminPage() {
       sortable: false,
       className: "text-center",
       render: (u) => (
-        <IconAction
-          className="size-6"
-          disabled={!u.caps.canEdit}
-          title={u.caps.canEdit ? t("page.edit") : t("page.noEditPermission")}
-          onClick={() => setUserForm({ mode: "edit", user: u })}
-        />
+        <div className="flex items-center justify-center">
+          <IconAction
+            className="size-6"
+            disabled={!u.caps.canEdit}
+            title={u.caps.canEdit ? t("page.edit") : t("page.noEditPermission")}
+            onClick={() => setUserForm({ mode: "edit", user: u })}
+          />
+        </div>
       ),
     },
   ];

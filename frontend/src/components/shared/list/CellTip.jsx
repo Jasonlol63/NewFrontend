@@ -28,7 +28,7 @@ function CellTipCard({ text, rect }) {
       ref={ref}
       role="tooltip"
       style={{ position: "fixed", left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: pos ? "visible" : "hidden" }}
-      className="pointer-events-none z-50 w-max max-w-[320px] rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 text-[12px] leading-snug font-semibold tracking-[0.2px] break-words text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
+      className="pointer-events-none z-50 w-max max-w-[320px] rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 type-body leading-snug font-semibold! tracking-[0.2px] break-words text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
     >
       {text}
       {pos && (
@@ -45,7 +45,8 @@ function CellTipCard({ text, rect }) {
 /**
  * Hover card with the full text of a cut-off cell, for tables whose text columns shrink (DataTable
  * fitWidth). One card for the whole table instead of one tooltip per cell: the handlers watch which
- * [data-fit] cell the pointer is over and only cells that really are cut off show it.
+ * [data-fit] cell the pointer is over and only cells that really are cut off show it. Any other grid of
+ * truncated text can use it the same way (the Currency Setting account tiles).
  * Spread `cellTipHandlers` on the <tbody>, call `hideCellTip` when the table scrolls, and render `cellTip`.
  */
 export function useCellTip(enabled) {
@@ -67,7 +68,8 @@ export function useCellTip(enabled) {
     hideCellTip();
     if (!cell || cell.scrollWidth <= cell.clientWidth + 1) return;
     current.current = cell;
-    timer.current = setTimeout(() => setTip({ text: cell.textContent, rect: cell.getBoundingClientRect() }), DELAY);
+    // data-tip: the text to show when it differs from what is typed in the cell (e.g. text-transform: uppercase).
+    timer.current = setTimeout(() => setTip({ text: cell.dataset.tip ?? cell.textContent, rect: cell.getBoundingClientRect() }), DELAY);
   };
 
   return {

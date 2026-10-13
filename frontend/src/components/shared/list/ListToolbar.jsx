@@ -6,7 +6,7 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 import FilterChip from "./FilterChip.jsx";
 
 const buttonBase =
-  "inline-flex flex-none items-center gap-1.5 rounded-[10px] px-4 py-2 type-body font-semibold! text-white transition-colors";
+  "inline-flex flex-none items-center gap-1.5 rounded-[10px] px-4 py-2 type-body font-semibold! text-white transition-colors max-[1400px]:px-3 max-[1400px]:type-table-cell";
 
 // Blue gradient: the page's main action (Add User, Add Account).
 export function PrimaryButton({ icon: Icon, children, className, ...props }) {
@@ -89,10 +89,11 @@ export default function ListToolbar({
         scope.loading && "opacity-60"
       )}
     >
-      <div className="flex flex-wrap items-center gap-2.5 px-4 pt-2.5 short:pt-2">
+      {/* Up to 1400px wide the whole first row stays on one line: smaller buttons and chips, and the search box gives way. */}
+      <div className="flex flex-wrap items-center gap-2.5 px-4 pt-2.5 short:pt-2 max-[1400px]:flex-nowrap max-[1400px]:gap-2">
         {primaryAction}
 
-        <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+        <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 max-[1400px]:min-w-[110px] rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
           <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
           <input
             value={search}
@@ -102,13 +103,13 @@ export default function ListToolbar({
           />
         </label>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-[1400px]:flex-none max-[1400px]:flex-nowrap max-[1400px]:gap-1.5">
           <FilterChip label={t("list.showAll")} checked={chips.showAll} onChange={(v) => onChipChange("showAll", v)} />
           <FilterChip label={t("list.showActive")} checked={chips.showActive} onChange={(v) => onChipChange("showActive", v)} />
           <FilterChip label={t("list.showInactive")} checked={chips.showInactive} onChange={(v) => onChipChange("showInactive", v)} />
         </div>
 
-        <div className="ml-auto flex flex-none items-center gap-2.5">{actions}</div>
+        <div className="ml-auto flex flex-none items-center gap-2.5 max-[1400px]:gap-2">{actions}</div>
       </div>
 
       <div className="flex flex-col gap-2 px-4 pt-2 pb-2.5 short:gap-1.5 short:pt-1.5 short:pb-2">

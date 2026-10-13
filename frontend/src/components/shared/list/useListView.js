@@ -21,6 +21,10 @@ function useFitRows(ref, gap, rowMin) {
     };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
+    // The header can change height after the first measure (fonts, sort arrows), which would leave the last row
+    // a few pixels past the bottom and bring up a scrollbar.
+    const thead = el.querySelector("thead");
+    if (thead) observer.observe(thead);
     return () => observer.disconnect();
   }, [ref, gap, rowMin]);
   return fit;

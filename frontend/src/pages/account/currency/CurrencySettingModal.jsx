@@ -8,6 +8,7 @@ import { useNotice } from "@/hooks/useNotice";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { SelectField, TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
+import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 import CurrencyChangesDialog from "./CurrencyChangesDialog.jsx";
 import {
   FILTER_OPTIONS,
@@ -55,6 +56,8 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
   const [draft, setDraft] = useState({}); // being edited
   const [active, setActive] = useState("");
   const [query, setQuery] = useState("");
+  // A tile whose id or name is cut off shows it in full in a small hover card.
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
   const [filter, setFilter] = useState("all");
   const [review, setReview] = useState(null); // changes shown in the confirmation, null = closed
   const [saving, setSaving] = useState(false);
@@ -199,7 +202,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
             <p
               role={footerIsError ? "alert" : "status"}
               className={cn(
-                "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+                "m-0 mr-auto min-w-0 fm-count leading-tight @max-[599px]/main:basis-full",
                 footerIsError ? "text-[#dc2626]" : "text-dash-sub"
               )}
             >
@@ -210,7 +213,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
         saveLabel={
           <>
             {t("setting.save")}
-            {changeCount > 0 && <span className="ml-0.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-white/25 px-1.5 text-[11.5px] font-extrabold">{changeCount}</span>}
+            {changeCount > 0 && <span className="ml-0.5 inline-grid h-5 min-w-5 place-items-center rounded-full bg-white/25 px-1.5 fm-opt font-semibold!">{changeCount}</span>}
           </>
         }
         bodyClassName={cn(
@@ -235,7 +238,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
           title={
             <span className="flex items-center gap-2">
               {t("setting.account")}
-              <span className="inline-flex h-[22px] items-center rounded-full @max-[359px]/main:hidden bg-brand-sweep px-2.5 text-[11.5px] font-extrabold tracking-[0.3px] text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]">{active}</span>
+              <span className="inline-flex h-[22px] items-center rounded-full @max-[359px]/main:hidden bg-brand-sweep px-2.5 fm-opt font-semibold! tracking-[0.3px] text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]">{active}</span>
             </span>
           }
           right={
@@ -253,7 +256,7 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                 type="button"
                 onClick={toggleShown}
                 disabled={!shown.length}
-                className={cn(primaryButtonClass, "h-8 flex-none px-4 text-[12.5px] disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-7 modal-tiny:h-[26px]")}
+                className={cn(primaryButtonClass, "h-8 flex-none px-4 fm-btn-sm disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-7 modal-tiny:h-[26px]")}
               >
                 {allShownHeld ? t("setting.clearAll") : t("setting.selectAll")}
               </button>
@@ -266,15 +269,15 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
             <AccountFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} className="min-w-[120px] max-w-[300px] flex-[1_1_200px] @max-[599px]/main:max-w-none" />
           </div>
 
-          <div className={cn("min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-compact:p-2.5 modal-tiny:p-2", stackBody)}>
-            <div className="mb-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-dash-sub modal-compact:mb-2">
+          <div onScroll={hideCellTip} className={cn("min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-compact:p-2.5 modal-tiny:p-2", stackBody)}>
+            <div className="mb-2.5 flex flex-wrap gap-x-3.5 gap-y-1 fm-help text-dash-sub modal-compact:mb-2">
               <Legend className="border-[#7fb2ff] bg-[#eaf3ff]">{t("setting.legendHolds")}</Legend>
               <Legend className="border-dashed border-[#f87171] bg-[#fff5f5]">{t("setting.legendRemove")}</Legend>
               <Legend className="border-[#34d399] bg-[#ecfdf5]">{t("setting.legendNew")}</Legend>
             </div>
 
             {shown.length ? (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(clamp(112px,9vw,140px),1fr))] gap-2.5 modal-compact:gap-2 @max-[599px]/main:grid-cols-[repeat(auto-fill,minmax(104px,1fr))]">
+              <div {...cellTipHandlers} className="grid grid-cols-[repeat(auto-fill,minmax(clamp(112px,9vw,140px),1fr))] gap-2.5 modal-compact:gap-2 @max-[599px]/main:grid-cols-[repeat(auto-fill,minmax(104px,1fr))]">
                 {shown.map((a) => {
                   const state = holdState(orig, draft, active, a.accountId);
                   return (
@@ -290,20 +293,21 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                     >
                       {state === "rm" && <Tag className="bg-[#fee2e2] text-[#b91c1c]">{t("setting.tagRemove")}</Tag>}
                       {state === "new" && <Tag className="bg-[#d1fae5] text-[#047857]">{t("setting.tagNew")}</Tag>}
-                      <b className={cn("truncate text-[13.5px] font-extrabold text-[#374151]", state === "on" && "text-brand-navy", state === "new" && "text-[#065f46]", state === "rm" && "text-[#b91c1c] line-through decoration-[1.5px]")}>
+                      <b data-fit="id" className={cn("truncate type-table-cell font-semibold! text-[#374151]", state === "on" && "text-brand-navy", state === "new" && "text-[#065f46]", state === "rm" && "text-[#b91c1c] line-through decoration-[1.5px]")}>
                         {a.accountId}
                       </b>
-                      <span className={cn("truncate text-[10.5px] font-bold uppercase text-[#7b8794]", state === "on" && "text-[#4a6aa5]", state === "new" && "text-[#059669]", state === "rm" && "text-[#d57a7a]")}>{a.name}</span>
+                      <span data-fit="name" data-tip={String(a.name ?? "").toUpperCase()} className={cn("truncate type-caption font-semibold! uppercase text-[#7b8794]", state === "on" && "text-[#4a6aa5]", state === "new" && "text-[#059669]", state === "rm" && "text-[#d57a7a]")}>{a.name}</span>
                     </button>
                   );
                 })}
               </div>
             ) : (
-              <p className="m-0 p-6 text-center text-[13px] text-dash-faint">{t("setting.noMatch")}</p>
+              <p className="m-0 p-6 text-center fm-empty text-dash-faint">{t("setting.noMatch")}</p>
             )}
           </div>
         </FormCard>
         <Toast toasts={toasts} onClose={dismiss} />
+        {cellTip}
       </FormModal>
 
       {review && (
@@ -349,7 +353,7 @@ function Legend({ className, children }) {
 }
 
 function Tag({ className, children }) {
-  return <i className={cn("absolute right-[7px] top-1.5 h-[15px] rounded-full px-[5px] text-[9px] font-extrabold capitalize not-italic leading-[15px] tracking-[0.4px]", className)}>{children}</i>;
+  return <i className={cn("absolute right-[7px] top-1.5 h-[15px] rounded-full px-[5px] text-[10px] font-semibold capitalize not-italic leading-[15px] tracking-[0.4px]", className)}>{children}</i>;
 }
 
 // Add Currency + the Currency list (tabs; in Delete mode a click asks to delete that currency).
@@ -377,9 +381,9 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
             placeholder={t("setting.placeholder")}
             aria-label={t("form.newCurrencyCode")}
             autoComplete="off"
-            className="min-w-0 flex-1 uppercase"
+            className="min-w-0 flex-1 uppercase type-body"
           />
-          <button type="button" onClick={add} className={cn(primaryButtonClass, "h-9 flex-none px-3 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7")}>
+          <button type="button" onClick={add} className={cn(primaryButtonClass, "h-9 flex-none px-3 type-table-cell font-semibold! modal-compact:h-[30px] modal-tiny:h-7")}>
             <Plus className="size-3.5" strokeWidth={2.6} />
             {t("setting.add")}
           </button>
@@ -388,7 +392,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
             onClick={() => setDeleting((v) => !v)}
             aria-pressed={deleting}
             className={cn(
-              "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 text-[12.5px] font-bold modal-compact:h-[30px] modal-tiny:h-7",
+              "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 type-table-cell font-semibold! modal-compact:h-[30px] modal-tiny:h-7",
               deleting ? "border-[#dc2626] bg-[#dc2626] text-white" : "border-[#fecaca] bg-white/70 text-[#dc2626] hover:bg-white"
             )}
           >
@@ -424,7 +428,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
                 }
                 aria-pressed={deleting ? undefined : on}
                 className={cn(
-                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 text-[13px] font-extrabold transition-colors modal-compact:h-8 modal-tiny:h-[30px] disabled:cursor-not-allowed disabled:opacity-45",
+                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 type-table-cell font-semibold! transition-colors modal-compact:h-8 modal-tiny:h-[30px] disabled:cursor-not-allowed disabled:opacity-45",
                   deleting
                     ? "border-[#fecaca] bg-white text-[#b91c1c] hover:border-[#f87171] hover:bg-[#fef2f2]"
                     : on
@@ -436,7 +440,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
                 {deleting ? (
                   <X className="size-3 text-[#ef4444]" strokeWidth={3.2} />
                 ) : (
-                  <span className="text-[11px] font-bold text-[#6b86b3]">{counts[c]?.size ?? 0}</span>
+                  <span className="type-caption font-semibold! text-[#6b86b3]">{counts[c]?.size ?? 0}</span>
                 )}
                 {!deleting && changed.has(c) && <i className="absolute -right-1 -top-1 size-[11px] rounded-full border-2 border-white bg-[#f59e0b] shadow-[0_1px_3px_rgba(180,83,9,0.4)]" />}
               </button>

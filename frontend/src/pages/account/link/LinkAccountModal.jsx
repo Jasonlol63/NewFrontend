@@ -169,7 +169,7 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
           <p
             role={footerIsError ? "alert" : "status"}
             className={cn(
-              "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+              "m-0 mr-auto min-w-0 fm-count leading-tight @max-[599px]/main:basis-full",
               footerIsError ? "text-[#dc2626]" : "text-dash-sub"
             )}
           >
@@ -213,13 +213,13 @@ function LinkTypeCard({ accountId, mode, setMode }) {
   const ModeArrow = TYPES[mode].Icon;
   return (
     <FormCard title="Link Type" className={cn("flex-none @max-[899px]/main:order-1", stackCard)} bodyClassName={stackBody}>
-      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">{tr("link.linkFrom")}</p>
-      <div className="mb-3 flex h-9 items-center justify-between rounded-[10px] border border-modal-input-line bg-modal-input px-3 text-[13.5px] font-extrabold text-brand-navy shadow-[0_1px_3px_rgba(15,23,42,0.05)] modal-compact:mb-2 modal-compact:h-[30px] modal-tiny:h-7">
+      <p className="m-0 mb-1 ml-px fm-label text-[#374151]">{tr("link.linkFrom")}</p>
+      <div className="mb-3 flex h-9 items-center justify-between rounded-[10px] border border-modal-input-line bg-modal-input px-3 fm-btn text-brand-navy shadow-[0_1px_3px_rgba(15,23,42,0.05)] modal-compact:mb-2 modal-compact:h-[30px] modal-tiny:h-7">
         <span className="truncate">{accountId}</span>
-        <span className="flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-[0.4px] text-[#1d4ed8]">{tr("link.thisAccount")}</span>
+        <span className="flex-none rounded-[5px] bg-[#dbeafe] px-1.5 py-0.5 fm-opt font-semibold! tracking-[0.4px] text-[#1d4ed8]">{tr("link.thisAccount")}</span>
       </div>
 
-      <p className="m-0 mb-1 ml-px text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">{tr("link.addAs")}</p>
+      <p className="m-0 mb-1 ml-px fm-label text-[#374151]">{tr("link.addAs")}</p>
       <div className="grid grid-cols-2 gap-0.5 rounded-[10px] border border-modal-off-line bg-white/45 p-0.5">
         {MODES.map((key) => [key, TYPES[key]]).map(([key, t]) => (
           <button
@@ -228,7 +228,7 @@ function LinkTypeCard({ accountId, mode, setMode }) {
             onClick={() => setMode(key)}
             aria-pressed={mode === key}
             className={cn(
-              "inline-flex h-[30px] min-w-0 cursor-pointer items-center justify-center gap-1.5 truncate rounded-[7px] border-none px-1 text-[12px] font-bold transition-colors modal-compact:h-[26px]",
+              "inline-flex h-[30px] min-w-0 cursor-pointer items-center justify-center gap-1.5 truncate rounded-[7px] border-none px-1 fm-btn-sm transition-colors modal-compact:h-[26px]",
               mode === key ? cn("text-white", t.on) : "bg-transparent text-[#64748b] hover:bg-white/60 hover:text-brand-navy"
             )}
           >
@@ -240,11 +240,11 @@ function LinkTypeCard({ accountId, mode, setMode }) {
 
       <div className="mt-3 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2.5 pb-2.5 pt-3 modal-compact:mt-2 modal-compact:pt-2">
         <div className="flex items-center justify-center gap-2.5">
-          <span className="grid h-9 min-w-16 max-w-[45%] place-items-center truncate rounded-[11px] border border-[#7fb2ff] bg-row-stripe px-3 text-[13px] font-extrabold text-brand-navy">{accountId}</span>
+          <span className="grid h-9 min-w-16 max-w-[45%] place-items-center truncate rounded-[11px] border border-[#7fb2ff] bg-row-stripe px-3 fm-btn text-brand-navy">{accountId}</span>
           <ModeArrow className={cn("h-[18px] w-11 flex-none", TYPES[mode].arrow)} strokeWidth={2.2} />
-          <span className="grid h-9 min-w-16 place-items-center rounded-[11px] border border-modal-off-line bg-modal-off px-3 text-[13px] font-extrabold text-[#374151]">{tr("link.account")}</span>
+          <span className="grid h-9 min-w-16 place-items-center rounded-[11px] border border-modal-off-line bg-modal-off px-3 fm-btn text-[#374151]">{tr("link.account")}</span>
         </div>
-        <p className="m-0 mt-2.5 text-center text-[12px] leading-[1.45] text-[#475569]">{hint}</p>
+        <p className="m-0 mt-2.5 text-center fm-help leading-[1.45] text-[#475569]">{hint}</p>
       </div>
     </FormCard>
   );
@@ -268,10 +268,10 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
         if (key === "in" && ![...initial.values()].includes("in")) return null;
         return (
           <div key={key} className="mb-3.5 last:mb-0">
-            <div className={cn("mb-1.5 ml-px flex items-center gap-1.5 text-[12px] font-extrabold", t.heading)}>
+            <div className={cn("mb-1.5 ml-px flex items-center gap-1.5 fm-btn-sm", t.heading)}>
               <t.Icon className="size-3.5" strokeWidth={2.6} />
               {tr(`link.${key}`)}
-              <span className={cn("ml-auto text-[11.5px]", t.count)}>{count(key)}</span>
+              <span className={cn("ml-auto fm-help", t.count)}>{count(key)}</span>
             </div>
             {ids.length ? (
               <div className="flex flex-wrap gap-[5px]">
@@ -285,7 +285,7 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
                       : tr("link.backOneWay")
                     : tr("link.switchTo", { type: tr(`link.${other(key)}`) });
                   return (
-                    <span key={id} className={cn("inline-flex h-7 items-center gap-1 rounded-lg border pl-2.5 pr-1.5 text-[12px] font-extrabold", t.chip)}>
+                    <span key={id} className={cn("inline-flex h-7 items-center gap-1 rounded-lg border pl-2.5 pr-1.5 fm-btn-sm", t.chip)}>
                       {labelOf(id)}
                       <button
                         type="button"
@@ -311,7 +311,7 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
                 })}
               </div>
             ) : (
-              <div className="rounded-[10px] border border-dashed border-modal-off-line px-1.5 py-[9px] text-center text-[12px] text-[#8a96a8]">{tr("link.none")}</div>
+              <div className="rounded-[10px] border border-dashed border-modal-off-line px-1.5 py-[9px] text-center fm-empty text-[#8a96a8]">{tr("link.none")}</div>
             )}
           </div>
         );
@@ -327,7 +327,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
       title={tr("link.accounts")}
       right={
         <>
-          <span className="flex items-center gap-3 text-[11.5px] font-semibold text-[#475569] @max-[599px]/main:hidden">
+          <span className="flex items-center gap-3 fm-help font-semibold! text-[#475569] @max-[599px]/main:hidden">
             {MODES.map((key) => [key, TYPES[key]]).map(([key, t]) => (
               <span key={key} className="inline-flex items-center gap-[5px]">
                 <i className={cn("size-2.5 rounded-[3px]", t.dot)} />
@@ -367,7 +367,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
               aria-pressed={Boolean(type)}
               title={type === "in" ? tr("link.tileIn") : type ? tr(`link.${type}`) : tr("link.addAsType", { type: tr(`link.${mode}`) })}
               className={cn(
-                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-10 text-left text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
+                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-10 text-left fm-btn transition-colors modal-compact:h-9 modal-tiny:h-8",
                 t ? t.tile : "border-modal-off-line bg-white/60 text-[#374151] hover:border-[#93c5fd]"
               )}
             >
@@ -381,7 +381,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
           );
         })}
         {items.length === 0 && (
-          <div className="col-span-full py-6 text-center text-[12.5px] text-dash-faint">{loading ? tr("form.loading") : tr("link.noMatches")}</div>
+          <div className="col-span-full py-6 text-center fm-empty text-dash-faint">{loading ? tr("form.loading") : tr("link.noMatches")}</div>
         )}
       </div>
     </FormCard>

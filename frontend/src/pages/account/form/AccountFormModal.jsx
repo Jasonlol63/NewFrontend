@@ -158,7 +158,7 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
           <p
             role={footerIsError ? "alert" : "status"}
             className={cn(
-              "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+              "m-0 mr-auto min-w-0 fm-count leading-tight @max-[599px]/main:basis-full",
               footerIsError ? "text-[#dc2626]" : "text-dash-sub"
             )}
           >
@@ -271,7 +271,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           aria-label={t("form.newCurrencyCode")}
           className="min-w-[72px] flex-1 uppercase"
         />
-        <button type="button" onClick={create} className={cn(primaryButtonClass, "h-9 flex-none px-3.5 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7")}>
+        <button type="button" onClick={create} className={cn(primaryButtonClass, "h-9 flex-none px-3.5 fm-btn-sm modal-compact:h-[30px] modal-tiny:h-7")}>
           <Plus className="size-3.5" strokeWidth={2.6} />
           {t("form.create")}
         </button>
@@ -280,7 +280,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           onClick={() => setDeleting((v) => !v)}
           aria-pressed={deleting}
           className={cn(
-            "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3.5 text-[12.5px] font-bold modal-compact:h-[30px] modal-tiny:h-7",
+            "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3.5 fm-btn-sm modal-compact:h-[30px] modal-tiny:h-7",
             deleting ? "border-[#dc2626] bg-[#dc2626] text-white" : "border-[#fecaca] bg-white/70 text-[#dc2626] hover:bg-white"
           )}
         >
@@ -302,7 +302,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
               aria-pressed={on}
               title={removable ? t("form.deleteCode", { code: c.code }) : undefined}
               className={cn(
-                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 text-[13px] font-extrabold transition-colors modal-compact:h-9 modal-tiny:h-8",
+                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 fm-btn transition-colors modal-compact:h-9 modal-tiny:h-8",
                 // Below 1440 the tiles are plain (no tick circle): selected = blue, about 5 per row.
                 "@max-[1209px]/main:h-[34px] @max-[1209px]/main:justify-center @max-[1209px]/main:px-1 @max-[1209px]/main:modal-compact:h-8 @max-[1209px]/main:modal-tiny:h-[30px]",
                 "disabled:cursor-not-allowed disabled:opacity-45",
@@ -330,7 +330,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
           );
         })}
       </div>
-      {deleting && <p className="m-0 mt-2 text-[11.5px] text-[#b91c1c]">{t("form.deleteHint")}</p>}
+      {deleting && <p className="m-0 mt-2 fm-help text-[#b91c1c]">{t("form.deleteHint")}</p>}
 
       <DeleteDialog
         open={toDelete !== null}
@@ -361,7 +361,7 @@ function PaymentAlertCard({ alert, setAlert }) {
       bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5 @min-[900px]/main:modal-cozy:flex @min-[900px]/main:modal-cozy:flex-col", stackBody)}
     >
       {!alert.on ? (
-        <div className="grid h-full min-h-20 place-items-center rounded-xl border border-dashed border-modal-off-line p-2.5 text-center text-[12.5px] text-[#8a96a8]">
+        <div className="grid h-full min-h-20 place-items-center rounded-xl border border-dashed border-modal-off-line p-2.5 text-center fm-empty text-[#8a96a8]">
           <span>
             {t("form.alertOff1")}
             <br />
@@ -389,7 +389,7 @@ function PaymentAlertCard({ alert, setAlert }) {
             </div>
 
             <div className="mt-2.5 flex items-center gap-2.5 modal-compact:mt-2 modal-snug:mt-[5px] @max-[1209px]/main:modal-short:mt-0! @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-short:min-w-0">
-              <span className="flex-none whitespace-nowrap text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px] @max-[1209px]/main:modal-short:mb-0.5 @max-[1209px]/main:modal-short:ml-0.5 @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-tiny:mb-px">
+              <span className="flex-none whitespace-nowrap fm-label text-[#374151] @max-[1209px]/main:modal-short:mb-0.5 @max-[1209px]/main:modal-short:ml-0.5 @max-[1209px]/main:modal-short:block @max-[1209px]/main:modal-tiny:mb-px">
                 {t("form.alertType")} <i className="not-italic text-[#ef4444]">*</i>
               </span>
               <AlertTypeBar custom={custom} type={alert.type} onPick={pick} />
@@ -417,8 +417,8 @@ function AlertTypeBar({ custom, type, onPick }) {
             onClick={() => onPick(p.value)}
             aria-pressed={on}
             className={cn(
-              "h-[26px] min-w-0 cursor-pointer truncate rounded-[7px] border-none px-1 text-[12px] font-bold transition-colors",
-              "@min-[900px]/main:@max-[1099px]/main:h-6 modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]",
+              "h-[26px] min-w-0 cursor-pointer truncate rounded-[7px] border-none px-1 fm-btn-sm transition-colors",
+              "@min-[900px]/main:@max-[1099px]/main:h-6 modal-compact:h-[22px] modal-tiny:h-5",
               "@max-[1209px]/main:modal-short:h-6 @max-[1209px]/main:modal-tiny:h-[22px]",
               on ? "bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]" : "bg-transparent text-[#64748b] hover:bg-white/60 hover:text-brand-navy"
             )}
@@ -437,7 +437,7 @@ function DayGrid({ value, onPick }) {
   const { t } = useTranslation("account");
   return (
     <div className="mt-1.5 flex flex-col @min-[900px]/main:modal-cozy:min-h-0 @min-[900px]/main:modal-cozy:flex-1 rounded-xl border border-dashed border-modal-off-line bg-white/30 px-2 pb-2 pt-1.5 modal-snug:mt-[3px] modal-snug:pb-[5px] modal-snug:pt-1 modal-roomy:mt-2 modal-roomy:px-3 modal-roomy:pb-3 modal-roomy:pt-2.5">
-      <div className="mb-1 ml-px text-[12px] font-bold leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2 modal-roomy:text-[13px]">{t("form.remindEvery")}</div>
+      <div className="mb-1 ml-px fm-label leading-[15px] text-[#475569] modal-snug:mb-[3px] modal-roomy:mb-2">{t("form.remindEvery")}</div>
       <div
         className={cn(
           "grid grid-cols-[repeat(auto-fill,30px)] justify-between gap-1 modal-short:gap-[3px] modal-roomy:grid-cols-[repeat(auto-fill,48px)] modal-roomy:gap-1.5",
@@ -456,7 +456,7 @@ function DayGrid({ value, onPick }) {
               onClick={() => onPick(n)}
               aria-pressed={on}
               className={cn(
-                "size-[30px] cursor-pointer @min-[900px]/main:modal-cozy:size-auto rounded-[7px] border text-[12.5px] transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px] modal-roomy:text-[14.5px]",
+                "size-[30px] cursor-pointer @min-[900px]/main:modal-cozy:size-auto rounded-[7px] border fm-btn-sm transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px]",
                 on
                   ? "border-[#3b82f6] bg-row-stripe font-extrabold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
                   : "border-modal-off-line bg-modal-off font-semibold text-[#475569] hover:border-[#93c5fd] hover:bg-white/85"
@@ -507,7 +507,7 @@ function CompanyChipsBox({ items, selected, onChange }) {
   const { t } = useTranslation("account");
   return (
     <section className="flex flex-none items-start gap-2.5 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card @min-[1210px]/main:hidden @max-[899px]/main:order-4 modal-compact:px-3 modal-compact:py-[9px]">
-      <span className="flex-none whitespace-nowrap pt-[5px] text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">
+      <span className="flex-none whitespace-nowrap pt-[5px] fm-label text-[#374151]">
         {t("form.company")} <i className="not-italic text-[#ef4444]">*</i>
       </span>
       <div className="flex max-h-[94px] @max-[899px]/main:max-h-none min-w-0 flex-1 flex-wrap gap-[5px] overflow-y-auto [scrollbar-width:thin]">
@@ -521,7 +521,7 @@ function CompanyChipsBox({ items, selected, onChange }) {
               aria-pressed={on}
               title={it.label}
               className={cn(
-                "inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 text-[12px] font-extrabold transition-colors",
+                "inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 fm-btn-sm transition-colors",
                 on
                   ? "border-[#7fb2ff] bg-row-stripe text-brand-navy shadow-[inset_0_0_0_1px_#7fb2ff]"
                   : "border-modal-off-line bg-modal-off text-[#374151] hover:border-[#93c5fd] hover:bg-white/85"

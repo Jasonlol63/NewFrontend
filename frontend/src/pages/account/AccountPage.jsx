@@ -31,7 +31,7 @@ function AlertPill({ on, onToggle, disabled }) {
       title={disabled ? t("page.readOnly") : t("page.alertSwitch")}
       // Rounded rectangle (rounded-md) to line up with the Role / Status badges.
       className={cn(
-        "relative inline-flex h-[22px] w-[46px] items-center rounded-md border-none text-[9.5px] font-bold tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
+        "relative inline-flex h-[22px] w-[46px] items-center rounded-md border-none text-[10.5px] font-semibold tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
         on
           ? "justify-start bg-alert-on pl-2 shadow-[0_4px_10px_-4px_rgba(5,150,105,0.6),inset_0_0_0_1px_rgba(4,120,87,0.25)]"
           : "justify-end bg-alert-off pr-[7px] shadow-[0_4px_10px_-4px_rgba(229,62,62,0.6),inset_0_0_0_1px_rgba(185,28,28,0.25)]"
@@ -123,7 +123,7 @@ export default function AccountPage() {
 
   // Only inactive accounts can be deleted.
   const canSelect = useCallback((a) => !readOnly && a.status === "inactive", [readOnly]);
-  const view = useListView(rows, { filter: filterAccounts, sort: sortAccounts, canSelect });
+  const view = useListView(rows, { filter: filterAccounts, sort: sortAccounts, canSelect, rowMin: 26 });
   const actions = useRowActions({
     toggleStatus,
     deleteRows,
@@ -172,21 +172,23 @@ export default function AccountPage() {
       className: "text-center",
       cellClassName: "whitespace-nowrap",
       render: (a) => (
-        <>
+        <div className="flex items-center justify-center">
           <IconAction
+            className="size-6"
             onClick={() => setAccountForm({ mode: "edit", account: a })}
             disabled={readOnly}
             title={readOnly ? t("page.readOnly") : t("page.edit")}
             aria-label={t("page.edit")}
           />
           <IconAction
+            className="size-6"
             icon={Plus}
             onClick={() => setLinkAccount(a)}
             disabled={readOnly}
             title={readOnly ? t("page.readOnly") : t("page.link")}
             aria-label={t("page.link")}
           />
-        </>
+        </div>
       ),
     },
   ];
