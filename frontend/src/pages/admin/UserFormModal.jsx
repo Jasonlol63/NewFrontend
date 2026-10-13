@@ -183,7 +183,7 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
             id="second-password-error"
             role={footerIsError ? "alert" : "status"}
             className={cn(
-              "m-0 mr-auto min-w-0 text-[12.5px] font-semibold leading-tight @max-[599px]/main:basis-full @max-[599px]/main:text-[12px]",
+              "m-0 mr-auto min-w-0 fm-count leading-tight @max-[599px]/main:basis-full",
               footerIsError ? "text-[#dc2626]" : "text-dash-sub"
             )}
           >
@@ -285,7 +285,7 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
         <div className="my-3 h-px flex-none bg-modal-divider modal-compact:mb-2 modal-compact:mt-2.5 modal-tiny:mb-1.5 modal-tiny:mt-2" />
 
         <div className="mb-2 flex flex-none flex-wrap items-center justify-between gap-2 modal-compact:mb-1.5 modal-tiny:mb-1">
-          <div className="flex items-baseline gap-[5px] text-[13px] font-extrabold text-brand-navy">
+          <div className="flex items-baseline gap-[5px] fm-label text-brand-navy">
             {t("form.permissions")} <Count value={perms.size} total={PERMISSIONS.length} />
           </div>
           <ToggleSwitch on={readOnly} onToggle={onToggleReadOnly} label={t("form.readOnly")} />
@@ -322,9 +322,9 @@ function PermissionItem({ perm, on, onToggle }) {
       aria-pressed={on}
       title={t(`permission.${perm.key}`)}
       className={cn(
-        "flex min-h-[38px] min-w-0 cursor-pointer items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left text-[12.5px] font-semibold transition-colors",
-        "@min-[900px]/main:@max-[1099px]/main:gap-1.5 @min-[900px]/main:@max-[1099px]/main:px-1.5 @min-[900px]/main:@max-[1099px]/main:py-1 @min-[900px]/main:@max-[1099px]/main:text-[11.5px]",
-        "modal-compact:min-h-[30px] modal-compact:gap-1.5 modal-compact:px-[7px] modal-compact:py-[3px] modal-compact:text-[12px]",
+        "flex min-h-[38px] min-w-0 cursor-pointer items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left fm-btn-sm transition-colors",
+        "@min-[900px]/main:@max-[1099px]/main:gap-1.5 @min-[900px]/main:@max-[1099px]/main:px-1.5 @min-[900px]/main:@max-[1099px]/main:py-1",
+        "modal-compact:min-h-[30px] modal-compact:gap-1.5 modal-compact:px-[7px] modal-compact:py-[3px]",
         "modal-tiny:min-h-7 modal-tiny:px-1.5 modal-tiny:py-0.5",
         // Narrow info column (1024 / 1200 screens): smaller still, and it must win over the height tiers.
         "@max-[250px]/info:gap-[5px]! @max-[250px]/info:px-[5px]! @max-[250px]/info:text-[11px]!",

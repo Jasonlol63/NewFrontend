@@ -47,7 +47,7 @@ export default function AdminPage() {
 
   const rowsWithCaps = useMemo(() => rows.map((u) => ({ ...u, caps: rowCapabilities(u, viewer) })), [rows, viewer]);
   const filter = useCallback((list, opts) => filterUsers(list, { ...opts, viewer }), [viewer]);
-  const view = useListView(rowsWithCaps, { filter, sort: sortUsers, canSelect });
+  const view = useListView(rowsWithCaps, { filter, sort: sortUsers, canSelect, rowMin: 26 });
   const actions = useRowActions({
     toggleStatus,
     deleteRows,
@@ -90,6 +90,7 @@ export default function AdminPage() {
       className: "text-center",
       render: (u) => (
         <IconAction
+          className="size-6"
           disabled={!u.caps.canEdit}
           title={u.caps.canEdit ? t("page.edit") : t("page.noEditPermission")}
           onClick={() => setUserForm({ mode: "edit", user: u })}

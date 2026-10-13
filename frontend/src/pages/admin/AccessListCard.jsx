@@ -56,7 +56,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
   };
 
   const searchInput = (props) => (
-    <label className="flex h-8 min-w-0 items-center gap-2 rounded-[10px] border border-modal-input-line bg-modal-input px-2.5 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+    <label className="flex h-8 min-w-0 items-center gap-2 rounded-[10px] border border-modal-input-line bg-modal-input px-2.5 fm-input shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
       <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
       <input
         value={query}
@@ -94,7 +94,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         </button>
 
         <div className="flex min-w-0 flex-none items-baseline gap-1.5 @max-[380px]/card:gap-1">
-          <h2 className="m-0 whitespace-nowrap text-[16px] font-extrabold text-brand-navy @min-[900px]/main:@max-[1099px]/main:text-[14.5px] modal-tiny:text-[14px] @max-[380px]/card:text-[14px]">
+          <h2 className="m-0 whitespace-nowrap fm-section text-brand-navy @max-[380px]/card:text-[14px]">
             {title}
           </h2>
           <Count value={selected.size} total={items.length} />
@@ -109,7 +109,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
                 title={t(`access.${f.key}Title`)}
                 onClick={() => setFilter(f.value)}
                 className={cn(
-                  "cursor-pointer whitespace-nowrap rounded-[7px] border-none px-[9px] py-[3px] text-[11.5px] font-bold @max-[380px]/card:px-2 @max-[340px]/card:px-[7px]",
+                  "cursor-pointer whitespace-nowrap rounded-[7px] border-none px-[9px] py-[3px] fm-opt font-semibold! @max-[380px]/card:px-2 @max-[340px]/card:px-[7px]",
                   filter === f.value
                     ? "bg-brand-sweep text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)]"
                     : "bg-transparent text-[#5b74a3]"
@@ -160,7 +160,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
         )}
       >
         {shown.length === 0 ? (
-          <div className="col-span-full py-9 text-center text-[13px] text-dash-faint">{t("access.noMatches")}</div>
+          <div className="col-span-full py-9 text-center fm-empty text-dash-faint">{t("access.noMatches")}</div>
         ) : (
           shown.map((it) => <AccessItem key={it.id} item={it} on={selected.has(it.id)} onToggle={() => toggle(it.id)} />)
         )}
@@ -186,8 +186,8 @@ function AccessItem({ item, on, onToggle }) {
     >
       <span
         className={cn(
-          "block truncate text-[12px] font-bold leading-[1.25]",
-          "@min-[474px]/card:@max-[560px]/card:text-[11.5px] @min-[900px]/main:@max-[1099px]/main:text-[11px] @max-[340px]/card:text-[11px]",
+          "block truncate fm-btn-sm leading-[1.25]",
+          "@max-[340px]/card:text-[11px]",
           on ? "text-[#0d60ff]" : "text-[#374151]"
         )}
       >
@@ -195,7 +195,7 @@ function AccessItem({ item, on, onToggle }) {
       </span>
       <span
         className={cn(
-          "block truncate text-[10.5px] font-semibold leading-[1.25] @min-[900px]/main:@max-[1099px]/main:text-[10px] @max-[340px]/card:text-[10px]",
+          "block truncate fm-help font-semibold! leading-[1.25] @max-[340px]/card:text-[10px]",
           on ? "text-[#5b74a3]" : "text-dash-faint"
         )}
       >
@@ -213,7 +213,7 @@ function AccessItem({ item, on, onToggle }) {
 // Small blue "12/76" next to a title (shared with the Permissions heading).
 export function Count({ value, total }) {
   return (
-    <span className={cn("whitespace-nowrap text-[11px] font-semibold tabular-nums", value ? "text-[#0d60ff]" : "text-[#9cb7ec]")}>
+    <span className={cn("whitespace-nowrap fm-opt font-semibold! tabular-nums", value ? "text-[#0d60ff]" : "text-[#9cb7ec]")}>
       {value}/{total}
     </span>
   );
