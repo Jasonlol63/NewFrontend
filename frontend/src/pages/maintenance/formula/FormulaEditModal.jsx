@@ -137,10 +137,10 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
             autoComplete="off"
             className={cn(textareaClass, "@max-[899px]/main:min-h-[160px]")}
           />
-          <p className="m-0 flex-none text-xs leading-snug text-[#64748b] modal-tiny:text-[11.5px]">
+          <p className="m-0 flex-none fm-help leading-snug text-[#64748b]">
             {t("formula.hint")}
           </p>
-          <div className="flex flex-none items-start gap-1.5 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff]/90 px-2.5 py-[7px] text-[12.5px] leading-snug text-[#1e40af] modal-tiny:text-[12px]">
+          <div className="flex flex-none items-start gap-1.5 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff]/90 px-2.5 py-[7px] fm-help leading-snug text-[#1e40af]">
             <Info className="mt-0.5 size-3.5 flex-none" strokeWidth={2.2} />
             <span>{t("formula.copies")}</span>
           </div>

@@ -7,7 +7,7 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 // control drops under its label instead of squeezing.
 export function Field({ label, children }) {
   return (
-    <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+    <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 min-[1180px]:max-[1400px]:flex-nowrap">
       <span className="flex-none type-label text-[#1f2937]">{label}</span>
       {children}
     </div>
@@ -27,7 +27,8 @@ export default function ReportFilterCard({ scope, children, extraRows }) {
         scope.loading && "opacity-60"
       )}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-2.5 short:pt-2">{children}</div>
+      {/* From 1180 to 1400px wide the first row stays on one line (the search box gives way); narrower, it wraps as before. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-2.5 short:pt-2 min-[1180px]:max-[1400px]:flex-nowrap min-[1180px]:max-[1400px]:gap-x-2">{children}</div>
 
       <div className="flex flex-col gap-2 px-4 pt-2 pb-2.5 short:gap-1.5 short:pt-1.5 short:pb-2">
         {scope.showGroups && (

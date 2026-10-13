@@ -86,6 +86,7 @@ export default function CaptureMaintenancePage() {
         loadingMore={captures.loadingMore}
         onLoadMore={captures.loadMore}
         scrollResetKey={request}
+        rowHeight={26}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

@@ -127,6 +127,7 @@ export default function PaymentMaintenancePage() {
         loadingMore={payments.loadingMore}
         onLoadMore={payments.loadMore}
         scrollResetKey={request}
+        rowHeight={26}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

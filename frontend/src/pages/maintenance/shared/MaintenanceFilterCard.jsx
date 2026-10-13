@@ -13,7 +13,7 @@ import ReportFilterCard, { Field } from "@/pages/report/shared/ReportFilterCard.
  */
 export default function MaintenanceFilterCard({ filters, searchPlaceholder, actions, field, extraRows }) {
   const { t } = useTranslation("maintenance");
-  const { scope, isGroupOwn, processChoices, processId, range } = filters;
+  const { scope, bankForm, processChoices, processId, range } = filters;
 
   const first =
     field ??
@@ -25,7 +25,7 @@ export default function MaintenanceFilterCard({ filters, searchPlaceholder, acti
           onChange={filters.setProcessPick}
           placeholder={t("filter.selectProcess")}
           clearable
-          searchable={!isGroupOwn}
+          searchable={!bankForm}
           searchPlaceholder={t("filter.searchProcess")}
           ariaLabel={t("filter.process")}
         />
@@ -39,7 +39,7 @@ export default function MaintenanceFilterCard({ filters, searchPlaceholder, acti
   );
 
   const search = (
-    <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+    <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 min-[1180px]:max-[1400px]:min-w-[110px] rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
       <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
       <input
         value={filters.search}

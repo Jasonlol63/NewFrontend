@@ -16,7 +16,7 @@ export default function CurrencyFilterRow({ filters }) {
           wrap onReorder={filters.setCurrencyOrder}
         />
       ) : (
-        <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
+        <span className="type-caption font-medium! text-dash-faint">{t("filter.noCurrency")}</span>
       )}
     </FilterRow>
   );

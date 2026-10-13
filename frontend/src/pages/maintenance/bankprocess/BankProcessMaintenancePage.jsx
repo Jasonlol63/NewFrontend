@@ -106,6 +106,7 @@ export default function BankProcessMaintenancePage() {
         loadingMore={list.loadingMore}
         onLoadMore={list.loadMore}
         scrollResetKey={request}
+        rowHeight={26}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

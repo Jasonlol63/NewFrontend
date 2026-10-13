@@ -280,6 +280,55 @@ function useRowWindow({ enabled, ref, rowHeight, rowCount, hasMore, loadingMore,
   return { win, update };
 }
 
+// A virtual list only draws the rows near the viewport, so with automatic column widths the columns would be re-measured
+// from a different set of rows on every scroll step and the whole table would shift sideways. This measures the columns
+// once (after the first rows are drawn and the fit has run), then freezes them: the table gets a <colgroup> and a fixed
+// layout. It measures again when the card is resized, the columns change or the list is reset (new filters).
+function useFrozenColumns(enabled, ref, key, ready) {
+  const [widths, setWidths] = useState(null);
+  useLayoutEffect(() => {
+    setWidths(null);
+  }, [key]);
+  useEffect(() => {
+    const body = ref.current;
+    if (!enabled || !body) return undefined;
+    let last = body.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (Math.abs(body.clientWidth - last) < 1) return;
+      last = body.clientWidth;
+      setWidths(null);
+    });
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, [enabled, ref]);
+  // After every render until frozen: once rows are in, take the widths the automatic layout gave the header cells.
+  useLayoutEffect(() => {
+    if (!enabled || !ready || widths) return;
+    const body = ref.current;
+    const table = body?.querySelector("table");
+    const heads = table && [...table.querySelectorAll("thead th")];
+    if (!heads?.length) return;
+    // Natural widths (as narrow as the content allows) ...
+    const before = table.style.width;
+    table.style.width = "max-content";
+    const natural = heads.map((h) => h.getBoundingClientRect().width);
+    table.style.width = before;
+    // ... then the room that is left is shared by every column in proportion to its natural width, exactly as the
+    // browser's own layout does while the list is empty — except columns with an explicit width class (No., the select
+    // column), which keep it. That way the columns do not jump when the first rows arrive.
+    const extra = body.clientWidth - natural.reduce((a, b) => a + b, 0);
+    let out = natural;
+    if (extra > 1) {
+      const fixed = heads.map((h) => /w-\[[\d.]+px\]/.test(h.className));
+      const targets = fixed.some((f) => !f) ? fixed.map((f) => !f) : fixed.map(() => true);
+      const base = natural.reduce((sum, w, i) => (targets[i] ? sum + w : sum), 0);
+      out = natural.map((w, i) => (targets[i] ? w + extra * (w / base) : w));
+    }
+    setWidths(out);
+  });
+  return enabled ? widths : null;
+}
+
 const NO_SELECTION = new Set();
 const NO_SORT = { key: null, dir: 1 };
 const noop = () => {};
@@ -373,6 +422,7 @@ export default function DataTable({
   const winEnd = virtual ? Math.min(win.end, rows.length) : rows.length;
   const shown = useMemo(() => (virtual ? rows.slice(winStart, winEnd) : rows), [virtual, rows, winStart, winEnd]);
   useFitColumns(fitWidth, scrollRef, shown, layout.alt, layout.onFit);
+  const frozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}`, rows.length > 0);
   useRowSweep(cards, scrollRef, rows);
   const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth);
   const selectable = rows.filter(canSelect);
@@ -411,6 +461,7 @@ export default function DataTable({
     >
       <div
         ref={scrollRef}
+        style={virtual ? { overflowAnchor: "none" } : undefined}
         onScroll={() => {
           hideCellTip();
           updateWindow();
@@ -427,9 +478,18 @@ export default function DataTable({
             // Cards: 8px between rows (and under the header); -mt-2 drops the gap above the header.
             cards ? "-mt-2 border-spacing-x-0 border-spacing-y-2" : "border-spacing-0",
             fitWidth && !dense && "max-[1100px]:text-[13px]",
+            frozen && "[&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap",
             minWidth
           )}
+          style={frozen ? { tableLayout: "fixed" } : undefined}
         >
+          {frozen && (
+            <colgroup>
+              {frozen.map((w, i) => (
+                <col key={i} style={{ width: w }} />
+              ))}
+            </colgroup>
+          )}
           <thead className="sticky top-0 z-10">
             <tr
               className={cn(
@@ -454,8 +514,14 @@ export default function DataTable({
                       sortable && "cursor-pointer select-none"
                     )}
                   >
-                    <span data-head={fitWidth && col.fit ? col.key : undefined} className={cn("inline-flex items-center", dense && "relative")}>
+                    <span data-head={fitWidth && col.fit ? col.key : undefined} className={cn(virtual && col.key === "no" && total > 0 ? "inline-grid" : "inline-flex items-center", dense && "relative")}>
                       {col.label}
+                      {virtual && col.key === "no" && total > 0 && (
+                        // Invisible: as wide as the longest row number, so the frozen column never cuts a number to "11…".
+                        <span aria-hidden className="invisible block h-0 whitespace-nowrap tabular-nums">
+                          {"9".repeat(String(total).length)}
+                        </span>
+                      )}
                       {cards && col.label ? ":" : null}
                       {sortable && <SortIcon active={sort.key === col.key} dir={sort.dir} overlay={dense} />}
                     </span>
@@ -519,12 +585,15 @@ export default function DataTable({
                     ))}
                     {showSelect && (
                       <td className={cn(cell, "pr-4")}>
+                        {/* A block-level flex box: an inline checkbox would sit on the text baseline and make the row taller than rowHeight. */}
+                        <div className="flex items-center">
                         {canSelect(row) && (
-                          <SelectBox label={t("table.selectRow")} checked={isSelected} onChange={(checked) => setMany([row], checked)} />
+                          <SelectBox className="size-6" label={t("table.selectRow")} checked={isSelected} onChange={(checked) => setMany([row], checked)} />
                         )}
                         {!canSelect(row) && lockedSelect(row) && (
-                          <SelectBox disabled label={t("table.alreadyDeleted")} checked={false} onChange={noop} />
+                          <SelectBox className="size-6" disabled label={t("table.alreadyDeleted")} checked={false} onChange={noop} />
                         )}
+                        </div>
                       </td>
                     )}
                   </tr>

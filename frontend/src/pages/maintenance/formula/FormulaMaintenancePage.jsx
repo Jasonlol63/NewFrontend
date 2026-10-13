@@ -72,12 +72,15 @@ export default function FormulaMaintenancePage() {
         className: "text-center",
         cellClassName: "whitespace-nowrap text-center",
         render: (r) => (
-          <IconAction
-            disabled={readOnly}
-            onClick={() => setEditing(r)}
-            aria-label={readOnly ? t("readOnly") : t("formula.editRow")}
-            title={readOnly ? t("readOnly") : t("formula.editRow")}
-          />
+          <div className="flex items-center justify-center">
+            <IconAction
+              className="size-6"
+              disabled={readOnly}
+              onClick={() => setEditing(r)}
+              aria-label={readOnly ? t("readOnly") : t("formula.editRow")}
+              title={readOnly ? t("readOnly") : t("formula.editRow")}
+            />
+          </div>
         ),
       },
     ],
@@ -122,6 +125,7 @@ export default function FormulaMaintenancePage() {
         loadingMore={list.loadingMore}
         onLoadMore={list.loadMore}
         scrollResetKey={request}
+        rowHeight={26}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

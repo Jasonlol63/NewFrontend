@@ -71,6 +71,7 @@ export default function TransactionMaintenancePage() {
         loadingMore={list.loadingMore}
         onLoadMore={list.loadMore}
         scrollResetKey={request}
+        rowHeight={26}
         fitWidth
         minWidth="min-w-0"
         emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}
