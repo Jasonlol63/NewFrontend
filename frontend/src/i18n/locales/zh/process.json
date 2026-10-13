@@ -77,7 +77,8 @@
     "codeRequired": "请输入合同ID",
     "currencyRequired": "请选择货币",
     "descriptionRequired": "请至少选择一个描述",
-    "inUse": "合同ID {{code}} 已被使用：{{list}}"
+    "inUse": "合同ID {{code}} 已被使用：{{list}}",
+    "copyFromSameAsMulti": "Copy From 的合同（{{code}}）不能和 Multi-Process 所选的合同ID相同"
   },
   "form": {
     "add": "新增合同",

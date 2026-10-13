@@ -161,10 +161,14 @@ const isBank = scope.company !== null && Boolean(session?.tenant_has_bank);
 2. **Done 之后折叠**成一排小标签（带 x），点这个框或 `Add` 可再展开；按钮 `Multi-Process`（此时是按下状态）再点一下回到手输单个 ID。
 3. 选项来自列表里**去重后的 Process ID**（同一个 ID 可以有多行，只要 Description 不同）。
 
-保存时每个勾选的 ID **各发一个** `/add-process`，其它字段（币别、Description、天、文字）共用表单里的值。这是前端按顺序逐个发的，不是一次事务：
+Multi-Process 的意思是"同名、不同 Description 的独立 Process"（像某个合同旗下的子合同），不继承、不同步任何东西。保存时 **每个勾选的 ID × 每个 Description 各发一个** `/add-process`（`buildAddRequests`），每条只带一个 Description，其它字段（币别、天、文字）共用表单里的值。例：TEST × MUL 1/2/3 → `TEST - MUL 1`、`TEST - MUL 2`、`TEST - MUL 3` 三条。没开 Multi-Process 时仍是一条记录挂多个 Description。
+
+Multi-Process 可以和 Copy From 一起用：拆出来的每一条都带 `copyFromProcessId`，之后跟着来源同步 formula。但 **Copy From 的 Process 不能和勾选的 Multi-Process ID 相同**（Copy From 是新名字，Multi-Process 是沿用已有名字），否则提示 `The Copy From process (X) cannot be the same as a Multi-Process ID`。
+
+这是前端按顺序逐个发的，不是一次事务：
 
 - 全部成功 → 弹窗关闭，重读列表；
-- 中途第 k 个失败 → 前 k-1 个已经建好，页面会重读列表，弹窗留着，底部红字写 `Created 2 of 5 (A, B). C failed: …`，并且已建好的 ID 从勾选里去掉，修好后可以直接再点保存继续建剩下的。
+- 中途第 k 个失败 → 前 k-1 个已经建好，页面会重读列表，弹窗留着，底部红字写 `Only 2 of 5 were added`，并列出已建的 `TEST - MUL 1` 等；已建好的（`createdKeys`，格式 `CODE|descriptionId`）在重试时会被跳过，修好后可以直接再点保存继续建剩下的。
 
 ### 5.7 Record（仅 Edit）
 
@@ -178,6 +182,7 @@ Information 卡片最下面一块，两行只读：`Modified` 和 `Created`，�
 |---|---|
 | Add，没填 Process ID | `Process ID is required` |
 | Add + Multi-Process，一个都没勾 | `Select at least one Process ID` |
+| Add + Multi-Process + Copy From，Copy From 的 Process ID 在勾选里 | `The Copy From process (X) cannot be the same as a Multi-Process ID` |
 | 没选币别 | `Currency is required` |
 | 一个 Description 都没选 | `Select at least one description` |
 
@@ -237,7 +242,7 @@ Information 卡片最下面一块，两行只读：`Modified` 和 `Created`，�
 
 `normalizeProcessRow` 把它压平：`status` 转小写、`days` 去重排序并只留 1–7、`description` 是名字用 `, ` 拼起来、`descriptionIds` 留给表单和"已占用"检查用。后端按 Process ID 排序；**登录的是员工账号并且被限制了 Process 权限（`process_acl_mode` 为 NONE / CUSTOM）时，列表只返回被允许的那几条**，所以不同员工看到的列表可能不同。
 
-**新增请求体**（`buildProcessRequest`，Multi-Process 时每个 ID 一份）：
+**新增请求体**（`buildProcessRequest`，Multi-Process 时每个 ID × Description 一份）：
 
 ```
 { tenantId, code, currencyId: <数字>, descriptionIds: [id…], dayOfWeeks: [1..7 升序],

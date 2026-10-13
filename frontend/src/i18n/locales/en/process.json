@@ -77,7 +77,8 @@
     "codeRequired": "Process ID is required",
     "currencyRequired": "Currency is required",
     "descriptionRequired": "Select at least one description",
-    "inUse": "Process ID {{code}} already in use: {{list}}"
+    "inUse": "Process ID {{code}} already in use: {{list}}",
+    "copyFromSameAsMulti": "The Copy From process ({{code}}) cannot be the same as a Multi-Process ID"
   },
   "form": {
     "add": "Add Process",

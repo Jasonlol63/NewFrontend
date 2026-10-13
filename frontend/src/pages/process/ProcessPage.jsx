@@ -56,23 +56,23 @@ export default function ProcessPage() {
   const { rows: allRows, error: listError, loading, toggleStatus, deleteRows, reload } = useProcessList(isBank ? null : scope.tenantId);
   const rows = useMemo(() => allRows.filter((p) => p.category === "GAME"), [allRows]);
 
-  // Sends what the modal built ([{ url, code, body }], several with Multi-Process) one after another; on success
+  // Sends what the modal built ([{ url, key, label, body }], several with Multi-Process) one after another; on success
   // the modal closes, the list is fetched again and a toast says so. A failure goes back to the modal, which shows it as a toast:
-  // with Multi-Process it says how many were created before it (they stay created) and carries their codes in err.createdCodes.
+  // with Multi-Process it says how many were created before it (they stay created) and carries their keys in err.createdKeys.
   const submitProcess = useCallback(
     async (requests) => {
       const created = [];
       for (const r of requests) {
         try {
           await postJson(r.url, r.body);
-          created.push(r.code);
+          created.push(r);
         } catch (err) {
           if (!created.length) throw err;
           reload();
           const failure = new Error(err.message);
           failure.title = t("errors.partial", { done: created.length, total: requests.length });
-          failure.toastDetail = [t("errors.partialCreated", { list: created.join(", ") }), t("errors.partialFailed", { code: r.code, message: err.message })];
-          failure.createdCodes = created;
+          failure.toastDetail = [t("errors.partialCreated", { list: created.map((c) => c.label).join(", ") }), t("errors.partialFailed", { code: r.label, message: err.message })];
+          failure.createdKeys = created.map((c) => c.key);
           throw failure;
         }
       }
@@ -80,7 +80,7 @@ export default function ProcessPage() {
       closeAdd();
       closeEdit();
       reload();
-      push(editing ? t("toast.updated") : requests.length === 1 ? t("toast.added", { code: requests[0].code }) : t("toast.addedMany", { count: requests.length }));
+      push(editing ? t("toast.updated") : requests.length === 1 ? t("toast.added", { code: requests[0].label }) : t("toast.addedMany", { count: requests.length }));
     },
     [closeAdd, closeEdit, reload, push, t, editRow]
   );

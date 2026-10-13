@@ -11,7 +11,7 @@ import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelect
 import { ByTag } from "@/components/shared/form-modal/RecordBar.jsx";
 import { formatRecordTime } from "@/components/shared/form-modal/recordTime.js";
 import { DAYS } from "./processRules";
-import { buildProcessRequest, findProcessIdInUse, validateProcessForm } from "./processFormRules";
+import { buildAddRequests, buildProcessRequest, findProcessIdInUse, validateProcessForm } from "./processFormRules";
 import { useProcessCurrencies } from "./useProcessCurrencies";
 import { useProcessDescriptions } from "./useProcessDescriptions";
 import DescriptionPickerModal from "./DescriptionPickerModal.jsx";
@@ -29,9 +29,10 @@ const ALL_DAYS = DAYS.map((d) => d.day);
  * processes: the list rows of the picked company, for "Copy From".
  * Currencies and descriptions come from the company's own lists. Copy From fills the form with the picked process's
  * values; everything stays editable and what is in the form on Save is what the new process gets (the backend only
- * adds the source's formulas). Multi-Process adds one process per picked Process ID, one request each.
- * Save hands the requests [{ url, code, body }] to onSave, which sends them and closes the modal; if it throws, the
- * message is shown in the footer (err.createdCodes: Multi-Process IDs that already went through).
+ * adds the source's formulas). Multi-Process reuses existing Process IDs: one independent process per picked ID x
+ * description, one request each (Copy From, if picked, applies to each; it cannot be one of the picked IDs).
+ * Save hands the requests [{ url, key, label, body }] to onSave, which sends them and closes the modal; if it throws, the
+ * message is shown in the footer (err.createdKeys: requests that already went through).
  */
 export default function ProcessFormModal({ mode = "add", process, tenantId, processes = [], onClose, onSave }) {
   const { t } = useTranslation(["process", "common"]);
@@ -68,6 +69,8 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
   // Multi-Process is open (ticking) or folded into a summary of chips (after Done).
   const [multiOpen, setMultiOpen] = useState(false);
   const [multiCodes, setMultiCodes] = useState(() => new Set());
+  // Keys of the requests already created by a Multi-Process save that failed half way.
+  const doneKeys = useRef(new Set());
   const existingCodes = useMemo(() => [...new Set(processes.map((p) => p.code).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })).map((code) => ({ value: code, label: code })), [processes]);
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -108,7 +111,8 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
   const save = async () => {
     if (saving) return;
     const codes = isEdit ? [process.code] : multi ? [...multiCodes] : [form.code.trim().toUpperCase()].filter(Boolean);
-    const problem = validateProcessForm({ isEdit, multi, codes, currencyId: form.currency, descriptionCount: descriptions.size });
+    const copySourceCode = form.copyFrom ? processes.find((p) => String(p.id) === form.copyFrom)?.code : "";
+    const problem = validateProcessForm({ isEdit, multi, codes, currencyId: form.currency, descriptionCount: descriptions.size, copySourceCode });
     if (problem) {
       push(problem, "error");
       return;
@@ -122,12 +126,14 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
       }
     }
     setSaving(true);
-    const requests = codes.map((code) => buildProcessRequest({ isEdit, id: process?.id, code, tenantId, form, descriptions, days }));
+    const requests = isEdit
+      ? [{ ...buildProcessRequest({ isEdit, id: process?.id, code: process.code, tenantId, form, descriptions, days }), label: process.code }]
+      : buildAddRequests({ codes, multi, descriptions, labelById, tenantId, form, days }).filter((r) => !doneKeys.current.has(r.key));
     try {
       await onSave(requests); // closes the modal on success
     } catch (err) {
-      // Multi-Process IDs that already went through are not picked again for a retry.
-      if (err.createdCodes?.length) setMultiCodes((prev) => new Set([...prev].filter((c) => !err.createdCodes.includes(c))));
+      // Requests that already went through are skipped on a retry (they stay created).
+      err.createdKeys?.forEach((k) => doneKeys.current.add(k));
       push(err.title ?? (isEdit ? t("errors.update") : t("errors.add")), "error", err.toastDetail ?? err.message);
       setSaving(false);
     }

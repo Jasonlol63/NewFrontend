@@ -6,8 +6,12 @@ import { PROCESS_ADD_URL, PROCESS_UPDATE_URL } from "./processRules";
 
 // The first problem with the form, or "" when it can be saved. codes: the Process IDs about to be saved
 // (one, or several with Multi-Process).
-export function validateProcessForm({ isEdit, multi, codes, currencyId, descriptionCount }) {
+export function validateProcessForm({ isEdit, multi, codes, currencyId, descriptionCount, copySourceCode }) {
   if (!isEdit && codes.length === 0) return multi ? i18n.t("process:validation.selectCodes") : i18n.t("process:validation.codeRequired");
+  // Copy From makes a process with a new name; Multi-Process reuses an existing name, so the two cannot be the same Process ID.
+  if (multi && copySourceCode && codes.some((c) => c.toUpperCase() === String(copySourceCode).toUpperCase())) {
+    return i18n.t("process:validation.copyFromSameAsMulti", { code: copySourceCode });
+  }
   if (!currencyId) return i18n.t("process:validation.currencyRequired");
   if (descriptionCount === 0) return i18n.t("process:validation.descriptionRequired");
   return "";
@@ -28,6 +32,20 @@ export function findProcessIdInUse(rows, code, descriptionIds, excludeId, labelB
     }
   }
   return taken.size ? i18n.t("process:validation.inUse", { code, list: [...taken].join(", ") }) : "";
+}
+
+// Add requests for the picked Process IDs. Normally one process per ID holding all the descriptions. With Multi-Process
+// each ID x description becomes its own independent process (same Process ID, one description each); Copy From, if
+// picked, applies to every one of them. key identifies a request ("CODE|descriptionId") so a retry can skip what went through.
+export function buildAddRequests({ codes, multi, descriptions, labelById, tenantId, form, days }) {
+  if (!multi) return codes.map((code) => ({ ...buildProcessRequest({ code, tenantId, form, descriptions, days }), key: code, label: code }));
+  return codes.flatMap((code) =>
+    [...descriptions].map((descId) => ({
+      ...buildProcessRequest({ code, tenantId, form, descriptions: [descId], days }),
+      key: `${code}|${descId}`,
+      label: `${code} - ${labelById.get(descId) ?? descId}`,
+    }))
+  );
 }
 
 // Request for one process. In Add with Copy From the form already holds the copied values (possibly edited), and
