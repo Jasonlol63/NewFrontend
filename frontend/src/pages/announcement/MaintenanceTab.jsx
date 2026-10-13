@@ -30,7 +30,7 @@ function BigSwitch({ on, onToggle, label }) {
       aria-checked={on}
       aria-label={label}
       onClick={onToggle}
-      className="inline-flex flex-none cursor-pointer flex-row-reverse items-center gap-2 border-none bg-transparent p-0 text-[13px] font-bold text-[#475569] outline-none focus-visible:[&>span:last-child]:ring-2 focus-visible:[&>span:last-child]:ring-brand-blue/40"
+      className="inline-flex flex-none cursor-pointer flex-row-reverse items-center gap-2 border-none bg-transparent p-0 fm-btn-sm text-[#475569] outline-none focus-visible:[&>span:last-child]:ring-2 focus-visible:[&>span:last-child]:ring-brand-blue/40"
     >
       <span className={cn("relative h-[26px] w-[48px] rounded-full transition-colors", on ? "bg-[linear-gradient(100deg,#ef4444,#dc2626)]" : "bg-[#cbd5e1]")}>
         <span className={cn("absolute top-[3px] size-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[left]", on ? "left-[25px]" : "left-[3px]")} />
@@ -58,10 +58,10 @@ function KickSwitch({ on, onToggle, title, note, active, className }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <b className="text-[14px] font-bold text-brand-navy">{title}</b>
+          <b className="type-label text-brand-navy">{title}</b>
           <BigSwitch on={on} onToggle={onToggle} label={title} />
         </div>
-        <p className={cn("m-0 mt-0.5 text-[12px] leading-[1.45]", active ? "font-semibold text-[#b42318]" : "text-[#41588a]")}>{note}</p>
+        <p className={cn("m-0 mt-0.5 type-caption leading-[1.45]", active ? "font-semibold text-[#b42318]" : "text-[#41588a]")}>{note}</p>
       </div>
     </div>
   );
@@ -88,18 +88,18 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
       icon={Wrench}
       accent="amber" subtitle={t("maintenance.subtitle")}
       title={editing ? t("maintenance.editTitle") : t("maintenance.createTitle")}
-      right={!editing && <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">{t("maintenance.noNoticeYet")}</span>}
+      right={!editing && <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 type-caption font-semibold! text-[#64748b]">{t("maintenance.noNoticeYet")}</span>}
       className={GROW}
       footer={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {problem && (
-            <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/page:basis-full">
+            <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 fm-count text-[#8a5a00] @max-[599px]/page:basis-full">
               <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
               {problem}
             </p>
           )}
           {editing && (
-            <SoftButton onClick={onCancel} className="h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] text-[13.5px]">
+            <SoftButton onClick={onCancel} className="h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] fm-btn">
               {t("common:cancel")}
             </SoftButton>
           )}
@@ -107,7 +107,7 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
             type="button"
             disabled={Boolean(problem)}
             onClick={() => onSave({ prefix: prefix.trim(), content, ...(editing ? {} : { kickUsers }) })}
-            className={cn(primaryButtonClass, "h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
+            className={cn(primaryButtonClass, "h-[clamp(38px,5.4dvh,42px)] min-w-[112px] px-[22px] fm-btn disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
           >
             <Check className="size-[15px]" strokeWidth={2.5} />
             {editing ? t("common:save") : t("form.publish")}
@@ -132,12 +132,12 @@ function NoticeForm({ notice, isIt, kick, onSave, onCancel }) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-2.5 border-l border-modal-divider pl-[18px] @max-[799px]/page:border-l-0 @max-[799px]/page:pl-0">
-          <h3 className="m-0 flex items-center gap-[7px] text-[13px] font-bold text-brand-navy">
+          <h3 className="m-0 flex items-center gap-[7px] fm-label text-brand-navy">
             <Bell className="size-4 text-brand-blue" strokeWidth={2.2} />
             {t("maintenance.noticePreview")}
           </h3>
           <NoticeBanner prefix={prefix} content={content} />
-          <p className="m-0 flex gap-2 rounded-xl border border-modal-line bg-modal-card px-3 py-2 text-[12px] leading-[1.45] text-[#41588a]">
+          <p className="m-0 flex gap-2 rounded-xl border border-modal-line bg-modal-card px-3 py-2 type-caption leading-[1.45] text-[#41588a]">
             <Info className="mt-px size-[15px] flex-none text-brand-blue" strokeWidth={2.2} />
             <span>{t("maintenance.onlyOne")}</span>
           </p>
@@ -186,14 +186,14 @@ export default function MaintenanceTab({ notice, isIt, kick, onSave, onDelete, o
     <PanelCard icon={Wrench} accent="amber" subtitle={t("maintenance.subtitle")} title={t("maintenance.title")} right={<StatusPill className="@max-[479px]/page:hidden">{t("maintenance.published")}</StatusPill>} className={GROW}>
       <article className="relative flex-none rounded-[14px] bg-white py-3.5 pl-[22px] pr-3.5 [filter:drop-shadow(0_2px_3px_rgba(15,23,42,0.1))] before:absolute before:inset-y-0 before:left-0 before:w-[5px] before:rounded-l-[14px] before:bg-[linear-gradient(180deg,#ffb347,#f5841f)]">
         <header className="flex items-start gap-2">
-          <h3 className="m-0 min-w-0 flex-1 break-words text-[15px] font-extrabold text-brand-navy">{notice.prefix}</h3>
+          <h3 className="m-0 min-w-0 flex-1 break-words type-card-title text-brand-navy">{notice.prefix}</h3>
           <div className="flex flex-none items-center gap-0.5">
             <IconAction aria-label={t("maintenance.editAria")} onClick={() => setEditing(true)} />
             <IconAction icon={Trash2} className={DELETE_ACTION_CLASS} aria-label={t("maintenance.deleteAria")} onClick={onDelete} />
           </div>
         </header>
-        <RichContent html={notice.content} className="mt-1.5 text-[13.5px] leading-[1.6] text-[#374151]" />
-        <footer className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-0.5 border-t border-[#eef1f6] pt-2.5 text-[11.5px] text-dash-sub">
+        <RichContent html={notice.content} className="mt-1.5 type-body font-normal! leading-[1.6] text-[#374151]" />
+        <footer className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-0.5 border-t border-[#eef1f6] pt-2.5 type-caption text-dash-sub">
           <span className="inline-flex items-center gap-1.5">
             <User className="size-3.5 text-dash-faint" strokeWidth={2.2} />
             {t("page.createdBy", { name: notice.createdBy })}

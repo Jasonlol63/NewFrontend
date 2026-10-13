@@ -39,8 +39,8 @@ export default function PanelCard({ icon, accent, title, subtitle, right, footer
       <header className="flex flex-none items-center gap-2.5 px-[clamp(12px,2dvh,18px)] pb-2 pt-[clamp(12px,2.2dvh,18px)]">
         <CardTile icon={icon} accent={accent} className="size-[clamp(32px,4.6dvh,38px)]" />
         <div className="min-w-0 flex-1">
-          <h2 className="m-0 break-words text-[clamp(15px,2.2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">{title}</h2>
-          {subtitle && <p className="m-0 break-words text-[11.5px] font-medium text-[#6b7fa5]">{subtitle}</p>}
+          <h2 className="m-0 break-words type-card-title leading-tight tracking-[-0.2px] text-brand-navy">{title}</h2>
+          {subtitle && <p className="m-0 break-words type-caption font-medium! text-[#6b7fa5]">{subtitle}</p>}
         </div>
         {right}
       </header>
@@ -60,7 +60,7 @@ export default function PanelCard({ icon, accent, title, subtitle, right, footer
 /** Green "Published" / "Active" dot pill. */
 export function StatusPill({ children, className }) {
   return (
-    <span className={cn("inline-flex flex-none items-center gap-1.5 rounded-full bg-[#e6f8ee] px-2.5 py-0.5 text-[11px] font-bold text-[#15803d]", className)}>
+    <span className={cn("inline-flex flex-none items-center gap-1.5 rounded-full bg-[#e6f8ee] px-2.5 py-0.5 type-caption font-semibold! text-[#15803d]", className)}>
       <i className="size-1.5 rounded-full bg-[#22c55e]" />
       {children}
     </span>

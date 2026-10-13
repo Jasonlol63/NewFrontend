@@ -35,7 +35,7 @@ export default function AnnouncementFormModal({ mode, announcement, onClose, onS
       saveDisabled={Boolean(problem)}
       footerStart={
         problem && (
-          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
+          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 fm-count text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
             {problem}
           </p>
@@ -66,7 +66,7 @@ export default function AnnouncementFormModal({ mode, announcement, onClose, onS
 
       <FormCard title={t("form.preview")} bodyClassName="flex flex-col gap-2.5 @max-[899px]/main:overflow-visible">
         <NotificationPreview title={title} listTitle={listTitle} content={content} />
-        <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#6b7fa5]">
+        <p className="m-0 flex items-center gap-1.5 fm-help text-[#6b7fa5]">
           <Bell className="size-3.5 flex-none" strokeWidth={2.2} />
           {t("form.previewNote")}
         </p>

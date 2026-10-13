@@ -12,10 +12,10 @@ const WIDE_FROM = 1360;
 
 // One slim bar (laptops): controls follow the screen height a little, never below the form modals' 38px.
 const H = "h-[clamp(38px,5.2dvh,48px)]";
-const BUTTON = cn(H, "min-w-[clamp(104px,12dvh,128px)] px-5 text-[13.5px] @max-[599px]/page:min-w-0 @max-[599px]/page:flex-1 @max-[599px]/page:px-3");
+const BUTTON = cn(H, "min-w-[clamp(104px,12dvh,128px)] px-5 fm-btn @max-[599px]/page:min-w-0 @max-[599px]/page:flex-1 @max-[599px]/page:px-3");
 // Roomy layout (big screens): everything grows with the screen height.
 const WH = "h-[clamp(38px,5.4dvh,42px)]";
-const WBUTTON = cn(WH, "min-w-[112px] px-[22px] text-[13.5px]");
+const WBUTTON = cn(WH, "min-w-[112px] px-[22px] fm-btn");
 
 function useWide(ref) {
   const [wide, setWide] = useState(false);
@@ -61,12 +61,12 @@ export default function TelegramCard({ saved, onSave }) {
     <i title={status} className={cn("absolute -right-0.5 -top-0.5 rounded-full border-2 border-white", size, url ? "bg-[#22c55e]" : "bg-[#94a3b8]")} />
   );
   const statusPill = url ? (
-    <span className="inline-flex flex-none items-center gap-1.5 rounded-full bg-[#e6f8ee] px-2.5 py-0.5 text-[11px] font-bold text-[#15803d]">
+    <span className="inline-flex flex-none items-center gap-1.5 rounded-full bg-[#e6f8ee] px-2.5 py-0.5 type-caption font-semibold! text-[#15803d]">
       <i className="size-1.5 rounded-full bg-[#22c55e]" />
       {t("telegram.active")}
     </span>
   ) : (
-    <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 text-[11px] font-bold text-[#64748b]">{t("telegram.hidden")}</span>
+    <span className="flex-none rounded-full bg-[#eef1f5] px-2.5 py-0.5 type-caption font-semibold! text-[#64748b]">{t("telegram.hidden")}</span>
   );
 
   const handleBox = (heightClass, textClass) => (
@@ -136,7 +136,7 @@ export default function TelegramCard({ saved, onSave }) {
   );
 
   const invalidNote = !valid && (
-    <p role="alert" className="m-0 ml-0.5 text-[12px] font-semibold text-[#dc2626]">
+    <p role="alert" className="m-0 ml-0.5 fm-help font-semibold! text-[#dc2626]">
       Use only letters, numbers, _ - + and /.
     </p>
   );
@@ -152,24 +152,24 @@ export default function TelegramCard({ saved, onSave }) {
             {statusDot("size-3")}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[clamp(15px,2.2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
-            <p className="m-0 text-[11.5px] font-medium text-[#6b7fa5]">{t("telegram.subtitle")}</p>
+            <h2 className="m-0 type-card-title leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
+            <p className="m-0 type-caption font-medium! text-[#6b7fa5]">{t("telegram.subtitle")}</p>
           </div>
           {statusPill}
         </div>
 
         <div className="flex items-center gap-2.5">
           <div className="flex min-w-0 flex-[0_1_clamp(420px,28vw,560px)] items-center gap-2.5">
-            {handleBox(WH, "text-[14px]")}
-            {testLink(cn(WH, "px-3.5 text-[13px]"))}
+            {handleBox(WH, "fm-input")}
+            {testLink(cn(WH, "px-3.5 fm-btn"))}
           </div>
           <div className="ml-auto flex flex-none gap-2.5">{buttons(WBUTTON)}</div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[14px] border border-modal-line bg-white/60 px-3.5 py-2.5 text-[12px]">
-          <span className="text-[10.5px] font-bold tracking-[0.6px] text-[#6b7fa5]">{t("telegram.currentLink")}</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[14px] border border-modal-line bg-white/60 px-3.5 py-2.5 fm-help">
+          <span className="fm-help font-semibold! tracking-[0.6px] text-[#6b7fa5]">{t("telegram.currentLink")}</span>
           {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-[13.5px] font-bold text-[#0b4fd0] underline">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate fm-input font-semibold! text-[#0b4fd0] underline">
               {url}
             </a>
           ) : (
@@ -178,7 +178,7 @@ export default function TelegramCard({ saved, onSave }) {
           {updated("ml-auto")}
         </div>
 
-        {invalidNote || <p className="m-0 ml-0.5 text-[12px] text-[#6b7fa5]">{t("telegram.pasteHint")}</p>}
+        {invalidNote || <p className="m-0 ml-0.5 fm-help text-[#6b7fa5]">{t("telegram.pasteHint")}</p>}
       </section>
     );
   }
@@ -194,8 +194,8 @@ export default function TelegramCard({ saved, onSave }) {
             {statusDot("size-3")}
           </span>
           <div className="min-w-0">
-            <h2 className="m-0 whitespace-nowrap text-[clamp(14px,2dvh,17px)] font-extrabold leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
-            <p className="m-0 whitespace-nowrap text-[11.5px] font-medium text-[#6b7fa5] @max-[999px]/page:hidden">
+            <h2 className="m-0 whitespace-nowrap type-card-title leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
+            <p className="m-0 whitespace-nowrap type-caption font-medium! text-[#6b7fa5] @max-[999px]/page:hidden">
               <b className={url ? "font-bold text-[#15803d]" : "font-bold text-[#64748b]"}>{status}</b>
               {t("telegram.loginButton")}
             </p>
@@ -203,11 +203,11 @@ export default function TelegramCard({ saved, onSave }) {
         </div>
 
         <div className="flex min-w-0 flex-[1_1_300px] items-center gap-2.5 @min-[900px]/page:max-w-[clamp(380px,36vw,600px)] @max-[599px]/page:basis-full @max-[599px]/page:flex-wrap">
-          {handleBox(cn(H, "@max-[599px]/page:basis-full"), "text-[14.5px]")}
-          {testLink(cn(H, "px-3.5 text-[13px] @max-[599px]/page:flex-1"))}
+          {handleBox(cn(H, "@max-[599px]/page:basis-full"), "fm-input")}
+          {testLink(cn(H, "px-3.5 fm-btn @max-[599px]/page:flex-1"))}
         </div>
 
-        {updated("ml-auto text-[12px] @max-[999px]/page:hidden")}
+        {updated("ml-auto fm-help @max-[999px]/page:hidden")}
 
         <div className="flex flex-none gap-2.5 @max-[999px]/page:ml-auto @max-[599px]/page:w-full">{buttons(BUTTON)}</div>
       </div>

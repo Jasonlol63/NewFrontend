@@ -31,7 +31,7 @@ export default function SlideTabs({ options, value, onChange, className, tabClas
               aria-label={label}
               onClick={() => onChange(v)}
               className={cn(
-                "relative z-10 flex h-7 min-w-[120px] cursor-pointer items-center justify-center gap-1.5 px-3.5 text-[12.5px] font-semibold transition-colors duration-200",
+                "relative z-10 flex h-7 min-w-[120px] cursor-pointer items-center justify-center gap-1.5 px-3.5 type-body font-semibold! transition-colors duration-200",
                 active ? "text-white" : "text-[#1f2937]",
                 tabClassName
               )}
@@ -41,7 +41,7 @@ export default function SlideTabs({ options, value, onChange, className, tabClas
               {count != null && (
                 <span
                   className={cn(
-                    "min-w-5 rounded-full px-1.5 text-center text-[11px] font-extrabold tabular-nums",
+                    "min-w-5 rounded-full px-1.5 text-center type-caption font-semibold! tabular-nums",
                     active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]"
                   )}
                 >

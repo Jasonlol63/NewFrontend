@@ -232,7 +232,7 @@ export default function AnnouncementPage() {
             <PrimaryButton icon={Plus} className="h-9 py-0" onClick={() => setAnnouncementForm({ mode: "new" })}>
               {t("page.new")}
             </PrimaryButton>
-            <label className="flex h-9 w-full max-w-[280px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+            <label className="flex h-9 w-full max-w-[280px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
               <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
               <input
                 value={search}
@@ -247,7 +247,7 @@ export default function AnnouncementPage() {
       </div>
 
       {(loading || loadError) && (
-        <div className="grid min-h-0 flex-1 place-items-center rounded-2xl border border-dashed border-modal-input-line bg-white/40 p-6 text-center text-[13px] text-[#5b74a3]">
+        <div className="grid min-h-0 flex-1 place-items-center rounded-2xl border border-dashed border-modal-input-line bg-white/40 p-6 text-center type-body text-[#5b74a3]">
           {loading ? (
             t("common:loading")
           ) : (
@@ -277,7 +277,7 @@ export default function AnnouncementPage() {
             onDelete={(item) => setToDelete({ kind: "announcement", item })}
           />
           <div className="flex flex-none items-center pt-1">
-            <span className={`rounded-[10px] px-2.5 py-1 text-[11px] font-medium text-[#33507f] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:px-3 [@media(min-height:760px)]:py-[7px] [@media(min-height:760px)]:text-[12.5px] ${TRAY}`}>
+            <span className={`rounded-[10px] px-2.5 py-1 type-caption font-medium! text-[#33507f] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:px-3 [@media(min-height:760px)]:py-[7px] ${TRAY}`}>
               {search.trim() ? t("page.showingOf", { shown: shown.length, total: announcements.length }) : t("page.showingAll", { total: announcements.length })}
             </span>
           </div>

@@ -115,7 +115,7 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
             run("formatBlock", e.target.value);
             e.target.value = "p";
           }}
-          className="h-7 flex-none cursor-pointer rounded-[7px] border-none bg-transparent px-1 text-[12.5px] font-semibold text-[#4b5d80] outline-none hover:bg-[#e4eefc] modal-tiny:h-6"
+          className="h-7 flex-none cursor-pointer rounded-[7px] border-none bg-transparent px-1 fm-btn-sm text-[#4b5d80] outline-none hover:bg-[#e4eefc] modal-tiny:h-6"
         >
           <option value="p">{t("editor.normal")}</option>
           <option value="h3">{t("editor.heading")}</option>
@@ -180,7 +180,7 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
             }}
             aria-label={t("editor.linkAddress")}
             placeholder="https://"
-            className="h-7 min-w-0 flex-1 rounded-lg border border-modal-input-line bg-white/80 px-2 text-[12.5px] outline-none focus:border-[#3b82f6]"
+            className="h-7 min-w-0 flex-1 rounded-lg border border-modal-input-line bg-white/80 px-2 fm-input outline-none focus:border-[#3b82f6]"
           />
           <button
             type="button"
@@ -204,7 +204,7 @@ export default function RichTextEditor({ value, onChange, placeholder, label, cl
         onInput={emit}
         onPaste={onPaste}
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto px-3 py-2.5 text-[13.5px] leading-[1.55] text-[#1f2937] outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]",
+          "min-h-0 flex-1 overflow-y-auto px-3 py-2.5 type-body font-normal! leading-[1.55] text-[#1f2937] outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]",
           "empty:before:pointer-events-none empty:before:text-[#9aa8c0] empty:before:content-[attr(data-placeholder)]",
           RICH_CLASS
         )}

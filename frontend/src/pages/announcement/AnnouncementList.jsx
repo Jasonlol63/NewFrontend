@@ -21,10 +21,10 @@ function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
     >
       <header className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="m-0 min-w-0 break-words text-[14.5px] font-extrabold tracking-[-0.2px] text-brand-navy">{a.title}</h3>
-          {version && <span className="rounded-full bg-[#e8f1ff] px-2.5 py-px text-[11px] font-bold text-[#0b4fd0]">{t("page.version", { version })}</span>}
+          <h3 className="m-0 min-w-0 break-words type-card-title tracking-[-0.2px] text-brand-navy">{a.title}</h3>
+          {version && <span className="rounded-full bg-[#e8f1ff] px-2.5 py-px type-caption font-semibold! text-[#0b4fd0]">{t("page.version", { version })}</span>}
           {latest && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#e6f8ee] px-2.5 py-px text-[11px] font-bold text-[#15803d]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#e6f8ee] px-2.5 py-px type-caption font-semibold! text-[#15803d]">
               <i className="size-1.5 rounded-full bg-[#22c55e]" />
               {t("page.latest")}
             </span>
@@ -36,13 +36,13 @@ function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
         </div>
       </header>
 
-      <div className="mt-1.5 rounded-xl border border-modal-line bg-white/60 px-3.5 py-2.5 text-[13px] leading-[1.6] text-[#1f2937]">
-        <div className="font-extrabold text-brand-navy">{a.listTitle || DEFAULT_LIST_TITLE}</div>
+      <div className="mt-1.5 rounded-xl border border-modal-line bg-white/60 px-3.5 py-2.5 type-body font-normal! leading-[1.6] text-[#1f2937]">
+        <div className="font-semibold text-brand-navy">{a.listTitle || DEFAULT_LIST_TITLE}</div>
         <RichContent html={a.content} />
         <div className="mt-1 text-dash-sub">{THANKS_LINE}</div>
       </div>
 
-      <footer className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11.5px] text-dash-sub">
+      <footer className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 type-caption text-dash-sub">
         <span className="inline-flex items-center gap-1.5">
           <User className="size-3.5 text-dash-faint" strokeWidth={2.2} />
           {t("page.createdBy", { name: a.createdBy })}
@@ -60,7 +60,7 @@ function AnnouncementCard({ announcement: a, latest, onEdit, onDelete }) {
 export default function AnnouncementList({ announcements, emptyMessage, onEdit, onDelete }) {
   if (!announcements.length) {
     return (
-      <div className="grid min-h-0 flex-1 place-items-center rounded-2xl border border-dashed border-modal-input-line bg-white/40 p-6 text-center text-[13px] text-[#5b74a3]">
+      <div className="grid min-h-0 flex-1 place-items-center rounded-2xl border border-dashed border-modal-input-line bg-white/40 p-6 text-center type-body text-[#5b74a3]">
         {emptyMessage}
       </div>
     );
