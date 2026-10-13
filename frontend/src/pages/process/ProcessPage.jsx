@@ -23,13 +23,13 @@ function DayUse({ days }) {
   const { t } = useTranslation("process");
   const on = new Set(days);
   return (
-    <span className="inline-flex gap-[3px] max-[1100px]:gap-0.5">
+    <span className="flex gap-[3px] max-[1100px]:gap-0.5">
       {DAYS.map(({ day }) => (
         <span
           key={day}
           title={t(`days.${day}.full`)}
           className={cn(
-            "inline-flex h-[22px] min-w-[27px] items-center justify-center rounded-[5px] border text-[10.5px] font-bold max-[1100px]:min-w-[23px] max-[1100px]:text-[9.5px]",
+            "inline-flex h-[22px] min-w-[27px] items-center justify-center rounded-[5px] border type-caption font-semibold! max-[1100px]:min-w-[23px]",
             on.has(day) ? "border-[#bcd9fb] bg-[#e0edff] text-[#1d4ed8]" : "border-transparent bg-[#eef2f7] text-[#9ca3af]"
           )}
         >
@@ -87,7 +87,7 @@ export default function ProcessPage() {
 
   // Only inactive processes can be deleted.
   const canSelect = useCallback((p) => !readOnly && p.status === "inactive", [readOnly]);
-  const view = useListView(rows, { filter: filterProcesses, sort: sortProcesses, canSelect });
+  const view = useListView(rows, { filter: filterProcesses, sort: sortProcesses, canSelect, rowMin: 26 });
   const actions = useRowActions({
     toggleStatus,
     deleteRows,
@@ -121,7 +121,11 @@ export default function ProcessPage() {
       sortable: false,
       className: "text-center",
       cellClassName: "whitespace-nowrap",
-      render: (p) => <IconAction onClick={() => setEditRow(p)} disabled={readOnly} title={readOnly ? t("readOnly") : t("page.edit")} aria-label={t("page.edit")} />,
+      render: (p) => (
+        <div className="flex items-center justify-center">
+          <IconAction className="size-6" onClick={() => setEditRow(p)} disabled={readOnly} title={readOnly ? t("readOnly") : t("page.edit")} aria-label={t("page.edit")} />
+        </div>
+      ),
     },
   ];
 

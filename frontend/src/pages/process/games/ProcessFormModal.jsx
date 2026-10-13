@@ -189,8 +189,8 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
 
         <div>
           <div className="mb-1 ml-0.5 flex items-center justify-between">
-            <span className="text-[12.5px] font-semibold text-[#374151]">{t("form.description")} <i className="not-italic text-[#ef4444]">*</i></span>
-            <button type="button" onClick={() => setPicker(true)} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
+            <span className="fm-label text-[#374151]">{t("form.description")} <i className="not-italic text-[#ef4444]">*</i></span>
+            <button type="button" onClick={() => setPicker(true)} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 fm-btn-sm text-[#1d4ed8] hover:bg-white">
               <Plus className="size-3.5" strokeWidth={2.8} />
               {t("form.add_button")}
             </button>
@@ -199,7 +199,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
         </div>
 
           <div className="flex items-center justify-between gap-3 pt-0.5">
-            <span className="text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">{t("form.saveCapture")}</span>
+            <span className="fm-label text-[#374151]">{t("form.saveCapture")}</span>
             <ToggleSwitch on={form.saveDataCapture} onToggle={() => setForm((f) => ({ ...f, saveDataCapture: !f.saveDataCapture }))} label={form.saveDataCapture ? t("form.on") : t("form.off")} className="font-bold" />
           </div>
           {isEdit && <RecordSection process={process} />}
@@ -261,7 +261,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
 }
 
 function Hint({ children }) {
-  return <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8] modal-tiny:mt-0.5">{children}</span>;
+  return <span className="mt-1 ml-0.5 block fm-help italic leading-snug text-[#8a96a8] modal-tiny:mt-0.5">{children}</span>;
 }
 
 // ALL DAY + MON ... SUN as one thin segmented bar; several days can be on. ALL DAY lights when all seven are.
@@ -270,7 +270,7 @@ function DayBar({ days, onChange }) {
   const all = days.size === ALL_DAYS.length;
   const item = (on) =>
     cn(
-      "h-[26px] min-w-0 cursor-pointer truncate rounded-[7px] border-none px-1 text-[12px] font-bold transition-colors modal-compact:h-6 modal-tiny:h-[22px] modal-tiny:text-[11.5px]",
+      "h-[26px] min-w-0 cursor-pointer truncate rounded-[7px] border-none px-1 fm-btn-sm transition-colors modal-compact:h-6 modal-tiny:h-[22px]",
       on ? "bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]" : "bg-transparent text-[#64748b] hover:bg-white/60 hover:text-brand-navy"
     );
   return (
@@ -288,7 +288,7 @@ function DayBar({ days, onChange }) {
 }
 
 const chip =
-  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 text-[12px] font-extrabold text-brand-navy modal-compact:h-[22px]";
+  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 fm-btn-sm text-brand-navy modal-compact:h-[22px]";
 
 // A box that takes the room left in the card: picked descriptions wrap inside it, the + opens the picker.
 function DescriptionBox({ items, selected, onChange, onOpen }) {
@@ -333,11 +333,11 @@ function RecordSection({ process }) {
   ];
   return (
     <div className="mt-1 border-t border-modal-divider pt-3 modal-compact:pt-2">
-      <h3 className="m-0 mb-2 text-[13px] font-extrabold tracking-[0.6px] text-[#64748b] modal-compact:mb-1 modal-compact:text-[12px]">{t("form.record")}</h3>
+      <h3 className="m-0 mb-2 fm-label tracking-[0.6px] text-[#64748b] modal-compact:mb-1">{t("form.record")}</h3>
       <div className="flex flex-col gap-3 modal-compact:gap-1.5">
         {rows.map((r) => (
           <Field key={r.label} label={r.label} plain as="div">
-            <div className={cn(inputClass, "flex items-center justify-between gap-2 bg-modal-off text-[13px] tabular-nums text-[#374151]")}>
+            <div className={cn(inputClass, "flex items-center justify-between gap-2 bg-modal-off fm-input tabular-nums text-[#374151]")}>
               <span className="truncate">{formatRecordTime(r.at)}</span>
               {r.by && <ByTag>{r.by}</ByTag>}
             </div>
@@ -357,7 +357,7 @@ function MultiButton({ on, onClick, small }) {
       aria-label={t("form.multi")}
       aria-pressed={Boolean(on)}
       title={on ? t("form.multiBack") : t("form.multiPick")}
-      className={cn(small ? "h-6 rounded-lg px-2.5 text-[12px]" : "h-9 px-3.5 text-[12.5px] modal-compact:h-[30px] modal-tiny:h-7 @max-[479px]/main:px-2.5", on && "border-[#7fb2ff] bg-row-stripe text-[#1d4ed8]")}
+      className={cn(small ? "h-6 rounded-lg px-2.5 fm-btn-sm" : "h-9 px-3.5 fm-btn-sm modal-compact:h-[30px] modal-tiny:h-7 @max-[479px]/main:px-2.5", on && "border-[#7fb2ff] bg-row-stripe text-[#1d4ed8]")}
     >
       <Layers className="size-3.5" strokeWidth={2.4} />
       <span className="@max-[479px]/main:hidden">{t("form.multi")}</span>
@@ -365,7 +365,7 @@ function MultiButton({ on, onClick, small }) {
   );
 }
 
-const tileLink = "flex-none cursor-pointer whitespace-nowrap rounded-md border-none bg-transparent px-1.5 py-1 text-[12px] font-bold hover:bg-[#eef4ff]";
+const tileLink = "flex-none cursor-pointer whitespace-nowrap rounded-md border-none bg-transparent px-1.5 py-1 fm-btn-sm hover:bg-[#eef4ff]";
 
 // Multi-Process (Add only), right where the Process ID box was. Open: a tall ticking area that pushes everything below it
 // down (the card scrolls on short screens) until Done folds it into a summary of chips; the chips box or Select opens it again.
@@ -383,9 +383,9 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
 
   const head = (right) => (
     <div className="mb-1 ml-0.5 flex items-center justify-between gap-2">
-      <span className="text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px]">
+      <span className="fm-label text-[#374151]">
         Process ID <i className="not-italic text-[#ef4444]">*</i>
-        <span className="ml-1.5 text-[11px] font-bold text-[#3b82f6]">{t("form.selectedCount", { count: selected.size })}</span>
+        <span className="ml-1.5 fm-opt font-semibold! text-[#3b82f6]">{t("form.selectedCount", { count: selected.size })}</span>
       </span>
       <div className="flex items-center gap-1.5">
         {right}
@@ -398,7 +398,7 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
     return (
       <div ref={rootRef}>
         {head(
-          <button type="button" onClick={onOpen} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 text-[12px] font-bold text-[#1d4ed8] hover:bg-white">
+          <button type="button" onClick={onOpen} className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border border-[#7fb2ff] bg-white/70 pl-1.5 pr-2.5 fm-btn-sm text-[#1d4ed8] hover:bg-white">
             <Plus className="size-3.5" strokeWidth={2.8} />
             {t("form.add_button")}
           </button>
@@ -438,7 +438,7 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
       {head(null)}
       <div className="overflow-hidden rounded-[10px] border border-[#3b82f6] bg-modal-input shadow-[0_0_0_3px_rgba(59,130,246,0.15)]">
         <div className="flex items-center gap-1.5 border-b border-modal-divider p-1.5">
-          <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-modal-input-line bg-white/60 px-2.5 text-[12.5px] focus-within:border-[#3b82f6] modal-compact:h-7">
+          <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-modal-input-line bg-white/60 px-2.5 fm-input focus-within:border-[#3b82f6] modal-compact:h-7">
             <Search className="size-3.5 flex-none text-dash-faint" strokeWidth={2.2} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("form.searchProcesses")} className="w-full min-w-0 bg-transparent text-[#111827] uppercase placeholder:normal-case outline-none placeholder:text-dash-faint" />
           </label>
@@ -451,7 +451,7 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
         </div>
         <div className="h-[clamp(170px,30dvh,300px)] overflow-y-auto p-1.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-compact:h-[150px]">
           {shown.length === 0 ? (
-            <div className="py-4 text-center text-[12px] text-dash-faint">{items.length ? t("form.noMatches") : t("form.noExisting")}</div>
+            <div className="py-4 text-center fm-empty text-dash-faint">{items.length ? t("form.noMatches") : t("form.noExisting")}</div>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-1">
               {shown.map((it) => {
@@ -465,14 +465,14 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
                     title={it.label}
                     onClick={() => onChange(toggleIn(selected, it.value))}
                     className={cn(
-                      "flex h-8 min-w-0 cursor-pointer items-center gap-2 rounded-lg border px-2 text-left text-[12.5px] transition-colors modal-compact:h-7",
+                      "flex h-8 min-w-0 cursor-pointer items-center gap-2 rounded-lg border px-2 text-left fm-btn-sm transition-colors modal-compact:h-7",
                       on ? "border-[#bfd8ff] bg-row-stripe" : "border-white/55 bg-white/35 hover:bg-white/75"
                     )}
                   >
                     <span className={cn("flex size-4 flex-none items-center justify-center rounded-[5px] border-[1.5px] text-white", on ? "border-transparent bg-brand-sweep" : "border-[#cbd5e1] bg-white")}>
                       {on && <Check className="size-2.5" strokeWidth={4} />}
                     </span>
-                    <span className={cn("min-w-0 flex-1 truncate font-extrabold", on ? "text-brand-navy" : "text-[#374151]")}>{it.label}</span>
+                    <span className={cn("min-w-0 flex-1 truncate", on ? "text-brand-navy" : "text-[#374151]")}>{it.label}</span>
                   </button>
                 );
               })}
@@ -480,10 +480,10 @@ function MultiProcessPanel({ items, selected, onChange, open, onOpen, onDone, on
           )}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-modal-divider bg-white/40 px-2.5 py-1.5">
-          <span className="text-[12px] font-semibold text-[#64748b]">
+          <span className="fm-btn-sm text-[#64748b]">
             <Trans t={t} i18nKey="form.ofSelected" values={{ count: selected.size, total: items.length }} components={{ b: <b className="text-brand-navy" /> }} />
           </span>
-          <button type="button" onClick={onDone} className={cn(primaryButtonClass, "h-7 px-4 text-[12.5px]")}>
+          <button type="button" onClick={onDone} className={cn(primaryButtonClass, "h-7 px-4 fm-btn-sm")}>
             {t("form.done")}
           </button>
         </div>
