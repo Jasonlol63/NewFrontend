@@ -139,7 +139,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
       <Popover.Trigger asChild>
         <button
           type="button"
-          className={cn("inline-flex max-w-full cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white text-[13px] font-semibold text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]", compact ? "w-[256px]" : S.trigger, className)}
+          className={cn("inline-flex max-w-full cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-slate-400/50 bg-white type-body font-semibold! text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]", compact ? "w-[256px]" : S.trigger, className)}
         >
           <span className="flex w-9 flex-none items-center justify-center bg-[#3b82f6] text-white">
             <CalendarDays className="size-3.5" strokeWidth={2.2} />

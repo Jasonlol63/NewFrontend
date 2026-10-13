@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
 const itemClass =
-  "border border-dash-line px-4 py-1.5 text-[12.5px] font-semibold whitespace-nowrap shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+  "border border-dash-line px-4 py-1.5 type-body font-semibold! whitespace-nowrap shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-colors disabled:cursor-not-allowed disabled:opacity-40";
 const itemTone = (active) => (active ? "border-transparent bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50");
 // Every visual row of chips is its own rounded bar: its first chip has the left corners (and border), its last the right ones.
 const itemEdge = (m) => cn(m.rs ? "rounded-l-[10px]" : "border-l-0", m.re && "rounded-r-[10px]");

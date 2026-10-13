@@ -12,7 +12,7 @@ const SERIES = [
   { key: "earnings", label: "Earnings", color: "#f59e0b" },
 ];
 
-const AXIS_TICK = { fontSize: "0.6875rem", fill: "#94a3b8" };
+const AXIS_TICK = { fontSize: "0.75rem", fill: "#94a3b8" };
 
 // Lines and fills draw in left to right when data first arrives, and glide to the new shape when
 // a filter changes. Skipped for people who ask their system for reduced motion.
@@ -76,7 +76,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
       )}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-title font-semibold text-dash-ink">{t("trend.title")}</h3>
+        <h3 className="type-card-title text-dash-ink">{t("trend.title")}</h3>
         <div className="flex flex-wrap gap-4">
           {series.map((s) => (
             <button
@@ -84,7 +84,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
               type="button"
               onClick={() => toggle(s.key)}
               className={cn(
-                "flex cursor-pointer items-center gap-1.5 text-body font-medium text-[#374151] transition-opacity",
+                "flex cursor-pointer items-center gap-1.5 type-body font-semibold! text-[#374151] transition-opacity",
                 hidden.has(s.key) && "opacity-35"
               )}
             >
@@ -93,7 +93,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
             </button>
           ))}
         </div>
-        <span className="rounded-lg border border-dash-line bg-slate-50 px-3 py-1.5 text-body font-medium text-[#374151]">
+        <span className="rounded-lg border border-dash-line bg-slate-50 px-3 py-1.5 type-body text-[#374151]">
           {t("trend.range", { from: formatDisplayDate(dateFrom, "-"), to: formatDisplayDate(dateTo, "-") })}
         </span>
       </div>

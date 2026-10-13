@@ -355,20 +355,13 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  /* The browser default for <b>, <strong> and <th> is 700; keep them inside the 400 / 500 / 600 weights. */
+  b, strong, th {
+    font-weight: 600;
+  }
   html {
     @apply font-sans;
     font-size: 100%;
-  }
-  /* Bigger screens raise the root size, so every rem value (text-*, p-*, gap-*, size-*) grows together;
-     below 1440 nothing changes. */
-  @media (min-width: 1440px) {
-    html { font-size: 106.25%; }
-  }
-  @media (min-width: 1920px) {
-    html { font-size: 112.5%; }
-  }
-  @media (min-width: 2400px) {
-    html { font-size: 125%; }
   }
 }
 
@@ -388,6 +381,62 @@ body {
   --text-heading--line-height: 1.3;
   --text-display: 1.75rem;
   --text-display--line-height: 1.1;
+
+  /* Global weights are only 400 / 500 / 600: font-bold and heavier map to 600, so old pages follow the same rule
+     before they are moved to the type-* roles below. */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
+}
+
+/* Shared type roles: one class sets size, weight and line-height, so every page reads the same.
+   Text (not spacing) grows with the screen: 1.0x at 1366px and below, rising smoothly to --ts-max at 2560px.
+   To make big screens larger or smaller, change --ts-max only (1 = no scaling).
+   Roles (size at 1366): page-title 20/600, card-title 17/600, label 15/600, body 14/500,
+   table-head 13/600, table-cell 14/400, caption 12/400, kpi 28/600. */
+:root {
+  --ts-max: 1.1;
+  --ts-k: calc((var(--ts-max) - 1) / 1194);
+}
+@utility type-page-title {
+  font-size: clamp(20px, calc(20px + (100vw - 1366px) * 20 * var(--ts-k)), calc(20px * var(--ts-max)));
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility type-card-title {
+  font-size: clamp(17px, calc(17px + (100vw - 1366px) * 17 * var(--ts-k)), calc(17px * var(--ts-max)));
+  font-weight: 600;
+  line-height: 1.35;
+}
+@utility type-label {
+  font-size: clamp(15px, calc(15px + (100vw - 1366px) * 15 * var(--ts-k)), calc(15px * var(--ts-max)));
+  font-weight: 600;
+  line-height: 1.35;
+}
+@utility type-body {
+  font-size: clamp(14px, calc(14px + (100vw - 1366px) * 14 * var(--ts-k)), calc(14px * var(--ts-max)));
+  font-weight: 500;
+  line-height: 1.45;
+}
+@utility type-table-head {
+  font-size: clamp(13px, calc(13px + (100vw - 1366px) * 13 * var(--ts-k)), calc(13px * var(--ts-max)));
+  font-weight: 600;
+  line-height: 1.4;
+}
+@utility type-table-cell {
+  font-size: clamp(14px, calc(14px + (100vw - 1366px) * 14 * var(--ts-k)), calc(14px * var(--ts-max)));
+  font-weight: 400;
+  line-height: 1.4;
+}
+@utility type-caption {
+  font-size: clamp(12px, calc(12px + (100vw - 1366px) * 12 * var(--ts-k)), calc(12px * var(--ts-max)));
+  font-weight: 400;
+  line-height: 1.4;
+}
+@utility type-kpi {
+  font-size: clamp(28px, calc(28px + (100vw - 1366px) * 28 * var(--ts-k)), calc(28px * var(--ts-max)));
+  font-weight: 600;
+  line-height: 1.1;
 }
 
 /* Add / Edit Formula dialog (pages/data-capture/FormulaDialog.jsx): every row lines up across the left and right

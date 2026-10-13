@@ -23,7 +23,7 @@ function restrictToRow({ containerNodeRect, draggingNodeRect, transform }) {
 }
 
 const itemClass =
-  "flex-none border-r border-dash-line px-4 py-1.5 text-body font-medium whitespace-nowrap transition-colors last:border-r-0 disabled:cursor-not-allowed disabled:opacity-40";
+  "flex-none border-r border-dash-line px-4 py-1.5 type-body font-semibold! whitespace-nowrap transition-colors last:border-r-0 disabled:cursor-not-allowed disabled:opacity-40";
 
 function itemTone(active) {
   return active ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50";
