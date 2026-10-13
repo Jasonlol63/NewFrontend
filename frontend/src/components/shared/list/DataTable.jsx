@@ -13,7 +13,7 @@ const td = "border-b border-[#eef2f7] py-0";
  * Delete-selection checkbox: a soft blue line icon like the Action icons (an empty square, a ticked square, a dashed one
  * for "some"). checked: true | false | "mixed". onHeader: the white variant for the gradient header.
  */
-export function SelectBox({ checked, onChange, onHeader, label, disabled }) {
+export function SelectBox({ checked, onChange, onHeader, label, disabled, className }) {
   const Icon = checked === true ? SquareCheck : checked === "mixed" ? SquareMinus : Square;
   return (
     <button
@@ -28,7 +28,8 @@ export function SelectBox({ checked, onChange, onHeader, label, disabled }) {
         onHeader
           ? cn(checked ? "text-white" : "text-white/75", "enabled:hover:bg-white/20 enabled:hover:text-white focus-visible:ring-white/55")
           : cn(checked ? "text-[#2563eb]" : "text-[#8fb0e8]", "enabled:hover:bg-[#e8f1ff] enabled:hover:text-[#2563eb] focus-visible:ring-[#3b82f6]/35"),
-        disabled && !onHeader && "text-[#cbd5e1]"
+        disabled && !onHeader && "text-[#cbd5e1]",
+        className
       )}
     >
       <Icon className="size-4" strokeWidth={2.1} />
@@ -295,7 +296,7 @@ const never = () => false;
  *  - emptyMessage: text of the empty state (default "No <noun> found").
  *  - fitWidth: no sideways scroll; columns marked `fit: true` (`fitMax`: widest, in px, even with room to spare) shrink with "..." only when the row does not fit
  *    the card, and a cut-off cell shows its full text in a hover card. Pair with minWidth="min-w-0".
- *  - dense: smaller type (12px), 8px between columns and sort arrows that do not widen the headers, at every width, for lists with many columns.
+ *  - dense: table cell type (13 / 500) with a 13 / 600 head (14px from 1600px wide), 8px between columns and sort arrows that do not widen the headers, at every width, for lists with many columns.
  *  - altColumns / onAltChange: a more compact set of columns the table switches to when `columns` would not fit even
  *    after the `fit` columns shrink (`fitMin`: narrowest, in px). onAltChange(true | false) reports the switch.
  *  - selectColumn={false}: no checkbox column; the page puts SelectBox where it wants (e.g. in its Action column).
@@ -422,7 +423,7 @@ export default function DataTable({
         <table
           className={cn(
             "w-full border-separate",
-            dense ? "type-caption" : "type-table-cell",
+            dense ? "type-table-cell font-medium!" : "type-table-cell",
             // Cards: 8px between rows (and under the header); -mt-2 drops the gap above the header.
             cards ? "-mt-2 border-spacing-x-0 border-spacing-y-2" : "border-spacing-0",
             fitWidth && !dense && "max-[1100px]:text-[13px]",
@@ -433,7 +434,7 @@ export default function DataTable({
             <tr
               className={cn(
                 "text-left",
-                dense ? "type-caption font-semibold!" : "type-table-head",
+                dense ? "type-table-cell font-semibold! min-[1600px]:type-table-head" : "type-table-head",
                 cards ? "text-brand-navy" : "bg-brand-head text-white"
               )}
             >

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Inbox, MessageSquare, Plus, RotateCcw, Search, SquarePen } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useTranslation } from "react-i18next";
-import DataTable, { ROW_HEIGHT, SelectBox } from "@/components/shared/list/DataTable.jsx";
+import DataTable, { SelectBox } from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
 import { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { Badge, IconAction } from "@/components/shared/list/cells.jsx";
@@ -44,11 +44,11 @@ function AccountingDueButton({ count, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 text-[13px] font-bold whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
+      className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 type-body font-semibold! whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
     >
       <Inbox className="size-4" strokeWidth={2.2} />
       {t("bank.page.accountingDue")}
-      <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center text-[11px] leading-[18px] font-bold text-white">{count}</span>
+      <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center type-caption font-semibold! leading-[18px] text-white">{count}</span>
     </button>
   );
 }
@@ -58,8 +58,8 @@ function AccountingDueButton({ count, onClick }) {
 //   Delete loses its label -> the search box becomes an icon -> the chips go slim -> (below ~1000px screens) the
 //   chips drop to a second row at full size.
 // The date box is 330px (its original popup) when everything fits with room to spare, else the 256px box.
-const CHIPS_WIDTH = 593; // the six chips side by side
-const SLIM_CHIPS_WIDTH = 515; // the same chips, compact
+const CHIPS_WIDTH = 630; // the six chips side by side (at the largest size they take)
+const SLIM_CHIPS_WIDTH = 569; // the same chips, compact
 function toolbarLayout(width) {
   const wideDate = width >= 330 + CHIPS_WIDTH + 180 + 120 + 30;
   const date = wideDate ? 330 : 256;
@@ -87,7 +87,7 @@ function useContentWidth(ref, padding) {
 }
 
 const searchShell =
-  "flex h-9 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]";
+  "flex h-9 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]";
 
 function SearchBox({ value, onChange }) {
   const { t } = useTranslation("process");
@@ -136,8 +136,9 @@ function SearchIcon({ value, onChange }) {
   );
 }
 
-// Two lines of text per cell need a taller row than the single-line list.
-const TWO_LINE_ROW_HEIGHT = 52;
+// Row heights, as dense as the other lists: 26px with one line per cell, 40px when the table folds columns into two-line cells.
+const ROW_MIN = 26;
+const TWO_LINE_ROW_HEIGHT = 40;
 
 // The badges drop their letter spacing: the picker chevron and the contract dot add width, so the text gives some back.
 const TIGHT = { letterSpacing: 0 };
@@ -204,6 +205,9 @@ function ContractBadge({ row }) {
   );
 }
 
+// The Bank column also says the type of the card owner, as before: "CIMB (BUSINESS)".
+const bankLabel = (p) => (p.cardOwnerType ? `${p.bank} (${p.cardOwnerType})` : p.bank);
+
 const thisYear = () => {
   const y = new Date().getFullYear();
   return { from: `${y}-01-01`, to: `${y}-12-31` };
@@ -259,7 +263,7 @@ export default function BankProcessView({ scope, readOnly }) {
     [allRows, currency, dateRange]
   );
   const canSelect = useCallback((p) => !readOnly && p.status === "INACTIVE", [readOnly]);
-  const view = useListView(scoped, { filter: filterBankProcesses, sort: sortBankProcesses, canSelect, rowMin: twoLine ? TWO_LINE_ROW_HEIGHT : ROW_HEIGHT });
+  const view = useListView(scoped, { filter: filterBankProcesses, sort: sortBankProcesses, canSelect, rowMin: twoLine ? TWO_LINE_ROW_HEIGHT : ROW_MIN });
   const actions = useRowActions({
     toggleStatus: async () => {}, // the status badge below picks the status itself
     deleteRows,
@@ -313,8 +317,9 @@ export default function BankProcessView({ scope, readOnly }) {
     className: "text-center",
     cellClassName: "whitespace-nowrap",
     render: (p) => (
-      <span className="inline-flex">
+      <span className="flex items-center justify-center">
         <IconAction
+          className="size-6"
           icon={SquarePen}
           onClick={() => setEditRow(p)}
           disabled={readOnly}
@@ -322,6 +327,7 @@ export default function BankProcessView({ scope, readOnly }) {
           aria-label={t("page.edit")}
         />
         <IconAction
+          className="size-6"
           icon={MessageSquare}
           onClick={() => setRemarkRow(p)}
           disabled={readOnly}
@@ -329,9 +335,10 @@ export default function BankProcessView({ scope, readOnly }) {
           aria-label={t("bank.page.remark")}
         />
         {p.status === "INACTIVE" ? (
-          <SelectBox label={t("common:table.selectRow")} checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
+          <SelectBox className="size-6" label={t("common:table.selectRow")} checked={selected.has(p.id)} disabled={!canSelect(p)} onChange={(checked) => toggleMany([p], checked)} />
         ) : (
           <IconAction
+            className="size-6"
             icon={RotateCcw}
             onClick={() => setResendRow(p)}
             disabled={readOnly || !canResend(p)}
@@ -349,7 +356,8 @@ export default function BankProcessView({ scope, readOnly }) {
     noColumn,
     { key: "supplier", label: t("bank.col.supplier"), cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.supplier },
     { key: "country", label: t("bank.col.country"), render: (p) => p.country },
-    { key: "bank", label: t("bank.col.bank"), fit: true, fitMin: 76, render: (p) => p.bank },
+    // Card Owner is cut first (the cut text shows in full on hover); Bank keeps its whole label, type included, until the row would otherwise fold into two lines.
+    { key: "bank", label: t("bank.col.bank"), fit: true, fitMin: 100, render: bankLabel },
     { key: "cardOwner", label: t("bank.col.cardOwner"), fit: true, fitMin: 88, render: (p) => p.cardOwner },
     { key: "contract", label: t("bank.col.contract"), render: contract },
     { key: "insurance", label: t("bank.col.ins"), cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
@@ -366,19 +374,19 @@ export default function BankProcessView({ scope, readOnly }) {
   const stacked = (top, bottom) => (
     <>
       <div className="truncate">{top}</div>
-      <div className="truncate text-[11.5px] text-[#33507f]">{bottom}</div>
+      <div className="truncate type-caption text-[#33507f]">{bottom}</div>
     </>
   );
   const head2 = (first, second) => (
     <span className="flex flex-col leading-tight">
       {first}
-      <span className="text-[11px] font-semibold opacity-85">{second}</span>
+      <span className="type-caption font-semibold! opacity-85">{second}</span>
     </span>
   );
   // No "No" column here: on a narrow card the row number is the least useful thing to spend 40px on.
   const twoLineColumns = [
     { key: "supplier", label: head2(t("bank.col.supplier"), t("bank.col.customer")), render: (p) => stacked(<span className="font-semibold">{p.supplier}</span>, p.customer) },
-    { key: "bank", label: head2(t("bank.col.bank"), t("bank.col.cardOwner")), fit: true, fitMin: 76, render: (p) => stacked(p.bank, p.cardOwner) },
+    { key: "bank", label: head2(t("bank.col.bank"), t("bank.col.cardOwner")), fit: true, fitMin: 76, render: (p) => stacked(bankLabel(p), p.cardOwner) },
     { key: "country", label: head2(t("bank.col.country"), t("bank.col.contract")), render: (p) => stacked(p.country, contract(p)) },
     { key: "insurance", label: t("bank.col.ins"), cellClassName: "tabular-nums", render: (p) => p.insurance ?? "-" },
     { key: "cost", label: t("bank.col.cost"), cellClassName: "tabular-nums", render: money("cost") },

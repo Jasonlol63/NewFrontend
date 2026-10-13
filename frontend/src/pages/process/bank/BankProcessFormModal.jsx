@@ -354,7 +354,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
             role="note"
             title={t("bank.page.lockedTitle")}
             aria-label={t("bank.page.lockedTitle")}
-            className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-3 text-[12px] font-bold text-[#92400e] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:px-2"
+            className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-3 fm-btn-sm text-[#92400e] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:px-2"
           >
             <Lock className="size-3.5 flex-none" strokeWidth={2.4} />
             <span className="truncate @max-[1099px]/main:hidden">{t("bank.form.lockedChip")}</span>
@@ -440,7 +440,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
             </Field>
             <div className="block min-w-0">
               <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
-                <span className="truncate text-[12.5px] font-semibold text-[#374151] modal-compact:text-[12px] modal-tiny:text-[11.5px]">
+                <span className="truncate fm-btn-sm text-[#374151]">
                   {t("bank.form.dayEnd")} <span className="text-[10px] font-medium text-[#8a96a8]">{t("bank.form.opt")}</span>
                 </span>
                 {showDayEndSwitch && (
@@ -561,7 +561,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                       </button>
                     )}
                   </div>
-                  <span className="mt-1 ml-0.5 block text-[11px] italic leading-snug text-[#8a96a8]">
+                  <span className="mt-1 ml-0.5 block fm-help italic leading-snug text-[#8a96a8]">
                     {billingLocked ? t("bank.form.balanceLockedHint") : t("bank.form.balanceSettled")}
                   </span>
                 </Field>

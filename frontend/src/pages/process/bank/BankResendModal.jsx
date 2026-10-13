@@ -9,7 +9,7 @@ import { useNotice } from "@/hooks/useNotice";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import { Field, SelectField, inputClass } from "@/components/shared/form-modal/fields.jsx";
 import { FIRST_OF_MONTH, FREQUENCIES } from "./bankFormRules";
-import { buildResendRequest, resendSummary, resendUsesDayEnd, validateResend } from "./bankResendRules";
+import { buildResendRequest, resendDayEnd, resendSummary, resendUsesDayEnd, validateResend } from "./bankResendRules";
 
 // Same look as Add / Edit Process (the date popups of that form), as a small dialog in the middle.
 const DATE_POPUP = "min-[1536px]:max-w-[300px]";
@@ -25,7 +25,8 @@ function ReadOnlyBox({ children }) {
 
 /**
  * Resend one Bank Process to Accounting Due: the user picks Day Start, Day End (1st of Every Month only) and Frequency, and the
- * backend resends for that window. The values apply to this Resend only, they are not saved to the process.
+ * backend resends for that window. Day Start starts from the contract's; Day End does not: it stays empty for 1st of Every Month,
+ * and for the other frequencies it shows the end of their fixed window (one month, a week, a day), read only. The values apply to this Resend only, they are not saved to the process.
  * row: the process; tenantId: its company; onResend(row, form) posts it and throws on failure (the message stays in the dialog);
  * the dialog closes after a successful Resend.
  */
@@ -33,8 +34,8 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
   const { t } = useTranslation(["process", "common"]);
   const { toasts, push, dismiss } = useNotice(5000);
   const [form, setForm] = useState(() => ({
-    dayStart: row.date || "",
-    dayEnd: row.dayEnd || "",
+    dayStart: row.date || "", // the contract's Day Start is the starting point; Day End is never copied from the contract
+    dayEnd: "",
     frequency: row.frequency || FIRST_OF_MONTH,
   }));
   const [saving, setSaving] = useState(false);
@@ -85,9 +86,9 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
           <Field label={t("bank.resend.dayStart")} as="div">
             <DateField value={form.dayStart} onChange={(dayStart) => setForm((f) => ({ ...f, dayStart }))} placeholder="DD/MM/YYYY" popupClassName={DATE_POPUP} />
           </Field>
-          <Field label={t("bank.resend.dayEnd")} optional as="div">
+          <Field label={t("bank.resend.dayEnd")} optional={usesEnd} plain={!usesEnd} as="div">
             <DateField
-              value={form.dayEnd}
+              value={resendDayEnd(form)}
               onChange={(dayEnd) => setForm((f) => ({ ...f, dayEnd }))}
               placeholder={usesEnd ? "DD/MM/YYYY" : t("bank.resend.notUsed")}
               popupClassName={DATE_POPUP}
@@ -100,7 +101,7 @@ export default function BankResendModal({ row, tenantId, onClose, onResend }) {
             <SelectField value={form.frequency} onChange={setFrequency} options={FREQUENCIES.map((o) => ({ ...o, label: t(`bank.frequency.${o.value}`, { defaultValue: o.label }) }))} placeholder={t("bank.resend.selectFrequency")} />
           </Field>
         </div>
-        <p className={cn("m-0 mt-2.5 px-0.5 text-[12px] leading-snug normal-case", summary.error ? "font-semibold text-[#dc2626]" : "text-[#475569]")}>
+        <p className={cn("m-0 mt-2.5 px-0.5 fm-help leading-snug normal-case", summary.error ? "font-semibold text-[#dc2626]" : "text-[#475569]")}>
           <Trans t={t} i18nKey={`bank.resend.${summary.key}`} values={summary.values} components={{ b: <b className="text-brand-navy" /> }} />
         </p>
       </FormCard>

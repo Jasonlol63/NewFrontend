@@ -83,8 +83,8 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
           style={width ? { width } : undefined}
           className="z-50 max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-16px)] min-w-[260px] overflow-y-auto rounded-xl border border-dash-line bg-white p-3 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
         >
-          <p className="m-0 text-[12.5px] font-bold text-brand-navy">{title}</p>
-          {hint && <p className="m-0 mt-0.5 text-[11.5px] text-dash-sub">{hint}</p>}
+          <p className="m-0 fm-btn-sm text-brand-navy">{title}</p>
+          {hint && <p className="m-0 mt-0.5 fm-help text-dash-sub">{hint}</p>}
           <div className="mt-2 flex items-center gap-1.5">
             <TextInput
               autoFocus
@@ -104,14 +104,14 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               type="button"
               onClick={submit}
               disabled={busy}
-              className="h-8 flex-none cursor-pointer rounded-lg border-none bg-brand-sweep px-3 disabled:cursor-not-allowed disabled:opacity-60 text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)] hover:brightness-105"
+              className="h-8 flex-none cursor-pointer rounded-lg border-none bg-brand-sweep px-3 disabled:cursor-not-allowed disabled:opacity-60 fm-btn-sm text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.6)] hover:brightness-105"
             >
               {t("bank.adder.add")}
             </button>
           </div>
 
           <div className="mt-3 mb-2 flex items-center justify-between gap-2">
-            <p className="m-0 text-[11.5px] font-semibold text-dash-sub">
+            <p className="m-0 fm-opt font-semibold! text-dash-sub">
               {!items.length ? t("bank.adder.none") : removing ? t("bank.adder.removeMode") : t("bank.adder.existing")}
             </p>
             {items.length > 0 && (
@@ -119,7 +119,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
                 type="button"
                 onClick={() => setRemoving((v) => !v)}
                 className={cn(
-                  "inline-flex h-7 flex-none cursor-pointer items-center gap-1 rounded-lg border px-2 text-[12px] font-bold transition-colors",
+                  "inline-flex h-7 flex-none cursor-pointer items-center gap-1 rounded-lg border px-2 fm-btn-sm transition-colors",
                   removing ? "border-transparent bg-[#fee2e2] text-[#dc2626] hover:bg-[#fecaca]" : "border-[#d5deea] bg-white text-dash-sub hover:border-[#fca5a5] hover:text-[#ef4444]"
                 )}
               >
@@ -133,7 +133,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               {items.map((item) => {
                 const locked = lockedReason?.(item);
                 const on = isOn(item);
-                const chip = "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-bold transition-colors";
+                const chip = "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 fm-btn-sm transition-colors";
                 if (removing) {
                   return locked ? (
                     <span key={item} title={locked} className={cn(chip, "cursor-not-allowed border-[#dbe2ec] bg-[#f1f5f9] text-[#94a3b8]")}>

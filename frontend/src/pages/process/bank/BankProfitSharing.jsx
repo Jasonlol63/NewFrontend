@@ -18,11 +18,11 @@ const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maxim
 
 // As tall as an input at every modal height tier.
 const square = "size-9 @min-[900px]/main:@max-[1099px]/main:size-8 modal-compact:size-[30px] modal-tiny:size-7";
-const pill = "inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border text-[12px] font-bold";
+const pill = "inline-flex h-6 cursor-pointer items-center gap-1 rounded-lg border fm-btn-sm";
 
 function ColumnLabel({ children }) {
   return (
-    <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px]">
+    <span className="mb-1 ml-0.5 block truncate fm-btn-sm text-[#374151] modal-compact:mb-0.5">
       {children} <i className="not-italic text-[#ef4444]">*</i>
     </span>
   );
@@ -145,7 +145,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                       type="button"
                       onClick={() => patch(i, { pctOpen: false, pct: "" })}
                       title={t("bank.share.backToAmount")}
-                      className="flex w-7 flex-none cursor-pointer items-center justify-center border-l border-[#c5dcfb] bg-[#e8f1ff] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#d6e8ff]"
+                      className="flex w-7 flex-none cursor-pointer items-center justify-center border-l border-[#c5dcfb] bg-[#e8f1ff] fm-btn-sm text-[#1d4ed8] hover:bg-[#d6e8ff]"
                     >
                       %
                     </button>
@@ -156,7 +156,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                     disabled={profit <= 0}
                     onClick={() => patch(i, { pctOpen: true })}
                     title={profit > 0 ? t("bank.share.pctTip") : t("bank.share.pctNeedPrice")}
-                    className={cn(square, "flex-none cursor-pointer rounded-[10px] border border-[#c5dcfb] bg-[#e8f1ff] text-[13px] font-bold text-[#1d4ed8] transition-colors hover:bg-[#d6e8ff] disabled:cursor-not-allowed disabled:opacity-45")}
+                    className={cn(square, "flex-none cursor-pointer rounded-[10px] border border-[#c5dcfb] bg-[#e8f1ff] fm-btn-sm text-[#1d4ed8] transition-colors hover:bg-[#d6e8ff] disabled:cursor-not-allowed disabled:opacity-45")}
                   >
                     %
                   </button>
@@ -178,7 +178,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
           <button
             type="button"
             onClick={() => setRows((list) => [...list, blankRow()])}
-            className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#7fb2ff] bg-[rgba(232,242,255,0.55)] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dbeaff] modal-compact:h-7"
+            className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#7fb2ff] bg-[rgba(232,242,255,0.55)] fm-btn-sm text-[#1d4ed8] hover:bg-[#dbeaff] modal-compact:h-7"
           >
             <Plus className="size-3.5" strokeWidth={2.6} />
             {t("bank.share.addAccountBtn")}
@@ -186,14 +186,14 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
         </div>
       )}
 
-      {entries.length === 0 && !open && <p className="m-0 px-0.5 py-1.5 text-[12.5px] italic text-[#8a96a8]">{t("bank.share.none")}</p>}
+      {entries.length === 0 && !open && <p className="m-0 px-0.5 py-1.5 fm-input italic text-[#8a96a8]">{t("bank.share.none")}</p>}
       {entries.map((entry) => {
         const label = accounts.find((a) => a.value === entry.account)?.label ?? entry.account;
         return (
         <div key={entry.account} className="flex flex-none items-center gap-2.5 overflow-hidden rounded-[10px] border border-[#bfd8ff] bg-row-stripe py-1.5 pr-2 pl-0">
           <span className="w-1 flex-none self-stretch rounded-sm bg-[#3b82f6]" />
-          <b className="min-w-0 flex-1 truncate text-[13px] font-extrabold text-brand-navy">{label}</b>
-          <span className="flex-none rounded-lg border border-[#bcd9fb] bg-white px-2.5 py-0.5 text-[13px] font-extrabold text-[#1d4ed8] tabular-nums">
+          <b className="min-w-0 flex-1 truncate fm-btn-sm text-brand-navy">{label}</b>
+          <span className="flex-none rounded-lg border border-[#bcd9fb] bg-white px-2.5 py-0.5 fm-btn-sm text-[#1d4ed8] tabular-nums">
             {currency} {money(Number(entry.amount) || 0)}
           </span>
           {!inert && (

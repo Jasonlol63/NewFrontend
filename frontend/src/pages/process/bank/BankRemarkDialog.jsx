@@ -72,8 +72,8 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           <MessageSquare className="size-5" strokeWidth={2.2} />
         </span>
         <div className="min-w-0">
-          <Dialog.Title className="m-0 text-[clamp(16px,2.3dvh,18px)] font-extrabold tracking-[-0.2px] text-brand-navy">{t("bank.remarkDialog.title")}</Dialog.Title>
-          <Dialog.Description className="m-0 truncate text-[12.5px] text-[#5b74a3]">
+          <Dialog.Title className="m-0 fm-section tracking-[-0.2px] text-brand-navy">{t("bank.remarkDialog.title")}</Dialog.Title>
+          <Dialog.Description className="m-0 truncate fm-input text-[#5b74a3]">
             {row.supplier} · {row.bank} · {row.cardOwner}
           </Dialog.Description>
         </div>
@@ -101,14 +101,14 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           {expanded ? <Minimize2 className="size-3.5" strokeWidth={2.3} /> : <Maximize2 className="size-3.5" strokeWidth={2.3} />}
         </button>
       </div>
-      <div className="mt-1.5 flex justify-end gap-2 text-[11.5px] text-[#8a96a8]">
+      <div className="mt-1.5 flex justify-end gap-2 fm-help text-[#8a96a8]">
         <span className="font-bold text-[#3b82f6]">
           {t("bank.remarkDialog.chars", { count: text.length })}
         </span>
       </div>
       <div className="mt-(--gap) flex flex-wrap items-center justify-end gap-2">
         <Dialog.Close asChild>
-          <SoftButton disabled={saving} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-60">
+          <SoftButton disabled={saving} className="h-[38px] min-w-[112px] px-[22px] fm-btn disabled:cursor-not-allowed disabled:opacity-60">
             {t("common:cancel")}
           </SoftButton>
         </Dialog.Close>
@@ -118,7 +118,7 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
           disabled={saving}
           className={cn(
             primaryButtonClass,
-            "h-[38px] min-w-[112px] whitespace-nowrap px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
+            "h-[38px] min-w-[112px] whitespace-nowrap px-[22px] fm-btn disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
           )}
         >
           <Check className="size-[15px]" strokeWidth={2.5} />

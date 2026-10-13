@@ -41,14 +41,14 @@ function useWidth(ref) {
   return width;
 }
 
-const th = "sticky top-0 z-[1] whitespace-nowrap border-b border-modal-divider bg-[#e6effb] px-1.5 py-2.5 text-center text-[12px] font-extrabold text-brand-navy modal-compact:py-1.5";
-const td = "h-[42px] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-1.5 text-center text-[13px] font-semibold text-[#1f2937] text-ellipsis whitespace-nowrap modal-compact:h-9 modal-tiny:h-8";
+const th = "sticky top-0 z-[1] whitespace-nowrap border-b border-modal-divider bg-[#e6effb] px-1.5 py-2.5 text-center fm-btn-sm text-brand-navy modal-compact:py-1.5";
+const td = "h-[42px] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-1.5 text-center fm-btn-sm text-[#1f2937] text-ellipsis whitespace-nowrap modal-compact:h-9 modal-tiny:h-8";
 
 function Cell({ main, sub, className }) {
   return (
     <td className={cn(td, sub && "leading-tight", className)}>
       <div className="truncate">{main}</div>
-      {sub && <div className="truncate text-[11.5px] font-medium text-dash-sub">{sub}</div>}
+      {sub && <div className="truncate fm-opt font-semibold! text-dash-sub">{sub}</div>}
     </td>
   );
 }
@@ -86,7 +86,7 @@ function cellFor(key, bill, mode, t) {
 }
 
 const presetClass =
-  "h-8 flex-none cursor-pointer whitespace-nowrap rounded-[9px] border px-3 text-[12.5px] font-bold text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
+  "h-8 flex-none cursor-pointer whitespace-nowrap rounded-[9px] border px-3 fm-btn-sm text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
 
 export default function AccountingDueModal({ tenantId, readOnly, onClose, onChanged }) {
   const { t } = useTranslation(["process", "common"]);
@@ -155,7 +155,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         <td className="h-[34px] border-b border-[rgba(130,155,195,0.16)] text-center modal-compact:h-8">
           <SelectBox label={t("bank.due.selectAllOf", { group: label.toLowerCase() })} checked={stateOf(list)} onChange={(on) => setMany(list, on)} />
         </td>
-        <td colSpan={columns.length - 1} className="h-[34px] border-b border-[rgba(130,155,195,0.16)] px-1.5 text-left text-[12px] font-extrabold text-brand-navy modal-compact:h-8">
+        <td colSpan={columns.length - 1} className="h-[34px] border-b border-[rgba(130,155,195,0.16)] px-1.5 text-left fm-btn-sm text-brand-navy modal-compact:h-8">
           <span className="inline-flex items-center gap-2">
             {label}
             {tag && <span className="inline-flex h-[18px] items-center rounded-md border border-[#f3d27a] bg-[#fef3c7] px-1.5 text-[10px] font-extrabold tracking-[0.3px] text-[#92400e]">{tag}</span>}
@@ -176,7 +176,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
     );
   };
 
-  const actionClass = "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1 @max-[479px]/main:w-11 @max-[479px]/main:flex-none @max-[479px]/main:px-0";
+  const actionClass = "h-[38px] min-w-[112px] px-[22px] fm-btn modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1 @max-[479px]/main:w-11 @max-[479px]/main:flex-none @max-[479px]/main:px-0";
 
   return (
     <>
@@ -185,8 +185,8 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         title={
           <span className="flex min-w-0 items-center gap-2.5">
             <span className="min-w-0 truncate">{t("bank.due.title")}</span>
-            <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[12px] leading-[22px] font-extrabold tracking-normal text-white">{visible.length}</span>
-            <span className="flex-none text-[12px] font-semibold tracking-normal text-[#b45309] @max-[599px]/main:hidden">{t("bank.due.asOf", { date: dmy(earlyDate) })}</span>
+            <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 fm-btn-sm leading-[22px] tracking-normal text-white">{visible.length}</span>
+            <span className="flex-none fm-btn-sm tracking-normal text-[#b45309] @max-[599px]/main:hidden">{t("bank.due.asOf", { date: dmy(earlyDate) })}</span>
           </span>
         }
         onClose={onClose}
@@ -209,7 +209,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
           <span
             role={footerIsError ? "alert" : "status"}
             className={cn(
-              "mr-auto inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold",
+              "mr-auto inline-flex min-w-0 items-center gap-1.5 fm-btn-sm",
               footerIsError ? "text-[#dc2626]" : "text-[#5b7196] @max-[599px]/main:hidden"
             )}
           >
@@ -236,7 +236,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         bodyClassName="flex flex-col"
       >
         <section className="flex flex-none flex-wrap items-center gap-2 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card modal-compact:py-1.5">
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">{t("bank.due.earlyDate")}</span>
+          <span className="whitespace-nowrap fm-btn-sm text-[#374151]">{t("bank.due.earlyDate")}</span>
           <div className="w-[150px] flex-none">
             <DateField value={earlyDate} onChange={setEarlyDate} placeholder="DD/MM/YYYY" />
           </div>
@@ -250,7 +250,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
               {t(`bank.due.preset.${p.key}`)}
             </button>
           ))}
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 text-[12px] font-semibold text-[#92400e]">
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 fm-btn-sm text-[#92400e]">
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
             {t("bank.due.note")}
           </span>
@@ -292,7 +292,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
                 {early.map(billRow)}
               </tbody>
             </table>
-            {visible.length === 0 && <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">{t("bank.due.nothing")}</p>}
+            {visible.length === 0 && <p className="m-0 px-4 py-10 text-center fm-input italic text-[#8a96a8]">{t("bank.due.nothing")}</p>}
           </div>
         </FormCard>
         <Toast toasts={toasts} onClose={dismiss} />
