@@ -37,10 +37,11 @@ const COLS = [
 
 // No horizontal scroll: headers wrap below 1700px wide instead of widening the table.
 const th =
-  "sticky top-0 z-[2] h-7 overflow-hidden border-r border-white/25 bg-[linear-gradient(180deg,#60c1fe,#1a6bff)] px-1 text-center text-[11.5px] font-bold text-white last:border-r-0 min-[1701px]:whitespace-nowrap max-[1700px]:py-0.5 max-[1700px]:leading-[1.15] max-[1250px]:px-0.5 max-[1250px]:text-[10.5px] short:h-[26px]";
+  "sticky top-0 z-[2] h-7 overflow-hidden border-r border-white/25 bg-[linear-gradient(180deg,#60c1fe,#1a6bff)] px-1 text-center type-caption font-semibold! text-white last:border-r-0 min-[1701px]:whitespace-nowrap max-[1700px]:py-0.5 max-[1700px]:leading-[1.15] max-[1250px]:px-0.5 short:h-[26px]";
 const td =
-  "h-7 overflow-hidden text-ellipsis whitespace-nowrap border-r border-b border-[#e8eef7] px-1.5 text-[12px] text-[#1f2937] last:border-r-0 group-even:bg-[#f7faff] group-hover:bg-[#e9f3ff] max-[1400px]:px-1 short:h-[25px]";
-const smallButton = "h-7 whitespace-nowrap rounded-lg py-0 text-[12.5px]";
+  "h-7 overflow-hidden text-ellipsis whitespace-nowrap border-r border-b border-[#e8eef7] px-1.5 type-table-cell text-[#1f2937] last:border-r-0 group-even:bg-[#f7faff] group-hover:bg-[#e9f3ff] max-[1400px]:px-1 short:h-[25px]";
+const smallButton = "h-7 whitespace-nowrap rounded-lg py-0 type-table-cell font-semibold!";
+const actionButton = "h-8 whitespace-nowrap rounded-lg py-0 type-body font-semibold!";
 
 const TOTAL_CELL = "sticky bottom-0 z-[2] h-[30px] border-t border-[#bcd0ec] bg-[#dfeafb] px-1.5 short:h-[27px]";
 
@@ -60,9 +61,9 @@ function AddMini(props) {
 // "Date 2026-10-08 ·": what was captured, one chip per value, a dot between them.
 function InfoChip({ label, value }) {
   return (
-    <span className="whitespace-nowrap text-[12px] text-dash-sub max-[1400px]:text-[11.5px] not-last:after:ml-2.5 not-last:after:text-[#b6c2d6] not-last:after:content-['·']">
+    <span className="whitespace-nowrap type-table-cell font-normal! text-dash-sub not-last:after:ml-2.5 not-last:after:text-[#b6c2d6] not-last:after:content-['·']">
       {label}
-      <b className={cn("ml-[5px]", value ? "font-extrabold text-brand-navy" : "font-semibold text-dash-faint")}>{value || "-"}</b>
+      <b className={cn("ml-[5px]", value ? "font-semibold text-brand-navy" : "font-semibold text-dash-faint")}>{value || "-"}</b>
     </span>
   );
 }
@@ -92,7 +93,7 @@ function InlineInput({ value, onSave, onCancel, align = "left", placeholder }) {
           finish(false);
         }
       }}
-      className={cn("h-[22px] w-full min-w-0 rounded-md border border-[#3b82f6] bg-white px-1.5 text-[12px] text-[#111827] outline-none shadow-[0_0_0_2px_rgba(59,130,246,0.15)]", align === "right" && "text-right", align === "center" && "text-center")}
+      className={cn("h-[22px] w-full min-w-0 rounded-md border border-[#3b82f6] bg-white px-1.5 type-table-cell text-[#111827] outline-none shadow-[0_0_0_2px_rgba(59,130,246,0.15)]", align === "right" && "text-right", align === "center" && "text-center")}
     />
   );
 }
@@ -102,15 +103,15 @@ function Message({ title, text, children }) {
   return (
     <div className="h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
       <div className="flex h-full min-h-[480px] flex-col items-center justify-center gap-3 rounded-[22px] border border-white/55 bg-modal-bg px-6 text-center shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px]">
-        <h1 className="m-0 text-[18px] font-extrabold text-brand-navy">{title}</h1>
-        {text && <p className="m-0 max-w-[460px] text-[13px] text-dash-sub">{text}</p>}
+        <h1 className="m-0 type-page-title text-brand-navy">{title}</h1>
+        {text && <p className="m-0 max-w-[460px] type-body font-normal! text-dash-sub">{text}</p>}
         {children}
       </div>
     </div>
   );
 }
 
-const linkButton = "inline-flex h-9 cursor-pointer items-center rounded-[10px] border-none bg-brand-sweep px-5 text-[13px] font-bold text-white no-underline shadow-[0_8px_16px_-8px_rgba(20,90,220,0.55)]";
+const linkButton = "inline-flex h-9 cursor-pointer items-center rounded-[10px] border-none bg-brand-sweep px-5 type-body font-semibold! text-white no-underline shadow-[0_8px_16px_-8px_rgba(20,90,220,0.55)]";
 
 // What the page needs from the server: the company's accounts and currencies and the stored formulas of the process. It loads
 // again when `version` changes (Refresh); loading is "no answer for this key yet", so no state is set from the effect.
@@ -140,7 +141,7 @@ function LoadingFrame({ capture }) {
     <div className="h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
       <div className="flex h-full min-h-[480px] flex-col gap-[clamp(6px,1.3dvh,10px)] overflow-hidden rounded-[22px] border border-white/55 bg-modal-bg px-[clamp(12px,1.8vw,24px)] py-[clamp(10px,2dvh,18px)] shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px] backdrop-saturate-[1.15]">
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">
+          <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap type-page-title text-brand-navy">
             <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
             {t("summary.title")}
           </h1>
@@ -150,9 +151,9 @@ function LoadingFrame({ capture }) {
           <InfoChip label={t("form.currency")} value={capture.currency} />
           <InfoChip label={t("form.remark")} value={capture.remark} />
         </div>
-        <div className="flex h-[42px] flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 text-[13px] font-extrabold text-brand-navy">{t("summary.rate.label")}</div>
+        <div className="flex h-[42px] flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 type-label text-brand-navy">{t("summary.rate.label")}</div>
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
-          <table className="w-full table-fixed border-separate border-spacing-0 text-[12px]">
+          <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell">
             <colgroup>
               {COLS.map(([name, w]) => (
                 <col key={name} style={w ? { width: `${w}%` } : undefined} />
@@ -169,7 +170,7 @@ function LoadingFrame({ capture }) {
             </thead>
             <tbody>
               <tr>
-                <td colSpan={COLS.length} className="h-40 border-b border-[#e8eef7] text-center text-[13px] font-semibold text-dash-sub">
+                <td colSpan={COLS.length} className="h-40 border-b border-[#e8eef7] text-center type-body font-medium! text-dash-sub">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="size-4 animate-spin" />
                     {t("common:loading")}
@@ -396,7 +397,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
       <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex h-full min-h-[480px] flex-col gap-[clamp(6px,1.3dvh,10px)] overflow-hidden rounded-[22px] border border-white/55 bg-modal-bg px-[clamp(12px,1.8vw,24px)] py-[clamp(10px,2dvh,18px)] shadow-[0_20px_50px_-30px_rgba(20,51,107,0.45)] backdrop-blur-[22px] backdrop-saturate-[1.15]">
         <div className="flex flex-none flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap text-[clamp(16px,2.2dvh,18px)] font-extrabold text-brand-navy">
+          <h1 className="m-0 mr-2 flex items-center gap-2 whitespace-nowrap type-page-title text-brand-navy">
             <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
             {t("summary.title")}
           </h1>
@@ -408,13 +409,13 @@ function SummaryBoard({ capture, data, onRefresh }) {
         </div>
 
         <div className="flex flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 py-1.5 short:py-1">
-          <span className="text-[13px] font-extrabold text-brand-navy">{t("summary.rate.label")}</span>
+          <span className="type-label text-brand-navy">{t("summary.rate.label")}</span>
           <input
             value={rate}
             onChange={(e) => setRate(e.target.value)}
             placeholder={t("summary.rate.placeholder")}
             autoComplete="off"
-            className="h-7 w-[150px] rounded-lg border border-modal-input-line bg-modal-input px-2.5 text-[12.5px] text-[#111827] outline-none focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
+            className="h-7 w-[150px] rounded-lg border border-modal-input-line bg-modal-input px-2.5 type-table-cell text-[#111827] outline-none focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
           />
           <PrimaryButton className={smallButton} disabled={readOnly || busy || withAccount.length === 0} onClick={() => setRows((rs) => rs.map((r) => (hasAccount(r) ? { ...r, rateChecked: !allRate } : r)))}>
             {allRate ? t("summary.rate.selectNone") : t("summary.rate.selectAll")}
@@ -437,7 +438,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
               type="button"
               disabled={readOnly || busy || delRows.length === 0}
               onClick={() => setConfirmDelete(true)}
-              className="inline-flex h-7 flex-none items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-[12.5px] font-bold text-white transition-colors enabled:cursor-pointer enabled:bg-[linear-gradient(180deg,#ff8a8a_0%,#ef4444_100%)] enabled:shadow-[0_6px_14px_-6px_rgba(239,68,68,0.6)] disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex h-7 flex-none items-center gap-1.5 whitespace-nowrap rounded-lg px-4 type-table-cell font-semibold! text-white transition-colors enabled:cursor-pointer enabled:bg-[linear-gradient(180deg,#ff8a8a_0%,#ef4444_100%)] enabled:shadow-[0_6px_14px_-6px_rgba(239,68,68,0.6)] disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <Trash2 className="size-[13px]" strokeWidth={2.2} />
               {t("common:list.delete", { count: delRows.length })}
@@ -447,7 +448,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
           <div className="min-h-0 flex-initial overflow-x-hidden overflow-y-auto [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]">
-              <table className="w-full table-fixed border-separate border-spacing-0 text-[12px]">
+              <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell">
                 <colgroup>
                   {COLS.map(([name, w]) => (
                     <col key={name} style={w ? { width: `${w}%` } : undefined} />
@@ -472,13 +473,13 @@ function SummaryBoard({ capture, data, onRefresh }) {
                     const startEdit = (field) => !readOnly && filled && setEditing({ key: r.key, field });
                     return (
                       <tr key={r.key} data-row-key={r.key} title={problem} className={cn("group", r.skip && "opacity-45", problem && "[&>td]:bg-[#fde4e4]!")}>
-                        <td className={cn(td, !sub && "font-extrabold")} title={idLabel(r)}>
-                          {sub && <span className="mr-1 text-[#93a4bf]">↳</span>}
+                        <td className={cn(td, sub && "font-normal!")} title={idLabel(r)}>
+                          {sub && <span className="mr-1 text-[#94a3b8]">↳</span>}
                           {idLabel(r)}
                         </td>
                         <td className={td}>
                           <div className="flex items-center gap-1.5">
-                            <span className={cn("min-w-0 flex-1 truncate text-[11.5px] font-medium text-[#475569] max-[1400px]:text-[11px]", !filled && "text-[#b6c2d6]")}>{r.account || "-"}</span>
+                            <span className={cn("min-w-0 flex-1 truncate text-[#475569]", !filled && "text-[#94a3b8]")}>{r.account || "-"}</span>
                             <AddMini
                               aria-label={filled ? t("summary.table.addSub") : t("summary.table.addFormula")}
                               title={filled ? t("summary.table.addSubTitle") : t("summary.table.addFormula")}
@@ -488,7 +489,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                           </div>
                         </td>
                         <td className={cn(td, "text-center")}>
-                          {r.currency && <span className="inline-block rounded-full border border-[#bfd8ff] bg-[#eaf4ff] px-[7px] text-[10.5px] font-extrabold text-[#1d4ed8]">{r.currency}</span>}
+                          {r.currency && <span className="inline-block rounded-full border border-[#bfd8ff] bg-[#eaf4ff] px-[7px] type-caption font-medium! text-[#1d4ed8]">{r.currency}</span>}
                         </td>
                         <td className={cn(td, isEditing("formula") && "p-0.5")}>
                           {isEditing("formula") ? (
@@ -496,7 +497,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <code
-                                className={cn("min-w-0 flex-1 truncate font-[inherit] font-bold text-[#334155]", r.formula && !readOnly && "cursor-text")}
+                                className={cn("min-w-0 flex-1 truncate font-[inherit] font-medium text-[#334155]", r.formula && !readOnly && "cursor-text")}
                                 title={r.inputMethod ? t(`summary.methods.${r.inputMethod}`) : t("summary.table.dblEdit")}
                                 onDoubleClick={() => r.formula && startEdit("formula")}
                               >
@@ -506,7 +507,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                             </div>
                           )}
                         </td>
-                        <td className={cn(td, "text-center", isEditing("source") && "p-0.5")} onDoubleClick={() => !isEditing("source") && startEdit("source")} title={filled ? t("summary.table.dblEdit") : undefined}>
+                        <td className={cn(td, "text-center tabular-nums", isEditing("source") && "p-0.5")} onDoubleClick={() => !isEditing("source") && startEdit("source")} title={filled ? t("summary.table.dblEdit") : undefined}>
                           {isEditing("source") ? <InlineInput align="center" value={r.sourcePercent} placeholder={t("summary.table.sourcePlaceholder")} onSave={(text) => commitInline(r, "source", text)} onCancel={() => setEditing(null)} /> : filled ? r.sourcePercent : ""}
                         </td>
                         <td className={cn(td, "text-center")}>
@@ -515,7 +516,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                         <td className={cn(td, "text-right tabular-nums", isEditing("rateValue") && "p-0.5")} onDoubleClick={() => !isEditing("rateValue") && startEdit("rateValue")} title={filled ? t("summary.table.dblEdit") : undefined}>
                           {isEditing("rateValue") ? <InlineInput align="right" value={r.rateValue} placeholder={t("summary.table.ratePlaceholder")} onSave={(text) => commitInline(r, "rateValue", text)} onCancel={() => setEditing(null)} /> : r.rateValue}
                         </td>
-                        <td className={cn(td, "text-right font-extrabold tabular-nums", amt?.isNeg() ? "text-[#dc2626]" : "text-[#1d4ed8]")}>
+                        <td className={cn(td, "text-right font-semibold! tabular-nums", amt?.isNeg() ? "text-[#dc2626]" : "text-[#1d4ed8]")}>
                           {amt ? formatMoney(amt) : r.formula && filled ? <span className="text-[#dc2626]">{t("summary.table.error")}</span> : ""}
                         </td>
                         <td className={cn(td, "text-center")}>
@@ -529,7 +530,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="text-[12px] font-extrabold text-brand-navy">
+                  <tr className="type-body font-semibold! text-brand-navy">
                     <td colSpan={7} className={cn(TOTAL_CELL, "text-right")}>
                       {t("summary.table.total")}
                     </td>
@@ -544,13 +545,13 @@ function SummaryBoard({ capture, data, onRefresh }) {
         </section>
 
         <div className="flex flex-none items-center gap-2">
-          <PrimaryButton className={smallButton} disabled={readOnly || busy} title={readOnly ? t("readOnly") : undefined} onClick={submit}>
+          <PrimaryButton className={actionButton} disabled={readOnly || busy} title={readOnly ? t("readOnly") : undefined} onClick={submit}>
             {working ? t("summary.working") : t("summary.submit")}
           </PrimaryButton>
           <button
             type="button"
             onClick={() => navigate("/data-capture")}
-            className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-white/80 bg-white/55 px-4 text-[12.5px] font-bold text-brand-navy hover:bg-white/75"
+            className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-white/80 bg-white/55 px-4 type-body font-semibold! text-brand-navy hover:bg-white/75"
           >
             {t("summary.back")}
           </button>

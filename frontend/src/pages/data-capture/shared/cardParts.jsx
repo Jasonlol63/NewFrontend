@@ -8,7 +8,7 @@ export function CardTitle({ children, className }) {
   return (
     <div className={cn("flex items-center gap-2 border-b border-[rgba(47,111,239,0.35)] pb-[9px]", className)}>
       <span className="h-4 w-1 flex-none rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-      <h2 className="m-0 text-[16px] font-extrabold text-brand-navy">{children}</h2>
+      <h2 className="m-0 type-card-title text-brand-navy">{children}</h2>
     </div>
   );
 }

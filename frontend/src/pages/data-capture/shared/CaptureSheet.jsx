@@ -12,10 +12,10 @@ import { translatePasteNotice } from "./paste/pasteNotice";
 import { safeCellHtml } from "./safeHtml";
 
 const COL_W = 55; // table-fixed column width the sheet scrolls horizontally at
-const headBase = "sticky z-2 h-[27px] border-r border-b border-white/25 text-center font-bold text-white select-none";
+const headBase = "sticky z-2 h-[27px] border-r border-b border-white/25 text-center type-table-cell font-semibold! text-white select-none";
 const headBg = "bg-[linear-gradient(180deg,#60c1fe,#0f61ff)]";
 const headHot = "bg-[linear-gradient(180deg,#3a9bf0,#0a46c7)]";
-const rowHeadBase = "sticky left-0 z-1 h-[27px] w-14 cursor-pointer border-r border-b border-[rgba(130,155,195,0.22)] text-center font-extrabold text-brand-navy select-none";
+const rowHeadBase = "sticky left-0 z-1 h-[27px] w-14 cursor-pointer border-r border-b border-[rgba(130,155,195,0.22)] text-center type-table-cell font-semibold! text-brand-navy select-none";
 
 // Puts the caret back where it was after the text of a cell was rewritten (typing in lower case becomes upper case).
 function setTextKeepCaret(el, text) {
@@ -388,7 +388,7 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
       onBlur={onBlur}
       className="min-h-0 flex-1 overflow-auto border-t border-modal-input-line outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]"
     >
-      <table className="w-full table-fixed border-separate border-spacing-0 text-[12.5px]" style={{ minWidth: 56 + grid.cols * COL_W }}>
+      <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell" style={{ minWidth: 56 + grid.cols * COL_W }}>
         <thead>
           <tr>
             <th data-corner="" title={t("sheet.selectAll")} className={cn(headBase, headBg, "top-0 left-0 z-3 w-14 cursor-pointer")} />

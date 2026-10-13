@@ -17,13 +17,13 @@ const KEYS = [
 ];
 const keyClass = (k) =>
   cn(
-    "h-[38px] cursor-pointer rounded-[10px] border border-white/85 bg-white/70 text-[14px] font-bold text-[#1f2937] shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-[transform,background-color] hover:bg-white active:scale-95 modal-compact:h-8 modal-compact:text-[13px]",
+    "h-[38px] cursor-pointer rounded-[10px] border border-white/85 bg-white/70 fm-btn text-[#1f2937] shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition-[transform,background-color] hover:bg-white active:scale-95 modal-compact:h-8",
     "/*+-".includes(k) && "bg-[rgba(214,230,250,0.8)] text-brand-navy",
     k === "clr" && "border-[#fecaca] bg-[#fee2e2] text-[#dc2626]",
     k === "=" && "border-none bg-brand-sweep text-white"
   );
 
-const gl = "whitespace-nowrap text-[12.5px] font-bold text-[#374151] max-[700px]:text-[12px] modal-short:text-[12px]";
+const gl = "whitespace-nowrap fm-label text-[#374151]";
 
 // 1234567.5 -> "1,234,567.5"
 const group = (plain) => {
@@ -186,7 +186,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
             <div className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-brand-sweep text-white shadow-[0_8px_16px_-8px_rgba(20,90,220,0.55),inset_0_2px_4px_rgba(255,255,255,0.35)] modal-short:size-[30px] modal-short:rounded-[9px]">
               <Calculator className="size-[18px] modal-short:size-4" strokeWidth={2.2} />
             </div>
-            <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.2px] text-brand-navy modal-short:text-[17px]">{title}</h2>
+            <h2 className="m-0 fm-section text-brand-navy">{title}</h2>
             <button
               type="button"
               onClick={onClose}
@@ -245,7 +245,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                   const c = cells.find((x) => String(x.n) === dataCol);
                   if (c && c.v !== null) insert(refOf(c.n));
                 }}
-                className={cn(primaryButtonClass, "h-9 flex-none px-[11px] text-[12.5px] modal-compact:h-[30px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.5]")}
+                className={cn(primaryButtonClass, "h-9 flex-none px-[11px] fm-btn-sm modal-compact:h-[30px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.5]")}
               >
                 {t("summary.dialog.add_button")}
               </button>
@@ -256,15 +256,15 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
             <span style={{ gridArea: "lrs" }} />
             <div
               className={cn(
-                "flex h-9 w-full items-center justify-between rounded-[10px] border border-dashed border-modal-input-line bg-white/35 px-3 text-[13px] tabular-nums text-dash-sub modal-compact:h-[30px]",
+                "flex h-9 w-full items-center justify-between rounded-[10px] border border-dashed border-modal-input-line bg-white/35 px-3 fm-input tabular-nums text-dash-sub modal-compact:h-[30px]",
                 result.bad && "[&_b]:text-[#dc2626]"
               )}
               style={{ gridArea: "crs" }}
             >
               <span className="min-w-0 truncate" title={note || undefined}>
-                {t("summary.dialog.result")}{note && <small className="ml-2 text-[11.5px] text-dash-faint">{note}</small>}
+                {t("summary.dialog.result")}{note && <small className="ml-2 fm-help text-dash-faint">{note}</small>}
               </span>
-              <b className="flex-none pl-2 text-[14px] text-brand-navy">{result.text}</b>
+              <b className="flex-none pl-2 fm-input font-semibold! text-brand-navy">{result.text}</b>
             </div>
 
             <span className={cn(gl, "self-start pt-1.5")} style={{ gridArea: "lrd" }} title={t("summary.dialog.rowDataTitle")}>
@@ -272,7 +272,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
             </span>
             <div className="flex max-h-[104px] flex-wrap gap-1.5 self-start overflow-y-auto py-0.5 pr-0.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] modal-short:max-h-[68px]" style={{ gridArea: "crd" }}>
               {cells.length === 0 ? (
-                <div className="py-1.5 text-[12px] text-dash-faint">{t("summary.dialog.rowDataEmpty")}</div>
+                <div className="py-1.5 fm-help text-dash-faint">{t("summary.dialog.rowDataEmpty")}</div>
               ) : (
                 cells.map((c) => (
                   <button
@@ -282,15 +282,15 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
                     onClick={() => pickCell(c)}
                     title={c.v === null ? t("summary.dialog.textCell") : t("summary.dialog.insert", { ref: refOf(c.n) })}
                     className={cn(
-                      "inline-flex h-[30px] cursor-pointer items-center gap-[5px] rounded-lg border border-[rgba(130,155,195,0.4)] bg-white/70 px-2.5 text-[12.5px] font-semibold text-[#1f2937] transition-colors enabled:hover:border-[#7fb2ff] enabled:hover:bg-white modal-short:h-[26px] modal-short:px-2 modal-short:text-[12px]",
+                      "inline-flex h-[30px] cursor-pointer items-center gap-[5px] rounded-lg border border-[rgba(130,155,195,0.4)] bg-white/70 px-2.5 fm-btn-sm text-[#1f2937] transition-colors enabled:hover:border-[#7fb2ff] enabled:hover:bg-white modal-short:h-[26px] modal-short:px-2",
                       c.v === null && "cursor-not-allowed bg-white/35 text-[#94a3b8]",
                       flash === c.n && "border-[#3b82f6] bg-[#bfdbfe]"
                     )}
                   >
-                    <i className={cn("text-[12px] font-bold not-italic", c.v === null ? "text-[#a8b3c4]" : "text-[#64748b]")}>[{c.n}]</i>
+                    <i className={cn("fm-help font-semibold! not-italic", c.v === null ? "text-[#a8b3c4]" : "text-[#64748b]")}>[{c.n}]</i>
                     <span className="max-w-[180px] flex-none truncate tabular-nums">{c.t}</span>
                     {used[c.n] && (
-                      <em title={t("summary.dialog.used", { count: used[c.n] })} className="ml-0.5 flex h-[18px] items-center rounded-full bg-[rgba(20,51,107,0.08)] px-1.5 text-[10.5px] font-extrabold not-italic text-dash-sub">
+                      <em title={t("summary.dialog.used", { count: used[c.n] })} className="ml-0.5 flex h-[18px] items-center rounded-full bg-[rgba(20,51,107,0.08)] px-1.5 fm-opt font-semibold! not-italic text-dash-sub">
                         ×{used[c.n]}
                       </em>
                     )}
@@ -314,18 +314,18 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
 
           <footer className="flex flex-none items-center justify-end gap-2 border-t border-white/70 px-[18px] pt-3 pb-4 modal-short:px-4 modal-short:pt-2 modal-short:pb-3">
             {error && (
-              <span role="alert" className="mr-auto min-w-0 truncate text-[12.5px] font-semibold text-[#dc2626]">
+              <span role="alert" className="mr-auto min-w-0 truncate fm-help font-medium! text-[#dc2626]">
                 {error}
               </span>
             )}
-            <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-short:h-[34px] modal-short:min-w-[104px] modal-short:text-[13px]">
+            <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] fm-btn modal-short:h-[34px] modal-short:min-w-[104px]">
               {t("common:cancel")}
             </SoftButton>
             <button
               type="button"
               onClick={save}
               disabled={!fx.trim() || saving}
-              className={cn(primaryButtonClass, "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-short:h-[34px] modal-short:min-w-[104px] modal-short:text-[13px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
+              className={cn(primaryButtonClass, "h-[38px] min-w-[112px] px-[22px] fm-btn modal-short:h-[34px] modal-short:min-w-[104px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100")}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
               {saving ? t("summary.dialog.saving") : t("common:save")}

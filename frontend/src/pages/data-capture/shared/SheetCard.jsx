@@ -5,7 +5,7 @@ import { primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import { cardClass } from "./cardParts.jsx";
 
 export const textButtonClass =
-  "h-[34px] cursor-pointer rounded-[10px] border border-modal-input-line bg-modal-input px-4 text-[13px] font-bold text-[#475569] shadow-[0_1px_3px_rgba(15,23,42,0.05)] hover:border-[#94a3b8] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50";
+  "h-[34px] cursor-pointer rounded-[10px] border border-modal-input-line bg-modal-input px-4 type-body font-semibold! text-[#475569] shadow-[0_1px_3px_rgba(15,23,42,0.05)] hover:border-[#94a3b8] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50";
 export const iconButtonClass = "flex size-[34px] flex-none cursor-pointer items-center justify-center rounded-[10px] border border-modal-input-line bg-modal-input text-[#475569] hover:bg-white/90";
 
 /**
@@ -19,7 +19,7 @@ export default function SheetCard({ fullscreen, left, right, children }) {
   return (
     <section ref={ref} className={cn(cardClass, "flex min-h-0 flex-1 flex-col overflow-hidden", full && "rounded-none bg-[#eaf3fd]")}>
       <div className="flex flex-none items-center gap-2.5 px-4 py-2.5">
-        <h2 className="m-0 mr-1.5 flex items-center gap-2 text-[16px] font-extrabold text-brand-navy">
+        <h2 className="m-0 mr-1.5 flex items-center gap-2 type-card-title text-brand-navy">
           <span className="h-4 w-1 rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
           {t("sheet.title")}
         </h2>
@@ -46,7 +46,7 @@ export function SubmitBar({ disabled, readOnly, onSubmit }) {
         disabled={disabled}
         onClick={onSubmit}
         title={readOnly ? t("readOnly") : undefined}
-        className={cn(primaryButtonClass, "h-[34px] min-w-[108px] px-[22px] text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.55] disabled:hover:brightness-100")}
+        className={cn(primaryButtonClass, "h-[34px] min-w-[108px] px-[22px] type-body font-semibold! disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:grayscale-[0.55] disabled:hover:brightness-100")}
       >
         {t("sheet.submit")}
       </button>

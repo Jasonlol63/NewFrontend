@@ -187,7 +187,7 @@ export default function GameCaptureView({ scope, readOnly }) {
                     <span className="truncate text-dash-faint">{t("form.descriptionHint")}</span>
                   ) : (
                     picked.map((it) => (
-                      <span key={it.value} className="inline-flex h-[22px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-row-stripe px-2 text-[11.5px] font-extrabold text-brand-navy">
+                      <span key={it.value} className="inline-flex h-[22px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-row-stripe px-2 type-caption font-semibold! text-brand-navy">
                         {it.label}
                       </span>
                     ))
@@ -199,7 +199,7 @@ export default function GameCaptureView({ scope, readOnly }) {
             <Field label={t("form.replaceWord")} optional as="div" className="col-span-4 max-[899px]:col-span-1">
               <div className="flex items-center gap-2">
                 <TextInput value={form.replaceFrom} onChange={setField("replaceFrom")} autoComplete="off" placeholder={t("form.oldWord")} className="min-w-0 flex-1 uppercase" />
-                <span className="flex-none text-[13px] text-dash-sub">→</span>
+                <span className="flex-none type-table-cell text-dash-sub">→</span>
                 <TextInput value={form.replaceTo} onChange={setField("replaceTo")} autoComplete="off" placeholder={t("form.newWord")} className="min-w-0 flex-1 uppercase" />
               </div>
             </Field>

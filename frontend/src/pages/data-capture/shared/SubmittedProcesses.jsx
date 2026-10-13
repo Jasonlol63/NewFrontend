@@ -9,7 +9,7 @@ export default function SubmittedProcesses({ items }) {
     <section className={cn(cardClass, "flex min-h-0 flex-col px-4 pt-3 pb-3.5")}>
       <CardTitle>{t("submitted.title")}</CardTitle>
       {items.length === 0 ? (
-        <div className="mt-3 grid min-h-[84px] flex-1 place-items-center rounded-[10px] border border-dashed border-modal-input-line bg-white/35 p-2.5 text-center text-[13px] italic text-dash-sub">
+        <div className="mt-3 grid min-h-[84px] flex-1 place-items-center rounded-[10px] border border-dashed border-modal-input-line bg-white/35 p-2.5 text-center type-table-cell italic text-dash-sub">
           {t("submitted.empty")}
         </div>
       ) : (
@@ -23,15 +23,15 @@ export default function SubmittedProcesses({ items }) {
               >
                 <span className="absolute top-[9px] bottom-[9px] left-1.5 w-[3px] rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
                 <span className="flex min-w-0 flex-1 items-baseline gap-1.5 overflow-hidden whitespace-nowrap">
-                  <b className="flex-none text-[13px] font-extrabold text-brand-navy">{it.code}</b>
-                  <span className="truncate text-[12px] text-dash-sub">{it.name}</span>
+                  <b className="flex-none type-table-cell font-semibold! text-brand-navy">{it.code}</b>
+                  <span className="truncate type-caption text-dash-sub">{it.name}</span>
                 </span>
-                <span className="min-w-[42px] flex-none rounded-full border border-[#bfd8ff] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] px-2 py-0.5 text-center text-[10.5px] font-extrabold tracking-[0.3px] text-[#1d4ed8]">
+                <span className="min-w-[42px] flex-none rounded-full border border-[#bfd8ff] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] px-2 py-0.5 text-center type-caption font-semibold! tracking-[0.3px] text-[#1d4ed8]">
                   {it.by}
                 </span>
                 <span className="flex flex-none flex-col items-end leading-tight tabular-nums">
-                  <em className="text-[12px] font-bold not-italic text-[#334155]">{it.time}</em>
-                  <small className="text-[10.5px] text-dash-faint">{it.date}</small>
+                  <em className="type-caption font-medium! not-italic text-[#334155]">{it.time}</em>
+                  <small className="type-caption text-dash-faint">{it.date}</small>
                 </span>
               </li>
             ))}

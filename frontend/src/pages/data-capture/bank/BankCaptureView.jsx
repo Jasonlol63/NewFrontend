@@ -160,14 +160,14 @@ export default function BankCaptureView({ scope, readOnly }) {
         }
         right={
           <>
-            <span className="text-[13px] font-semibold text-[#374151]">{t("sheet.addRow")}</span>
+            <span className="type-table-cell font-semibold! text-[#374151]">{t("sheet.addRow")}</span>
             <div className="w-[84px] flex-none">
               <SelectField value={addRows} onChange={setAddRows} options={ADD_ROW_OPTIONS} />
             </div>
             <button type="button" onClick={addRowsNow} aria-label={t("sheet.addRows", { count: Number(addRows) })} title={t("sheet.addRows", { count: Number(addRows) })} className={iconButtonClass}>
               <RefreshCw className="size-4" strokeWidth={2.2} />
             </button>
-            <span className="ml-1 text-[13px] font-semibold text-[#374151]">{t("sheet.addCol")}</span>
+            <span className="ml-1 type-table-cell font-semibold! text-[#374151]">{t("sheet.addCol")}</span>
             <div className="w-[76px] flex-none">
               <SelectField value={addCols} onChange={setAddCols} options={ADD_COL_OPTIONS} />
             </div>

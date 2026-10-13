@@ -61,7 +61,7 @@ export default function GridContextMenu({ menu, onClose }) {
               item.onSelect();
             }}
             className={cn(
-              "flex min-h-[32px] w-full cursor-pointer items-center gap-2.5 rounded-[9px] border-none bg-transparent px-2.5 py-1 text-left text-[13px] font-semibold text-[#374151] hover:bg-[#eef4ff] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+              "flex min-h-[32px] w-full cursor-pointer items-center gap-2.5 rounded-[9px] border-none bg-transparent px-2.5 py-1 text-left type-body font-medium! text-[#374151] hover:bg-[#eef4ff] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
               item.danger && "text-dash-down hover:bg-[#fff1f1]"
             )}
           >
