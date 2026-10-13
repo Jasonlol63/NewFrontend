@@ -480,3 +480,38 @@ body {
     gap: 6px 12px;
   }
 }
+
+/* Sidebar logo: a bright arc travels around the logo's border. --logo-ring-angle is a registered angle so the
+   gradient itself turns; the ring keeps its shape instead of the whole square spinning. */
+@property --logo-ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes logo-ring-turn {
+  to {
+    --logo-ring-angle: 360deg;
+  }
+}
+.logo-ring {
+  position: relative;
+  isolation: isolate;
+}
+.logo-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--logo-ring-angle), rgba(56, 189, 248, 0) 0%, #38bdf8 14%, rgba(255, 255, 255, 0.9) 18%, rgba(10, 63, 201, 0) 40%, rgba(56, 189, 248, 0) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: logo-ring-turn 4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-ring::before {
+    animation: none;
+  }
+}
