@@ -46,21 +46,21 @@ export default function NotificationPanel({ open, onClose, items, isUnread, unre
           <span className="flex size-9 flex-none items-center justify-center rounded-xl bg-brand-sweep text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]">
             <Bell className="size-[18px]" strokeWidth={2.3} />
           </span>
-          <h2 className="m-0 whitespace-nowrap text-[20px] font-extrabold tracking-[-0.3px] text-brand-navy">{t("title")}</h2>
+          <h2 className="m-0 whitespace-nowrap type-page-title tracking-[-0.3px] text-brand-navy">{t("title")}</h2>
           {unreadCount > 0 && (
-            <span className="inline-flex h-5 flex-none items-center whitespace-nowrap rounded-full bg-[#fee2e2] px-2 text-[11px] font-extrabold text-[#dc2626]">{t("newCount", { count: unreadCount })}</span>
+            <span className="inline-flex h-5 flex-none items-center whitespace-nowrap rounded-full bg-[#fee2e2] px-2 type-caption font-semibold! text-[#dc2626]">{t("newCount", { count: unreadCount })}</span>
           )}
           <button type="button" onClick={onClose} aria-label={t("common:close")} title={t("common:close")} className={cn(iconButton, "ml-auto")}>
             <X className="size-[15px]" strokeWidth={2.6} />
           </button>
         </header>
-        <div className="flex flex-none items-center justify-between gap-2 pb-2.5 pl-[18px] pr-3.5 text-[12px] text-[#5b74a3]">
+        <div className="flex flex-none items-center justify-between gap-2 pb-2.5 pl-[18px] pr-3.5 type-caption text-[#5b74a3]">
           <span className="min-w-0 truncate">{t("subtitle")}</span>
           <button
             type="button"
             onClick={onMarkAllRead}
             disabled={unreadCount === 0}
-            className="inline-flex flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[7px] border-none bg-transparent px-1.5 py-1 text-[12px] font-bold text-[#1d7bff] hover:bg-[#e8f1ff] disabled:cursor-default disabled:text-dash-faint disabled:hover:bg-transparent"
+            className="inline-flex flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[7px] border-none bg-transparent px-1.5 py-1 type-caption font-semibold! text-[#1d7bff] hover:bg-[#e8f1ff] disabled:cursor-default disabled:text-dash-faint disabled:hover:bg-transparent"
           >
             <CheckCheck className="size-3.5" strokeWidth={2.4} />
             {t("markAllRead")}
@@ -69,16 +69,16 @@ export default function NotificationPanel({ open, onClose, items, isUnread, unre
 
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto border-t border-modal-divider px-3 pb-3.5 pt-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {error && (
-            <div role="alert" className="flex flex-none items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-dash-down">
+            <div role="alert" className="flex flex-none items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 type-table-cell font-medium! text-dash-down">
               <span className="min-w-0">{error}</span>
-              <button type="button" onClick={onRetry} className="flex-none cursor-pointer border-none bg-transparent text-[12px] font-bold text-[#1d7bff]">
+              <button type="button" onClick={onRetry} className="flex-none cursor-pointer border-none bg-transparent type-caption font-semibold! text-[#1d7bff]">
                 {t("common:retry")}
               </button>
             </div>
           )}
-          {loading && items.length === 0 && !error && <p className="m-0 py-6 text-center text-[12.5px] text-dash-faint">{t("common:loading")}</p>}
+          {loading && items.length === 0 && !error && <p className="m-0 py-6 text-center type-table-cell font-normal! text-dash-faint">{t("common:loading")}</p>}
           {!loading && items.length === 0 && !error && (
-            <div className="rounded-xl border border-dashed border-modal-off-line px-3 py-8 text-center text-[12.5px] text-[#8a96a8]">{t("empty")}</div>
+            <div className="rounded-xl border border-dashed border-modal-off-line px-3 py-8 text-center type-table-cell font-normal! text-[#8a96a8]">{t("empty")}</div>
           )}
           {items.map((a) => (
             <NotificationCard key={a.id} item={a} unread={isUnread(a)} />
@@ -105,14 +105,14 @@ function NotificationCard({ item, unread }) {
         <span className="grid size-[26px] flex-none place-items-center rounded-lg bg-brand-sweep text-white">
           <Bell className="size-3.5" strokeWidth={2.4} />
         </span>
-        <b className="min-w-0 break-words text-[14px] font-extrabold text-brand-navy">{item.title}</b>
-        {version && <span className="inline-flex h-[18px] flex-none items-center rounded-full bg-[#e8f1ff] px-[7px] text-[10.5px] font-extrabold text-[#1d4ed8]">{t("version", { version })}</span>}
+        <b className="min-w-0 break-words type-body font-semibold! text-brand-navy">{item.title}</b>
+        {version && <span className="inline-flex h-[18px] flex-none items-center rounded-full bg-[#e8f1ff] px-[7px] type-caption font-semibold! text-[#1d4ed8]">{t("version", { version })}</span>}
         {unread && <i aria-label={t("unread")} className="size-2 flex-none rounded-full bg-[#3b82f6] shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />}
       </div>
-      <div className="mb-1 text-[13px] font-extrabold text-brand-navy">{item.listTitle || DEFAULT_LIST_TITLE}</div>
+      <div className="mb-1 type-table-cell font-semibold! text-brand-navy">{item.listTitle || DEFAULT_LIST_TITLE}</div>
       <ClampedContent html={item.content} />
-      <p className="m-0 mt-1.5 text-[11.5px] text-[#5b74a3]">{THANKS_LINE}</p>
-      <div className="mt-2 flex justify-between gap-2 border-t border-dashed border-[#e3ebf8] pt-[7px] text-[10.5px] text-dash-faint">
+      <p className="m-0 mt-1.5 type-caption text-[#5b74a3]">{THANKS_LINE}</p>
+      <div className="mt-2 flex justify-between gap-2 border-t border-dashed border-[#e3ebf8] pt-[7px] type-caption text-dash-faint">
         <b className="font-extrabold tracking-[0.3px] text-[#64748b]">EAZY COUNT TEAM</b>
         <time>{formatNotificationDate(item.createdAt)}</time>
       </div>
@@ -143,7 +143,7 @@ function ClampedContent({ html }) {
     <>
       <div className="relative">
         <div ref={box} style={clamped ? { maxHeight: CLAMP_PX } : undefined} className={cn(clamped && "overflow-hidden")}>
-          <RichContent html={html} className="text-[12.5px] leading-[1.6] text-[#374151]" />
+          <RichContent html={html} className="type-table-cell font-normal! leading-[1.6]! text-[#374151]" />
         </div>
         {clamped && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-11 bg-[linear-gradient(transparent,#fff)]" />}
       </div>
@@ -152,7 +152,7 @@ function ClampedContent({ html }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="mt-1 inline-flex cursor-pointer items-center gap-[3px] border-none bg-transparent p-0 py-0.5 text-[12px] font-bold text-[#1d7bff]"
+          className="mt-1 inline-flex cursor-pointer items-center gap-[3px] border-none bg-transparent p-0 py-0.5 type-caption font-semibold! text-[#1d7bff]"
         >
           {open ? t("showLess") : t("showMore")}
           <ChevronDown className={cn("size-3", open && "rotate-180")} strokeWidth={2.8} />

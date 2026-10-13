@@ -200,7 +200,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
 
           <div className="flex items-center justify-between gap-3 pt-0.5">
             <span className="fm-label text-[#374151]">{t("form.saveCapture")}</span>
-            <ToggleSwitch on={form.saveDataCapture} onToggle={() => setForm((f) => ({ ...f, saveDataCapture: !f.saveDataCapture }))} label={form.saveDataCapture ? t("form.on") : t("form.off")} className="font-bold" />
+            <ToggleSwitch on={form.saveDataCapture} onToggle={() => setForm((f) => ({ ...f, saveDataCapture: !f.saveDataCapture }))} label={form.saveDataCapture ? t("form.on") : t("form.off")} className="font-semibold" />
           </div>
           {isEdit && <RecordSection process={process} />}
         </div>

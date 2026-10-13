@@ -158,8 +158,8 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
         <td colSpan={columns.length - 1} className="h-[34px] border-b border-[rgba(130,155,195,0.16)] px-1.5 text-left fm-btn-sm text-brand-navy modal-compact:h-8">
           <span className="inline-flex items-center gap-2">
             {label}
-            {tag && <span className="inline-flex h-[18px] items-center rounded-md border border-[#f3d27a] bg-[#fef3c7] px-1.5 text-[10px] font-extrabold tracking-[0.3px] text-[#92400e]">{tag}</span>}
-            <span className="font-bold text-dash-sub">{list.length}</span>
+            {tag && <span className="inline-flex h-[18px] items-center rounded-md border border-[#f3d27a] bg-[#fef3c7] px-1.5 text-[10px] font-semibold tracking-[0.3px] text-[#92400e]">{tag}</span>}
+            <span className="font-semibold text-dash-sub">{list.length}</span>
           </span>
         </td>
       </tr>
@@ -224,7 +224,7 @@ export default function AccountingDueModal({ tenantId, readOnly, onClose, onChan
             onClick={() => setConfirmDelete(true)}
             className={cn(
               actionClass,
-              "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#fca5a5] bg-white/70 font-bold text-[#dc2626] transition-colors hover:bg-[#fee2e2]",
+              "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#fca5a5] bg-white/70 font-semibold text-[#dc2626] transition-colors hover:bg-[#fee2e2]",
               "disabled:cursor-not-allowed disabled:border-[#e5e7eb] disabled:bg-white/40 disabled:text-[#9ca3af] disabled:hover:bg-white/40"
             )}
           >

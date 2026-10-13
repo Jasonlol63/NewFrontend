@@ -122,7 +122,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                     inputMode="decimal"
                     autoComplete="off"
                     placeholder="0.00"
-                    className={cn("text-right font-bold tabular-nums", row.pct && "bg-modal-off text-[#6b7280]")}
+                    className={cn("text-right font-semibold tabular-nums", row.pct && "bg-modal-off text-[#6b7280]")}
                   />
                 </div>
                 {row.pctOpen ? (
@@ -139,7 +139,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                       autoComplete="off"
                       placeholder="0"
                       aria-label={t("bank.share.percentAria")}
-                      className="min-w-0 flex-1 border-none bg-transparent px-1.5 text-right font-bold tabular-nums outline-none"
+                      className="min-w-0 flex-1 border-none bg-transparent px-1.5 text-right font-semibold tabular-nums outline-none"
                     />
                     <button
                       type="button"

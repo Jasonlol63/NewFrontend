@@ -10,7 +10,7 @@ const amountTone = (n) => (n > 0 ? "text-[#1d4ed8]" : n < 0 ? "text-[#dc2626]" :
 function Row({ label, children }) {
   return (
     <div className="flex min-w-0 items-start gap-2">
-      <span className="w-[76px] flex-none pt-[3px] text-[13px] font-extrabold text-[#1f2937]">{label}</span>
+      <span className="w-[100px] flex-none pt-[3px] type-label text-[#1f2937]">{label}</span>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -21,21 +21,21 @@ function BalanceTable({ currencies, rows }) {
   const { t } = useTranslation("member");
   return (
     <div className="max-w-full overflow-x-auto rounded-lg border border-dash-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
-      <table className="border-collapse text-[12px]">
+      <table className="border-collapse type-table-cell">
         <thead>
           <tr>
-            <th className="bg-brand-head px-3 py-[3px] text-left font-bold text-white">{t("balance.currency")}</th>
+            <th className="bg-brand-head px-3 py-[3px] text-left font-semibold text-white">{t("balance.currency")}</th>
             {currencies.map((c) => (
-              <th key={c} className="bg-brand-head px-3 py-[3px] text-right font-bold text-white">{c}</th>
+              <th key={c} className="bg-brand-head px-3 py-[3px] text-right font-semibold text-white">{c}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.label} className={i % 2 ? "bg-white" : "bg-row-stripe"}>
-              <td className="px-3 py-[3px] text-left font-extrabold text-brand-navy">{r.label}</td>
+              <td className="px-3 py-[3px] text-left font-semibold text-brand-navy">{r.label}</td>
               {currencies.map((c) => (
-                <td key={c} className={cn("px-3 py-[3px] text-right font-bold tabular-nums", amountTone(r.values[c]))}>
+                <td key={c} className={cn("px-3 py-[3px] text-right font-semibold tabular-nums", amountTone(r.values[c]))}>
                   {r.values[c] ? fmt(r.values[c]) : "-"}
                 </td>
               ))}
@@ -91,14 +91,14 @@ export default function MemberFilterCard({ filters, onChange, company, accounts,
               onReorder={currency.onReorder}
             />
           ) : (
-            <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
+            <span className="type-caption font-medium! text-dash-faint">{t("filter.noCurrency")}</span>
           )}
         </Row>
       </div>
       {linked && (
         <div className="hidden min-w-0 flex-initial flex-col gap-2 border-l border-[rgba(130,155,195,0.3)] pl-3 min-[1024px]:flex">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-extrabold text-[#1f2937]">{t("filter.select")}</span>
+            <span className="type-label text-[#1f2937]">{t("filter.select")}</span>
             <SegmentGroup options={[{ value: "ALL", label: t("filter.all") }, ...accounts]} value={filters.select} onChange={(select) => onChange({ select })} />
           </div>
           <BalanceTable currencies={summary.currencies} rows={summary.rows} />

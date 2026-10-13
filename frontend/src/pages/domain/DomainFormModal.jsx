@@ -304,7 +304,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
         {multi ? (
           <div className="flex flex-none flex-wrap items-center gap-2 rounded-xl border border-[#cfe0fa] bg-[linear-gradient(90deg,#eaf3ff_0%,#f7fbff_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] modal-tiny:p-1.5 @min-[1100px]/main:flex-nowrap">
             <div className="flex flex-none items-center gap-2.5 fm-count text-brand-navy">
-              <b className="font-extrabold">{t("form.selected", { count: picked.size })}</b>
+              <b className="font-semibold">{t("form.selected", { count: picked.size })}</b>
               <button type="button" disabled={!companies.length} onClick={() => setPicked(new Set(companies.map((c) => c.code)))} className="cursor-pointer border-none bg-transparent p-0 fm-btn-sm text-[#1d7bff] hover:underline disabled:cursor-not-allowed disabled:text-dash-faint">
                 {t("form.all")}
               </button>

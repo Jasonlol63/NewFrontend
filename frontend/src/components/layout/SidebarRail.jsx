@@ -23,7 +23,7 @@ function RailTip({ label, children }) {
         <Tooltip.Content
           side="right"
           sideOffset={10}
-          className="z-50 rounded-lg bg-[#0c2452] px-2.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_20px_-6px_rgba(4,15,40,0.6)] animate-in fade-in-0 zoom-in-95"
+          className="z-50 rounded-lg bg-[#0c2452] px-2.5 py-1.5 type-caption font-semibold! text-white shadow-[0_8px_20px_-6px_rgba(4,15,40,0.6)] animate-in fade-in-0 zoom-in-95"
         >
           {label}
         </Tooltip.Content>

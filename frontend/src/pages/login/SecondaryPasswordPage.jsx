@@ -86,7 +86,7 @@ export default function SecondaryPasswordPage() {
             <ArrowLeft size={20} />
           </button>
 
-          <h1 className="mt-1 text-center text-[20px] font-bold leading-[1.3] tracking-[-0.2px] text-[#14336b]">
+          <h1 className="mt-1 text-center text-[20px] font-semibold leading-[1.3] tracking-[-0.2px] text-[#14336b]">
             Secondary Password
             <br />
             Verification
@@ -132,7 +132,7 @@ export default function SecondaryPasswordPage() {
             <button
               type="submit"
               disabled={submitting || password.length !== 6}
-              className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+              className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
             >
               Verify
             </button>

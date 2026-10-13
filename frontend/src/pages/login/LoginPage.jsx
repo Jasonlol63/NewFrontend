@@ -150,7 +150,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <h1 className="m-0 mb-fluid-md text-[clamp(18px,3dvh,21px)] font-bold tracking-[-0.2px] text-[#14336b]">
+        <h1 className="m-0 mb-fluid-md text-[clamp(18px,3dvh,21px)] font-semibold tracking-[-0.2px] text-[#14336b]">
           Accounting Management System
         </h1>
 
@@ -226,7 +226,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
+              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
             >
               Login
               <ArrowRight size={15} />

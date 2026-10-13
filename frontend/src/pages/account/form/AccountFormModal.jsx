@@ -356,7 +356,7 @@ function PaymentAlertCard({ alert, setAlert }) {
   return (
     <FormCard
       title={t("form.alertCard")}
-      right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? t("form.on") : t("form.off")} className="font-bold" />}
+      right={<ToggleSwitch on={alert.on} onToggle={() => set({ on: !alert.on })} label={alert.on ? t("form.on") : t("form.off")} className="font-semibold" />}
       className={cn("min-h-[140px] flex-1 @max-[899px]/main:order-2", stackCard)}
       bodyClassName={cn("pb-2.5 modal-compact:pb-2 modal-tiny:pb-1.5 @min-[900px]/main:modal-cozy:flex @min-[900px]/main:modal-cozy:flex-col", stackBody)}
     >
@@ -458,7 +458,7 @@ function DayGrid({ value, onPick }) {
               className={cn(
                 "size-[30px] cursor-pointer @min-[900px]/main:modal-cozy:size-auto rounded-[7px] border fm-btn-sm transition-colors modal-roomy:h-11 modal-roomy:w-12 modal-roomy:rounded-[9px]",
                 on
-                  ? "border-[#3b82f6] bg-row-stripe font-extrabold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
+                  ? "border-[#3b82f6] bg-row-stripe font-semibold text-[#0d4fd6] shadow-[inset_0_0_0_1px_#3b82f6]"
                   : "border-modal-off-line bg-modal-off font-semibold text-[#475569] hover:border-[#93c5fd] hover:bg-white/85"
               )}
             >

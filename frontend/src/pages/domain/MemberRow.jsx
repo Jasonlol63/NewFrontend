@@ -137,7 +137,7 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
                     "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7",
                     "data-highlighted:bg-[#eef4ff]",
                     o.value === NO_GROUP && !on && "text-[#8a96a8]",
-                    on && "border-[#7fb2ff] bg-row-stripe font-bold text-brand-navy"
+                    on && "border-[#7fb2ff] bg-row-stripe font-semibold text-brand-navy"
                   )}
                 >
                   {o.label}

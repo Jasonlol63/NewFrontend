@@ -131,7 +131,7 @@ function SelectWithAdd({ addLabel, editLabel, onAccount, onClear, addOnly = fals
 
 // Edit: fields that cannot change any more.
 function ReadOnlyBox({ children }) {
-  return <div className={cn(inputClass, "flex items-center bg-modal-off font-bold text-[#374151]")}><span className="truncate">{children}</span></div>;
+  return <div className={cn(inputClass, "flex items-center bg-modal-off font-semibold text-[#374151]")}><span className="truncate">{children}</span></div>;
 }
 
 /**
@@ -441,10 +441,10 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
             <div className="block min-w-0">
               <div className="mb-1 ml-0.5 flex min-h-[19px] items-center justify-between gap-2 modal-compact:mb-0.5 modal-tiny:mb-px">
                 <span className="truncate fm-btn-sm text-[#374151]">
-                  {t("bank.form.dayEnd")} <span className="text-[10px] font-medium text-[#8a96a8]">{t("bank.form.opt")}</span>
+                  {t("bank.form.dayEnd")} <span className="fm-opt text-[#8a96a8]">{t("bank.form.opt")}</span>
                 </span>
                 {showDayEndSwitch && (
-                  <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? t("bank.form.on") : t("bank.form.off")} className="font-bold" />
+                  <ToggleSwitch on={dayEndLocked} onToggle={() => setDayEndLocked((v) => !v)} label={dayEndLocked ? t("bank.form.on") : t("bank.form.off")} className="font-semibold" />
                 )}
               </div>
               {billingLocked || dayEndOff || dayEndIsLocked ? (

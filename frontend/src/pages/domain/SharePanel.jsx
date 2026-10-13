@@ -50,9 +50,9 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
         {period ? (
           <>
             <span className="min-w-0 truncate">
-              <Trans t={t} i18nKey="share.priceFor" values={{ kind: kindLabel, period: t(`period.${period.key}`) }} components={{ b: <b className="font-bold text-brand-navy" /> }} />
+              <Trans t={t} i18nKey="share.priceFor" values={{ kind: kindLabel, period: t(`period.${period.key}`) }} components={{ b: <b className="font-semibold text-brand-navy" /> }} />
             </span>
-            <b className="ml-auto flex-none font-bold tabular-nums text-brand-navy">{noPrice ? t("share.notSet") : `${fmt(price)} · 100%`}</b>
+            <b className="ml-auto flex-none font-semibold tabular-nums text-brand-navy">{noPrice ? t("share.notSet") : `${fmt(price)} · 100%`}</b>
           </>
         ) : (
           <span>{t("share.pickPeriod")}</span>
@@ -164,7 +164,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
 
         <div className="flex flex-none items-center justify-between border-t border-[rgba(130,155,195,0.25)] pt-1.5 fm-help text-[#41588a]">
           <span>{t("share.departmentTotal", { department: t(`department.${department.key}`) })}</span>
-          <b className="font-bold tabular-nums text-brand-navy">
+          <b className="font-semibold tabular-nums text-brand-navy">
             {fmt(spent.amount)} · {pct2(spent.pct)}
           </b>
         </div>

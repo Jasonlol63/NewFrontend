@@ -17,7 +17,7 @@ const pair = "grid grid-cols-2 gap-x-3 gap-y-2.5 @max-[479px]/main:grid-cols-1";
 
 function ReadOnlyBox({ children }) {
   return (
-    <div className={cn(inputClass, "flex items-center bg-modal-off font-bold text-[#374151]")}>
+    <div className={cn(inputClass, "flex items-center bg-modal-off font-semibold text-[#374151]")}>
       <span className="truncate">{children}</span>
     </div>
   );

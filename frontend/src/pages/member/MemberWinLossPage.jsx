@@ -95,7 +95,7 @@ export default function MemberWinLossPage() {
       <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-white/70 bg-[rgba(226,237,251,0.62)] px-4 py-3 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)] backdrop-blur-[10px] [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]">
         <div className={history.loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
           <MemberReport blocks={blocks} />
-          {profile && !shown.length && <p className="text-[13px] font-medium text-dash-faint">{t("filter.noCurrency")}</p>}
+          {profile && !shown.length && <p className="type-table-cell font-medium! text-dash-faint">{t("filter.noCurrency")}</p>}
         </div>
       </section>
       {exportOpen && currentAccount && (

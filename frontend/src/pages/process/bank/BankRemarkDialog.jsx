@@ -102,7 +102,7 @@ function RemarkForm({ row, onClose, onSave, expanded, onToggleExpand }) {
         </button>
       </div>
       <div className="mt-1.5 flex justify-end gap-2 fm-help text-[#8a96a8]">
-        <span className="font-bold text-[#3b82f6]">
+        <span className="font-semibold text-[#3b82f6]">
           {t("bank.remarkDialog.chars", { count: text.length })}
         </span>
       </div>

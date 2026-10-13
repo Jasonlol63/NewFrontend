@@ -238,7 +238,7 @@ export default function OwnershipPage() {
           <span>{t("page.selected")}</span>
           <div className="ml-auto flex items-center gap-2">
             {inGroupView ? (
-              <button type="button" disabled={selected.size === 0 || working} onClick={() => ask([...selected])} className={cn(pillSize, "inline-flex cursor-pointer items-center border border-[#fbc4cf] bg-white font-bold text-[#e11d48] disabled:cursor-not-allowed disabled:opacity-50")}>
+              <button type="button" disabled={selected.size === 0 || working} onClick={() => ask([...selected])} className={cn(pillSize, "inline-flex cursor-pointer items-center border border-[#fbc4cf] bg-white font-semibold text-[#e11d48] disabled:cursor-not-allowed disabled:opacity-50")}>
                 {t("page.ungroup")}
               </button>
             ) : (

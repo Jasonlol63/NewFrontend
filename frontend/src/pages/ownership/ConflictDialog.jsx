@@ -18,11 +18,11 @@ export default function ConflictDialog({ conflict, onResolve, onCancel, busy }) 
           <div className="flex flex-col gap-2.5">
             <button type="button" disabled={busy} onClick={() => onResolve("login")} className={option}>
               {t("conflict.asLogin")}
-              <b className="font-extrabold">{conflict?.login_partner}</b>
+              <b className="font-semibold">{conflict?.login_partner}</b>
             </button>
             <button type="button" disabled={busy} onClick={() => onResolve("group")} className={option}>
               {t("conflict.asGroup")}
-              <b className="font-extrabold">{conflict?.tenant_partner}</b>
+              <b className="font-semibold">{conflict?.tenant_partner}</b>
             </button>
           </div>
           <Dialog.Close className="mt-4 h-10 w-full cursor-pointer rounded-xl border border-[#dbe5f3] bg-white type-body font-semibold! text-brand-navy outline-none hover:bg-[#f5f8fd]">{t("common:cancel")}</Dialog.Close>

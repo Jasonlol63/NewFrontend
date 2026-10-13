@@ -323,7 +323,7 @@ export function SoftButton({ className, children, ...props }) {
     <button
       type="button"
       className={cn(
-        "inline-flex flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 text-[13px] font-bold text-brand-navy hover:bg-white/75",
+        "inline-flex flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 fm-btn-sm text-brand-navy hover:bg-white/75",
         className
       )}
       {...props}

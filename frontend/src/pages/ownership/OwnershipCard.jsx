@@ -233,7 +233,7 @@ export default function OwnershipCard({ entity, month, historicalLabel, allocate
             {historicalLabel && <span className="rounded-full border border-[#f2c869] bg-[#fff0d0] px-2 py-px type-caption font-semibold! tracking-[0.4px] text-[#a45a04]">{t("card.historical")}</span>}
           </h3>
           <div className="type-caption font-normal! mt-[3px] text-dash-sub">
-            <span className={cn(expiry?.tone === "expired" && "font-bold text-rose-600", expiry?.tone === "soon" && "font-bold text-amber-600")}>{expiry?.text}</span>
+            <span className={cn(expiry?.tone === "expired" && "font-semibold text-rose-600", expiry?.tone === "soon" && "font-semibold text-amber-600")}>{expiry?.text}</span>
           </div>
         </div>
         <div className="gap-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] xl-screen:gap-[22px] flex min-w-0 flex-1 items-center max-lg:basis-full max-lg:order-last">
@@ -265,7 +265,7 @@ export default function OwnershipCard({ entity, month, historicalLabel, allocate
                 {loaded?.key === key && loaded.error ? (
                   <>
                     {t("errors.load")}{" "}
-                    <button type="button" onClick={() => setVersion((v) => v + 1)} className="cursor-pointer border-none bg-transparent font-bold text-[#0b57e8] underline">
+                    <button type="button" onClick={() => setVersion((v) => v + 1)} className="cursor-pointer border-none bg-transparent font-semibold text-[#0b57e8] underline">
                       {t("common:retry")}
                     </button>
                   </>

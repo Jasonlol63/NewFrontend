@@ -97,7 +97,7 @@ export default function TelegramCard({ saved, onSave }) {
         target="_blank"
         rel="noopener noreferrer"
         title={url}
-        className={cn("inline-flex flex-none items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 font-bold text-brand-navy hover:bg-white/75", className)}
+        className={cn("inline-flex flex-none items-center justify-center gap-1.5 rounded-[10px] border border-white/80 bg-white/55 font-semibold text-brand-navy hover:bg-white/75", className)}
       >
         {t("telegram.test")}
         <ExternalLink className="size-3.5" strokeWidth={2.2} />
@@ -196,7 +196,7 @@ export default function TelegramCard({ saved, onSave }) {
           <div className="min-w-0">
             <h2 className="m-0 whitespace-nowrap type-card-title leading-tight tracking-[-0.2px] text-brand-navy">{t("telegram.title")}</h2>
             <p className="m-0 whitespace-nowrap type-caption font-medium! text-[#6b7fa5] @max-[999px]/page:hidden">
-              <b className={url ? "font-bold text-[#15803d]" : "font-bold text-[#64748b]"}>{status}</b>
+              <b className={url ? "font-semibold text-[#15803d]" : "font-semibold text-[#64748b]"}>{status}</b>
               {t("telegram.loginButton")}
             </p>
           </div>

@@ -71,7 +71,7 @@ export default function PeriodSelect({ row, value, onChange, disabled, className
                   )}
                 >
                   {t(`periods.${p.key}`)}
-                  <span className={cn("tabular-nums", selected ? "font-extrabold text-[#0b4fd0]" : "font-bold text-[#14336b]")}>
+                  <span className={cn("tabular-nums", selected ? "font-semibold text-[#0b4fd0]" : "font-semibold text-[#14336b]")}>
                     {priceOf(row, p.key) ?? "-"}
                   </span>
                 </button>

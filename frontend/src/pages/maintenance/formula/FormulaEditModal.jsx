@@ -20,7 +20,7 @@ import {
 // Process, Product and Currency can't be changed (the API only takes the five fields below them).
 const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#5b74a3] focus:border-modal-off-line focus:shadow-none";
 const textareaClass =
-  "min-h-[120px] w-full flex-1 resize-none rounded-[10px] border border-modal-input-line bg-modal-input px-3 py-2 font-mono text-[13.5px] leading-relaxed text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] modal-compact:text-[13px] modal-tiny:min-h-[90px] modal-tiny:text-[12.5px]";
+  "min-h-[120px] w-full flex-1 resize-none rounded-[10px] border border-modal-input-line bg-modal-input px-3 py-2 font-mono fm-input font-normal! leading-relaxed text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] modal-compact:text-[13px] modal-tiny:min-h-[90px] modal-tiny:text-[12.5px]";
 
 /**
  * Edit Formula of Formula Maintenance: the five editable fields of one row (Account, Source %, Input Method, Formula,

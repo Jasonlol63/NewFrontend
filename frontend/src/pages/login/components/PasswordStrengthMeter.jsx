@@ -34,7 +34,7 @@ export default function PasswordStrengthMeter({ password }) {
           </div>
         ))}
       </div>
-      <span className="mt-1.5 block text-[11px] font-bold" style={{ color: level.color }}>
+      <span className="mt-1.5 block text-[11px] font-semibold" style={{ color: level.color }}>
         {level.label}
       </span>
     </div>

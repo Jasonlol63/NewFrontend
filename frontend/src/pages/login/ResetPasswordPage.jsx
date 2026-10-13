@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
 
           {step === 1 && (
             <div key="step-1" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="mb-6 text-center text-[20px] font-bold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="mb-6 text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
                 Reset Password
               </h1>
 
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
 
                 <button
                   type="submit"
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
                 >
                   Send Verification Code
                 </button>
@@ -119,13 +119,13 @@ export default function ResetPasswordPage() {
 
           {step === 2 && (
             <div key="step-2" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="text-center text-[20px] font-bold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
                 Verify Code
               </h1>
               <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
                 We sent a 6-digit code to
                 <br />
-                <b className="font-bold text-[#35538c]">{maskEmail(email || "you@example.com")}</b>
+                <b className="font-semibold text-[#35538c]">{maskEmail(email || "you@example.com")}</b>
               </p>
 
               <form onSubmit={onVerifyCode} className="flex flex-col gap-3.5">
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
                     type="button"
                     onClick={onResendCode}
                     disabled={secondsLeft > 0}
-                    className="cursor-pointer border-none bg-transparent p-0 font-bold text-[#2f6fef] disabled:cursor-default disabled:text-[#a9c3e6]"
+                    className="cursor-pointer border-none bg-transparent p-0 font-semibold text-[#2f6fef] disabled:cursor-default disabled:text-[#a9c3e6]"
                   >
                     {secondsLeft > 0 ? `Resend in ${secondsLeft}s` : "Resend code"}
                   </button>
@@ -156,7 +156,7 @@ export default function ResetPasswordPage() {
 
                 <button
                   type="submit"
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
                 >
                   Verify Code
                 </button>
@@ -174,7 +174,7 @@ export default function ResetPasswordPage() {
 
           {step === 3 && (
             <div key="step-3" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="text-center text-[20px] font-bold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
                 Set New Password
               </h1>
               <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
@@ -224,7 +224,7 @@ export default function ResetPasswordPage() {
 
                 <button
                   type="submit"
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
                 >
                   Reset Password
                 </button>
@@ -237,7 +237,7 @@ export default function ResetPasswordPage() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55)]">
                 <Check size={26} strokeWidth={3} />
               </div>
-              <h2 className="mb-2 text-[18px] font-bold text-[#14336b]">Password Reset</h2>
+              <h2 className="mb-2 text-[18px] font-semibold text-[#14336b]">Password Reset</h2>
               <p className="mb-[22px] text-[12.5px] leading-relaxed text-[#7c93b8]">
                 Your password has been updated successfully.
                 <br />
@@ -246,7 +246,7 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={() => navigate("/login")}
-                className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
               >
                 Back to Login
               </button>

@@ -8,7 +8,7 @@ import { sanitizeHtml } from "./announcementRules";
 // (Tailwind's reset strips list markers, quotes and link colours, so they are put back here.)
 export const RICH_CLASS =
   "break-words [&_a]:font-semibold [&_a]:text-[#0b4fd0] [&_a]:underline [&_blockquote]:my-1 [&_blockquote]:border-l-[3px] [&_blockquote]:border-[#9dbcf5] [&_blockquote]:pl-2.5 [&_blockquote]:text-[#475569] " +
-  "[&_code]:rounded [&_code]:bg-[#e3ebfa] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.92em] [&_h2]:text-[1.15em] [&_h3]:text-[1.08em] [&_h2]:font-extrabold [&_h3]:font-extrabold [&_h2]:text-brand-navy [&_h3]:text-brand-navy " +
+  "[&_code]:rounded [&_code]:bg-[#e3ebfa] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.92em] [&_h2]:text-[1.15em] [&_h3]:text-[1.08em] [&_h2]:font-semibold [&_h3]:font-semibold [&_h2]:text-brand-navy [&_h3]:text-brand-navy " +
   "[&_li]:my-0.5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:m-0 [&_p]:min-h-[1.2em] [&_pre]:overflow-x-auto [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5";
 
 /** Formatted text (sanitized) as shown to users. */
