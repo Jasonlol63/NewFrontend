@@ -34,9 +34,9 @@ function useWidth(ref) {
   return width;
 }
 
-const th = "sticky top-0 z-[1] whitespace-nowrap border-b border-modal-divider bg-[#e6effb] px-1.5 py-2.5 text-center text-[12px] font-extrabold text-brand-navy modal-compact:py-1.5";
-const td = "h-14 overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-1.5 text-center text-[13px] font-semibold leading-tight text-[#1f2937] text-ellipsis whitespace-nowrap modal-compact:h-12 modal-tiny:h-11";
-const subText = "truncate text-[11.5px] font-medium text-dash-sub";
+const th = "sticky top-0 z-[1] whitespace-nowrap border-b border-modal-divider bg-[#e6effb] px-1.5 py-2.5 text-center type-caption font-semibold! text-brand-navy modal-compact:py-1.5";
+const td = "h-14 overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-1.5 text-center type-table-cell leading-tight! text-[#1f2937] text-ellipsis whitespace-nowrap modal-compact:h-12 modal-tiny:h-11";
+const subText = "truncate type-caption font-medium! text-dash-sub";
 
 // Columns per width: [key, width px, head]. Description / Remark takes whatever is left.
 function columnsFor(mode) {
@@ -54,7 +54,7 @@ function TypeTag({ type }) {
   const { t } = useTranslation("transaction");
   const [bg, fg] = typeTone(type);
   return (
-    <span className="inline-flex h-[20px] items-center rounded-md px-2 text-[10.5px] font-extrabold tracking-[0.2px] capitalize" style={{ background: bg, color: fg }}>
+    <span className="inline-flex h-[20px] items-center rounded-md px-2 type-caption font-semibold! tracking-[0.2px] capitalize" style={{ background: bg, color: fg }}>
       {t(`types.${type}`, { defaultValue: type })}
     </span>
   );
@@ -66,7 +66,7 @@ function AgoBadge({ days }) {
   return (
     <span
       className={cn(
-        "mt-0.5 inline-flex h-[18px] items-center rounded-md border px-1.5 text-[10.5px] font-extrabold",
+        "mt-0.5 inline-flex h-[18px] items-center rounded-md border px-1.5 type-caption font-semibold!",
         old ? "border-[#fca5a5] bg-[#fee2e2] text-[#991b1b]" : "border-[#f3d27a] bg-[#fef3c7] text-[#92400e]"
       )}
     >
@@ -86,7 +86,7 @@ function RowButton({ tone, iconOnly, disabled, onClick, label }) {
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-[26px] cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[7px] border bg-white text-[12px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
+        "inline-flex h-[26px] cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[7px] border bg-white type-caption font-semibold! transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         iconOnly ? "w-[28px]" : "px-2.5",
         tone === "approve" ? "border-[#86d9a5] text-[#15803d] hover:bg-[#f0fdf4]" : "border-[#fca5a5] text-[#dc2626] hover:bg-[#fee2e2]"
       )}
@@ -98,7 +98,7 @@ function RowButton({ tone, iconOnly, disabled, onClick, label }) {
 }
 
 const presetClass =
-  "inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-3 text-[12.5px] font-bold text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
+  "inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-3 fm-btn-sm text-[#1d4ed8] transition-colors modal-compact:h-[30px] modal-compact:px-2.5 modal-tiny:h-7";
 
 export default function ContraInboxModal({ inbox, onClose, notify }) {
   const { t } = useTranslation(["transaction", "common"]);
@@ -152,7 +152,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
 
   const footerNote = loading ? t("inbox.loading") : "";
   const idle = busy || loading;
-  const actionClass = "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1 @max-[479px]/main:w-11 @max-[479px]/main:flex-none @max-[479px]/main:px-0";
+  const actionClass = "h-[38px] min-w-[112px] px-[22px] fm-btn modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1 @max-[479px]/main:w-11 @max-[479px]/main:flex-none @max-[479px]/main:px-0";
 
   const cellFor = (key, r) => {
     switch (key) {
@@ -187,7 +187,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
       case "amount":
         return (
           <td key={key} className={td}>
-            <div className="truncate font-extrabold tabular-nums">{money(r.amount)}</div>
+            <div className="truncate font-semibold! tabular-nums">{money(r.amount)}</div>
             <div className={subText}>{r.currency}</div>
           </td>
         );
@@ -226,7 +226,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
         title={
           <span className="flex min-w-0 items-center gap-2.5">
             <span className="min-w-0 truncate">{t("inbox.title")}</span>
-            <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[12px] leading-[22px] font-extrabold tracking-normal text-white">{rows.length}</span>
+            <span className="inline-flex min-w-[22px] flex-none items-center justify-center rounded-full bg-[#ef4444] px-1.5 type-caption leading-[22px]! font-semibold! tracking-normal text-white">{rows.length}</span>
           </span>
         }
         onClose={onClose}
@@ -247,7 +247,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
         footerStart={
           <span
             role="status"
-            className="mr-auto inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold text-[#5b7196] @max-[599px]/main:basis-full"
+            className="mr-auto inline-flex min-w-0 items-center gap-1.5 fm-help font-semibold! text-[#5b7196] @max-[599px]/main:basis-full"
           >
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
             <span className="truncate">
@@ -258,7 +258,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
                     {totals.map(([cur, sum], i) => (
                       <span key={cur}>
                         {i > 0 && " · "}
-                        <b className="font-extrabold text-brand-navy">{cur} {money(sum)}</b>
+                        <b className="font-semibold text-brand-navy">{cur} {money(sum)}</b>
                       </span>
                     ))}
                   </>
@@ -275,7 +275,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
             onClick={() => setRejecting(picked)}
             className={cn(
               actionClass,
-              "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#fca5a5] bg-white/70 font-bold text-[#dc2626] transition-colors hover:bg-[#fee2e2]",
+              "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#fca5a5] bg-white/70 text-[#dc2626] transition-colors hover:bg-[#fee2e2]",
               "disabled:cursor-not-allowed disabled:border-[#e5e7eb] disabled:bg-white/40 disabled:text-[#9ca3af] disabled:hover:bg-white/40"
             )}
           >
@@ -287,7 +287,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
         bodyClassName="flex flex-col"
       >
         <section className="flex flex-none flex-wrap items-center gap-2 rounded-2xl border border-modal-line bg-modal-card px-3.5 py-2.5 shadow-modal-card modal-compact:py-1.5">
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-[#374151]">{t("inbox.type")}</span>
+          <span className="whitespace-nowrap fm-btn-sm text-[#374151]">{t("inbox.type")}</span>
           {["ALL", ...types].map((ty) => (
             <button
               key={ty}
@@ -299,7 +299,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
               <span className="font-semibold text-[#5b7196]">{ty === "ALL" ? rows.length : rows.filter((r) => r.type === ty).length}</span>
             </button>
           ))}
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 text-[12px] font-semibold text-[#92400e] @max-[639px]/main:hidden">
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-[9px] border border-[#f3e2a3] bg-[rgba(254,243,199,0.7)] px-2.5 py-1.5 fm-help font-semibold! text-[#92400e] @max-[639px]/main:hidden">
             <Info className="size-3.5 flex-none" strokeWidth={2.2} />
             {t("inbox.note")}
           </span>
@@ -348,7 +348,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
               </table>
             )}
             {visible.length === 0 && (
-              <p className="m-0 px-4 py-10 text-center text-[13px] italic text-[#8a96a8]">{loading ? t("inbox.loading") : t("inbox.empty")}</p>
+              <p className="m-0 px-4 py-10 text-center fm-empty italic text-[#8a96a8]">{loading ? t("inbox.loading") : t("inbox.empty")}</p>
             )}
           </div>
         </FormCard>

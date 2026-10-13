@@ -11,13 +11,13 @@ import { HISTORY_URL, normalizeHistoryRow } from "./paymentHistoryRules";
 import { HISTORY_URL as MEMBER_HISTORY_URL } from "../member/memberRules";
 import { buildHistoryPdf, pdfFilename } from "./paymentHistoryPdf";
 
-const LABEL = "mb-1 block text-[12.5px] font-bold text-[#374151]";
+const LABEL = "mb-1 block fm-label text-[#374151]";
 const GHOST =
-  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-3.5 text-[13px] font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#cbd5e1] bg-white px-3.5 fm-btn-sm text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] disabled:cursor-not-allowed disabled:opacity-50";
 const OUTLINE =
-  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#1d4ed8] bg-[#eef5ff] px-3.5 text-[13px] font-semibold text-[#1d4ed8] outline-none transition-colors hover:bg-[#e0edff] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#1d4ed8] bg-[#eef5ff] px-3.5 fm-btn-sm text-[#1d4ed8] outline-none transition-colors hover:bg-[#e0edff] disabled:cursor-not-allowed disabled:opacity-50";
 const SOLID =
-  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none bg-[#1d4ed8] px-3.5 text-[13px] font-semibold text-white outline-none transition-colors hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none bg-[#1d4ed8] px-3.5 fm-btn-sm text-white outline-none transition-colors hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60";
 
 /** The accounts' currencies of the company: the ones the account holds (all of them when it holds none). */
 function useAccountCurrencies(open, tenantId, accountId, member) {
@@ -165,8 +165,8 @@ export default function ExportPdfModal({ open, onClose, request, account, member
                 {previewing ? <Eye className="size-5" strokeWidth={2.2} /> : <FileText className="size-5" strokeWidth={2.2} />}
               </div>
               <div className="min-w-0">
-                <Dialog.Title className="m-0 truncate text-base font-bold text-brand-navy">{previewing ? t("pdf.previewTitle", { title }) : title}</Dialog.Title>
-                <div className="truncate text-xs text-[#64748b]">
+                <Dialog.Title className="m-0 truncate fm-section text-brand-navy">{previewing ? t("pdf.previewTitle", { title }) : title}</Dialog.Title>
+                <div className="truncate fm-help text-[#64748b]">
                   {previewing
                     ? `${selected.join(", ")} · ${dmy(range.from)} – ${dmy(range.to)} · ${t("pdf.pages", { count: preview.pages })}`
                     : subtitle}
@@ -184,7 +184,7 @@ export default function ExportPdfModal({ open, onClose, request, account, member
                 <iframe title={t("pdf.frame")} src={preview.url} className="size-full border-0" />
               </div>
               <div className="mt-2.5 flex flex-none items-center justify-between gap-3">
-                <a href={preview.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#1d4ed8] hover:underline">
+                <a href={preview.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 fm-btn-sm text-[#1d4ed8] hover:underline">
                   <ExternalLink className="size-3.5" />
                   {t("pdf.openTab")}
                 </a>
@@ -216,7 +216,7 @@ export default function ExportPdfModal({ open, onClose, request, account, member
               <span className={LABEL}>{t("pdf.currency")}</span>
               <div className="mb-1.5 min-h-8">
                 {loadingCurrencies ? (
-                  <span className="text-xs font-medium text-dash-faint">{t("pdf.loadingCurrencies")}</span>
+                  <span className="fm-help font-medium! text-dash-faint">{t("pdf.loadingCurrencies")}</span>
                 ) : available.length ? (
                   <SegmentGroup
                     wrap
@@ -227,15 +227,15 @@ export default function ExportPdfModal({ open, onClose, request, account, member
                     onChange={toggle}
                   />
                 ) : (
-                  <span className="text-xs font-medium text-dash-faint">{t("pdf.noCurrency")}</span>
+                  <span className="fm-help font-medium! text-dash-faint">{t("pdf.noCurrency")}</span>
                 )}
               </div>
-              <div className="mb-3.5 text-xs text-[#64748b]">
+              <div className="mb-3.5 fm-help text-[#64748b]">
                 {t("pdf.selected", { count: selected.length })}
               </div>
 
               {(error || currencyError) && (
-                <div role="alert" className="mb-3.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[12.5px] text-dash-down">
+                <div role="alert" className="mb-3.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 fm-help text-dash-down">
                   {error || localizeBackend(currencyError)}
                 </div>
               )}

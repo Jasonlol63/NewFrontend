@@ -10,7 +10,7 @@ import { closingBalances, flowAmount, formatRate, parseHistoryParams } from "./p
 import { fmt } from "./transactionPaymentRules";
 import { useHistory } from "./useTransactionData";
 
-const amountTone = (n) => (n > 0 ? "font-bold text-[#1d4ed8]" : n < 0 ? "font-bold text-[#dc2626]" : "");
+const amountTone = (n) => (n > 0 ? "font-semibold text-[#1d4ed8]" : n < 0 ? "font-semibold text-[#dc2626]" : "");
 
 // Column widths in %; Description takes what is left. Remark gets more room on narrower screens so it is never cut.
 const COLS = [
@@ -27,9 +27,9 @@ const COLS = [
 ];
 
 const TH =
-  "sticky top-0 z-[2] h-[clamp(26px,1.6vw,30px)] border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] text-[clamp(11px,0.65vw,12px)] font-bold tracking-[0.2px] whitespace-nowrap text-white last:border-r-0";
+  "sticky top-0 z-[2] h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] type-caption font-semibold! tracking-[0.2px] whitespace-nowrap text-white last:border-r-0";
 const TD =
-  "h-[clamp(21px,1.3vw,25px)] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-[clamp(6px,0.55vw,10px)] text-ellipsis whitespace-nowrap tabular-nums";
+  "h-[26px] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-[clamp(6px,0.55vw,10px)] text-ellipsis whitespace-nowrap tabular-nums";
 
 /**
  * Payment History: opened in its own popup window from an account name in Transaction Payment. Same frosted frame as
@@ -69,13 +69,13 @@ export default function PaymentHistoryPage() {
             <div className="flex size-10 flex-none items-center justify-center rounded-xl bg-brand-sweep text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]">
               <History className="size-5" strokeWidth={2.2} />
             </div>
-            <h1 className="m-0 truncate text-[clamp(20px,2.6dvh,26px)] leading-[1.1] font-extrabold tracking-[-0.3px] whitespace-nowrap text-brand-navy">{title}</h1>
+            <h1 className="m-0 truncate type-page-title whitespace-nowrap text-brand-navy">{title}</h1>
           </div>
           <div className="flex flex-none items-center gap-2">
             <button
               type="button"
               onClick={() => setExportOpen(true)}
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#bfd8ff] bg-[#eaf4ff] px-4 text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dcebff] max-[900px]:px-3"
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#bfd8ff] bg-[#eaf4ff] px-4 type-body font-semibold! text-[#1d4ed8] hover:bg-[#dcebff] max-[900px]:px-3"
             >
               <Download className="size-[15px]" strokeWidth={2.3} />
               PDF
@@ -90,12 +90,12 @@ export default function PaymentHistoryPage() {
         <div className="flex min-h-0 flex-1 flex-col px-(--pad) pt-(--gap) pb-(--pad)">
           <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
             {history.error && (
-              <div role="alert" className="flex-none border-b border-red-200 bg-red-50 px-3.5 py-2 text-[13px] font-medium text-dash-down">
+              <div role="alert" className="flex-none border-b border-red-200 bg-red-50 px-3.5 py-2 type-body font-medium! text-dash-down">
                 {localizeBackend(history.error)}
               </div>
             )}
             <div className={cn("min-h-0 flex-1 overflow-auto transition-opacity [scrollbar-color:#c3cedf_transparent] [scrollbar-width:thin]", history.loading && "opacity-60")}>
-              <table className="w-full table-fixed border-separate border-spacing-0 text-[clamp(11px,0.625vw,12px)]">
+              <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell">
                 <colgroup>
                   {COLS.map(([name, , width]) => (
                     <col key={name} className={width} />
@@ -114,7 +114,7 @@ export default function PaymentHistoryPage() {
                   {/* the same two-tone rows as the Admin / Account list: blue stripe, white, deeper blue on hover */}
                   {rows.map((r, i) =>
                     r.bf ? (
-                      <tr key={r.key} className="bg-[rgba(214,230,250,0.92)] font-extrabold text-brand-navy">
+                      <tr key={r.key} className="bg-[rgba(214,230,250,0.92)] font-semibold text-brand-navy">
                         <td className={cn(TD, "text-left")}>{t("history.bf")}</td>
                         <td className={cn(TD, "text-left")}>-</td>
                         <td className={cn(TD, "text-center")}>{r.currency}</td>
@@ -128,16 +128,16 @@ export default function PaymentHistoryPage() {
                       </tr>
                     ) : (
                       <tr key={r.key} className={cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover")}>
-                        <td className={cn(TD, "text-left font-bold text-[#1f2937]")}>{r.date || "-"}</td>
-                        <td className={cn(TD, "text-left font-bold text-[#1f2937]")} title={r.product}>{r.product || "-"}</td>
-                        <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.currency || "-"}</td>
+                        <td className={cn(TD, "text-left text-[#1f2937]")}>{r.date || "-"}</td>
+                        <td className={cn(TD, "text-left text-[#1f2937]")} title={r.product}>{r.product || "-"}</td>
+                        <td className={cn(TD, "text-center text-[#1f2937]")}>{r.currency || "-"}</td>
                         <td className={cn(TD, "text-center text-[#1f2937]")}>{formatRate(r.rate)}</td>
                         <td className={cn(TD, "text-right", amountTone(r.winLoss))}>{flowAmount(r.winLoss)}</td>
                         <td className={cn(TD, "text-right", amountTone(r.crDr))}>{flowAmount(r.crDr)}</td>
                         <td className={cn(TD, "text-right", amountTone(r.balance))}>{fmt(r.balance)}</td>
-                        <td className={cn(TD, "text-left font-bold text-[#1f2937] uppercase")} title={r.description}>{r.description || "-"}</td>
-                        <td className={cn(TD, "text-center font-bold text-[#1f2937] uppercase")} title={r.remark}>{r.remark || "-"}</td>
-                        <td className={cn(TD, "text-center font-bold text-[#1f2937]")}>{r.createdBy || "-"}</td>
+                        <td className={cn(TD, "text-left text-[#1f2937] uppercase")} title={r.description}>{r.description || "-"}</td>
+                        <td className={cn(TD, "text-center text-[#1f2937] uppercase")} title={r.remark}>{r.remark || "-"}</td>
+                        <td className={cn(TD, "text-center text-[#1f2937]")}>{r.createdBy || "-"}</td>
                       </tr>
                     )
                   )}
@@ -149,7 +149,7 @@ export default function PaymentHistoryPage() {
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-none items-center justify-between gap-3 border-t border-[rgba(130,155,195,0.3)] bg-white/60 px-3.5 py-[7px] text-xs text-dash-sub">
+            <div className="flex flex-none items-center justify-between gap-3 border-t border-[rgba(130,155,195,0.3)] bg-white/60 px-3.5 py-[7px] type-caption text-dash-sub">
               <span>
                 {history.loading ? (
                   t("history.loading")

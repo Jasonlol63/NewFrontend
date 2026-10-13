@@ -104,12 +104,12 @@ export default function TransactionPaymentPage() {
           <button
             type="button"
             onClick={() => setInboxOpen(true)}
-            className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 text-[13px] font-bold whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
+            className="inline-flex flex-none cursor-pointer items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3.5 py-2 type-body font-semibold! whitespace-nowrap text-brand-navy shadow-dash-card transition-colors hover:bg-slate-50"
           >
             <Inbox className="size-4" strokeWidth={2.2} />
             {t("inbox.title")}
             {inbox.rows.length > 0 && (
-              <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center text-[11px] leading-[18px] font-bold text-white">{inbox.rows.length}</span>
+              <span className="min-w-[18px] rounded-full bg-[#ef4444] px-1.5 text-center type-caption leading-[18px]! font-semibold! text-white">{inbox.rows.length}</span>
             )}
           </button>
         </div>

@@ -42,7 +42,7 @@ const CURRENCY_ROW =
 const MIDDLE_ROW =
   "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_var(--revw)] items-center gap-2 @max-[439px]:grid-cols-[160px_minmax(0,1fr)] @min-[440px]:@max-[520px]:grid-cols-[148px_minmax(0,1fr)] @min-[521px]:@max-[620px]:grid-cols-[160px_minmax(0,1fr)]";
 const MIDDLE_FIELDS =
-  "col-[2/4] grid min-w-0 grid-cols-[1.5fr_1fr_1fr_1.3fr] gap-2 @max-[620px]:col-[2] @max-[439px]:grid-cols-2 @min-[440px]:@max-[520px]:grid-cols-[1.55fr_1fr_1fr_1.15fr] @min-[440px]:@max-[520px]:gap-[5px] @min-[521px]:@max-[620px]:grid-cols-[1.5fr_1fr_1fr_1.2fr] [&>input]:px-1.5 @min-[440px]:@max-[520px]:[&>input]:px-1 @min-[440px]:@max-[520px]:[&>input]:text-[12px]";
+  "col-[2/4] grid min-w-0 grid-cols-[1.5fr_1fr_1fr_1.3fr] gap-2 @max-[620px]:col-[2] @max-[439px]:grid-cols-2 @min-[440px]:@max-[520px]:grid-cols-[1.55fr_1fr_1fr_1.15fr] @min-[440px]:@max-[520px]:gap-[5px] @min-[521px]:@max-[620px]:grid-cols-[1.5fr_1fr_1fr_1.2fr] [&>input]:px-1.5 @min-[440px]:@max-[520px]:[&>input]:px-1";
 
 /**
  * Right top card: the manual transaction form. The Type picks the layout: Rate and Adjustment have their own, every
@@ -162,7 +162,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
       type="button"
       title={t("form.reverse")}
       onClick={() => swap(a, b)}
-      className="inline-flex h-[30px] w-(--revw) cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/80 bg-white/65 text-[12.5px] font-bold whitespace-nowrap text-brand-navy hover:bg-white max-[1500px]:gap-0"
+      className="inline-flex h-[30px] w-(--revw) cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/80 bg-white/65 type-table-cell font-semibold! whitespace-nowrap text-brand-navy hover:bg-white max-[1500px]:gap-0"
     >
       <Repeat2 className="size-[15px] flex-none max-[1500px]:size-4" strokeWidth={2.3} />
       <span className="max-[1500px]:hidden">{t("form.reverse")}</span>
@@ -251,7 +251,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
       </div>
 
       <div className="mt-0.5 flex items-center justify-end gap-2.5">
-        <div className={cn("mr-auto flex items-center text-[12.5px] font-semibold text-[#374151]")}>
+        <div className={cn("mr-auto flex items-center type-table-cell font-semibold! text-[#374151]")}>
           <SelectBox checked={confirm} onChange={setConfirm} label={t("form.confirm")} />
           <button type="button" tabIndex={-1} onClick={() => setConfirm(!confirm)} className="cursor-pointer select-none">
             {t("form.confirm")}
@@ -269,7 +269,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
           type="button"
           disabled
           title={t("form.comingSoon")}
-          className="inline-flex h-[30px] min-w-[104px] cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-[rgba(13,96,255,0.45)] bg-white px-[18px] text-[13px] font-bold text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors hover:border-[#0d60ff] hover:bg-[#eef5ff]"
+          className="inline-flex h-[30px] min-w-[104px] cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-[rgba(13,96,255,0.45)] bg-white px-[18px] type-body font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors hover:border-[#0d60ff] hover:bg-[#eef5ff]"
         >
           <Search className="size-[15px]" strokeWidth={2.4} />
           {t("form.search")}

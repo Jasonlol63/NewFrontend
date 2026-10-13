@@ -20,7 +20,7 @@ function Seg({ options, value, onChange, allowDeselect }) {
           type="button"
           onClick={() => onChange(allowDeselect && v === value ? null : v)}
           className={cn(
-            "flex-none cursor-pointer border-r border-dash-line px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap transition-colors last:border-r-0",
+            "flex-none cursor-pointer border-r border-dash-line px-3 py-1 type-table-cell font-medium! whitespace-nowrap transition-colors last:border-r-0",
             v === value ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
           )}
         >
@@ -34,7 +34,7 @@ function Seg({ options, value, onChange, allowDeselect }) {
 function Row({ label, grow, children }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="w-[76px] flex-none text-[13px] font-extrabold text-[#1f2937]">{label}</span>
+      <span className="w-[100px] flex-none type-label text-[#1f2937]">{label}</span>
       <div className={cn("min-w-0", grow && "flex-1")}>{children}</div>
     </div>
   );
@@ -49,9 +49,9 @@ function Pill({ label, checked, onChange }) {
       aria-pressed={checked}
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex h-[30px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border bg-[#f8fafc] pr-3 pl-[5px] text-[12.5px] whitespace-nowrap transition-[border-color,box-shadow,color] @max-[560px]:gap-1.5 @max-[560px]:pr-[9px] @max-[560px]:pl-1 @max-[560px]:text-[12px] @max-[430px]:px-2 @max-[430px]:text-[11.5px]",
+        "inline-flex h-[30px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border bg-[#f8fafc] pr-2.5 pl-[5px] type-table-cell whitespace-nowrap transition-[border-color,box-shadow,color] @max-[560px]:gap-1.5 @max-[560px]:pr-[9px] @max-[560px]:pl-1 @max-[430px]:px-2",
         checked
-          ? "border-[rgba(13,96,255,0.45)] font-semibold text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)]"
+          ? "border-[rgba(13,96,255,0.45)] font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)]"
           : "border-dash-line font-medium text-[#475569] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-[#cbd5e1] hover:shadow-[0_2px_4px_rgba(15,23,42,0.08)]"
       )}
     >
@@ -98,7 +98,7 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
             from={range.from}
             to={range.to}
             onChange={(r) => onChange({ range: r })}
-            className={cn("h-[30px]! w-full! rounded-lg! [&>span:nth-child(2)]:whitespace-nowrap", !wide && "[&>span:nth-child(2)]:px-2! [&>span:nth-child(2)]:text-[12px]")}
+            className={cn("h-[30px]! w-full! rounded-lg! [&>span:nth-child(2)]:whitespace-nowrap", !wide && "[&>span:nth-child(2)]:px-2!")}
           />
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
             onReorder={currency.onReorder}
           />
         ) : (
-          <span className="text-xs font-medium text-dash-faint">{t("filter.noCurrency")}</span>
+          <span className="type-caption font-medium! text-dash-faint">{t("filter.noCurrency")}</span>
         )}
       </Row>
     </section>
