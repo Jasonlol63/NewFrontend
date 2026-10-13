@@ -22,20 +22,26 @@ public class MaintenanceController {
 
     @PostMapping("/transaction-maintenance/list")
     public ResponseEntity<Map<String, Object>> listTransactionMaintenance(@RequestBody MaintenanceTransactionDTO mt) {
-        List<MaintenanceTransactionDTO> rows = maintenanceService.findMaintenanceTransactionsRows(mt);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Transaction maintenance list retrieved",
-                "data", rows));
+        CursorPage<MaintenanceTransactionDTO> page = maintenanceService.findMaintenanceTransactionsRows(mt);
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "Transaction maintenance list retrieved");
+        body.put("data", page.rows());
+        body.put("nextCursor", page.nextCursor());
+        body.put("total", page.total());
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/capture-maintenance/list")
     public ResponseEntity<Map<String, Object>> listCaptureMaintenance(@RequestBody MaintenanceCaptureDTO mc) {
-        List<MaintenanceCaptureDTO> rows = maintenanceService.findMaintenanceCaptureRows(mc);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Capture maintenance list retrieved",
-                "data", rows));
+        CursorPage<MaintenanceCaptureDTO> page = maintenanceService.findMaintenanceCaptureRows(mc);
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "Capture maintenance list retrieved");
+        body.put("data", page.rows());
+        body.put("nextCursor", page.nextCursor());
+        body.put("total", page.total());
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/capture-maintenance/delete")

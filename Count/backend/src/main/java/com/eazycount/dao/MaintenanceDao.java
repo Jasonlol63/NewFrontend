@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -87,8 +88,27 @@ public interface MaintenanceDao {
             @Param("currencyCodes") List<String> currencyCodes,
             @Param("q") String q);
 
-    // Transaction Maintenance (view-only): every data_capture_line row, MAIN+SUB, one category (GAME/BANK) at a time.
-    List<MaintenanceTransactionDTO> findTransactionLineMaintenanceRows(
+    // Transaction Maintenance (view-only), in batches of whole captures, one category (GAME/BANK) at a time:
+    // 1) the next captures (id + created_at) with a line matching `q`, newest first, after the cursor (cursorId == null: from the top);
+    List<MaintenanceCaptureDTO> findTransactionCaptureKeys(
+            @Param("tenantId") Integer tenantId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
+            @Param("process") String process,
+            @Param("category") String category,
+            @Param("q") String q,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Integer cursorId,
+            @Param("limit") int limit);
+
+    // 2) the lines of those captures that match `q`, in list order;
+    List<MaintenanceTransactionDTO> findTransactionLinesByCaptureIds(
+            @Param("tenantId") Integer tenantId,
+            @Param("captureIds") List<Integer> captureIds,
+            @Param("q") String q);
+
+    // 3) how many lines the list holds in total under the same filters.
+    long countTransactionLines(
             @Param("tenantId") Integer tenantId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -96,8 +116,23 @@ public interface MaintenanceDao {
             @Param("category") String category,
             @Param("q") String q);
 
-    // Capture Maintenance (live rows): every data_capture_line row, MAIN+SUB, one category (GAME/BANK) at a time.
-    List<MaintenanceCaptureDTO> findCaptureLineMaintenanceRows(
+    // Capture Maintenance, one page (keyset): live + archived captures, newest first, one category (GAME/BANK) at a time.
+    // cursorId == null is the first page; otherwise the three cursor values are the last row of the previous page
+    // (cursorSrc 1 = live, 0 = archived). Returns at most `limit` rows.
+    List<MaintenanceCaptureDTO> findCaptureMaintenancePage(
+            @Param("tenantId") Integer tenantId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
+            @Param("process") String process,
+            @Param("category") String category,
+            @Param("q") String q,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Integer cursorId,
+            @Param("cursorSrc") Integer cursorSrc,
+            @Param("limit") int limit);
+
+    // How many rows the list holds in total under the same filters.
+    long countCaptureMaintenance(
             @Param("tenantId") Integer tenantId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -105,14 +140,6 @@ public interface MaintenanceDao {
             @Param("category") String category,
             @Param("q") String q);
 
-    // Capture Maintenance archived (soft-deleted) rows — data_capture_line_deleted.
-    List<MaintenanceCaptureDTO> findCaptureLineMaintenanceDeletedRows(
-            @Param("tenantId") Integer tenantId,
-            @Param("dateFrom") LocalDate dateFrom,
-            @Param("dateTo") LocalDate dateTo,
-            @Param("process") String process,
-            @Param("category") String category,
-            @Param("q") String q);
 
     // transaction_id of every live line under the given captures (non-null only) — what to cascade-archive.
     List<Integer> findCaptureLineTransactionIdsByCaptureIdsAndTenantId(

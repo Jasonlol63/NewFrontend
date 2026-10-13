@@ -1,5 +1,5 @@
 import { REALTIME_DOMAINS } from "@/lib/realtime/realtimeEvents";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toast from "@/components/shared/Toast.jsx";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
@@ -12,8 +12,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useMaintenanceFilters } from "../shared/useMaintenanceFilters";
-import { useMaintenanceList } from "../shared/useMaintenanceList";
-import { CAPTURE_DELETE_URL, CAPTURE_LIST_URL, filterCaptureRows, normalizeCaptureRow } from "./captureMaintenanceRules";
+import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
+import { CAPTURE_DELETE_URL, CAPTURE_LIST_URL, normalizeCaptureRow } from "./captureMaintenanceRules";
+
+// The search box asks the server once typing has paused.
+const SEARCH_DELAY_MS = 300;
 
 // Every cell stays on one line; the text columns give way with "..." only when the row does not fit the card.
 const baseColumns = [
@@ -35,8 +38,14 @@ export default function CaptureMaintenancePage() {
   const [selected, setSelected] = useState(() => new Set());
 
   const filters = useMaintenanceFilters({ onChange: () => setSelected(new Set()) });
-  const captures = useMaintenanceList(CAPTURE_LIST_URL, filters.request, normalizeCaptureRow, [REALTIME_DOMAINS.DATACAPTURE]);
-  const rows = useMemo(() => filterCaptureRows(captures.rows, filters.search), [captures.rows, filters.search]);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+  const request = useMemo(() => filters.request && { ...filters.request, ...(query ? { q: query } : {}) }, [filters.request, query]);
+  const captures = useInfiniteMaintenanceList(CAPTURE_LIST_URL, request, normalizeCaptureRow, [REALTIME_DOMAINS.DATACAPTURE]);
+  const rows = captures.rows;
 
   // Archived captures are already deleted.
   const canSelect = (r) => !readOnly && !r.deleted;
@@ -71,6 +80,12 @@ export default function CaptureMaintenancePage() {
         noun="records"
         loading={captures.loading}
         rows={rows}
+        total={captures.total}
+        virtual
+        hasMore={captures.hasMore}
+        loadingMore={captures.loadingMore}
+        onLoadMore={captures.loadMore}
+        scrollResetKey={request}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

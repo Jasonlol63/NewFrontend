@@ -70,6 +70,7 @@
     "next": "下一页",
     "summaryPaged": "显示第 {{from}}–{{to}} 条，共 {{total}} 个{{noun}}",
     "summaryAll": "共 {{total}} 个{{noun}}",
+    "summaryLoaded": "已显示 {{shown}} 个，共 {{total}} 个{{noun}}",
     "empty": "暂无{{noun}}",
     "selectAllInactive": "选择本页所有已停用行",
     "selectRow": "选择此行",

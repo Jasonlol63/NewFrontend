@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Square, SquareCheck, SquareMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -235,6 +235,50 @@ function useRowSweep(enabled, ref, rows) {
   }, [enabled, ref, rows]);
 }
 
+// Rows kept above and below the visible ones when the list is windowed (virtual).
+const OVERSCAN = 12;
+// The window only moves in steps of this many rows, so scrolling does not redraw on every row.
+const WINDOW_STEP = 10;
+// Start loading the next batch when this many rows are left below the viewport.
+const LOAD_AHEAD = 30;
+
+// Fixed-height rows, so which rows are on screen follows from scrollTop alone. Only those rows are drawn
+// (spacer rows stand in for the rest), however many have been loaded. Also asks for the next batch near the bottom.
+function useRowWindow({ enabled, ref, rowHeight, rowCount, hasMore, loadingMore, onLoadMore, resetKey }) {
+  const [win, setWin] = useState({ start: 0, end: 60 });
+  const more = useRef({ hasMore, loadingMore, onLoadMore });
+  useLayoutEffect(() => {
+    more.current = { hasMore, loadingMore, onLoadMore };
+  });
+  const update = useCallback(() => {
+    const body = ref.current;
+    if (!enabled || !body) return;
+    const first = Math.floor(body.scrollTop / rowHeight);
+    const visible = Math.ceil(body.clientHeight / rowHeight);
+    const start = Math.max(0, Math.floor(first / WINDOW_STEP) * WINDOW_STEP - OVERSCAN);
+    const end = start + visible + 2 * OVERSCAN + WINDOW_STEP;
+    setWin((w) => (w.start === start && w.end === end ? w : { start, end }));
+    const left = body.scrollHeight - body.scrollTop - body.clientHeight;
+    if (more.current.hasMore && !more.current.loadingMore && left < LOAD_AHEAD * rowHeight) more.current.onLoadMore?.();
+  }, [enabled, ref, rowHeight]);
+
+  // A different list (new filters): back to the top.
+  useLayoutEffect(() => {
+    if (enabled && ref.current) ref.current.scrollTop = 0;
+  }, [enabled, ref, resetKey]);
+  // Rows or loading state changed, or the card was resized: recompute (this also loads more when the first batch
+  // does not fill the card).
+  useEffect(() => {
+    const body = ref.current;
+    if (!enabled || !body) return undefined;
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, [enabled, ref, update, rowCount, hasMore, loadingMore]);
+  return { win, update };
+}
+
 const NO_SELECTION = new Set();
 const NO_SORT = { key: null, dir: 1 };
 const noop = () => {};
@@ -260,6 +304,10 @@ const never = () => false;
  *    (pass the same gap to useListView's `rowGap`), plain header labels with a colon, and a boxed pager.
  *    Never scrolls: rows that don't fit go to the next page.
  *  - boxedPager: the sky-gradient square pager of the cards variant, on a table-variant list too.
+ *  - virtual: a long list that loads in batches and scrolls to the end (no pager). Rows must be rowHeight tall; only the rows
+ *    on screen are drawn. hasMore / loadingMore / onLoadMore load the next batch near the bottom; `total` is the full count
+ *    (the footer reads "Showing N of total" while more is coming); scrollResetKey scrolls back to the top when it changes.
+ *    Select-all covers the rows loaded so far.
  */
 export default function DataTable({
   columns,
@@ -293,6 +341,11 @@ export default function DataTable({
   selectColumn = true,
   variant = "table",
   boxedPager = false,
+  virtual = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  scrollResetKey,
 }) {
   const cards = variant === "cards";
   // The cell look of a body row. Cards: a sky-blue sweep, white on the left to light blue on the right, runs
@@ -305,7 +358,20 @@ export default function DataTable({
   const scrollRef = bodyRef ?? localBodyRef;
   const layout = useAltColumns(columns, fitWidth ? altColumns : undefined, onAltChange);
   const cols = layout.cols;
-  useFitColumns(fitWidth, scrollRef, rows, layout.alt, layout.onFit);
+  const { win, update: updateWindow } = useRowWindow({
+    enabled: virtual,
+    ref: scrollRef,
+    rowHeight,
+    rowCount: rows.length,
+    hasMore,
+    loadingMore,
+    onLoadMore,
+    resetKey: scrollResetKey,
+  });
+  const winStart = virtual ? Math.min(win.start, Math.max(0, rows.length - 1)) : 0;
+  const winEnd = virtual ? Math.min(win.end, rows.length) : rows.length;
+  const shown = useMemo(() => (virtual ? rows.slice(winStart, winEnd) : rows), [virtual, rows, winStart, winEnd]);
+  useFitColumns(fitWidth, scrollRef, shown, layout.alt, layout.onFit);
   useRowSweep(cards, scrollRef, rows);
   const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth);
   const selectable = rows.filter(canSelect);
@@ -327,7 +393,9 @@ export default function DataTable({
 
   const { t } = useTranslation();
   const nounText = t(`nouns.${noun}`, { defaultValue: noun });
-  const summary = paged
+  const summary = virtual && hasMore
+    ? t("table.summaryLoaded", { shown: rows.length, total, noun: nounText })
+    : paged
     ? t("table.summaryPaged", { from: rows.length ? offset + 1 : 0, to: offset + rows.length, total, noun: nounText })
     : t("table.summaryAll", { total, noun: nounText });
 
@@ -342,7 +410,10 @@ export default function DataTable({
     >
       <div
         ref={scrollRef}
-        onScroll={hideCellTip}
+        onScroll={() => {
+          hideCellTip();
+          updateWindow();
+        }}
         className={cn(
           "min-h-0 flex-1",
           cards ? "overflow-hidden" : "overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]"
@@ -404,7 +475,15 @@ export default function DataTable({
           </thead>
           <tbody {...cellTipHandlers}>
             {rows.length ? (
-              rows.map((row, i) => {
+              <>
+              {/* Windowed list: spacer rows stand in for the rows above and below the drawn ones. */}
+              {winStart > 0 && (
+                <tr aria-hidden style={{ height: winStart * rowHeight }}>
+                  <td colSpan={cols.length + (showSelect ? 1 : 0)} className="border-0 p-0" />
+                </tr>
+              )}
+              {shown.map((row, k) => {
+                const i = winStart + k;
                 const isSelected = selected.has(row.id);
                 return (
                   <tr
@@ -449,7 +528,20 @@ export default function DataTable({
                     )}
                   </tr>
                 );
-              })
+              })}
+              {winEnd < rows.length && (
+                <tr aria-hidden style={{ height: (rows.length - winEnd) * rowHeight }}>
+                  <td colSpan={cols.length + (showSelect ? 1 : 0)} className="border-0 p-0" />
+                </tr>
+              )}
+              {loadingMore && (
+                <tr>
+                  <td colSpan={cols.length + (showSelect ? 1 : 0)} className="py-3 text-center text-dash-faint">
+                    {t("loading")}
+                  </td>
+                </tr>
+              )}
+              </>
             ) : (
               <tr>
                 <td colSpan={cols.length + (showSelect ? 1 : 0)} className="py-10 text-center text-dash-faint">

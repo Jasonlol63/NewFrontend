@@ -1,5 +1,6 @@
 package com.eazycount.service;
 
+import com.eazycount.dto.CursorPage;
 import com.eazycount.dto.MaintenanceBankProcessDTO;
 import com.eazycount.dto.MaintenanceCaptureDTO;
 import com.eazycount.dto.MaintenanceFormulaDTO;
@@ -11,9 +12,9 @@ import java.util.List;
 
 public interface MaintenanceService {
 
-    List<MaintenanceTransactionDTO> findMaintenanceTransactionsRows(MaintenanceTransactionDTO mt);
+    CursorPage<MaintenanceTransactionDTO> findMaintenanceTransactionsRows(MaintenanceTransactionDTO mt);
 
-    List<MaintenanceCaptureDTO> findMaintenanceCaptureRows(MaintenanceCaptureDTO mc);
+    CursorPage<MaintenanceCaptureDTO> findMaintenanceCaptureRows(MaintenanceCaptureDTO mc);
 
     // Soft-delete Capture Maintenance: whole capture (all its lines) at a time; cascades into
     void deleteMaintenanceCaptureRows(MaintenanceCaptureDTO mc);

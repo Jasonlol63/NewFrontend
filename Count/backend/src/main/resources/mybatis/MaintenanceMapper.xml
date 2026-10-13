@@ -399,7 +399,57 @@
     </sql>
 
     <!-- Transaction Maintenance (view-only): every data_capture_line row (MAIN+SUB, one category at a time — never mix GAME/BANK). -->
-    <select id="findTransactionLineMaintenanceRows" resultType="com.eazycount.dto.MaintenanceTransactionDTO">
+    <!-- Loaded in batches of whole captures, newest first by (capture created_at, id): the batch is picked from -->
+    <!-- data_captures (indexed, so the database stops after the batch), then only those captures' lines are read. -->
+
+    <!-- Search over a line (aliases dl / a / dc / desc_agg), shared by the three queries below. -->
+    <sql id="transactionLineSearch">
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(dl.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dl.description_main, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dl.description_sub, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dc.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(dc.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+    </sql>
+
+    <!-- Step 1: the next captures (id + created_at only) that have at least one line matching the search. -->
+    <!-- Cursor = the last capture of the previous batch; callers pass limit = batch size + 1. -->
+    <select id="findTransactionCaptureKeys" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
+        SELECT STRAIGHT_JOIN dc.id AS id, dc.created_at AS dtsCreated
+        FROM data_captures dc FORCE INDEX (idx_dc_tenant_cat_created)
+        INNER JOIN process p ON p.id = dc.process_id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+        WHERE dc.tenant_id = #{tenantId}
+          AND dc.capture_date &gt;= #{dateFrom}
+          AND dc.capture_date &lt;= #{dateTo}
+          AND dc.category = #{category}
+        <if test="process != null and process != ''">
+          AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+          AND EXISTS (
+              SELECT 1
+              FROM data_capture_line dl
+              INNER JOIN currency c ON c.id = dl.currency_id AND c.tenant_id = dl.tenant_id
+              INNER JOIN account a ON a.id = dl.account_id
+              WHERE dl.capture_id = dc.id AND dl.tenant_id = dc.tenant_id
+              <include refid="transactionLineSearch"/>
+              LIMIT 1
+          )
+        <if test="cursorId != null">
+          AND (dc.created_at &lt; #{cursorCreatedAt}
+               OR (dc.created_at = #{cursorCreatedAt} AND dc.id &lt; #{cursorId}))
+        </if>
+        ORDER BY dc.created_at DESC, dc.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Step 2: the lines (matching the search) of the captures picked above. -->
+    <select id="findTransactionLinesByCaptureIds" resultType="com.eazycount.dto.MaintenanceTransactionDTO">
         SELECT
             dl.id AS id,
             dl.created_at AS dtsCreated,
@@ -424,31 +474,37 @@
         INNER JOIN account a ON a.id = dl.account_id
         LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
         WHERE dl.tenant_id = #{tenantId}
+          AND dl.capture_id IN
+        <foreach collection="captureIds" item="captureId" open="(" separator="," close=")">
+            #{captureId}
+        </foreach>
+        <include refid="transactionLineSearch"/>
+        ORDER BY dc.created_at DESC, dc.id DESC, dl.id DESC
+    </select>
+
+    <!-- Lines the list holds in total under the same filters, for "Showing N of total". -->
+    <select id="countTransactionLines" resultType="long">
+        SELECT COUNT(*)
+        FROM data_capture_line dl
+        INNER JOIN data_captures dc ON dc.id = dl.capture_id AND dc.tenant_id = dl.tenant_id
+        INNER JOIN process p ON p.id = dc.process_id
+        INNER JOIN currency c ON c.id = dl.currency_id AND c.tenant_id = dl.tenant_id
+        INNER JOIN account a ON a.id = dl.account_id
+        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+        WHERE dl.tenant_id = #{tenantId}
           AND dc.capture_date &gt;= #{dateFrom}
           AND dc.capture_date &lt;= #{dateTo}
           AND dc.category = #{category}
         <if test="process != null and process != ''">
-            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+          AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
         </if>
-        <if test="q != null and q != ''">
-            AND (
-                UPPER(dl.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(a.account_id) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(dl.description_main, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(dl.description_sub, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(dc.remark, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(dc.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-            )
-        </if>
-        ORDER BY dl.created_at DESC, dl.id DESC
+        <include refid="transactionLineSearch"/>
     </select>
 
-    <!-- Capture Maintenance (live rows): one row per data_captures header — a submission can cover several -->
-    <!-- products (data_capture_line rows), rolled up here, not shown per-product. Product/W-L Group mirror -->
-    <!-- each other (same as legacy): BANK -> process.code (already the fixed SALARY/BONUS/PROFIT/COMMISSION code); -->
-    <!-- GAME -> the description(s) configured on the process (process_description_link), comma-joined if more -->
-    <!-- than one, falling back to process.code when none are linked. Not the per-submit selection. -->
+    <!-- Capture Maintenance Product (same as legacy): BANK -> process.code (already the fixed -->
+    <!-- SALARY/BONUS/PROFIT/COMMISSION code); GAME -> the description(s) configured on the process -->
+    <!-- (process_description_link), comma-joined if more than one, falling back to process.code when none are -->
+    <!-- linked. Not the per-submit selection. -->
     <sql id="captureDescriptionAgg">
         (
             SELECT pdl.process_id, GROUP_CONCAT(DISTINCT pd.name ORDER BY pd.name SEPARATOR ', ') AS description_names
@@ -466,26 +522,12 @@
         END
     </sql>
 
-    <select id="findCaptureLineMaintenanceRows" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
-        SELECT
-            dc.id AS id,
-            dc.created_at AS dtsCreated,
-            p.code AS process,
-            UPPER(c.code) AS currency,
-            <include refid="captureProductExpr"/> AS product,
-            dc.created_by AS createdBy,
-            FALSE AS deleted,
-            NULL AS deletedBy,
-            NULL AS deletedAt
-        FROM data_capture_line dl
-        INNER JOIN data_captures dc ON dc.id = dl.capture_id AND dc.tenant_id = dl.tenant_id
-        INNER JOIN process p ON p.id = dc.process_id
-        INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
-        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
-        WHERE dl.tenant_id = #{tenantId}
-          AND dc.capture_date &gt;= #{dateFrom}
-          AND dc.capture_date &lt;= #{dateTo}
-          AND dc.category = #{category}
+    <!-- WHERE shared by the page and the count query below (aliases dc / p / c / desc_agg). -->
+    <sql id="captureFilters">
+        dc.tenant_id = #{tenantId}
+        AND dc.capture_date &gt;= #{dateFrom}
+        AND dc.capture_date &lt;= #{dateTo}
+        AND dc.category = #{category}
         <if test="process != null and process != ''">
             AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
         </if>
@@ -496,45 +538,109 @@
                 OR UPPER(c.code) LIKE CONCAT('%', UPPER(#{q}), '%')
             )
         </if>
-        GROUP BY dc.id
-        ORDER BY dc.created_at DESC, dc.id DESC
+    </sql>
+
+    <!-- A capture is archived as a whole, so every data_capture_line_deleted row under one capture_id shares the -->
+    <!-- same deleted_by/deleted_at; MAX() just collapses them to one row per capture. -->
+    <sql id="captureArchiveAgg">
+        (
+            SELECT capture_id, MAX(deleted_by) AS deleted_by, MAX(deleted_at) AS deleted_at
+            FROM data_capture_line_deleted
+            WHERE tenant_id = #{tenantId}
+            GROUP BY capture_id
+        )
+    </sql>
+
+    <!-- STRAIGHT_JOIN + FORCE INDEX idx_dc_tenant_cat_created (+ LIMIT 1 in EXISTS, so it is not flattened into a join) make -->
+    <!-- the database read data_captures newest-first through that index and stop once the batch is full; without them -->
+    <!-- it starts from currency/process and sorts every capture in the date range. Needs the index (SqlEtcForMigrate/fixes). -->
+    <!-- Capture Maintenance, one page (keyset): live and archived captures, one row per data_captures header -->
+    <!-- (a submission can cover several products, rolled up, not shown per product). Newest first by -->
+    <!-- (created_at, id); a live and an archived row of the same capture tie-break live first (src 1 before 0). -->
+    <!-- The cursor is the last row of the previous page. Each branch is cut to #{limit} rows before the UNION, -->
+    <!-- so the database stops reading once a branch has enough instead of sorting the whole date range. -->
+    <select id="findCaptureMaintenancePage" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
+        SELECT u.id, u.dtsCreated, u.process, u.currency, u.product, u.createdBy,
+               u.deleted, u.deletedBy, u.deletedAt
+        FROM (
+            (
+                SELECT STRAIGHT_JOIN
+                    dc.id AS id,
+                    dc.created_at AS dtsCreated,
+                    p.code AS process,
+                    UPPER(c.code) AS currency,
+                    <include refid="captureProductExpr"/> AS product,
+                    dc.created_by AS createdBy,
+                    FALSE AS deleted,
+                    NULL AS deletedBy,
+                    NULL AS deletedAt,
+                    1 AS src
+                FROM data_captures dc FORCE INDEX (idx_dc_tenant_cat_created)
+                INNER JOIN process p ON p.id = dc.process_id
+                INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+                LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+                WHERE <include refid="captureFilters"/>
+                  AND EXISTS (SELECT 1 FROM data_capture_line dl WHERE dl.capture_id = dc.id AND dl.tenant_id = dc.tenant_id LIMIT 1)
+                <if test="cursorId != null">
+                  AND (dc.created_at &lt; #{cursorCreatedAt}
+                       OR (dc.created_at = #{cursorCreatedAt}
+                           AND (dc.id &lt; #{cursorId} OR (dc.id = #{cursorId} AND 1 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY dc.created_at DESC, dc.id DESC
+                LIMIT #{limit}
+            )
+            UNION ALL
+            (
+                SELECT
+                    dc.id,
+                    dc.created_at,
+                    p.code,
+                    UPPER(c.code),
+                    <include refid="captureProductExpr"/>,
+                    dc.created_by,
+                    TRUE,
+                    dld.deleted_by,
+                    dld.deleted_at,
+                    0
+                FROM data_captures dc
+                INNER JOIN <include refid="captureArchiveAgg"/> dld ON dld.capture_id = dc.id
+                INNER JOIN process p ON p.id = dc.process_id
+                INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+                LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+                WHERE <include refid="captureFilters"/>
+                <if test="cursorId != null">
+                  AND (dc.created_at &lt; #{cursorCreatedAt}
+                       OR (dc.created_at = #{cursorCreatedAt}
+                           AND (dc.id &lt; #{cursorId} OR (dc.id = #{cursorId} AND 0 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY dc.created_at DESC, dc.id DESC
+                LIMIT #{limit}
+            )
+        ) u
+        ORDER BY u.dtsCreated DESC, u.id DESC, u.src DESC
+        LIMIT #{limit}
     </select>
 
-    <!-- Capture Maintenance archived (soft-deleted) rows — same rollup, sourced from data_capture_line_deleted. -->
-    <!-- A capture is archived as a whole (never partially), so every line under one capture_id shares the same -->
-    <!-- deleted_by/deleted_at; MAX() here is just to satisfy GROUP BY, not a real aggregation of differing values. -->
-    <select id="findCaptureLineMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenanceCaptureDTO">
+    <!-- Rows the list holds in total under the same filters (live + archived), for "Showing N of total". -->
+    <select id="countCaptureMaintenance" resultType="long">
         SELECT
-            dc.id AS id,
-            dc.created_at AS dtsCreated,
-            p.code AS process,
-            UPPER(c.code) AS currency,
-            <include refid="captureProductExpr"/> AS product,
-            dc.created_by AS createdBy,
-            TRUE AS deleted,
-            MAX(dld.deleted_by) AS deletedBy,
-            MAX(dld.deleted_at) AS deletedAt
-        FROM data_capture_line_deleted dld
-        INNER JOIN data_captures dc ON dc.id = dld.capture_id AND dc.tenant_id = dld.tenant_id
-        INNER JOIN process p ON p.id = dc.process_id
-        INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
-        LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
-        WHERE dld.tenant_id = #{tenantId}
-          AND dc.capture_date &gt;= #{dateFrom}
-          AND dc.capture_date &lt;= #{dateTo}
-          AND dc.category = #{category}
-        <if test="process != null and process != ''">
-            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
-        </if>
-        <if test="q != null and q != ''">
-            AND (
-                UPPER(p.code) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(desc_agg.description_names, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(c.code) LIKE CONCAT('%', UPPER(#{q}), '%')
+            (
+                SELECT COUNT(*)
+                FROM data_captures dc
+                INNER JOIN process p ON p.id = dc.process_id
+                INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+                LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+                WHERE <include refid="captureFilters"/>
+                  AND EXISTS (SELECT 1 FROM data_capture_line dl WHERE dl.capture_id = dc.id AND dl.tenant_id = dc.tenant_id)
+            ) + (
+                SELECT COUNT(*)
+                FROM data_captures dc
+                INNER JOIN <include refid="captureArchiveAgg"/> dld ON dld.capture_id = dc.id
+                INNER JOIN process p ON p.id = dc.process_id
+                INNER JOIN currency c ON c.id = dc.currency_id AND c.tenant_id = dc.tenant_id
+                LEFT JOIN <include refid="captureDescriptionAgg"/> desc_agg ON desc_agg.process_id = p.id
+                WHERE <include refid="captureFilters"/>
             )
-        </if>
-        GROUP BY dc.id
-        ORDER BY MAX(dld.deleted_at) DESC, dc.id DESC
     </select>
 
     <!-- Capture Maintenance delete cascade. Delete unit is always the whole capture (data_captures.id); the -->

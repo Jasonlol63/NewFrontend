@@ -22,6 +22,13 @@ public class MaintenanceCaptureDTO {
     private String category;
     private String q;
 
+    // List paging: rows per batch (default 100) and, after the first batch, the last row received —
+    // created time (ISO), id and whether it was an archived row.
+    private Integer limit;
+    private String cursorCreatedAt;
+    private Integer cursorId;
+    private Boolean cursorDeleted;
+
     // Delete request: selected data_captures.id values from the list checkboxes
     private List<Integer> captureIds;
 

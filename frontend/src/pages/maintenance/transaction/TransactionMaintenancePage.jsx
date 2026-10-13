@@ -1,5 +1,5 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toast from "@/components/shared/Toast.jsx";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
@@ -8,8 +8,13 @@ import DataTable from "@/components/shared/list/DataTable.jsx";
 import { DateText } from "@/components/shared/list/cells.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useMaintenanceFilters } from "../shared/useMaintenanceFilters";
-import { useMaintenanceList } from "../shared/useMaintenanceList";
-import { TRANSACTION_LIST_URL, filterTransactionRows, normalizeTransactionRow } from "./transactionMaintenanceRules";
+import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
+import { TRANSACTION_LIST_URL, normalizeTransactionRow } from "./transactionMaintenanceRules";
+
+// The search box asks the server once typing has paused.
+const SEARCH_DELAY_MS = 300;
+// The server loads whole captures (about 6 lines each) per batch.
+const CAPTURES_PER_BATCH = 25;
 
 const dash = (v) => v || "-";
 const AMOUNT = "text-right tabular-nums";
@@ -37,8 +42,13 @@ export default function TransactionMaintenancePage() {
   const { toasts, push, dismiss } = useNotice(5000);
   const columns = useMemo(() => baseColumns.map((c) => ({ ...c, label: t(`cols.${c.label}`) })), [t]);
   const filters = useMaintenanceFilters();
-  const list = useMaintenanceList(TRANSACTION_LIST_URL, filters.request, normalizeTransactionRow, touchesLedger);
-  const rows = useMemo(() => filterTransactionRows(list.rows, filters.search), [list.rows, filters.search]);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+  const request = useMemo(() => filters.request && { ...filters.request, ...(query ? { q: query } : {}) }, [filters.request, query]);
+  const list = useInfiniteMaintenanceList(TRANSACTION_LIST_URL, request, normalizeTransactionRow, touchesLedger, CAPTURES_PER_BATCH);
 
   useErrorToasts(push, [
     [filters.error, t("errors.processes")],
@@ -54,7 +64,13 @@ export default function TransactionMaintenancePage() {
         columns={columns}
         noun="records"
         loading={list.loading}
-        rows={rows}
+        rows={list.rows}
+        total={list.total}
+        virtual
+        hasMore={list.hasMore}
+        loadingMore={list.loadingMore}
+        onLoadMore={list.loadMore}
+        scrollResetKey={request}
         fitWidth
         minWidth="min-w-0"
         emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}

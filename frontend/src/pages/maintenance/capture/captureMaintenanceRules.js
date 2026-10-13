@@ -21,9 +21,3 @@ export function normalizeCaptureRow(raw) {
     deletedBy: deletedByText(raw.deletedBy, raw.deletedAt),
   };
 }
-
-export function filterCaptureRows(rows, search) {
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((r) => [r.process, r.product, r.currency].some((v) => v.toLowerCase().includes(q)));
-}

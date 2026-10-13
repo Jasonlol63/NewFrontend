@@ -10,6 +10,7 @@ import com.eazycount.dao.DataCaptureSummaryDao;
 import com.eazycount.dao.MaintenanceDao;
 import com.eazycount.dao.ProcessDao;
 import com.eazycount.dao.TransactionRateDao;
+import com.eazycount.dto.CursorPage;
 import com.eazycount.dto.MaintenanceBankProcessDTO;
 import com.eazycount.dto.MaintenanceCaptureDTO;
 import com.eazycount.dto.MaintenanceFormulaDTO;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -71,19 +73,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                             MaintenanceBankProcessDTO::getId,
                             Comparator.nullsLast(Comparator.reverseOrder()));
 
-    private static final Comparator<MaintenanceTransactionDTO> TC_ROW_ORDER =
-            Comparator
-                    .comparing(MaintenanceTransactionDTO::getDtsCreated,
-                               Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(MaintenanceTransactionDTO::getId,
-                                   Comparator.nullsLast(Comparator.reverseOrder()));
-
-    private static final Comparator<MaintenanceCaptureDTO> CC_ROW_ORDER =
-            Comparator
-                    .comparing(MaintenanceCaptureDTO::getDtsCreated,
-                               Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(MaintenanceCaptureDTO::getId,
-                                   Comparator.nullsLast(Comparator.reverseOrder()));
+    // Capture Maintenance loads in batches: 100 rows by default; a refresh may ask for as many as are already on screen.
+    private static final int CAPTURE_PAGE_DEFAULT = 100;
+    private static final int CAPTURE_PAGE_MAX = 2000;
+    // Transaction Maintenance loads whole captures (about 6 lines each) per batch.
+    private static final int TRANSACTION_PAGE_DEFAULT = 25;
 
     @Autowired
     private MaintenanceDao maintenanceDao;
@@ -104,46 +98,92 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private RealtimeEventPublisher realtimeEventPublisher;
 
     @Override
-    public List<MaintenanceTransactionDTO> findMaintenanceTransactionsRows(MaintenanceTransactionDTO mt) {
+    public CursorPage<MaintenanceTransactionDTO> findMaintenanceTransactionsRows(MaintenanceTransactionDTO mt) {
         AccessControlUtils.requireLoggedIn();
         ProcessCategoryListQuery query = parseTransactionListQuery(mt);
 
-        List<MaintenanceTransactionDTO> rows = maintenanceDao.findTransactionLineMaintenanceRows(
+        int batch = mt.getLimit() == null ? TRANSACTION_PAGE_DEFAULT : Math.max(1, Math.min(mt.getLimit(), CAPTURE_PAGE_MAX));
+        boolean firstPage = mt.getCursorId() == null;
+        LocalDateTime cursorCreatedAt = firstPage ? null : parseCursorTime(mt.getCursorCreatedAt());
+
+        // Step 1: the next captures (one more than a batch tells whether there is another batch after this one).
+        List<MaintenanceCaptureDTO> keys = new ArrayList<>(maintenanceDao.findTransactionCaptureKeys(
                 query.tenantId(),
                 query.dateFrom(),
                 query.dateTo(),
                 query.process(),
                 query.category(),
-                query.q());
-        rows.sort(TC_ROW_ORDER);
-        return rows;
+                query.q(),
+                cursorCreatedAt,
+                mt.getCursorId(),
+                batch + 1));
+        Map<String, Object> nextCursor = null;
+        if (keys.size() > batch) {
+            keys = keys.subList(0, batch);
+            MaintenanceCaptureDTO last = keys.get(batch - 1);
+            nextCursor = new LinkedHashMap<>();
+            nextCursor.put("createdAt", last.getDtsCreated().toString());
+            nextCursor.put("id", last.getId());
+        }
+
+        // Step 2: just those captures' lines.
+        List<MaintenanceTransactionDTO> rows = keys.isEmpty()
+                ? List.of()
+                : maintenanceDao.findTransactionLinesByCaptureIds(
+                        query.tenantId(),
+                        keys.stream().map(MaintenanceCaptureDTO::getId).toList(),
+                        query.q());
+        Long total = firstPage
+                ? maintenanceDao.countTransactionLines(
+                        query.tenantId(), query.dateFrom(), query.dateTo(), query.process(), query.category(), query.q())
+                : null;
+        return new CursorPage<>(rows, nextCursor, total);
+    }
+
+    private static LocalDateTime parseCursorTime(String raw) {
+        try {
+            return LocalDateTime.parse(raw);
+        } catch (RuntimeException e) {
+            throw new BusinessException("Invalid list cursor");
+        }
     }
 
     @Override
-    public List<MaintenanceCaptureDTO> findMaintenanceCaptureRows(MaintenanceCaptureDTO mc) {
+    public CursorPage<MaintenanceCaptureDTO> findMaintenanceCaptureRows(MaintenanceCaptureDTO mc) {
         AccessControlUtils.requireLoggedIn();
         ProcessCategoryListQuery query = parseCaptureListQuery(mc);
 
-        List<MaintenanceCaptureDTO> live = maintenanceDao.findCaptureLineMaintenanceRows(
-                query.tenantId(),
-                query.dateFrom(),
-                query.dateTo(),
-                query.process(),
-                query.category(),
-                query.q());
-        List<MaintenanceCaptureDTO> archived = maintenanceDao.findCaptureLineMaintenanceDeletedRows(
-                query.tenantId(),
-                query.dateFrom(),
-                query.dateTo(),
-                query.process(),
-                query.category(),
-                query.q());
+        int pageSize = mc.getLimit() == null ? CAPTURE_PAGE_DEFAULT : Math.max(1, Math.min(mc.getLimit(), CAPTURE_PAGE_MAX));
+        boolean firstPage = mc.getCursorId() == null;
+        LocalDateTime cursorCreatedAt = firstPage ? null : parseCursorTime(mc.getCursorCreatedAt());
+        Integer cursorSrc = Boolean.TRUE.equals(mc.getCursorDeleted()) ? 0 : 1;
 
-        List<MaintenanceCaptureDTO> rows = new ArrayList<>(live.size() + archived.size());
-        rows.addAll(live);
-        rows.addAll(archived);
-        rows.sort(CC_ROW_ORDER);
-        return rows;
+        // One row more than asked tells whether there is a next batch.
+        List<MaintenanceCaptureDTO> rows = new ArrayList<>(maintenanceDao.findCaptureMaintenancePage(
+                query.tenantId(),
+                query.dateFrom(),
+                query.dateTo(),
+                query.process(),
+                query.category(),
+                query.q(),
+                cursorCreatedAt,
+                mc.getCursorId(),
+                cursorSrc,
+                pageSize + 1));
+        Map<String, Object> nextCursor = null;
+        if (rows.size() > pageSize) {
+            rows = rows.subList(0, pageSize);
+            MaintenanceCaptureDTO last = rows.get(rows.size() - 1);
+            nextCursor = new LinkedHashMap<>();
+            nextCursor.put("createdAt", last.getDtsCreated().toString());
+            nextCursor.put("id", last.getId());
+            nextCursor.put("deleted", Boolean.TRUE.equals(last.getDeleted()));
+        }
+        Long total = firstPage
+                ? maintenanceDao.countCaptureMaintenance(
+                        query.tenantId(), query.dateFrom(), query.dateTo(), query.process(), query.category(), query.q())
+                : null;
+        return new CursorPage<>(rows, nextCursor, total);
     }
 
     // Capture Maintenance delete: unit is always the whole capture (data_captures.id) — the list is already

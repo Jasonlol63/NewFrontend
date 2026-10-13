@@ -19,6 +19,11 @@ public class MaintenanceTransactionDTO {
     private String category;
     private String q;
 
+    // List paging: captures per batch (default 25) and, after the first batch, the last capture received (created time ISO, id).
+    private Integer limit;
+    private String cursorCreatedAt;
+    private Integer cursorId;
+
     private Integer id;
     private LocalDateTime dtsCreated;
     private String idProduct;

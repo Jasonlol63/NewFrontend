@@ -70,6 +70,7 @@
     "next": "Next page",
     "summaryPaged": "Showing {{from}}–{{to}} of {{total}} {{noun}}",
     "summaryAll": "Showing all {{total}} {{noun}}",
+    "summaryLoaded": "Showing {{shown}} of {{total}} {{noun}}",
     "empty": "No {{noun}} found",
     "selectAllInactive": "Select all inactive rows on this page",
     "selectRow": "Select row",

@@ -766,6 +766,7 @@ CREATE TABLE `data_captures` (
     `created_at`         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_dc_tenant_capture_date` (`tenant_id`, `capture_date`),
+    KEY `idx_dc_tenant_cat_created` (`tenant_id`, `category`, `created_at`, `id`),
     KEY `idx_dc_tenant_process_date` (`tenant_id`, `process_id`, `capture_date`),
     KEY `idx_dc_category` (`tenant_id`, `category`),
     CONSTRAINT `fk_dc_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenant` (`id`) ON DELETE CASCADE,

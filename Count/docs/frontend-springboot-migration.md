@@ -2409,7 +2409,7 @@ WHERE tenant_id = #{tenantId}
 | `dtsCreated` | `data_captures.created_at` | header 级别，不再取某一行的 |
 | `process` | `process.code`（经 `data_captures.process_id`） | 同一字段既是请求过滤参数也是响应列，跟 §10 一致 |
 | `currency` | `currency.code`（经 **`data_captures.currency_id`**，不是某一行的） | |
-| `product` / `wlGroup`（两列同一个表达式） | `CASE WHEN p.category='BANK' THEN p.code WHEN 有选 description THEN 逗号拼接的 description 名 ELSE p.code END` | BANK 直接用 process code（本来就是 SALARY/BONUS/PROFIT/COMMISSION）；GAME 取 `data_capture_description` 关联的 `process_description.name`，多选逗号拼接，**没选任何 description 时回退显示 process code**（用户确认，已用真实数据验证：3 条测试 capture 都没选过 description，回退后显示 "SALARY"/"BONUS"，不会出现空白格） |
+| `product`（W/L Group 列已于 2026-10-13 移除，原先与它是同一个表达式） | `CASE WHEN p.category='BANK' THEN p.code WHEN 有选 description THEN 逗号拼接的 description 名 ELSE p.code END` | BANK 直接用 process code（本来就是 SALARY/BONUS/PROFIT/COMMISSION）；GAME 取 `data_capture_description` 关联的 `process_description.name`，多选逗号拼接，**没选任何 description 时回退显示 process code**（用户确认，已用真实数据验证：3 条测试 capture 都没选过 description，回退后显示 "SALARY"/"BONUS"，不会出现空白格） |
 | `createdBy` | `data_captures.created_by` | header 字段，不变 |
 | `deleted`/`deletedBy`/`deletedAt` | 活跃行固定 `false`/`null`/`null`；归档行来自 `data_capture_line_deleted` 按 `capture_id` 分组，`deletedBy`/`deletedAt` 用 `MAX()` 聚合（同一 capture 底下所有行是同一次批量归档写入的，值本来就一样，`MAX` 只是满足 GROUP BY 语法，不是真的在聚合不同的值） | |
 
@@ -6982,7 +6982,7 @@ if (transactionDao.countTransactionsByCurrencyId(id, tenantId) > 0) {
 
 ---
 
-## 42. Capture / Transaction Maintenance：Product、W/L Group、Id_Product、Description 与旧版对照（2026-10-05）
+## 42. Capture / Transaction Maintenance：Product、Id_Product、Description 与旧版对照（2026-10-05）
 
 > 记录日期：2026-10-05。改动文件：`backend/src/main/resources/mybatis/MaintenanceMapper.xml`。
 >
@@ -7005,9 +7005,9 @@ if (transactionDao.countTransactionsByCurrencyId(id, tenantId) > 0) {
 > ⚠️ 新库还有一张 `data_capture_description`（该次提交时勾选的描述快照），**和旧版取法无关，不要用它**：
 > 旧版取的是 process 配置上的描述，不是每次提交的选择。
 
-### 1. Capture Maintenance：Product / W/L Group
+### 1. Capture Maintenance：Product
 
-两列用同一个表达式，值始终相同。
+> 2026-10-13：W/L Group 列（前端列、`wlGroup` 别名、DTO 字段、i18n）已移除，它与 Product 用同一个表达式，值始终相同。
 
 **旧版**（`dcSqlCaptureProductLabel`）：
 

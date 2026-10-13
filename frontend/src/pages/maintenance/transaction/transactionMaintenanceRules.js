@@ -21,11 +21,3 @@ export function normalizeTransactionRow(raw) {
     createdBy: text(raw.createdBy),
   };
 }
-
-export function filterTransactionRows(rows, search) {
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((r) =>
-    [r.idProduct, r.account, r.description, r.remark, r.createdBy, r.process].some((v) => v.toLowerCase().includes(q))
-  );
-}
