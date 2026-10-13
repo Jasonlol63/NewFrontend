@@ -56,7 +56,7 @@ export function DateText({ value, variant, separator = "-" }) {
               side="bottom"
               sideOffset={7}
               collisionPadding={8}
-              className="z-50 flex items-center gap-1.5 rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 text-[12.5px] font-semibold tracking-[0.2px] tabular-nums text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
+              className="z-50 flex items-center gap-1.5 rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 type-body font-semibold! tracking-[0.2px] tabular-nums text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
             >
               <Clock className="size-3.5 opacity-85" strokeWidth={2.2} />
               {time}
@@ -77,7 +77,7 @@ export function DateText({ value, variant, separator = "-" }) {
           <Tooltip.Content
             side="top"
             sideOffset={6}
-            className="z-50 flex items-center gap-1.5 rounded-[10px] border border-[#bcd9fb] bg-white px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-navy shadow-[0_8px_20px_-6px_rgba(20,70,160,0.35)] animate-in fade-in-0 zoom-in-95"
+            className="z-50 flex items-center gap-1.5 rounded-[10px] border border-[#bcd9fb] bg-white px-2.5 py-1.5 type-table-cell font-semibold! tabular-nums text-brand-navy shadow-[0_8px_20px_-6px_rgba(20,70,160,0.35)] animate-in fade-in-0 zoom-in-95"
           >
             <Clock className="size-3.5 text-brand-blue" strokeWidth={2.2} />
             {time}

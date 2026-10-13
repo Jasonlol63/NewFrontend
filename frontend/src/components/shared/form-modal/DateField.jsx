@@ -10,7 +10,7 @@ import { inputClass, openFieldClass } from "./fields.jsx";
 // Selected day / month / year: the modal's blue gradient (same as Save), not the Dashboard's lighter one.
 const activeClass = "bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]";
 // Short laptops (modal-short, <= 700px high) get a smaller calendar: 216 wide with 26px days instead of 260 wide with 28px days.
-const tileClass = "cursor-pointer rounded-lg border-none py-2 text-[12px] font-semibold transition-colors modal-short:py-1.5 modal-short:text-[11.5px]";
+const tileClass = "cursor-pointer rounded-lg border-none py-2 fm-btn-sm transition-colors modal-short:py-1.5";
 
 /**
  * Single-date field: a plain input-style box (yyyy-mm-dd + calendar icon) that opens the
@@ -91,7 +91,7 @@ export default function DateField({ value, onChange, placeholder, popupClassName
           {view === "day" && (
             <div className="grid grid-cols-7 gap-y-1.5 text-center modal-short:gap-y-0.5">
               {WEEKDAYS.map((d) => (
-                <span key={d} className="pb-0.5 text-[10.5px] font-semibold text-dash-sub modal-short:pb-0 modal-short:text-[10px]">
+                <span key={d} className="pb-0.5 fm-help font-semibold! text-dash-sub modal-short:pb-0">
                   {d}
                 </span>
               ))}
@@ -108,7 +108,7 @@ export default function DateField({ value, onChange, placeholder, popupClassName
                         setOpen(false);
                       }}
                       className={cn(
-                        "flex size-7 cursor-pointer items-center justify-center rounded-lg border-none text-[12px] font-semibold tabular-nums transition-colors modal-short:size-[26px] modal-short:text-[11.5px]",
+                        "flex size-7 cursor-pointer items-center justify-center rounded-lg border-none fm-btn-sm tabular-nums transition-colors modal-short:size-[26px]",
                         selected
                           ? activeClass
                           : outside
@@ -186,7 +186,7 @@ function HeadButton({ active, divider, idleClass = "text-[#1e3a6e]", children, .
     <button
       type="button"
       className={cn(
-        "flex cursor-pointer items-center gap-1 border-0 px-2 py-[5px] text-[12px] font-bold transition-colors modal-short:px-[7px] modal-short:py-[3px] modal-short:text-[11.5px]",
+        "flex cursor-pointer items-center gap-1 border-0 px-2 py-[5px] fm-btn-sm transition-colors modal-short:px-[7px] modal-short:py-[3px]",
         divider && "border-l border-dash-line",
         active ? activeClass : cn("bg-white hover:bg-slate-50", idleClass)
       )}

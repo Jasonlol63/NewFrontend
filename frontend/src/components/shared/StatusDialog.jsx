@@ -100,11 +100,11 @@ export default function StatusDialog({
           className="fixed left-1/2 top-1/2 z-50 w-[min(360px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 animate-dialog-in rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] px-[26px] pb-6 pt-[30px] text-center shadow-[0_40px_80px_-24px_rgba(20,51,107,0.5),0_12px_28px_-12px_rgba(20,70,160,0.3),inset_0_1px_0_#fff] outline-none motion-reduce:animate-none"
         >
           <StatusIcon type={type} />
-          <Dialog.Title className="m-0 mb-1.5 text-lg font-bold tracking-[-0.2px] text-brand-navy">
+          <Dialog.Title className="m-0 mb-1.5 type-card-title tracking-[-0.2px] text-brand-navy">
             {title}
           </Dialog.Title>
           {description ? (
-            <Dialog.Description className="m-0 mb-[22px] text-[13px] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
+            <Dialog.Description className="m-0 mb-[22px] type-body font-normal! leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
               {description}
             </Dialog.Description>
           ) : (
@@ -115,7 +115,7 @@ export default function StatusDialog({
               <button
                 type="button"
                 onClick={onCancel ?? close}
-                className="h-[42px] flex-1 cursor-pointer rounded-full border border-[#d9e8fb] bg-white text-sm font-semibold text-[#4a6fa5]"
+                className="h-[42px] flex-1 cursor-pointer rounded-full border border-[#d9e8fb] bg-white type-body font-semibold! text-[#4a6fa5]"
               >
                 {cancelText}
               </button>
@@ -123,7 +123,7 @@ export default function StatusDialog({
             <button
               type="button"
               onClick={onConfirm ?? close}
-              className="h-[42px] flex-1 cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-bold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
+              className="h-[42px] flex-1 cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
             >
               {confirmText}
             </button>

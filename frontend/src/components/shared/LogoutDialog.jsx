@@ -45,7 +45,7 @@ export default function LogoutDialog({ open, onOpenChange, who, busy = false, on
           className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-32px)] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 animate-dialog-in overflow-y-auto rounded-[20px] bg-white px-(--pad-x) pb-[calc(var(--pad-y)*0.75)] pt-(--pad-y) text-center shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)] outline-none motion-reduce:animate-none"
         >
           <LogoutIcon />
-          <Dialog.Title className="m-0 mb-1.5 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">{t("logoutDialog.title")}</Dialog.Title>
+          <Dialog.Title className="m-0 mb-1.5 type-card-title tracking-[-0.2px] text-brand-navy">{t("logoutDialog.title")}</Dialog.Title>
           <Dialog.Description className="m-0 break-words text-[clamp(13px,1.8dvh,14px)] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
             {who && (
               <>
@@ -58,7 +58,7 @@ export default function LogoutDialog({ open, onOpenChange, who, busy = false, on
           <div className="mt-(--gap) flex gap-2.5">
             <Dialog.Close
               disabled={busy}
-              className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white type-body font-semibold! text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {t("cancel")}
             </Dialog.Close>
@@ -66,7 +66,7 @@ export default function LogoutDialog({ open, onOpenChange, who, busy = false, on
               type="button"
               disabled={busy}
               onClick={onConfirm}
-              className="inline-flex h-(--btn-h) flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border-none bg-brand-sweep text-sm font-semibold text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] outline-none transition-[filter] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-brand-blue/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-(--btn-h) flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border-none bg-brand-sweep type-body font-semibold! text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] outline-none transition-[filter] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-brand-blue/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {busy && <Loader2 className="size-4 animate-spin" />}
               {t("logoutDialog.confirm")}

@@ -53,7 +53,7 @@ export const TRAY =
 // The boxed pager grows with the screen height: small on short screens (laptops), medium from 760px,
 // full size from 900px. Spelled out in full so Tailwind can see every class.
 const BOX_SIZE =
-  "h-6 min-w-6 rounded-[7px] px-1.5 text-[11px] [@media(min-height:760px)]:h-7 [@media(min-height:760px)]:min-w-7 [@media(min-height:760px)]:rounded-[8px] [@media(min-height:760px)]:px-2 [@media(min-height:760px)]:text-[12px] [@media(min-height:900px)]:h-[30px] [@media(min-height:900px)]:min-w-[30px] [@media(min-height:900px)]:rounded-[9px] [@media(min-height:900px)]:text-[12px]";
+  "h-6 min-w-6 rounded-[7px] px-1.5 type-caption font-semibold! [@media(min-height:760px)]:h-7 [@media(min-height:760px)]:min-w-7 [@media(min-height:760px)]:rounded-[8px] [@media(min-height:760px)]:px-2 [@media(min-height:900px)]:h-[30px] [@media(min-height:900px)]:min-w-[30px] [@media(min-height:900px)]:rounded-[9px]";
 const BOX_ICON = "size-3.5 [@media(min-height:760px)]:size-4";
 const BOX_TRAY =
   "gap-[2px] rounded-[10px] p-0.5 [@media(min-height:760px)]:gap-[3px] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:p-1";
@@ -570,10 +570,10 @@ export default function DataTable({
         className={cn(
           "flex flex-none items-center justify-between gap-3",
           // Cards: no footer bar; the count and the pager are sky-gradient chips sitting on the page background.
-          cards ? "pt-1" : "border-t border-dash-line bg-white/70 px-4 py-2 text-[12px] text-dash-sub"
+          cards ? "pt-1" : "border-t border-dash-line bg-white/70 px-4 py-2 type-caption text-dash-sub"
         )}
       >
-        <span className={cards ? `rounded-[10px] px-2.5 py-1 text-[11px] font-medium text-[#33507f] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:px-3 [@media(min-height:760px)]:py-[7px] [@media(min-height:760px)]:text-[12px] ${TRAY}` : undefined}>{summary}</span>
+        <span className={cards ? `rounded-[10px] px-2.5 py-1 type-caption font-medium! text-[#33507f] [@media(min-height:760px)]:rounded-xl [@media(min-height:760px)]:px-3 [@media(min-height:760px)]:py-[7px] ${TRAY}` : undefined}>{summary}</span>
         {paged && pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} boxed={cards || boxedPager} />}
       </div>
       {cellTip}

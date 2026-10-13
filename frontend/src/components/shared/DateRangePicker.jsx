@@ -36,15 +36,15 @@ const SIZE = {
   // The popup is always exactly as wide as this box; the calendar takes whatever the presets leave.
   trigger: "w-[330px]",                         // width of the date box AND of the popup
   presetColumn: "w-[92px] p-1",                 // left preset list width + padding
-  presetItem: "px-2 py-1.5 text-[12px]",        // each preset row
+  presetItem: "px-2 py-1.5 type-caption font-semibold!",        // each preset row
   calendar: "p-2.5",                            // right calendar padding
   header: "mb-2",                               // gap under the < Sep 2026 > row
-  headerButton: "px-2 py-[calc(var(--spacing)*1.2)] text-[12px]",      // "Sep" / "2026" buttons
+  headerButton: "px-2 py-[calc(var(--spacing)*1.2)] type-caption font-semibold!",      // "Sep" / "2026" buttons
   navButton: "size-6",                          // < > arrows
-  weekday: "pb-0.5 text-[10.5px]",              // Sun Mon Tue ...
-  dayCell: "size-7 text-[12px]",                // each day number
+  weekday: "pb-0.5 type-caption",              // Sun Mon Tue ...
+  dayCell: "size-7 type-caption font-semibold!",                // each day number
   dayRowGap: "gap-y-1.5",
-  tile: "py-2 text-[12px]",                     // month / year grid tiles
+  tile: "py-2 type-caption font-semibold!",                     // month / year grid tiles
   tileGap: "gap-1.5",
 };
 // ================================================================
@@ -170,7 +170,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
                 type="button"
                 aria-expanded={presetOpen}
                 onClick={() => setPresetOpen((v) => !v)}
-                className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-dash-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1e3a6e]"
+                className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-dash-line bg-white px-2.5 py-1.5 type-caption font-semibold! text-[#1e3a6e]"
               >
                 {activePreset ? presetLabel(activePreset) : t("calendar.custom")}
                 <ChevronDown className={cn("size-3.5 transition-transform", presetOpen && "rotate-180")} strokeWidth={2.6} />
@@ -363,7 +363,7 @@ export default function DateRangePicker({ from, to, onChange, align = "start", c
             )}
 
             {anchor && view === "day" && (
-              <p className="mt-2 text-center text-[11px] font-medium text-dash-faint">{t("calendar.selectEnd")}</p>
+              <p className="mt-2 text-center type-caption font-medium! text-dash-faint">{t("calendar.selectEnd")}</p>
             )}
           </div>
         </Popover.Content>

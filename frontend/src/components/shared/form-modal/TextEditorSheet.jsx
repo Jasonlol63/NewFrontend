@@ -44,10 +44,10 @@ export default function TextEditorSheet({ title, subtitle, value, onChange, plac
             <Icon className="size-4" strokeWidth={2.3} />
           </span>
           <div className="min-w-0">
-            <h2 id={titleId} className="m-0 text-[16px] font-extrabold text-brand-navy">
+            <h2 id={titleId} className="m-0 fm-section text-brand-navy">
               {title}
             </h2>
-            {subtitle && <p className="m-0 truncate text-[11.5px] text-[#5b74a3]">{subtitle}</p>}
+            {subtitle && <p className="m-0 truncate fm-help text-[#5b74a3]">{subtitle}</p>}
           </div>
         </div>
 
@@ -70,14 +70,14 @@ export default function TextEditorSheet({ title, subtitle, value, onChange, plac
           </button>
         </div>
 
-        <div className="mt-2.5 flex flex-none items-center justify-between gap-2 text-[11.5px] text-[#8a96a8]">
+        <div className="mt-2.5 flex flex-none items-center justify-between gap-2 fm-help text-[#8a96a8]">
           <span className="min-w-0 truncate normal-case">
             Saved in uppercase ·{" "}
             <b className="font-bold text-[#3b82f6]">
               {value.length} {value.length === 1 ? "character" : "characters"}
             </b>
           </span>
-          <button type="button" onClick={onClose} className={cn(primaryButtonClass, "h-9 min-w-24 flex-none px-4 text-[13px] modal-tiny:h-8")}>
+          <button type="button" onClick={onClose} className={cn(primaryButtonClass, "h-9 min-w-24 flex-none px-4 fm-btn-sm modal-tiny:h-8")}>
             <Check className="size-[15px]" strokeWidth={2.5} />
             Done
           </button>

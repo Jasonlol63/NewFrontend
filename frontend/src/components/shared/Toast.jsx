@@ -32,10 +32,10 @@ function ToastCard({ notice, onClose }) {
         <Icon className="size-[15px]" strokeWidth={2.4} aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[13.5px] font-semibold leading-[1.35]">{notice.message}</p>
-        {text && <p className="m-0 mt-0.5 text-[12.5px] leading-normal opacity-90">{text}</p>}
+        <p className="m-0 type-body font-semibold! leading-[1.35]">{notice.message}</p>
+        {text && <p className="m-0 mt-0.5 type-table-cell font-normal! leading-normal opacity-90">{text}</p>}
         {lines.length > 0 && (
-          <ul className="m-0 mt-1.5 list-none p-0 text-[12.5px] leading-[1.55]">
+          <ul className="m-0 mt-1.5 list-none p-0 type-table-cell font-normal! leading-[1.55]">
             {lines.map((line) => (
               <li key={line} className="flex items-baseline gap-[7px]">
                 <i className="size-[5px] flex-none -translate-y-px rounded-full bg-current opacity-60" />
@@ -51,7 +51,7 @@ function ToastCard({ notice, onClose }) {
               notice.action.onClick();
               onClose?.(notice.id);
             }}
-            className="mt-1.5 cursor-pointer border-none bg-transparent p-0 text-[12.5px] font-bold text-current underline underline-offset-2"
+            className="mt-1.5 cursor-pointer border-none bg-transparent p-0 type-table-cell font-semibold! text-current underline underline-offset-2"
           >
             {notice.action.label}
           </button>

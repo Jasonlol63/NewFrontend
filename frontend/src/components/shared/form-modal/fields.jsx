@@ -121,8 +121,8 @@ export function SelectField({ value, onChange, options, placeholder: placeholder
                 key={o.value}
                 value={o.value}
                 className={cn(
-                  "flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-[9px] border border-transparent py-1.5 pl-2.5 pr-2 text-[13px] font-semibold text-[#374151] outline-none",
-                  "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7 modal-tiny:text-[12.5px]",
+                  "flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-[9px] border border-transparent py-1.5 pl-2.5 pr-2 fm-input font-semibold! text-[#374151] outline-none",
+                  "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7",
                   "data-highlighted:bg-[#eef4ff]",
                   "data-[state=checked]:border-[#7fb2ff] data-[state=checked]:bg-row-stripe data-[state=checked]:font-bold data-[state=checked]:text-brand-navy"
                 )}
@@ -221,7 +221,7 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
               placeholder={searchPlaceholder}
               autoComplete="off"
               spellCheck={false}
-              className="w-full bg-transparent text-[13px] uppercase outline-none placeholder:text-dash-faint placeholder:normal-case"
+              className="w-full bg-transparent fm-input uppercase outline-none placeholder:text-dash-faint placeholder:normal-case"
             />
           </label>
           <div className="flex max-h-[min(240px,calc(var(--radix-popover-content-available-height)-48px))] flex-col gap-0.5 overflow-y-auto p-[5px] [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
@@ -231,7 +231,7 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
                 type="button"
                 onClick={() => pick(o)}
                 className={cn(
-                  "flex min-h-[34px] w-full flex-none cursor-pointer items-center gap-2 rounded-[9px] border border-transparent px-2.5 py-1.5 text-left text-[13px] font-semibold text-[#374151] hover:bg-[#eef4ff] modal-compact:min-h-[30px] modal-tiny:min-h-7 modal-tiny:text-[12.5px]",
+                  "flex min-h-[34px] w-full flex-none cursor-pointer items-center gap-2 rounded-[9px] border border-transparent px-2.5 py-1.5 text-left fm-input font-semibold! text-[#374151] hover:bg-[#eef4ff] modal-compact:min-h-[30px] modal-tiny:min-h-7",
                   o.value === value && "border-[#7fb2ff] bg-row-stripe font-bold text-brand-navy"
                 )}
               >
@@ -243,7 +243,7 @@ export function SearchSelectField({ value, onChange, options, placeholder: place
                 )}
               </button>
             ))}
-            {shown.length === 0 && <p className="m-0 px-2.5 py-2 text-center text-[12px] text-dash-faint">{t("noResults")}</p>}
+            {shown.length === 0 && <p className="m-0 px-2.5 py-2 text-center fm-help text-dash-faint">{t("noResults")}</p>}
           </div>
         </Popover.Content>
       </Popover.Portal>

@@ -14,9 +14,9 @@ import { inputClass, openFieldClass, primaryButtonClass } from "./fields.jsx";
  * items: [{ value, label, hint?, tag? }]; selected: Set; onChange(nextSet).
  */
 const chipClass =
-  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 fm-btn-sm text-brand-navy modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 fm-btn-sm text-brand-navy modal-compact:h-[22px] modal-tiny:h-5";
 const moreChipClass =
-  "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 fm-btn-sm text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+  "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 fm-btn-sm text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5";
 
 export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder, className }) {
   const [open, setOpen] = useState(false);
@@ -126,7 +126,7 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
               +{picked.length}
             </span>
           </span>
-          <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[11px] font-bold text-[#8a96a8]">
+          <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5 fm-opt font-semibold! text-[#8a96a8]">
             {selected.size}/{items.length}
             <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180 text-[#3b82f6]")} strokeWidth={2.4} />
           </span>
@@ -157,11 +157,11 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
             <CheckRows items={shown} selected={selected} onToggle={(v) => onChange(toggleIn(selected, v))} />
           </div>
-          <div className="flex flex-none items-center justify-between gap-2 border-t border-[#eef2f7] bg-[#fafcff] py-[7px] pl-3.5 pr-2.5 text-[12px] font-semibold text-[#64748b]">
+          <div className="flex flex-none items-center justify-between gap-2 border-t border-[#eef2f7] bg-[#fafcff] py-[7px] pl-3.5 pr-2.5 fm-btn-sm text-[#64748b]">
             <span>
               <b className="text-brand-navy">{selected.size}</b> of {items.length} selected
             </span>
-            <button type="button" onClick={() => handleOpenChange(false)} className={cn(primaryButtonClass, "h-7 px-4 text-[12.5px]")}>
+            <button type="button" onClick={() => handleOpenChange(false)} className={cn(primaryButtonClass, "h-7 px-4 fm-btn-sm")}>
               Done
             </button>
           </div>

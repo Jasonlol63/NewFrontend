@@ -60,7 +60,7 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
           className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-32px)] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 animate-dialog-in overflow-y-auto rounded-[20px] bg-white px-(--pad-x) pb-[calc(var(--pad-y)*0.75)] pt-(--pad-y) text-center shadow-[0_30px_60px_-20px_rgba(20,51,107,0.45),0_8px_20px_-10px_rgba(20,70,160,0.25)] outline-none motion-reduce:animate-none"
         >
           <TrashIcon />
-          <Dialog.Title className="m-0 mb-1.5 text-[clamp(16px,2.3dvh,18px)] font-bold tracking-[-0.2px] text-brand-navy">
+          <Dialog.Title className="m-0 mb-1.5 type-card-title tracking-[-0.2px] text-brand-navy">
             {title ?? (single ? t("deleteDialog.titleOne", { verb: verbText, noun: nounText }) : t("deleteDialog.titleMany", { verb: verbText, count, noun: nounText }))}
           </Dialog.Title>
           <Dialog.Description className="m-0 break-words text-[clamp(13px,1.8dvh,14px)] leading-relaxed text-[#5b74a3] [&_b]:font-semibold [&_b]:text-brand-navy">
@@ -86,13 +86,13 @@ export default function DeleteDialog({ open, onOpenChange, names = [], noun = "i
             )}
           </Dialog.Description>
           <div className="mt-(--gap) flex gap-2.5">
-            <Dialog.Close className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white text-sm font-semibold text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
+            <Dialog.Close className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border border-[#dbe5f3] bg-white type-body font-semibold! text-brand-navy outline-none transition-colors hover:bg-[#f5f8fd] focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2">
               {t("cancel")}
             </Dialog.Close>
             <button
               type="button"
               onClick={onConfirm}
-              className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2"
+              className="h-(--btn-h) flex-1 cursor-pointer rounded-xl border-none bg-[#e5484d] type-body font-semibold! text-white shadow-[0_6px_14px_-6px_rgba(229,72,77,0.6)] outline-none transition-colors hover:bg-[#d63b40] focus-visible:ring-2 focus-visible:ring-[#e5484d]/45 focus-visible:ring-offset-2"
             >
               {verbText}
             </button>
