@@ -1,5 +1,5 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toast from "@/components/shared/Toast.jsx";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
@@ -13,14 +13,16 @@ import { postJson } from "@/lib/api";
 import CurrencyFilterRow from "../shared/CurrencyFilterRow.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useCurrencyFilters } from "../shared/useCurrencyFilters";
-import { useMaintenanceList } from "../shared/useMaintenanceList";
+import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
 import {
   BANK_PROCESS_DELETE_URL,
   BANK_PROCESS_LIST_URL,
   buildBankProcessRequest,
-  filterBankProcessRows,
   normalizeBankProcessRow,
 } from "./bankProcessMaintenanceRules";
+
+// The search box asks the server once typing has paused.
+const SEARCH_DELAY_MS = 300;
 
 const dash = (v) => v || "-";
 
@@ -49,13 +51,20 @@ export default function BankProcessMaintenancePage() {
   const filters = useCurrencyFilters({ onChange: clearSelection });
   const { tenantId, currency, range } = filters;
 
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
   const request = useMemo(
     () =>
-      tenantId && currency ? buildBankProcessRequest({ tenantId, dateFrom: range.from, dateTo: range.to, currency }) : null,
-    [tenantId, currency, range]
+      tenantId && currency
+        ? { ...buildBankProcessRequest({ tenantId, dateFrom: range.from, dateTo: range.to, currency }), ...(query ? { q: query } : {}) }
+        : null,
+    [tenantId, currency, range, query]
   );
-  const list = useMaintenanceList(BANK_PROCESS_LIST_URL, request, normalizeBankProcessRow, touchesLedger);
-  const rows = useMemo(() => filterBankProcessRows(list.rows, filters.search), [list.rows, filters.search]);
+  const list = useInfiniteMaintenanceList(BANK_PROCESS_LIST_URL, request, normalizeBankProcessRow, touchesLedger);
+  const rows = list.rows;
 
   // Archived rows are already deleted.
   const canSelect = (r) => !readOnly && !r.deleted;
@@ -91,6 +100,12 @@ export default function BankProcessMaintenancePage() {
         noun="records"
         loading={list.loading}
         rows={rows}
+        total={list.total}
+        virtual
+        hasMore={list.hasMore}
+        loadingMore={list.loadingMore}
+        onLoadMore={list.loadMore}
+        scrollResetKey={request}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

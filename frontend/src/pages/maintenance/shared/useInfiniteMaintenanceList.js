@@ -2,9 +2,31 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "@/lib/api";
 import { useRealtime } from "@/lib/realtime/realtimeEvents";
 
-// Rows asked per batch; the backend caps a request at 2000.
+// Rows asked per batch.
 export const BATCH_SIZE = 100;
-const REFRESH_MAX = 2000;
+// A realtime refresh re-reads this many batches from the top and merges them into what is loaded.
+const REFRESH_BATCHES = 3;
+
+// A row id is the React key, so a row the data holds twice (e.g. a transaction archived twice) shows once.
+function unique(rows) {
+  const seen = new Set();
+  return rows.filter((r) => !seen.has(r.id) && seen.add(r.id));
+}
+
+// The freshly read head of the list replaces the same stretch of the loaded rows; rows loaded further down stay as
+// they are (and so does the cursor to continue from), so a refresh never throws away how far the user has scrolled.
+function mergeHead(prev, fresh, reply) {
+  const cursor = reply.nextCursor ?? null;
+  const total = reply.total ?? prev.total;
+  const whole = { ...prev, rows: fresh, cursor, total, error: "", moreFailed: false };
+  // The refresh reached the end, or covers everything loaded: it is the whole list.
+  if (!cursor || prev.rows.length <= fresh.length) return whole;
+  // Where the fresh head ends inside the loaded rows; if that row is gone the stretches cannot be joined.
+  const at = prev.rows.findIndex((r) => r.id === fresh[fresh.length - 1]?.id);
+  if (at < 0) return whole;
+  const seen = new Set(fresh.map((r) => r.id));
+  return { ...whole, rows: [...fresh, ...prev.rows.slice(at + 1).filter((r) => !seen.has(r.id))], cursor: prev.cursor };
+}
 
 /**
  * A Maintenance list that loads in batches as the user scrolls: `POST url` with the JSON `body` plus `limit`,
@@ -14,14 +36,14 @@ const REFRESH_MAX = 2000;
  * `loadMore()` appends the next batch (no-op while one is coming or when there is none); `hasMore` / `loadingMore`
  * drive the table's scroll trigger. `reload()` asks again from the top, e.g. after a delete.
  * `batchSize` is what the server counts in a batch (rows, or whole captures on Transaction Maintenance).
- * `refreshOn` (see useRealtime) re-reads, without dimming, as many batches as are already loaded when someone else
- * changes the data, so the scroll position survives.
+ * `refreshOn` (see useRealtime) re-reads, without dimming, the top of the list when someone else changes the data;
+ * what the user has scrolled past further down is kept.
  */
 export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [], batchSize = BATCH_SIZE) {
   const requestKey = body ? JSON.stringify(body) : "";
   const [reloadCount, setReloadCount] = useState(0);
   const [pushed, setPushed] = useState(0);
-  const [state, setState] = useState({ key: "", rows: [], cursor: null, total: 0, error: "", moreFailed: false, batches: 1 });
+  const [state, setState] = useState({ key: "", rows: [], cursor: null, total: 0, error: "", moreFailed: false });
   const [loadingMore, setLoadingMore] = useState(false);
   const key = `${requestKey}|${reloadCount}`;
 
@@ -34,16 +56,20 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
   useEffect(() => {
     if (!requestKey) return undefined;
     const controller = new AbortController();
-    const { key: loadedKey, batches: loaded } = latest.current.state;
-    // Same filters as what is on screen (a realtime refresh): re-read everything loaded so far.
-    const batches = loadedKey === key ? loaded : 1;
-    const limit = Math.min(batches * batchSize, REFRESH_MAX);
+    // Same filters as what is on screen: a realtime refresh of the top; otherwise a fresh first batch.
+    const refresh = latest.current.state.key === key;
+    const limit = refresh ? REFRESH_BATCHES * batchSize : batchSize;
     postJson(url, { ...JSON.parse(requestKey), limit }, { signal: controller.signal })
-      .then((reply) =>
-        setState({ key, rows: (reply.data || []).map(normalize), cursor: reply.nextCursor ?? null, total: reply.total ?? 0, error: "", moreFailed: false, batches })
-      )
+      .then((reply) => {
+        const fresh = unique((reply.data || []).map(normalize));
+        setState((prev) =>
+          refresh && prev.key === key
+            ? mergeHead(prev, fresh, reply)
+            : { key, rows: fresh, cursor: reply.nextCursor ?? null, total: reply.total ?? 0, error: "", moreFailed: false }
+        );
+      })
       .catch((err) => {
-        if (err.name !== "AbortError") setState({ key, rows: [], cursor: null, total: 0, error: err.message, moreFailed: false, batches: 1 });
+        if (err.name !== "AbortError") setState({ key, rows: [], cursor: null, total: 0, error: err.message, moreFailed: false });
       });
     return () => controller.abort();
   }, [url, requestKey, key, pushed, normalize, batchSize]);
@@ -61,7 +87,7 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
       limit: batchSize,
       cursorCreatedAt: current.cursor.createdAt,
       cursorId: current.cursor.id,
-      // Only Capture Maintenance has archived rows in its list.
+      // Only Capture and Payment Maintenance have archived rows in their lists.
       ...(current.cursor.deleted === undefined ? {} : { cursorDeleted: current.cursor.deleted }),
     })
       .then((reply) =>
@@ -70,7 +96,7 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
           // A realtime refresh may have already brought some of these rows in.
           const seen = new Set(prev.rows.map((r) => r.id));
           const fresh = (reply.data || []).map(normalize).filter((r) => !seen.has(r.id));
-          return { ...prev, rows: [...prev.rows, ...fresh], cursor: reply.nextCursor ?? null, batches: prev.batches + 1 };
+          return { ...prev, rows: [...prev.rows, ...fresh], cursor: reply.nextCursor ?? null };
         })
       )
       // Stop auto-loading after a failure (the toast offers a retry via reload) instead of hammering the server.

@@ -20,6 +20,13 @@ public class MaintenancePaymentDTO {
 
     private String q;
 
+    // List paging: rows per batch (default 100) and, after the first batch, the last row received —
+    // created time (ISO), id and whether it was a soft-deleted row.
+    private Integer limit;
+    private String cursorCreatedAt;
+    private Integer cursorId;
+    private Boolean cursorDeleted;
+
     private List<String> currencyCodes;
     private List<Integer> transactionIds;
 

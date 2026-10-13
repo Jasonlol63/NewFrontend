@@ -1,5 +1,5 @@
 import { touchesLedger } from "@/lib/realtime/realtimeEvents";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toast from "@/components/shared/Toast.jsx";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
@@ -15,15 +15,17 @@ import { Field } from "@/pages/report/shared/ReportFilterCard.jsx";
 import CurrencyFilterRow from "../shared/CurrencyFilterRow.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useCurrencyFilters } from "../shared/useCurrencyFilters";
-import { useMaintenanceList } from "../shared/useMaintenanceList";
+import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
 import {
   PAYMENT_DELETE_URL,
   PAYMENT_LIST_URL,
   TYPE_OPTIONS,
   buildPaymentRequest,
-  filterPaymentRows,
   normalizePaymentRow,
 } from "./paymentMaintenanceRules";
+
+// The search box asks the server once typing has paused.
+const SEARCH_DELAY_MS = 300;
 
 const dash = (v) => v || "-";
 
@@ -55,15 +57,20 @@ export default function PaymentMaintenancePage() {
   const filters = useCurrencyFilters({ onChange: clearSelection });
   const { tenantId, currency, range } = filters;
 
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
   const request = useMemo(
     () =>
       tenantId && currency
-        ? buildPaymentRequest({ tenantId, dateFrom: range.from, dateTo: range.to, type, currency })
+        ? { ...buildPaymentRequest({ tenantId, dateFrom: range.from, dateTo: range.to, type, currency }), ...(query ? { q: query } : {}) }
         : null,
-    [tenantId, currency, range, type]
+    [tenantId, currency, range, type, query]
   );
-  const payments = useMaintenanceList(PAYMENT_LIST_URL, request, normalizePaymentRow, touchesLedger);
-  const rows = useMemo(() => filterPaymentRows(payments.rows, filters.search), [payments.rows, filters.search]);
+  const payments = useInfiniteMaintenanceList(PAYMENT_LIST_URL, request, normalizePaymentRow, touchesLedger);
+  const rows = payments.rows;
 
   // Archived rows are already deleted.
   const canSelect = (r) => !readOnly && !r.deleted;
@@ -114,6 +121,12 @@ export default function PaymentMaintenancePage() {
         noun="records"
         loading={payments.loading}
         rows={rows}
+        total={payments.total}
+        virtual
+        hasMore={payments.hasMore}
+        loadingMore={payments.loadingMore}
+        onLoadMore={payments.loadMore}
+        scrollResetKey={request}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}

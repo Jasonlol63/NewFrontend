@@ -56,12 +56,14 @@ public class MaintenanceController {
 
     @PostMapping("/payment-maintenance/list")
     public ResponseEntity<Map<String, Object>> listPaymentMaintenance(@RequestBody MaintenancePaymentDTO request) {
-        List<MaintenancePaymentDTO> rows =
-                maintenanceService.findPaymentMaintenanceRows(request);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Payment maintenance list retrieved",
-                "data", rows));
+        CursorPage<MaintenancePaymentDTO> page = maintenanceService.findPaymentMaintenanceRows(request);
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "Payment maintenance list retrieved");
+        body.put("data", page.rows());
+        body.put("nextCursor", page.nextCursor());
+        body.put("total", page.total());
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/payment-maintenance/delete")
@@ -76,12 +78,14 @@ public class MaintenanceController {
 
     @PostMapping("/bankprocess-maintenance/list")
     public ResponseEntity<Map<String, Object>> listBankProcessMaintenance(@RequestBody MaintenanceBankProcessDTO request) {
-        List<MaintenanceBankProcessDTO> rows =
-                maintenanceService.findBankProcessMaintenanceRows(request);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "BankProcess maintenance list retrieved",
-                "data", rows));
+        CursorPage<MaintenanceBankProcessDTO> page = maintenanceService.findBankProcessMaintenanceRows(request);
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "Bank process maintenance list retrieved");
+        body.put("data", page.rows());
+        body.put("nextCursor", page.nextCursor());
+        body.put("total", page.total());
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/bankprocess-maintenance/delete")

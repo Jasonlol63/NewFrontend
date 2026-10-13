@@ -1155,6 +1155,7 @@ CREATE TABLE `transactions` (
 
     PRIMARY KEY (`id`),
     KEY `idx_txn_tenant_date` (`tenant_id`, `transaction_date`),
+    KEY `idx_txn_tenant_created` (`tenant_id`, `created_at`, `id`),
     KEY `idx_txn_tenant_account_date` (`tenant_id`, `account_id`, `transaction_date`),
     KEY `idx_txn_posted` (`bank_process_posted_id`),
     KEY `idx_txn_bank_process` (`bank_process_id`),

@@ -41,11 +41,3 @@ export function normalizePaymentRow(raw) {
     deletedBy: deletedByText(raw.deletedBy, raw.deletedAt),
   };
 }
-
-export function filterPaymentRows(rows, search) {
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((r) =>
-    [r.toAccount, r.fromAccount, r.description, r.remark, r.createdBy, r.deletedBy].some((v) => v.toLowerCase().includes(q))
-  );
-}

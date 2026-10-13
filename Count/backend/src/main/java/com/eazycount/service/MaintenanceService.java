@@ -25,9 +25,9 @@ public interface MaintenanceService {
 
     void deleteFormulaMaintenance(MaintenanceFormulaDTO ft);
 
-    List<MaintenancePaymentDTO> findPaymentMaintenanceRows(MaintenancePaymentDTO request);
+    CursorPage<MaintenancePaymentDTO> findPaymentMaintenanceRows(MaintenancePaymentDTO request);
 
-    List<MaintenanceBankProcessDTO> findBankProcessMaintenanceRows(MaintenanceBankProcessDTO request);
+    CursorPage<MaintenanceBankProcessDTO> findBankProcessMaintenanceRows(MaintenanceBankProcessDTO request);
 
     // Soft-delete Payment Maintenance lines: archive to transactions_deleted.
     // Returns the ids actually deleted (a subset of request.transactionIds — resolveDeletableBatch

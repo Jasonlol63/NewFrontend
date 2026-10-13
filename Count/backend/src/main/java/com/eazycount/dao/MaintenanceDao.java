@@ -54,8 +54,23 @@ public interface MaintenanceDao {
             @Param("tenantId") Integer tenantId,
             @Param("rateGroupIds") List<String> rateGroupIds);
 
-    // Payment Maintenance live bill lines (manual/Domain/Renew).
-    List<MaintenancePaymentDTO> findPaymentMaintenanceRows(
+    // Payment Maintenance, one page (keyset): live bill lines (manual/Domain/Renew) + soft-deleted ones, newest first.
+    // cursorId == null is the first page; otherwise the three cursor values are the last row of the previous page
+    // (cursorSrc 1 = live, 0 = soft-deleted). Returns at most `limit` rows.
+    List<MaintenancePaymentDTO> findPaymentMaintenancePage(
+            @Param("tenantId") Integer tenantId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
+            @Param("transactionType") String transactionType,
+            @Param("currencyCodes") List<String> currencyCodes,
+            @Param("q") String q,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Integer cursorId,
+            @Param("cursorSrc") Integer cursorSrc,
+            @Param("limit") int limit);
+
+    // How many rows the Payment Maintenance list holds in total under the same filters.
+    long countPaymentMaintenance(
             @Param("tenantId") Integer tenantId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -63,25 +78,22 @@ public interface MaintenanceDao {
             @Param("currencyCodes") List<String> currencyCodes,
             @Param("q") String q);
 
-    // Payment Maintenance archived (soft-deleted) bill lines.
-    List<MaintenancePaymentDTO> findPaymentMaintenanceDeletedRows(
-            @Param("tenantId") Integer tenantId,
-            @Param("dateFrom") LocalDate dateFrom,
-            @Param("dateTo") LocalDate dateTo,
-            @Param("transactionType") String transactionType,
-            @Param("currencyCodes") List<String> currencyCodes,
-            @Param("q") String q);
-
-    // Bank Process Maintenance live lines (posted WIN/LOSE).
-    List<MaintenanceBankProcessDTO> findBankProcessMaintenanceRows(
+    // Bank Process Maintenance, one page (keyset): live lines (posted WIN/LOSE) + soft-deleted ones, newest first.
+    // cursorId == null is the first page; otherwise the three cursor values are the last row of the previous page
+    // (cursorSrc 1 = live, 0 = soft-deleted). Returns at most `limit` rows.
+    List<MaintenanceBankProcessDTO> findBankProcessMaintenancePage(
             @Param("tenantId") Integer tenantId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
             @Param("currencyCodes") List<String> currencyCodes,
-            @Param("q") String q);
+            @Param("q") String q,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Integer cursorId,
+            @Param("cursorSrc") Integer cursorSrc,
+            @Param("limit") int limit);
 
-    // Bank Process Maintenance archived lines.
-    List<MaintenanceBankProcessDTO> findBankProcessMaintenanceDeletedRows(
+    // How many rows the Bank Process Maintenance list holds in total under the same filters.
+    long countBankProcessMaintenance(
             @Param("tenantId") Integer tenantId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

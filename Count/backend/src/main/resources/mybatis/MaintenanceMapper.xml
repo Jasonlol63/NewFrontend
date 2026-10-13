@@ -149,32 +149,14 @@
         </foreach>
     </select>
 
-    <!-- Payment Maintenance list: Created At, Account(To/From), Amount, Description, Remark, Submitter. -->
-    <select id="findPaymentMaintenanceRows" resultType="com.eazycount.dto.MaintenancePaymentDTO">
-        SELECT
-            t.id AS id,
-            t.transaction_type AS transactionType,
-            t.created_at AS createdAt,
-            to_a.account_id AS toAccountCode,
-            from_a.account_id AS fromAccountCode,
-            t.amount AS amount,
-            UPPER(c.code) AS currencyCode,
-            t.description AS description,
-            t.remark AS remark,
-            t.created_by AS createdBy,
-            FALSE AS deleted,
-            NULL AS deletedBy,
-            NULL AS deletedAt
-        FROM transactions t
-        INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
-        INNER JOIN account to_a ON to_a.id = t.account_id
-        LEFT JOIN account from_a ON from_a.id = t.from_account_id
-        WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
-          AND t.approval_status = 'APPROVED'
-          AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
-          AND t.transaction_date &gt;= #{dateFrom}
-          AND t.transaction_date &lt;= #{dateTo}
+    <!-- Payment Maintenance WHERE, live rows (aliases t / c / to_a / from_a); shared by the page and the count query. -->
+    <sql id="paymentLiveWhere">
+        t.tenant_id = #{tenantId}
+        AND t.bank_process_posted_id IS NULL
+        AND t.approval_status = 'APPROVED'
+        AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+        AND t.transaction_date &gt;= #{dateFrom}
+        AND t.transaction_date &lt;= #{dateTo}
         <if test="transactionType != null and transactionType != ''">
             AND t.transaction_type = #{transactionType}
         </if>
@@ -193,37 +175,15 @@
                 OR UPPER(COALESCE(t.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
             )
         </if>
-        ORDER BY t.created_at DESC, t.id DESC
-    </select>
+    </sql>
 
-    <!-- Soft-deleted Payment Maintenance rows (still shown in list with Deleter). -->
-    <select id="findPaymentMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenancePaymentDTO">
-        SELECT
-            td.transaction_id AS id,
-            td.transaction_type AS transactionType,
-            td.created_at AS createdAt,
-            to_a.account_id AS toAccountCode,
-            from_a.account_id AS fromAccountCode,
-            td.amount AS amount,
-            UPPER(c.code) AS currencyCode,
-            td.description AS description,
-            td.remark AS remark,
-            td.approval_status AS approvalStatus,
-            td.approved_by AS approvedBy,
-            td.approved_at AS approvedAt,
-            td.created_by AS createdBy,
-            TRUE AS deleted,
-            td.deleted_by AS deletedBy,
-            td.deleted_at AS deletedAt
-        FROM transactions_deleted td
-        INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
-        INNER JOIN account to_a ON to_a.id = td.account_id
-        LEFT JOIN account from_a ON from_a.id = td.from_account_id
-        WHERE td.tenant_id = #{tenantId}
-          AND td.bank_process_posted_id IS NULL
-          AND td.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
-          AND td.transaction_date &gt;= #{dateFrom}
-          AND td.transaction_date &lt;= #{dateTo}
+    <!-- Same for the soft-deleted rows (aliases td / c / to_a / from_a), searchable by deleter too. -->
+    <sql id="paymentDeletedWhere">
+        td.tenant_id = #{tenantId}
+        AND td.bank_process_posted_id IS NULL
+        AND td.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
+        AND td.transaction_date &gt;= #{dateFrom}
+        AND td.transaction_date &lt;= #{dateTo}
         <if test="transactionType != null and transactionType != ''">
             AND td.transaction_type = #{transactionType}
         </if>
@@ -243,35 +203,104 @@
                 OR UPPER(COALESCE(td.deleted_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
             )
         </if>
-        ORDER BY td.created_at DESC, td.transaction_id DESC
+    </sql>
+
+    <!-- Payment Maintenance list, one page (keyset): live and soft-deleted rows, newest first by (created_at, id); -->
+    <!-- a live and an archived row of the same transaction tie-break live first (src 1 before 0). The cursor is the -->
+    <!-- last row of the previous page. Each branch is cut to #{limit} rows before the UNION; the live branch walks -->
+    <!-- transactions through idx_txn_tenant_created (STRAIGHT_JOIN + FORCE INDEX) so it stops once it has enough -->
+    <!-- instead of sorting every row of the date range. Needs the index (SqlEtcForMigrate/fixes). -->
+    <select id="findPaymentMaintenancePage" resultType="com.eazycount.dto.MaintenancePaymentDTO">
+        SELECT u.id, u.transactionType, u.createdAt, u.toAccountCode, u.fromAccountCode, u.amount, u.currencyCode,
+               u.description, u.remark, u.createdBy, u.deleted, u.deletedBy, u.deletedAt
+        FROM (
+            (
+                SELECT STRAIGHT_JOIN
+                    t.id AS id,
+                    t.transaction_type AS transactionType,
+                    t.created_at AS createdAt,
+                    to_a.account_id AS toAccountCode,
+                    from_a.account_id AS fromAccountCode,
+                    t.amount AS amount,
+                    UPPER(c.code) AS currencyCode,
+                    t.description AS description,
+                    t.remark AS remark,
+                    t.created_by AS createdBy,
+                    FALSE AS deleted,
+                    NULL AS deletedBy,
+                    NULL AS deletedAt,
+                    1 AS src
+                FROM transactions t FORCE INDEX (idx_txn_tenant_created)
+                INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
+                INNER JOIN account to_a ON to_a.id = t.account_id
+                LEFT JOIN account from_a ON from_a.id = t.from_account_id
+                WHERE <include refid="paymentLiveWhere"/>
+                <if test="cursorId != null">
+                  AND (t.created_at &lt; #{cursorCreatedAt}
+                       OR (t.created_at = #{cursorCreatedAt}
+                           AND (t.id &lt; #{cursorId} OR (t.id = #{cursorId} AND 1 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY t.created_at DESC, t.id DESC
+                LIMIT #{limit}
+            )
+            UNION ALL
+            (
+                SELECT
+                    td.transaction_id,
+                    td.transaction_type,
+                    td.created_at,
+                    to_a.account_id,
+                    from_a.account_id,
+                    td.amount,
+                    UPPER(c.code),
+                    td.description,
+                    td.remark,
+                    td.created_by,
+                    TRUE,
+                    td.deleted_by,
+                    td.deleted_at,
+                    0
+                FROM transactions_deleted td
+                INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
+                INNER JOIN account to_a ON to_a.id = td.account_id
+                LEFT JOIN account from_a ON from_a.id = td.from_account_id
+                WHERE <include refid="paymentDeletedWhere"/>
+                <if test="cursorId != null">
+                  AND (td.created_at &lt; #{cursorCreatedAt}
+                       OR (td.created_at = #{cursorCreatedAt}
+                           AND (td.transaction_id &lt; #{cursorId} OR (td.transaction_id = #{cursorId} AND 0 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY td.created_at DESC, td.transaction_id DESC
+                LIMIT #{limit}
+            )
+        ) u
+        ORDER BY u.createdAt DESC, u.id DESC, u.src DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Rows the list holds in total under the same filters (live + soft-deleted), for "Showing N of total". -->
+    <select id="countPaymentMaintenance" resultType="long">
+        SELECT
+            (
+                SELECT COUNT(*)
+                FROM transactions t
+                INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
+                INNER JOIN account to_a ON to_a.id = t.account_id
+                LEFT JOIN account from_a ON from_a.id = t.from_account_id
+                WHERE <include refid="paymentLiveWhere"/>
+            ) + (
+                SELECT COUNT(*)
+                FROM transactions_deleted td
+                INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
+                INNER JOIN account to_a ON to_a.id = td.account_id
+                LEFT JOIN account from_a ON from_a.id = td.from_account_id
+                WHERE <include refid="paymentDeletedWhere"/>
+            )
     </select>
 
     <!-- Bank Process Maintenance list: posted WIN/LOSE ({@code bank_process_posted_id IS NOT NULL}). -->
-    <select id="findBankProcessMaintenanceRows" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
-        SELECT
-            t.id AS id,
-            t.transaction_type AS transactionType,
-            t.created_at AS createdAt,
-            to_a.account_id AS toAccountCode,
-            COALESCE(from_a.account_id, bp.card_owner) AS fromAccountCode,
-            t.amount AS amount,
-            UPPER(c.code) AS currencyCode,
-            t.description AS description,
-            t.remark AS remark,
-            t.created_by AS createdBy,
-            FALSE AS deleted,
-            NULL AS deletedBy,
-            NULL AS deletedAt,
-            bp.id AS bankProcessId,
-            bpap.period_type AS periodType,
-            t.transaction_date AS transactionDate,
-            CASE
-                WHEN t.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
-                WHEN t.account_id = bp.customer_account_id THEN 'SELL_PRICE'
-                WHEN t.account_id = bp.company_account_id THEN 'PROFIT'
-                WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
-                ELSE NULL
-            END AS chargeCategory
+    <!-- FROM + WHERE of the live rows (aliases t / c / to_a / from_a / bpap / bp / bps); shared by the page and the count. -->
+    <sql id="bankProcessLiveSource">
         FROM transactions t
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         INNER JOIN account to_a ON to_a.id = t.account_id
@@ -302,37 +331,10 @@
                 OR UPPER(COALESCE(t.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
             )
         </if>
-        ORDER BY t.created_at DESC, t.id DESC
-    </select>
+    </sql>
 
-    <select id="findBankProcessMaintenanceDeletedRows" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
-        SELECT
-            td.transaction_id AS id,
-            td.transaction_type AS transactionType,
-            td.created_at AS createdAt,
-            to_a.account_id AS toAccountCode,
-            COALESCE(from_a.account_id, bp.card_owner) AS fromAccountCode,
-            td.amount AS amount,
-            UPPER(c.code) AS currencyCode,
-            td.description AS description,
-            td.remark AS remark,
-            td.approval_status AS approvalStatus,
-            td.approved_by AS approvedBy,
-            td.approved_at AS approvedAt,
-            td.created_by AS createdBy,
-            TRUE AS deleted,
-            td.deleted_by AS deletedBy,
-            td.deleted_at AS deletedAt,
-            bp.id AS bankProcessId,
-            bpap.period_type AS periodType,
-            td.transaction_date AS transactionDate,
-            CASE
-                WHEN td.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
-                WHEN td.account_id = bp.customer_account_id THEN 'SELL_PRICE'
-                WHEN td.account_id = bp.company_account_id THEN 'PROFIT'
-                WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
-                ELSE NULL
-            END AS chargeCategory
+    <!-- Same for the soft-deleted rows (aliases td / ...), searchable by deleter too. -->
+    <sql id="bankProcessDeletedSource">
         FROM transactions_deleted td
         INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
         INNER JOIN account to_a ON to_a.id = td.account_id
@@ -362,7 +364,98 @@
                 OR UPPER(COALESCE(td.deleted_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
             )
         </if>
-        ORDER BY td.created_at DESC, td.transaction_id DESC
+    </sql>
+
+    <!-- Bank Process Maintenance list, one page (keyset): live and soft-deleted rows, newest first by (created_at, id); -->
+    <!-- a live and an archived row of the same transaction tie-break live first (src 1 before 0). The cursor is the -->
+    <!-- last row of the previous page; each branch is cut to #{limit} rows before the UNION. Posted bank-process lines -->
+    <!-- are few, so no index hint is needed here. -->
+    <select id="findBankProcessMaintenancePage" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
+        SELECT u.id, u.transactionType, u.createdAt, u.toAccountCode, u.fromAccountCode, u.amount, u.currencyCode,
+               u.description, u.remark, u.createdBy, u.deleted, u.deletedBy, u.deletedAt,
+               u.bankProcessId, u.periodType, u.transactionDate, u.chargeCategory
+        FROM (
+            (
+                SELECT
+                    t.id AS id,
+                    t.transaction_type AS transactionType,
+                    t.created_at AS createdAt,
+                    to_a.account_id AS toAccountCode,
+                    COALESCE(from_a.account_id, bp.card_owner) AS fromAccountCode,
+                    t.amount AS amount,
+                    UPPER(c.code) AS currencyCode,
+                    t.description AS description,
+                    t.remark AS remark,
+                    t.created_by AS createdBy,
+                    FALSE AS deleted,
+                    NULL AS deletedBy,
+                    NULL AS deletedAt,
+                    bp.id AS bankProcessId,
+                    bpap.period_type AS periodType,
+                    t.transaction_date AS transactionDate,
+                    CASE
+                        WHEN t.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
+                        WHEN t.account_id = bp.customer_account_id THEN 'SELL_PRICE'
+                        WHEN t.account_id = bp.company_account_id THEN 'PROFIT'
+                        WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
+                        ELSE NULL
+                    END AS chargeCategory,
+                    1 AS src
+                <include refid="bankProcessLiveSource"/>
+                <if test="cursorId != null">
+                  AND (t.created_at &lt; #{cursorCreatedAt}
+                       OR (t.created_at = #{cursorCreatedAt}
+                           AND (t.id &lt; #{cursorId} OR (t.id = #{cursorId} AND 1 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY t.created_at DESC, t.id DESC
+                LIMIT #{limit}
+            )
+            UNION ALL
+            (
+                SELECT
+                    td.transaction_id,
+                    td.transaction_type,
+                    td.created_at,
+                    to_a.account_id,
+                    COALESCE(from_a.account_id, bp.card_owner),
+                    td.amount,
+                    UPPER(c.code),
+                    td.description,
+                    td.remark,
+                    td.created_by,
+                    TRUE,
+                    td.deleted_by,
+                    td.deleted_at,
+                    bp.id,
+                    bpap.period_type,
+                    td.transaction_date,
+                    CASE
+                        WHEN td.account_id = bp.supplier_account_id THEN 'BUY_PRICE'
+                        WHEN td.account_id = bp.customer_account_id THEN 'SELL_PRICE'
+                        WHEN td.account_id = bp.company_account_id THEN 'PROFIT'
+                        WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
+                        ELSE NULL
+                    END,
+                    0
+                <include refid="bankProcessDeletedSource"/>
+                <if test="cursorId != null">
+                  AND (td.created_at &lt; #{cursorCreatedAt}
+                       OR (td.created_at = #{cursorCreatedAt}
+                           AND (td.transaction_id &lt; #{cursorId} OR (td.transaction_id = #{cursorId} AND 0 &lt; #{cursorSrc}))))
+                </if>
+                ORDER BY td.created_at DESC, td.transaction_id DESC
+                LIMIT #{limit}
+            )
+        ) u
+        ORDER BY u.createdAt DESC, u.id DESC, u.src DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Rows the list holds in total under the same filters (live + soft-deleted), for "Showing N of total". -->
+    <select id="countBankProcessMaintenance" resultType="long">
+        SELECT
+            (SELECT COUNT(*) <include refid="bankProcessLiveSource"/>)
+            + (SELECT COUNT(*) <include refid="bankProcessDeletedSource"/>)
     </select>
 
     <!-- Row description: MAIN -> description_main; SUB -> description_sub, falling back to description_main (legacy parity). -->

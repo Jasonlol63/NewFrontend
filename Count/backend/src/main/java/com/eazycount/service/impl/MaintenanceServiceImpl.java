@@ -55,27 +55,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     private static final Set<String> BANK_PROCESS_MAINTENANCE_TYPES = Set.of("WIN", "LOSE");
 
-    private static final Comparator<MaintenancePaymentDTO> ROW_ORDER =
-            Comparator
-                    .comparing(
-                            MaintenancePaymentDTO::getCreatedAt,
-                            Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(
-                            MaintenancePaymentDTO::getId,
-                            Comparator.nullsLast(Comparator.reverseOrder()));
-
-    private static final Comparator<MaintenanceBankProcessDTO> BP_ROW_ORDER =
-            Comparator
-                    .comparing(
-                            MaintenanceBankProcessDTO::getCreatedAt,
-                            Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(
-                            MaintenanceBankProcessDTO::getId,
-                            Comparator.nullsLast(Comparator.reverseOrder()));
-
     // Capture Maintenance loads in batches: 100 rows by default; a refresh may ask for as many as are already on screen.
     private static final int CAPTURE_PAGE_DEFAULT = 100;
     private static final int CAPTURE_PAGE_MAX = 2000;
+    // Payment and Bank Process Maintenance load in batches of rows too.
+    private static final int PAYMENT_PAGE_DEFAULT = 100;
     // Transaction Maintenance loads whole captures (about 6 lines each) per batch.
     private static final int TRANSACTION_PAGE_DEFAULT = 25;
 
@@ -335,62 +319,78 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public List<MaintenancePaymentDTO> findPaymentMaintenanceRows(
-            MaintenancePaymentDTO request) {
+    public CursorPage<MaintenancePaymentDTO> findPaymentMaintenanceRows(MaintenancePaymentDTO request) {
         AccessControlUtils.requireLoggedIn();
         ListQuery query = parseListQuery(request);
 
-        List<MaintenancePaymentDTO> live =
-                maintenanceDao.findPaymentMaintenanceRows(
-                        query.tenantId(),
-                        query.dateFrom(),
-                        query.dateTo(),
-                        query.transactionType(),
-                        query.currencyCodes(),
-                        query.q());
-        List<MaintenancePaymentDTO> archived =
-                maintenanceDao.findPaymentMaintenanceDeletedRows(
-                        query.tenantId(),
-                        query.dateFrom(),
-                        query.dateTo(),
-                        query.transactionType(),
-                        query.currencyCodes(),
-                        query.q());
+        int pageSize = request.getLimit() == null ? PAYMENT_PAGE_DEFAULT : Math.max(1, Math.min(request.getLimit(), CAPTURE_PAGE_MAX));
+        boolean firstPage = request.getCursorId() == null;
+        LocalDateTime cursorCreatedAt = firstPage ? null : parseCursorTime(request.getCursorCreatedAt());
+        Integer cursorSrc = Boolean.TRUE.equals(request.getCursorDeleted()) ? 0 : 1;
 
-        List<MaintenancePaymentDTO> rows = new ArrayList<>(live.size() + archived.size());
-        rows.addAll(live);
-        rows.addAll(archived);
-        rows.sort(ROW_ORDER);
-        return rows;
+        // One row more than asked tells whether there is a next batch.
+        List<MaintenancePaymentDTO> rows = new ArrayList<>(maintenanceDao.findPaymentMaintenancePage(
+                query.tenantId(),
+                query.dateFrom(),
+                query.dateTo(),
+                query.transactionType(),
+                query.currencyCodes(),
+                query.q(),
+                cursorCreatedAt,
+                request.getCursorId(),
+                cursorSrc,
+                pageSize + 1));
+        Map<String, Object> nextCursor = null;
+        if (rows.size() > pageSize) {
+            rows = rows.subList(0, pageSize);
+            MaintenancePaymentDTO last = rows.get(rows.size() - 1);
+            nextCursor = new LinkedHashMap<>();
+            nextCursor.put("createdAt", last.getCreatedAt().toString());
+            nextCursor.put("id", last.getId());
+            nextCursor.put("deleted", Boolean.TRUE.equals(last.getDeleted()));
+        }
+        Long total = firstPage
+                ? maintenanceDao.countPaymentMaintenance(
+                        query.tenantId(), query.dateFrom(), query.dateTo(), query.transactionType(), query.currencyCodes(), query.q())
+                : null;
+        return new CursorPage<>(rows, nextCursor, total);
     }
 
     @Override
-    public List<MaintenanceBankProcessDTO> findBankProcessMaintenanceRows(
-            MaintenanceBankProcessDTO request) {
+    public CursorPage<MaintenanceBankProcessDTO> findBankProcessMaintenanceRows(MaintenanceBankProcessDTO request) {
         AccessControlUtils.requireLoggedIn();
         ListQuery query = parseBankProcessListQuery(request);
 
-        List<MaintenanceBankProcessDTO> live =
-                maintenanceDao.findBankProcessMaintenanceRows(
-                        query.tenantId(),
-                        query.dateFrom(),
-                        query.dateTo(),
-                        query.currencyCodes(),
-                        query.q());
-        List<MaintenanceBankProcessDTO> archived =
-                maintenanceDao.findBankProcessMaintenanceDeletedRows(
-                        query.tenantId(),
-                        query.dateFrom(),
-                        query.dateTo(),
-                        query.currencyCodes(),
-                        query.q());
+        int pageSize = request.getLimit() == null ? PAYMENT_PAGE_DEFAULT : Math.max(1, Math.min(request.getLimit(), CAPTURE_PAGE_MAX));
+        boolean firstPage = request.getCursorId() == null;
+        LocalDateTime cursorCreatedAt = firstPage ? null : parseCursorTime(request.getCursorCreatedAt());
+        Integer cursorSrc = Boolean.TRUE.equals(request.getCursorDeleted()) ? 0 : 1;
 
-        List<MaintenanceBankProcessDTO> rows =
-                new ArrayList<>(live.size() + archived.size());
-        rows.addAll(live);
-        rows.addAll(archived);
-        rows.sort(BP_ROW_ORDER);
-        return rows;
+        // One row more than asked tells whether there is a next batch.
+        List<MaintenanceBankProcessDTO> rows = new ArrayList<>(maintenanceDao.findBankProcessMaintenancePage(
+                query.tenantId(),
+                query.dateFrom(),
+                query.dateTo(),
+                query.currencyCodes(),
+                query.q(),
+                cursorCreatedAt,
+                request.getCursorId(),
+                cursorSrc,
+                pageSize + 1));
+        Map<String, Object> nextCursor = null;
+        if (rows.size() > pageSize) {
+            rows = rows.subList(0, pageSize);
+            MaintenanceBankProcessDTO last = rows.get(rows.size() - 1);
+            nextCursor = new LinkedHashMap<>();
+            nextCursor.put("createdAt", last.getCreatedAt().toString());
+            nextCursor.put("id", last.getId());
+            nextCursor.put("deleted", Boolean.TRUE.equals(last.getDeleted()));
+        }
+        Long total = firstPage
+                ? maintenanceDao.countBankProcessMaintenance(
+                        query.tenantId(), query.dateFrom(), query.dateTo(), query.currencyCodes(), query.q())
+                : null;
+        return new CursorPage<>(rows, nextCursor, total);
     }
 
     @Override
