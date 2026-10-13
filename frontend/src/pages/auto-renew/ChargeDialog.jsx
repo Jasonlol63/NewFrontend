@@ -73,7 +73,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
       saveDisabled={readOnly || saving || Boolean(problem)}
       footerStart={
         (error || problem || readOnly) && (
-          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
+          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 fm-count text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
             {readOnly ? t("charge.viewOnly") : error || problem}
           </p>
@@ -86,7 +86,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
     >
       <FormCard title={t("charge.renewal")} bodyClassName="flex flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
         <Field label={t("charge.period")} plain as="div">
-          <PeriodSelect row={row} value={row.periodKey} onChange={changePeriod} disabled={readOnly} className="h-9! w-full! rounded-[10px]! text-[13.5px]!" />
+          <PeriodSelect row={row} value={row.periodKey} onChange={changePeriod} disabled={readOnly} className="h-9! w-full! rounded-[10px]! fm-input!" />
         </Field>
 
         <Field label={t("charge.price")} plain>
@@ -101,8 +101,8 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
 
         <div className="flex items-center justify-between gap-3 rounded-[10px] border border-modal-line bg-white/50 px-3 py-2">
           <div className="min-w-0">
-            <p className="m-0 text-[12.5px] font-semibold text-[#374151]">{t("charge.chargeLabel")}</p>
-            <p className="m-0 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">{t("charge.chargeHint")}</p>
+            <p className="m-0 fm-label text-[#374151]">{t("charge.chargeLabel")}</p>
+            <p className="m-0 fm-help text-[#6b7fa5] modal-tiny:hidden">{t("charge.chargeHint")}</p>
           </div>
           <ChargeSwitch on={row.charge} disabled={readOnly} onToggle={() => onPatch({ charge: !row.charge })} />
         </div>
@@ -111,23 +111,23 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
           {row.status === "pending" && (
             <div className="flex flex-col gap-1 px-1 pb-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
-                <span className={cn("text-[12px] font-semibold text-[#8b97a8]", row.periodKey && "line-through decoration-slate-500/70")}>{displayDate(row.expiry)}</span>
+                <span className="fm-opt font-semibold! tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
+                <span className={cn("fm-btn-sm text-[#8b97a8]", row.periodKey && "line-through decoration-slate-500/70")}>{displayDate(row.expiry)}</span>
               </div>
               <div className="flex items-center justify-between" title={t("charge.startNote")}>
-                <span className="text-[10px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
-                <span className="text-[12px] font-semibold text-[#41588a]">
-                  {displayDate(start.date)} <small className="text-[10.5px] font-medium text-[#6b7fa5]">({t(`charge.startFrom.${start.from}`)})</small>
+                <span className="fm-opt font-semibold! tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
+                <span className="fm-btn-sm text-[#41588a]">
+                  {displayDate(start.date)} <small className="fm-help text-[#6b7fa5]">({t(`charge.startFrom.${start.from}`)})</small>
                 </span>
               </div>
             </div>
           )}
           <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2.5 py-1.5 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">
-            <span className="flex items-center gap-1 text-[10px] font-extrabold tracking-[0.6px] text-[#2f8dff]">
+            <span className="flex items-center gap-1 fm-opt font-semibold! tracking-[0.6px] text-[#2f8dff]">
               <ArrowRight className="size-3 flex-none" strokeWidth={2.6} />
               {t("charge.new")}
             </span>
-            <b className="text-[13.5px] text-[#0b4fd0]">{row.periodKey ? displayDate(newExpiryOf(row, row.periodKey)) : "-"}</b>
+            <b className="fm-btn text-[#0b4fd0]">{row.periodKey ? displayDate(newExpiryOf(row, row.periodKey)) : "-"}</b>
           </div>
         </div>
       </FormCard>

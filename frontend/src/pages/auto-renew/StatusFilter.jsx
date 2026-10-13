@@ -21,7 +21,7 @@ export default function StatusFilter({ value, onChange, counts }) {
             aria-checked={active}
             onClick={() => onChange(s.value)}
             className={cn(
-              "flex cursor-pointer items-center gap-2 rounded-[10px] border bg-white py-1 pr-3 pl-1 text-[12.5px] font-semibold whitespace-nowrap text-[#1f2937] transition-[border-color,box-shadow]",
+              "flex cursor-pointer items-center gap-2 rounded-[10px] border bg-white py-1 pr-3 pl-1 type-body font-semibold! whitespace-nowrap text-[#1f2937] transition-[border-color,box-shadow]",
               active ? s.on : cn("border-dash-line shadow-[0_1px_3px_rgba(15,23,42,0.05)]", s.hover)
             )}
           >
@@ -29,7 +29,7 @@ export default function StatusFilter({ value, onChange, counts }) {
               <Icon className="size-3.5" strokeWidth={2.4} />
             </span>
             {t(`status.${s.value}`)}
-            <span className={cn("min-w-5 rounded-md px-1.5 text-center text-[11px] font-extrabold tabular-nums", active ? s.countOn : s.count)}>
+            <span className={cn("min-w-5 rounded-md px-1.5 text-center type-caption font-semibold! tabular-nums", active ? s.countOn : s.count)}>
               {counts[s.value]}
             </span>
           </button>

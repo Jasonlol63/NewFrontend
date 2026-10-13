@@ -28,7 +28,7 @@ export default function PeriodSelect({ row, value, onChange, disabled, className
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex h-7 w-[148px] items-center gap-1.5 rounded-lg border bg-white px-2.5 text-[12px] font-semibold transition-colors enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60",
+            "inline-flex h-7 w-[184px] items-center gap-1.5 rounded-lg border bg-white px-2.5 type-table-cell font-semibold! transition-colors enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60",
             open
               ? "rounded-b-none border-solid border-[#2f8dff]"
               : set
@@ -64,7 +64,7 @@ export default function PeriodSelect({ row, value, onChange, disabled, className
                     handleOpenChange(false);
                   }}
                   className={cn(
-                    "relative flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-[7px] text-left text-[12.5px] font-semibold transition-colors",
+                    "relative flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left type-table-cell font-semibold! transition-colors",
                     selected
                       ? "bg-[#e8f2ff] text-[#0b4fd0] shadow-[inset_3px_0_0_#0d60ff]"
                       : "text-[#1f2937] hover:bg-[#f4f9ff]"
@@ -85,24 +85,24 @@ export default function PeriodSelect({ row, value, onChange, disabled, className
                 {/* Two full-width lines so the dates always fit inside the card: old date struck through, new date highlighted. */}
                 <div className="flex flex-col gap-0.5 px-1 pb-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
-                    <s className="text-[11px] font-semibold text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
+                    <span className="text-[10px] font-semibold tracking-[0.6px] text-[#94a3b8]">{t("charge.current")}</span>
+                    <s className="type-caption font-semibold! text-[#8b97a8] decoration-slate-500/70">{displayDate(row.expiry)}</s>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-extrabold tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
-                    <span className="text-[11px] font-semibold text-[#41588a]">{displayDate(startOf(row).date)}</span>
+                    <span className="text-[10px] font-semibold tracking-[0.6px] text-[#94a3b8]">{t("charge.start")}</span>
+                    <span className="type-caption font-semibold! text-[#41588a]">{displayDate(startOf(row).date)}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-1 rounded-lg border border-[#7fb8ff] bg-white px-2 py-1 shadow-[0_3px_8px_-4px_rgba(13,96,255,0.5)]">
-                  <span className="flex items-center gap-1 text-[9px] font-extrabold tracking-[0.6px] text-[#2f8dff]">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.6px] text-[#2f8dff]">
                     <ArrowRight className="size-3 flex-none" strokeWidth={2.6} />
                     {t("charge.new")}
                   </span>
-                  <b className="text-[12.5px] text-[#0b4fd0]">{displayDate(newExpiryOf(row, previewKey))}</b>
+                  <b className="type-table-cell font-semibold! text-[#0b4fd0]">{displayDate(newExpiryOf(row, previewKey))}</b>
                 </div>
               </>
             ) : (
-              <p className="py-1 text-center text-[11px] font-semibold text-dash-faint">{t("select.hover")}</p>
+              <p className="py-1 text-center type-caption font-semibold! text-dash-faint">{t("select.hover")}</p>
             )}
           </div>
         </Popover.Content>

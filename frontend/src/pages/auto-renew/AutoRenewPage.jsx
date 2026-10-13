@@ -35,7 +35,7 @@ import {
 const canSelect = () => false;
 
 const actionButton =
-  "rounded-lg px-0 py-1 text-center text-[12px] font-bold text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none";
+  "rounded-lg px-0 py-1 text-center font-semibold! text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none";
 
 function Dot({ className }) {
   return <i className={cn("size-[7px] flex-none rounded-full", className)} />;
@@ -216,7 +216,7 @@ export default function AutoRenewPage() {
       render: (r) => (
         // Three fixed slots (Approve / Reject / Comm) so the buttons line up in every row, whether or not
         // the row has a Comm icon or is already settled.
-        <div className="mx-auto grid w-fit grid-cols-[58px_50px_24px] items-center gap-1">
+        <div className="mx-auto grid w-fit grid-cols-[4.6em_4em_2.1em] items-center gap-[0.35em] type-body">
           {r.status === "pending" ? (
             <>
               <button
@@ -244,14 +244,14 @@ export default function AutoRenewPage() {
               disabled={readOnly || busyId != null || !r.canDelete}
               title={readOnly ? t("readOnly") : !r.canDelete ? t("actions.cannotUndo") : t("actions.putBack")}
               onClick={() => setConfirm({ row: r, action: "undo" })}
-              className="col-span-2 flex items-center justify-center gap-1 rounded-lg border border-[#b9cdea] bg-white py-1 text-[12px] font-bold text-[#41588a] transition-colors enabled:cursor-pointer enabled:hover:bg-[#eef4fd] disabled:cursor-not-allowed disabled:opacity-45"
+              className="col-span-2 flex items-center justify-center gap-1 rounded-lg border border-[#b9cdea] bg-white py-1 font-semibold! text-[#41588a] transition-colors enabled:cursor-pointer enabled:hover:bg-[#eef4fd] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              <Undo2 className="size-3" strokeWidth={2.6} />
+              <Undo2 className="size-[1em]" strokeWidth={2.6} />
               {t("actions.undo")}
             </button>
           )}
           <span className="relative inline-flex">
-            <IconAction icon={MessageSquare} title={t("actions.commTitle")} aria-label={t("actions.comm")} onClick={() => setChargeId(r.id)} className="size-6" />
+            <IconAction icon={MessageSquare} title={t("actions.commTitle")} aria-label={t("actions.comm")} onClick={() => setChargeId(r.id)} className="size-[2em]" />
             {Object.values(r.departments).some((list) => list.length > 0) && (
               <i className="pointer-events-none absolute top-0.5 right-0.5 size-[7px] rounded-full bg-[#1f6fe8] ring-2 ring-white" />
             )}
