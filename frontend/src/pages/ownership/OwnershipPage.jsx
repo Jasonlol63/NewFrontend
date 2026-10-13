@@ -17,11 +17,11 @@ import { useOwnershipOverview } from "./useOwnershipOverview";
 
 // Sizes shared by the white pills and the Current button; they follow the screen height like the rest of the page.
 const pillSize =
-  "h-[clamp(28.08px,calc(5.72dvh_-_5.8px),36px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] text-[length:max(12px,clamp(10.14px,calc(2.07dvh_-_2.09px),13px))] text-brand-navy";
+  "h-[clamp(28.08px,calc(5.72dvh_-_5.8px),36px)] px-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] type-table-cell font-semibold! text-brand-navy";
 
 const whitePill = `${pillSize} inline-flex flex-none items-center gap-2 border border-dash-line bg-white font-semibold shadow-[0_1px_3px_rgba(15,23,42,0.05)]`;
 
-const infoBar = "mx-1 flex flex-none items-center gap-2 rounded-xl border border-white/85 bg-white/55 px-3.5 py-2 text-[12.5px] font-semibold text-brand-navy shadow-[0_8px_24px_-18px_rgba(20,51,107,0.4)]";
+const infoBar = "mx-1 flex flex-none items-center gap-2 rounded-xl border border-white/85 bg-white/55 px-3.5 py-2 type-table-cell font-semibold! text-brand-navy shadow-[0_8px_24px_-18px_rgba(20,51,107,0.4)]";
 
 // Waits for several changes and tells how many went through.
 async function runAll(ids, action) {
@@ -147,7 +147,7 @@ export default function OwnershipPage() {
   }, [error]);
 
   return (
-    <div className="relative py-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] gap-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] text-[length:max(12px,clamp(10.14px,calc(2.07dvh_-_2.09px),13px))] xl-screen:px-7 xl-screen:py-[22px] xl-screen:gap-[18px] flex h-full min-h-[520px] flex-col">
+    <div className="relative py-[clamp(10.92px,calc(2.23dvh_-_2.25px),14px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] gap-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] type-table-cell font-normal! xl-screen:px-7 xl-screen:py-[22px] xl-screen:gap-[18px] flex h-full min-h-[520px] flex-col">
       <Toast toasts={toasts} onClose={dismiss} />
       <div className="flex flex-none items-center gap-3 px-1">
         <SlideTabs
@@ -199,7 +199,7 @@ export default function OwnershipPage() {
 
       {tab === "ownership" && directory && (
         <div className="flex flex-none items-center gap-3 px-1">
-          <span className="text-[length:max(11px,clamp(8.97px,calc(1.83dvh_-_1.85px),11.5px))] font-extrabold tracking-[0.5px] text-brand-navy">{t("page.group")}</span>
+          <span className="type-caption font-semibold! tracking-[0.5px] text-brand-navy">{t("page.group")}</span>
           <div className="rounded-[clamp(7.8px,calc(1.59dvh_-_1.61px),10px)] inline-flex overflow-hidden border border-dash-line shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
             {chips.map((g) => {
               const active = g === group;
@@ -209,12 +209,12 @@ export default function OwnershipPage() {
                   type="button"
                   onClick={() => pickGroup(g)}
                   className={cn(
-                    "py-[clamp(5.46px,calc(1.11dvh_-_1.13px),7px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] text-[length:max(12px,clamp(9.75px,calc(1.99dvh_-_2.01px),12.5px))] flex cursor-pointer items-center gap-1.5 border-r border-dash-line font-semibold last:border-r-0",
+                    "py-[clamp(5.46px,calc(1.11dvh_-_1.13px),7px)] px-[clamp(12.48px,calc(2.54dvh_-_2.58px),16px)] type-table-cell font-semibold! flex cursor-pointer items-center gap-1.5 border-r border-dash-line last:border-r-0",
                     active ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
                   )}
                 >
                   {g === NO_GROUP ? t("page.noGroup") : g}
-                  <span className={cn("text-[length:max(10.5px,clamp(8.58px,calc(1.75dvh_-_1.77px),11px))] min-w-5 rounded-full px-1.5 text-center font-extrabold tabular-nums", active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]")}>{countOf(g)}</span>
+                  <span className={cn("type-caption font-semibold! min-w-5 rounded-full px-1.5 text-center tabular-nums", active ? "bg-white/25 text-white" : "bg-[#e8f1ff] text-[#0b4fd0]")}>{countOf(g)}</span>
                 </button>
               );
             })}
@@ -265,16 +265,16 @@ export default function OwnershipPage() {
 
       <div className="gap-[clamp(6.24px,calc(1.27dvh_-_1.29px),8px)] xl-screen:gap-3 flex min-h-0 flex-1 flex-col overflow-y-auto px-1 pb-1 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
         {loading ? (
-          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">{t("page.loading")}</div>
+          <div className="flex flex-1 items-center justify-center type-table-cell font-semibold! text-dash-sub">{t("page.loading")}</div>
         ) : error ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[13px] font-semibold text-dash-sub">
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 type-table-cell font-semibold! text-dash-sub">
             {t("page.loadFail")}
             <button type="button" onClick={reload} className={cn(primaryButtonClass, pillSize, "text-white")}>
               {t("common:retry")}
             </button>
           </div>
         ) : entities.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-[13px] font-semibold text-dash-sub">{tab === "ownership" ? t("page.noCompanies") : t("page.noGroups")}</div>
+          <div className="flex flex-1 items-center justify-center type-table-cell font-semibold! text-dash-sub">{tab === "ownership" ? t("page.noCompanies") : t("page.noGroups")}</div>
         ) : (
           entities.map((e) => (
             <OwnershipCard

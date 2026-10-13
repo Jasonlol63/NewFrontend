@@ -39,7 +39,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
         >
           <CalendarDays className={cn("size-4", historical ? "text-[#c77d0a]" : "text-[#0b57e8]")} strokeWidth={2.2} />
           {monthLabel(value)}
-          {historical && <span className="rounded-full bg-[#fde7b8] px-2 py-0.5 text-[10px] font-extrabold tracking-[0.4px] text-[#a45a04]">{t("card.historical")}</span>}
+          {historical && <span className="rounded-full bg-[#fde7b8] px-2 py-0.5 type-caption font-semibold! tracking-[0.4px] text-[#a45a04]">{t("card.historical")}</span>}
           <ChevronDown className={cn("size-3.5 text-slate-400 transition-transform", open && "rotate-180")} strokeWidth={2.6} />
         </button>
       </Popover.Trigger>
@@ -50,7 +50,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
           sideOffset={6}
           className="z-50 w-[304px] rounded-2xl border border-dash-line bg-white p-3 shadow-[0_14px_34px_-8px_rgba(15,23,42,0.32)]"
         >
-          <div className="flex items-center justify-between rounded-[10px] bg-[#f3f6fb] px-2 py-1.5 text-[13px] font-extrabold text-brand-navy">
+          <div className="flex items-center justify-between rounded-[10px] bg-[#f3f6fb] px-2 py-1.5 type-table-cell font-semibold! text-brand-navy">
             <button type="button" aria-label={t("picker.prevYear")} onClick={() => setYear((y) => y - 1)} className="flex size-6 cursor-pointer items-center justify-center rounded-md hover:bg-white">
               <ChevronLeft className="size-4" strokeWidth={2.6} />
             </button>
@@ -81,7 +81,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
                     setOpen(false);
                   }}
                   className={cn(
-                    "relative flex h-[34px] cursor-pointer items-center justify-center rounded-[10px] border text-[12.5px] font-bold transition-colors",
+                    "relative flex h-[34px] cursor-pointer items-center justify-center rounded-[10px] border type-table-cell font-semibold! transition-colors",
                     future && "cursor-not-allowed border-[#eef1f5] bg-[#f8fafc] text-[#c3cad5]",
                     !future && selected && key !== current && "border-[#f5a524] bg-[#fff4dc] text-[#8a4b04]",
                     !future && selected && key === current && "border-transparent bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,255,0.55)]",
@@ -96,7 +96,7 @@ export default function MonthPicker({ value, current, saved, onChange, triggerCl
             })}
           </div>
 
-          <div className="mt-2.5 flex items-center gap-3.5 text-[11px] text-dash-sub">
+          <div className="mt-2.5 flex items-center gap-3.5 type-caption font-normal! text-dash-sub">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-[#f5a524]" />
               {t("picker.saved")}
