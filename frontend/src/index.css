@@ -532,6 +532,7 @@ body {
   --fm-btn-sm: 13;
   --fm-count: 13;
   --fm-empty: 13;
+  --fm-amount: 28;
 }
 @media (max-height: 760px) {
   :root {
@@ -546,6 +547,7 @@ body {
     --fm-btn-sm: 12.5;
     --fm-count: 12.5;
     --fm-empty: 12.5;
+    --fm-amount: 24;
   }
 }
 @media (max-height: 600px) {
@@ -560,6 +562,7 @@ body {
     --fm-btn-sm: 12;
     --fm-count: 12;
     --fm-empty: 12;
+    --fm-amount: 21;
   }
 }
 @utility fm-title {
@@ -610,4 +613,9 @@ body {
   font-size: clamp(calc(var(--fm-empty) * 1px), calc(var(--fm-empty) * 1px + (100vw - 1366px) * var(--fm-empty) * var(--fm-k)), calc(var(--fm-empty) * 1.2 * 1px));
   font-weight: 400;
   line-height: 1.4;
+}
+@utility fm-amount {
+  font-size: clamp(calc(var(--fm-amount) * 1px), calc(var(--fm-amount) * 1px + (100vw - 1366px) * var(--fm-amount) * var(--fm-k)), calc(var(--fm-amount) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.1;
 }

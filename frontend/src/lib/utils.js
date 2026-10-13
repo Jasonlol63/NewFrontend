@@ -7,7 +7,7 @@ import { createCn } from "cn/config"
 //   own, such as font-semibold, only adds to the role).
 const ROLES = [
   "type-page-title", "type-card-title", "type-label", "type-body", "type-table-head", "type-table-cell", "type-caption", "type-kpi",
-  "fm-title", "fm-section", "fm-label", "fm-opt", "fm-help", "fm-input", "fm-btn", "fm-btn-sm", "fm-count", "fm-empty",
+  "fm-title", "fm-section", "fm-label", "fm-opt", "fm-help", "fm-input", "fm-btn", "fm-btn-sm", "fm-count", "fm-empty", "fm-amount",
 ]
 
 export const cn = createCn({

@@ -54,7 +54,7 @@ export default function MemberRow({
             {picked && <Check className="size-[11px]" strokeWidth={4} />}
           </button>
         )}
-        <b className="text-[13px] font-bold text-brand-navy">{code}</b>
+        <b className="fm-label text-brand-navy">{code}</b>
         {change && (
           <i
             title={change === "new" ? t("form.newTip") : t("form.changedTip")}
@@ -67,16 +67,16 @@ export default function MemberRow({
       </div>
 
       {date ? (
-        <span className="justify-self-center text-[12.5px] font-semibold tabular-nums whitespace-nowrap text-[#475569]">{date}</span>
+        <span className="justify-self-center fm-input font-semibold! tabular-nums whitespace-nowrap text-[#475569]">{date}</span>
       ) : (
-        <span className="justify-self-center text-[12.5px] font-medium whitespace-nowrap text-[#9aa7ba] italic">{t("form.notSet")}</span>
+        <span className="justify-self-center fm-input whitespace-nowrap text-[#9aa7ba] italic">{t("form.notSet")}</span>
       )}
 
       <div className="flex items-center gap-3.5 justify-self-end modal-compact:gap-3 modal-tiny:gap-2.5">
         <button
           type="button"
           onClick={onSet}
-          className="h-[30px] min-w-[62px] cursor-pointer rounded-[9px] border-none bg-brand-sweep px-[18px] text-[12.5px] font-bold text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:brightness-105 modal-compact:h-7 modal-compact:min-w-14 modal-compact:px-3.5 modal-tiny:h-[26px] modal-tiny:min-w-[52px] modal-tiny:px-3 modal-tiny:text-[12px]"
+          className="h-[30px] min-w-[62px] cursor-pointer rounded-[9px] border-none bg-brand-sweep px-[18px] fm-btn-sm text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:brightness-105 modal-compact:h-7 modal-compact:min-w-14 modal-compact:px-3.5 modal-tiny:h-[26px] modal-tiny:min-w-[52px] modal-tiny:px-3 modal-tiny:text-[12px]"
         >
           {t("form.set")}
         </button>
@@ -95,7 +95,7 @@ export default function MemberRow({
 }
 
 const chipBase =
-  "inline-flex h-5 flex-none items-center gap-0.5 rounded-md border-none py-0 pr-1.5 pl-2 text-[10.5px] font-bold whitespace-nowrap transition-shadow";
+  "inline-flex h-[22px] flex-none items-center gap-0.5 rounded-md border-none py-0 pr-1.5 pl-2 fm-opt font-semibold! whitespace-nowrap transition-shadow";
 
 // The group of a company as a small chip; click it to move the company (or take it out of its group).
 function GroupChip({ group, groups, onMove, disabled, moved }) {
@@ -133,8 +133,8 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
                   key={o.value}
                   onSelect={() => onMove(o.value === NO_GROUP ? "" : o.value)}
                   className={cn(
-                    "flex min-h-[34px] cursor-pointer items-center gap-2 rounded-[9px] border border-transparent py-1.5 pr-2 pl-2.5 text-[13px] font-semibold text-[#374151] outline-none select-none",
-                    "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7 modal-tiny:text-[12.5px]",
+                    "flex min-h-[34px] cursor-pointer items-center gap-2 rounded-[9px] border border-transparent py-1.5 pr-2 pl-2.5 fm-input font-semibold! text-[#374151] outline-none select-none",
+                    "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7",
                     "data-highlighted:bg-[#eef4ff]",
                     o.value === NO_GROUP && !on && "text-[#8a96a8]",
                     on && "border-[#7fb2ff] bg-row-stripe font-bold text-brand-navy"
@@ -150,7 +150,7 @@ function GroupChip({ group, groups, onMove, disabled, moved }) {
               );
             })
           ) : (
-            <DropdownMenu.Item disabled className="flex min-h-[34px] items-center rounded-[9px] px-2.5 text-[13px] font-semibold text-[#8a96a8]">
+            <DropdownMenu.Item disabled className="flex min-h-[34px] items-center rounded-[9px] px-2.5 fm-input font-semibold! text-[#8a96a8]">
               {t("form.noGroupsCreated")}
             </DropdownMenu.Item>
           )}

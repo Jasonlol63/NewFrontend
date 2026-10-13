@@ -45,7 +45,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 modal-compact:gap-2 modal-tiny:gap-1.5">
-      <div className="flex flex-none items-center gap-2 rounded-[10px] border border-white/60 bg-white/40 px-2.5 py-1.5 text-[12px] text-[#5b74a3] modal-tiny:py-1">
+      <div className="flex flex-none items-center gap-2 rounded-[10px] border border-white/60 bg-white/40 px-2.5 py-1.5 fm-help text-[#5b74a3] modal-tiny:py-1">
         <CalendarDays className="size-3.5 flex-none text-brand-blue" strokeWidth={2.2} />
         {period ? (
           <>
@@ -61,17 +61,17 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
 
       <div className="relative flex flex-none flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden rounded-xl border border-l-0 border-white/70 bg-[linear-gradient(100deg,rgba(255,255,255,0.62)_0%,rgba(214,232,255,0.55)_100%)] py-[13px] pr-4 pb-[17px] pl-[19px] modal-compact:py-2.5 modal-compact:pb-3.5 modal-snug:py-2 modal-snug:pb-3">
         <span className="absolute inset-y-0 left-0 w-[3px] bg-brand-blue" />
-        <b className="text-[18px] font-extrabold text-brand-navy modal-compact:text-[16px] modal-snug:text-[15px]">{t("share.profit")}</b>
-        <span className="flex min-w-0 items-center gap-1 text-[14px] font-bold text-brand-navy modal-compact:text-[13px]">
+        <b className="fm-section text-brand-navy">{t("share.profit")}</b>
+        <span className="flex min-w-0 items-center gap-1 fm-label text-brand-navy">
           {PROFIT_ACCOUNT}
           <Lock className="size-3.5 flex-none text-dash-faint" strokeWidth={2.4} />
         </span>
         <div className="ml-auto flex flex-none flex-col items-end leading-[1.15]">
-          <span className="text-[10.5px] font-semibold tracking-[0.3px] text-[#6b7fa5] modal-snug:hidden">{t("share.totalAmount")}</span>
+          <span className="fm-help font-semibold! tracking-[0.3px] text-[#6b7fa5] modal-snug:hidden">{t("share.totalAmount")}</span>
           <div className="flex items-baseline gap-2.5">
             <b
               className={cn(
-                "text-[27px] font-extrabold tabular-nums modal-compact:text-[23px] modal-snug:text-[20px]",
+                "fm-amount tabular-nums",
                 summary.over ? "text-[#dc2626]" : "text-brand-blue",
               )}
             >
@@ -79,7 +79,7 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
             </b>
             <em
               className={cn(
-                "rounded-full px-2.5 py-px text-[13.5px] font-bold not-italic tabular-nums modal-compact:text-[12.5px]",
+                "rounded-full px-2.5 py-px fm-btn not-italic tabular-nums",
                 summary.over ? "bg-[#fee2e2] text-[#dc2626]" : "bg-[#e3edff] text-brand-blue",
               )}
             >
@@ -117,20 +117,20 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
       >
         <span className="absolute inset-y-0 left-0 w-[3px] bg-(--c)" />
         <div className="flex flex-none items-center gap-2">
-          <b className="text-[14px] font-extrabold text-brand-navy">{t(`department.${department.key}`)}</b>
-          <span className="min-w-0 truncate text-[11.5px] text-[#6b7fa5] @max-[599px]/main:hidden">{t("share.commission")}</span>
+          <b className="fm-label text-brand-navy">{t(`department.${department.key}`)}</b>
+          <span className="min-w-0 truncate fm-help text-[#6b7fa5] @max-[599px]/main:hidden">{t("share.commission")}</span>
           <button
             type="button"
             disabled={noPrice || !rows.length || spent.pct <= 0}
             onClick={() => onChange(active, splitEqually(rows))}
-            className="ml-auto flex-none cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-brand-blue hover:underline disabled:cursor-not-allowed disabled:text-dash-faint disabled:no-underline"
+            className="ml-auto flex-none cursor-pointer border-none bg-transparent p-0 fm-btn-sm text-brand-blue hover:underline disabled:cursor-not-allowed disabled:text-dash-faint disabled:no-underline"
           >
             {t("share.splitEqually")}
           </button>
         </div>
 
         {rows.length > 0 && (
-          <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] gap-2 px-1.5 @max-[479px]/main:hidden text-[10px] font-semibold tracking-[0.3px] text-[#6b7fa5]">
+          <div className="grid flex-none grid-cols-[minmax(0,1fr)_minmax(72px,0.75fr)_minmax(64px,0.55fr)_22px] gap-2 px-1.5 @max-[479px]/main:hidden fm-help font-semibold! tracking-[0.3px] text-[#6b7fa5]">
             <span>{t("share.account")}</span>
             <span className="text-right">{t("share.amount")}</span>
             <span className="text-right">%</span>
@@ -150,19 +150,19 @@ export default function SharePanel({ kindLabel, period, price, departments, summ
               onRemove={() => removeRow(row.id)}
             />
           ))}
-          {!rows.length && <p className="m-0 flex-none py-1 text-[12px] text-[#8a96a8]">{t("share.noAccounts")}</p>}
+          {!rows.length && <p className="m-0 flex-none py-1 fm-empty text-[#8a96a8]">{t("share.noAccounts")}</p>}
           <button
             type="button"
             onClick={addRow}
             disabled={!unusedAccounts(rows).length}
-            className="flex h-9 flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#9dbcf5] bg-white/40 text-[13px] font-bold text-brand-blue transition-colors hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-8 modal-tiny:h-7"
+            className="flex h-9 flex-none cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#9dbcf5] bg-white/40 fm-btn text-brand-blue transition-colors hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-50 modal-compact:h-8 modal-tiny:h-7"
           >
             <Plus className="size-3.5" strokeWidth={2.6} />
             {t("share.addAccount")}
           </button>
         </div>
 
-        <div className="flex flex-none items-center justify-between border-t border-[rgba(130,155,195,0.25)] pt-1.5 text-[12px] text-[#41588a]">
+        <div className="flex flex-none items-center justify-between border-t border-[rgba(130,155,195,0.25)] pt-1.5 fm-help text-[#41588a]">
           <span>{t("share.departmentTotal", { department: t(`department.${department.key}`) })}</span>
           <b className="font-bold tabular-nums text-brand-navy">
             {fmt(spent.amount)} · {pct2(spent.pct)}
@@ -209,13 +209,13 @@ function DepartmentTab({ department, total, on, onPick }) {
       )}
     >
       <span className={cn("absolute inset-y-0 left-0 w-[3px] bg-(--c) transition-opacity", on ? "opacity-100" : "opacity-50")} />
-      <span className="flex min-w-0 items-baseline gap-[5px] text-[14.5px] font-extrabold whitespace-nowrap modal-compact:text-[13px] modal-roomy:text-[16px] modal-tall:text-[17px]">
+      <span className="flex min-w-0 items-baseline gap-[5px] fm-label whitespace-nowrap">
         {t(`department.${department.key}`)}
-        <small className="text-[10.5px] font-semibold text-[#6b7fa5] modal-roomy:text-[11.5px] modal-snug:hidden">{total.count ? t("share.accShort", { count: total.count }) : t("share.notSet")}</small>
+        <small className="fm-help font-semibold! text-[#6b7fa5] modal-snug:hidden">{total.count ? t("share.accShort", { count: total.count }) : t("share.notSet")}</small>
       </span>
       <span className={cn("ml-auto flex items-baseline gap-1.5 whitespace-nowrap tabular-nums", total.count ? "text-brand-navy" : "text-[#8a96a8]")}>
-        <b className="text-[17px] font-extrabold modal-compact:text-[13.5px] modal-roomy:text-[20px] modal-tall:text-[22px]">{fmt(total.amount)}</b>
-        <em className={cn("text-[12.5px] font-bold not-italic modal-compact:text-[11.5px] modal-roomy:text-[13.5px] modal-tall:text-[14px]", total.count && "text-(--c)")}>{pct2(total.pct)}</em>
+        <b className="fm-section">{fmt(total.amount)}</b>
+        <em className={cn("fm-count not-italic", total.count && "text-(--c)")}>{pct2(total.pct)}</em>
       </span>
       <span className="absolute right-3 bottom-1 left-[18px] h-[3px] overflow-hidden rounded-full bg-[rgba(140,165,205,0.3)] modal-compact:bottom-[3px] modal-compact:left-3.5 modal-roomy:right-3.5 modal-roomy:bottom-[5px] modal-roomy:left-[21px]">
         <i className="block h-full bg-(--c)" style={{ width: `${Math.min(100, Math.max(0, total.pct))}%` }} />
@@ -266,7 +266,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
           aria-label={t("share.percentageLabel", { account: row.account || t("share.accountFallback") })}
           className="pr-6 pl-2 text-right tabular-nums"
         />
-        <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[11px] text-dash-faint">%</span>
+        <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 fm-help text-dash-faint">%</span>
       </div>
       <button
         type="button"
