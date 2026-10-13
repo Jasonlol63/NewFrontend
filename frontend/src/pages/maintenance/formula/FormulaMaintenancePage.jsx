@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toast from "@/components/shared/Toast.jsx";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
@@ -14,8 +14,11 @@ import { normalizeAccountRow } from "@/pages/account/accountRules";
 import FormulaEditModal from "./FormulaEditModal.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useMaintenanceFilters } from "../shared/useMaintenanceFilters";
-import { useMaintenanceList } from "../shared/useMaintenanceList";
-import { FORMULA_DELETE_URL, FORMULA_LIST_URL, filterFormulaRows, normalizeFormulaRow } from "./formulaMaintenanceRules";
+import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
+import { FORMULA_DELETE_URL, FORMULA_LIST_URL, normalizeFormulaRow } from "./formulaMaintenanceRules";
+
+// The search box asks the server once typing has paused.
+const SEARCH_DELAY_MS = 300;
 
 const dash = (v) => v || "-";
 
@@ -45,8 +48,14 @@ export default function FormulaMaintenancePage() {
     dated: false,
     onChange: () => setSelected(new Set()),
   });
-  const list = useMaintenanceList(FORMULA_LIST_URL, filters.request, normalizeFormulaRow);
-  const rows = useMemo(() => filterFormulaRows(list.rows, filters.search), [list.rows, filters.search]);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+  const request = useMemo(() => filters.request && { ...filters.request, ...(query ? { q: query } : {}) }, [filters.request, query]);
+  const list = useInfiniteMaintenanceList(FORMULA_LIST_URL, request, normalizeFormulaRow);
+  const rows = list.rows;
 
   // The accounts the Edit window offers: the company's active ones.
   const { tenantId } = filters.scope;
@@ -80,7 +89,7 @@ export default function FormulaMaintenancePage() {
   const actions = useRowActions({
     deleteRows: async (picked) => {
       await postJson(FORMULA_DELETE_URL, { tenantId: filters.request.tenantId, formulaIds: picked.map((r) => Number(r.id)) });
-      list.reload();
+      await list.refreshLoaded();
     },
     noun: "formula",
     push,
@@ -107,6 +116,12 @@ export default function FormulaMaintenancePage() {
         noun="records"
         loading={list.loading}
         rows={rows}
+        total={list.total}
+        virtual
+        hasMore={list.hasMore}
+        loadingMore={list.loadingMore}
+        onLoadMore={list.loadMore}
+        scrollResetKey={request}
         selected={selected}
         onSelectedChange={setSelected}
         canSelect={canSelect}
@@ -118,7 +133,7 @@ export default function FormulaMaintenancePage() {
       {actions.dialogs}
 
       {editing && (
-        <FormulaEditModal row={editing} tenantId={tenantId} accounts={accounts} onClose={() => setEditing(null)} onSaved={() => list.reload()} notify={push} />
+        <FormulaEditModal row={editing} tenantId={tenantId} accounts={accounts} onClose={() => setEditing(null)} onSaved={list.refreshLoaded} notify={push} />
       )}
     </div>
   );

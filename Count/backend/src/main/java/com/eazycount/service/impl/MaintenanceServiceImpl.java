@@ -60,6 +60,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private static final int CAPTURE_PAGE_MAX = 2000;
     // Payment and Bank Process Maintenance load in batches of rows too.
     private static final int PAYMENT_PAGE_DEFAULT = 100;
+    // Formula Maintenance pages by offset. After an edit or delete the page re-reads everything already loaded in one
+    // request, hence the high cap (a tenant has a few thousand formulas at most).
+    private static final int FORMULA_PAGE_DEFAULT = 100;
+    private static final int FORMULA_PAGE_MAX = 10000;
     // Transaction Maintenance loads whole captures (about 6 lines each) per batch.
     private static final int TRANSACTION_PAGE_DEFAULT = 25;
 
@@ -243,15 +247,26 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public List<MaintenanceFormulaDTO> findMaintenanceFormulaRows(MaintenanceFormulaDTO mf) {
+    public CursorPage<MaintenanceFormulaDTO> findMaintenanceFormulaRows(MaintenanceFormulaDTO mf) {
         AccessControlUtils.requireLoggedIn();
         FormulaListQuery query = parseFormulaListQuery(mf);
 
-        return maintenanceDao.findFormulaMaintenanceRows(
-                query.tenantId(),
-                query.process(),
-                query.category(),
-                query.q());
+        int pageSize = mf.getLimit() == null ? FORMULA_PAGE_DEFAULT : Math.max(1, Math.min(mf.getLimit(), FORMULA_PAGE_MAX));
+        int offset = mf.getCursorOffset() == null ? 0 : Math.max(0, mf.getCursorOffset());
+
+        // One row more than asked tells whether there is a next batch.
+        List<MaintenanceFormulaDTO> rows = new ArrayList<>(maintenanceDao.findFormulaMaintenancePage(
+                query.tenantId(), query.process(), query.category(), query.q(), pageSize + 1, offset));
+        Map<String, Object> nextCursor = null;
+        if (rows.size() > pageSize) {
+            rows = rows.subList(0, pageSize);
+            nextCursor = new LinkedHashMap<>();
+            nextCursor.put("offset", offset + pageSize);
+        }
+        Long total = offset == 0
+                ? maintenanceDao.countFormulaMaintenance(query.tenantId(), query.process(), query.category(), query.q())
+                : null;
+        return new CursorPage<>(rows, nextCursor, total);
     }
 
     // Formula Maintenance Edit: only account_id/source_percent/input_method/formula/description are editable.

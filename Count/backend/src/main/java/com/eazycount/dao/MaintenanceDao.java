@@ -180,8 +180,18 @@ public interface MaintenanceDao {
             @Param("tenantId") Integer tenantId,
             @Param("captureIds") List<Integer> captureIds);
 
-    // Formula Maintenance (view-only): every data_capture_formula row for one process, one category (GAME/BANK) at a time.
-    List<MaintenanceFormulaDTO> findFormulaMaintenanceRows(
+    // Formula Maintenance (view-only): one batch (LIMIT / OFFSET) of data_capture_formula rows for one process (or all),
+    // one category (GAME/BANK) at a time.
+    List<MaintenanceFormulaDTO> findFormulaMaintenancePage(
+            @Param("tenantId") Integer tenantId,
+            @Param("process") String process,
+            @Param("category") String category,
+            @Param("q") String q,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    // How many rows the Formula Maintenance list holds in total under the same filters.
+    long countFormulaMaintenance(
             @Param("tenantId") Integer tenantId,
             @Param("process") String process,
             @Param("category") String category,

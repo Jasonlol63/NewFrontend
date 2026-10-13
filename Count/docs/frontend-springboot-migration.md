@@ -2015,7 +2015,7 @@ Bank Process **Maintenance** 仍在 Maintenance 子菜单下，需 **maintenance
 | 租户 | **一律 `tenantId`**，与 Payment/Bank Process Maintenance 同一原则：不再传 / 校验 `company_id`、`group_id`、`view_group`、`report_scope`、`group_aggregate` 等 scope 参数（旧前端那套跨公司聚合是纯前端循环单租户请求实现的，后端从未支持过） |
 | Category | **必填**，`dc.category = #{category}` 是 WHERE 里的硬条件（不是 `<if>` 可选项）。Games/Gambling/Loan/Rate/Money → `GAME`，Bank → `BANK`；缺失或无法识别直接抛 `BusinessException`。这是为了防止 Select All（不选具体 process）时 GAME/BANK 数据混在一次响应里返回——见对话最初的要求：game/bank 展示不能串 |
 | 删除 | 本次不做。页面本身**无删除入口**，仅为查看；`deleted`/`deletedBy`/`deletedAt` 暂固定回 `false`/`null`，等 Capture Maintenance 的软删归档表落地后再接 |
-| 不含分页 | 跟 Payment/Bank Process Maintenance 一样，一个日期范围一次性查完；前端那套日期分片/分页/重试/流式 `onProgress`（服务旧 PHP 分页）后续要跟着简化掉 |
+| 不含分页（**已过时**，2026-10-13 起按批加载，见 `maintenance-list-batch-loading.md`） | 跟 Payment/Bank Process Maintenance 一样，一个日期范围一次性查完；前端那套日期分片/分页/重试/流式 `onProgress`（服务旧 PHP 分页）后续要跟着简化掉 |
 
 #### 10.1 SQL / 字段来源
 
@@ -2067,7 +2067,7 @@ WHERE dl.tenant_id = #{tenantId}
 
 | 项 | 说明 |
 |----|------|
-| 请求目标 | `api/transactions/maintenance_search_api.php`（旧 PHP，分页）→ `POST api/maintenance/transaction-maintenance/list`（Spring，一次性返回整段日期范围） |
+| 请求目标 | `api/transactions/maintenance_search_api.php`（旧 PHP，分页）→ `POST api/maintenance/transaction-maintenance/list`（Spring，~~一次性返回整段日期范围~~ 已改为按批返回，见 `maintenance-list-batch-loading.md`） |
 | 去掉 | 日期分片（`splitMaintenanceDateRange` 等）、分页游标/重试（`fetchAllPagesForRange`/`fetchMaintenancePageWithRetries`）、`appendMaintenanceScopeToParams`（不再传 `company_id`/`view_group`/`group_id`/`report_scope`/`group_only`/`group_aggregate`）、未被任何页面使用的 `packMaintenanceCache`/`getMaintenanceCacheRows`/`isMaintenanceCacheComplete`（已用 grep 确认全仓库无引用） |
 | 新增 | `buildSpringTransactionMaintenanceRequest`（组请求体，`category` 缺失直接抛错）、`normalizeSpringTransactionMaintenanceRow`（camelCase → `dts_created`/`id_product`/... 表格字段）、`fetchTransactionMaintenanceOnce`（单租户单次 fetch）、`resolveTransactionMaintenanceTenantId`（从 `scope.scopeCompanyId ?? scope.uiCompanyId` 取 tenantId，取自 `report/shared/reportScope.js` 里 `scopeCompanyId` 字段，各 scope mode 通用） |
 | 保留行为 | `scope.mode === "aggregate"`（Group 聚合视图）：仍是前端对 `mergeCompanyIds` 里每个公司循环单租户请求 + 合并排序，只是内层单次请求换成新接口；`onProgress` 在聚合模式下每查完一个公司回调一次，单公司模式下查完整段一次性回调 |

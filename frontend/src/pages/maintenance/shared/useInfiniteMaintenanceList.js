@@ -7,6 +7,11 @@ export const BATCH_SIZE = 100;
 // A realtime refresh re-reads this many batches from the top and merges them into what is loaded.
 const REFRESH_BATCHES = 3;
 
+// The cursor the server gave, sent back as request fields: { createdAt, id } -> cursorCreatedAt, cursorId; { offset } -> cursorOffset.
+function cursorFields(cursor) {
+  return Object.fromEntries(Object.entries(cursor).map(([name, value]) => [`cursor${name[0].toUpperCase()}${name.slice(1)}`, value]));
+}
+
 // A row id is the React key, so a row the data holds twice (e.g. a transaction archived twice) shows once.
 function unique(rows) {
   const seen = new Set();
@@ -34,7 +39,7 @@ function mergeHead(prev, fresh, reply) {
  * `body` null = nothing to ask yet. Each row goes through `normalize` (keep it a stable function).
  * While a new request is in flight the previous rows stay on screen and `loading` dims them.
  * `loadMore()` appends the next batch (no-op while one is coming or when there is none); `hasMore` / `loadingMore`
- * drive the table's scroll trigger. `reload()` asks again from the top, e.g. after a delete.
+ * drive the table's scroll trigger. `reload()` asks again from the top; `refreshLoaded()` re-reads what is loaded in place.
  * `batchSize` is what the server counts in a batch (rows, or whole captures on Transaction Maintenance).
  * `refreshOn` (see useRealtime) re-reads, without dimming, the top of the list when someone else changes the data;
  * what the user has scrolled past further down is kept.
@@ -77,19 +82,29 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
 
   const reload = useCallback(() => setReloadCount((n) => n + 1), []);
 
+  // After an edit or delete: re-reads, in one request, as many rows as are loaded and swaps them in, so the list stays
+  // where the user scrolled to. The edit or delete already went through, so a failed read just reloads from the top.
+  const refreshLoaded = useCallback(async () => {
+    const { key: currentKey, state: current } = latest.current;
+    if (!requestKey) return;
+    try {
+      const reply = await postJson(url, { ...JSON.parse(requestKey), limit: Math.max(batchSize, current.rows.length) });
+      setState((prev) =>
+        prev.key !== currentKey
+          ? prev
+          : { ...prev, rows: unique((reply.data || []).map(normalize)), cursor: reply.nextCursor ?? null, total: reply.total ?? prev.total, error: "", moreFailed: false }
+      );
+    } catch {
+      reload();
+    }
+  }, [url, requestKey, normalize, batchSize, reload]);
+
   const loadMore = useCallback(() => {
     const { key: currentKey, state: current, busy } = latest.current;
     if (!requestKey || busy || current.key !== currentKey || !current.cursor || current.moreFailed) return;
     latest.current.busy = true;
     setLoadingMore(true);
-    postJson(url, {
-      ...JSON.parse(requestKey),
-      limit: batchSize,
-      cursorCreatedAt: current.cursor.createdAt,
-      cursorId: current.cursor.id,
-      // Only Capture and Payment Maintenance have archived rows in their lists.
-      ...(current.cursor.deleted === undefined ? {} : { cursorDeleted: current.cursor.deleted }),
-    })
+    postJson(url, { ...JSON.parse(requestKey), limit: batchSize, ...cursorFields(current.cursor) })
       .then((reply) =>
         setState((prev) => {
           if (prev.key !== currentKey) return prev;
@@ -107,7 +122,7 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
       });
   }, [url, requestKey, normalize, batchSize]);
 
-  if (!requestKey) return { rows: [], total: 0, error: "", loading: false, hasMore: false, loadingMore: false, loadMore, reload };
+  if (!requestKey) return { rows: [], total: 0, error: "", loading: false, hasMore: false, loadingMore: false, loadMore, reload, refreshLoaded };
   const current = state.key === key;
   return {
     rows: state.rows,
@@ -118,5 +133,6 @@ export function useInfiniteMaintenanceList(url, body, normalize, refreshOn = [],
     loadingMore,
     loadMore,
     reload,
+    refreshLoaded,
   };
 }

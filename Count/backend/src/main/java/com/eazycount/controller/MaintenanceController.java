@@ -100,11 +100,14 @@ public class MaintenanceController {
 
     @PostMapping("/formula-maintenance/list")
     public ResponseEntity<Map<String, Object>> listFormulaMaintenance(@RequestBody MaintenanceFormulaDTO ft) {
-        List<MaintenanceFormulaDTO> rows = maintenanceService.findMaintenanceFormulaRows(ft);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Formula maintenance list retrieved",
-                "data", rows));
+        CursorPage<MaintenanceFormulaDTO> page = maintenanceService.findMaintenanceFormulaRows(ft);
+        final Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", true);
+        body.put("message", "Formula maintenance list retrieved");
+        body.put("data", page.rows());
+        body.put("nextCursor", page.nextCursor());
+        body.put("total", page.total());
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/formula-maintenance/update")

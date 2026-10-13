@@ -19,7 +19,7 @@ public interface MaintenanceService {
     // Soft-delete Capture Maintenance: whole capture (all its lines) at a time; cascades into
     void deleteMaintenanceCaptureRows(MaintenanceCaptureDTO mc);
 
-    List<MaintenanceFormulaDTO> findMaintenanceFormulaRows(MaintenanceFormulaDTO mf);
+    CursorPage<MaintenanceFormulaDTO> findMaintenanceFormulaRows(MaintenanceFormulaDTO mf);
 
     void updateFormulaMaintenance(MaintenanceFormulaDTO ft);
 

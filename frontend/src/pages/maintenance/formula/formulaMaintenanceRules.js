@@ -21,14 +21,6 @@ export function normalizeFormulaRow(raw) {
   };
 }
 
-export function filterFormulaRows(rows, search) {
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((r) =>
-    [r.process, r.account, r.product, r.formula, r.description].some((v) => v.toLowerCase().includes(q))
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Edit
 // ---------------------------------------------------------------------------

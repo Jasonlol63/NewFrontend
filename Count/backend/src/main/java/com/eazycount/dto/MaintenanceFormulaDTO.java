@@ -17,6 +17,10 @@ public class MaintenanceFormulaDTO {
     private String category;
     private String q;
 
+    // List paging: rows per batch (default 100) and, after the first batch, how many rows were already received.
+    private Integer limit;
+    private Integer cursorOffset;
+
     // Delete request only: data_capture_formula.id values to hard-delete.
     private List<Integer> formulaIds;
 

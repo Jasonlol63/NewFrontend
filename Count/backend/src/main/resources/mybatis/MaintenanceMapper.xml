@@ -816,9 +816,33 @@
         </foreach>
     </delete>
 
-    <!-- Formula Maintenance (view-only): every data_capture_formula row for one process, one category (GAME/BANK) at a time. -->
+    <!-- Formula Maintenance (view-only): data_capture_formula rows for one process (or all), one category (GAME/BANK) at a time. -->
     <!-- No date range (config table, not per-day capture). Hard delete only — no deleted/deletedBy/deletedAt columns. -->
-    <select id="findFormulaMaintenanceRows" resultType="com.eazycount.dto.MaintenanceFormulaDTO">
+    <!-- FROM + WHERE shared by the page and the count (aliases f / p / a / c). -->
+    <sql id="formulaSource">
+        FROM data_capture_formula f
+        INNER JOIN process p ON p.id = f.process_id AND p.tenant_id = f.tenant_id
+        LEFT JOIN account a ON a.id = f.account_id
+        LEFT JOIN currency c ON c.id = f.currency_id AND c.tenant_id = f.tenant_id
+        WHERE f.tenant_id = #{tenantId}
+          AND p.category = #{category}
+        <if test="process != null and process != ''">
+            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
+        </if>
+        <if test="q != null and q != ''">
+            AND (
+                UPPER(f.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.formula, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+                OR UPPER(COALESCE(f.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
+            )
+        </if>
+    </sql>
+
+    <!-- One batch: LIMIT / OFFSET over a sort that ends on the primary key, so the order is stable. A tenant has a few -->
+    <!-- thousand formulas at most, so the offset stays cheap (no keyset needed on the five sort columns). -->
+    <select id="findFormulaMaintenancePage" resultType="com.eazycount.dto.MaintenanceFormulaDTO">
         SELECT
             f.id AS id,
             p.code AS process,
@@ -846,25 +870,15 @@
             f.updated_by AS updatedBy,
             f.created_at AS createdAt,
             f.updated_at AS updatedAt
-        FROM data_capture_formula f
-        INNER JOIN process p ON p.id = f.process_id AND p.tenant_id = f.tenant_id
-        LEFT JOIN account a ON a.id = f.account_id
-        LEFT JOIN currency c ON c.id = f.currency_id AND c.tenant_id = f.tenant_id
-        WHERE f.tenant_id = #{tenantId}
-          AND p.category = #{category}
-        <if test="process != null and process != ''">
-            AND (UPPER(p.code) = UPPER(#{process}) OR CAST(p.id AS CHAR) = #{process})
-        </if>
-        <if test="q != null and q != ''">
-            AND (
-                UPPER(f.id_product) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(a.account_id, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(f.description, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(f.formula, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-                OR UPPER(COALESCE(f.created_by, '')) LIKE CONCAT('%', UPPER(#{q}), '%')
-            )
-        </if>
+        <include refid="formulaSource"/>
         ORDER BY f.id_product ASC, f.product_type ASC, f.sub_order ASC, f.formula_variant ASC, f.id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- Rows the Formula Maintenance list holds in total under the same filters, for "Showing N of total". -->
+    <select id="countFormulaMaintenance" resultType="long">
+        SELECT COUNT(*)
+        <include refid="formulaSource"/>
     </select>
 
     <!-- Formula Maintenance Edit: only account_id/source_percent/input_method/formula/description are editable. -->
