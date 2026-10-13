@@ -29,7 +29,6 @@ public class MaintenanceCaptureDTO {
     private LocalDateTime dtsCreated;
     private String product;
     private String currency;
-    private String wlGroup;
     private String createdBy;
 
     private Boolean deleted;

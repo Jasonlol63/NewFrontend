@@ -22,7 +22,6 @@ const baseColumns = [
   { key: "product", label: "product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
   { key: "process", label: "process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
   { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
-  { key: "wlGroup", label: "wlGroup", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.wlGroup },
   { key: "createdBy", label: "submittedBy", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.createdBy },
   { key: "deletedBy", label: "deletedBy", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.deletedBy || "-" },
 ];

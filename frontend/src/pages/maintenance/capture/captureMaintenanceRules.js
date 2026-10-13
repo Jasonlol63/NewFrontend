@@ -17,7 +17,6 @@ export function normalizeCaptureRow(raw) {
     product: raw.product ?? "",
     process: raw.process ?? "",
     currency: raw.currency ?? "",
-    wlGroup: raw.wlGroup ?? "",
     createdBy: raw.createdBy ?? "",
     deletedBy: deletedByText(raw.deletedBy, raw.deletedAt),
   };
