@@ -57,7 +57,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
       saveDisabled={Boolean(problem)}
       footerStart={
         problem && (
-          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
+          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 fm-count text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
             {problem}
           </p>
@@ -66,7 +66,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
       footerExtra={
         <SoftButton
           onClick={() => setS(initial)}
-          className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] text-[#c0392b] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1"
+          className="h-[38px] min-w-[112px] px-[22px] fm-btn text-[#c0392b] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1"
         >
           <RotateCcw className="size-[14px]" strokeWidth={2.4} />
           {t("settings.reset")}
@@ -90,7 +90,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
             <SelectField value={s.period ?? ""} onChange={setPeriod} options={periodOptions} placeholder={s.currentExpiry ? t("settings.keepExpiry") : t("settings.selectPeriod")} />
           </Field>
         </div>
-        <p className="m-0 -mt-1 ml-0.5 text-[11px] leading-snug text-[#6b7fa5] modal-tiny:hidden">{t("settings.startHint")}</p>
+        <p className="m-0 -mt-1 ml-0.5 fm-help text-[#6b7fa5] modal-tiny:hidden">{t("settings.startHint")}</p>
 
         <Field label={t("settings.expirationDate")} plain>
           <TextInput value={expiry} readOnly tabIndex={-1} className={cn(readOnlyClass, "text-center font-semibold tracking-[0.3px] tabular-nums")} />
@@ -108,7 +108,7 @@ export default function SettingsModal({ kind, code, saved, fallbackDate, prices,
                     aria-pressed={on}
                     onClick={() => set({ type })}
                     className={cn(
-                      "min-w-0 flex-1 cursor-pointer rounded-full border py-1 text-[clamp(11px,1.6dvh,12.5px)] font-semibold whitespace-nowrap transition-colors",
+                      "min-w-0 flex-1 cursor-pointer rounded-full border py-1 fm-btn-sm whitespace-nowrap transition-colors",
                       on
                         ? "border-transparent bg-brand-sweep text-white shadow-[0_4px_10px_-4px_rgba(20,90,220,0.6)]"
                         : "border-[#9dbcf5] bg-white/60 text-brand-blue hover:bg-white/90",

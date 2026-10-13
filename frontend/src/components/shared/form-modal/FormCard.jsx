@@ -21,7 +21,7 @@ export default function FormCard({ title, right, className, bodyClassName, body 
         )}
       >
         <span className="h-4 w-1 flex-none rounded-sm bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)]" />
-        <h2 className={cn("m-0 whitespace-nowrap text-[16px] font-extrabold text-brand-navy", "@min-[900px]/main:@max-[1099px]/main:text-[14.5px]", "modal-tiny:text-[14px]")}>
+        <h2 className="m-0 whitespace-nowrap fm-section text-brand-navy">
           {title}
         </h2>
         {right && <div className="ml-auto flex min-w-0 items-center gap-2">{right}</div>}
@@ -46,5 +46,5 @@ export default function FormCard({ title, right, className, bodyClassName, body 
 
 // "3 selected" / "2/14" style count in a card header.
 export function CardCount({ children }) {
-  return <span className="whitespace-nowrap text-[11.5px] font-bold text-[#3b82f6]">{children}</span>;
+  return <span className="whitespace-nowrap fm-count text-[#3b82f6]">{children}</span>;
 }

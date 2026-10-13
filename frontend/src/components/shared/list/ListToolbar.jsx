@@ -6,7 +6,7 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 import FilterChip from "./FilterChip.jsx";
 
 const buttonBase =
-  "inline-flex flex-none items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-bold text-white transition-colors";
+  "inline-flex flex-none items-center gap-1.5 rounded-[10px] px-4 py-2 type-body font-semibold! text-white transition-colors";
 
 // Blue gradient: the page's main action (Add User, Add Account).
 export function PrimaryButton({ icon: Icon, children, className, ...props }) {
@@ -92,7 +92,7 @@ export default function ListToolbar({
       <div className="flex flex-wrap items-center gap-2.5 px-4 pt-2.5 short:pt-2">
         {primaryAction}
 
-        <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+        <label className="flex h-9 w-full max-w-[260px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
           <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
           <input
             value={search}

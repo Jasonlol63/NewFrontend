@@ -32,10 +32,10 @@ const readOnlyClass = "cursor-default border-modal-off-line bg-modal-off text-[#
 // Tailwind can see them. Short screens keep the lists tall: the Domain Information fields stay on one row,
 // the add-row labels go (the placeholders say it), and Multiple Choice takes the add row's place.
 
-const smallButton = "h-[30px] px-3.5 text-[12.5px] modal-tiny:h-7";
+const smallButton = "h-[30px] px-3.5 fm-btn-sm modal-tiny:h-7";
 const addButton = cn(
   primaryButtonClass,
-  "h-9 flex-none px-[18px] text-[13px] @min-[900px]/main:@max-[1099px]/main:h-8 modal-compact:h-[30px] modal-tiny:h-7"
+  "h-9 flex-none px-[18px] fm-btn @min-[900px]/main:@max-[1099px]/main:h-8 modal-compact:h-[30px] modal-tiny:h-7"
 );
 
 /**
@@ -203,7 +203,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
       footerStart={
         isEdit &&
         changes > 0 && (
-          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 text-[12.5px] font-bold text-[#8a5a00] @max-[599px]/main:basis-full">
+          <p role="status" className="m-0 mr-auto flex min-w-0 items-center gap-2 fm-count text-[#8a5a00] @max-[599px]/main:basis-full">
             <i className="size-[7px] flex-none rounded-full bg-[#f59e0b] shadow-[0_0_0_3px_rgba(245,158,11,0.22)]" />
             {t("form.unsaved", { count: changes })}
             <span className="font-medium text-[#8a96a8] @max-[899px]/main:hidden">{t("form.applied")}</span>
@@ -254,7 +254,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
                 aria-invalid={secondaryBad || undefined}
                 className={secondaryBad ? "border-[#ef4444] focus:border-[#ef4444] focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : undefined}
               />
-              <p className={cn("m-0 mt-1 ml-0.5 text-[11px] modal-compact:hidden", secondaryBad ? "text-[#dc2626]" : "text-[#8a96a8]")}>
+              <p className={cn("m-0 mt-1 ml-0.5 fm-help modal-snug:hidden", secondaryBad ? "text-[#dc2626]" : "text-[#8a96a8]")}>
                 {t("form.digitsHint")}
               </p>
             </Field>
@@ -290,7 +290,7 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
               aria-pressed={multi}
               onClick={() => (multi ? exitMulti() : setMulti(true))}
               className={cn(
-                "h-[26px] gap-[5px] rounded-lg px-3 text-[12px]",
+                "h-[26px] gap-[5px] rounded-lg px-3 fm-btn-sm",
                 multi && "border-transparent bg-brand-sweep text-white shadow-[0_6px_12px_-6px_rgba(20,90,220,0.65)] hover:bg-brand-sweep hover:brightness-105"
               )}
             >
@@ -303,12 +303,12 @@ export default function DomainFormModal({ mode = "add", domain, prices, accounts
       >
         {multi ? (
           <div className="flex flex-none flex-wrap items-center gap-2 rounded-xl border border-[#cfe0fa] bg-[linear-gradient(90deg,#eaf3ff_0%,#f7fbff_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] modal-tiny:p-1.5 @min-[1100px]/main:flex-nowrap">
-            <div className="flex flex-none items-center gap-2.5 text-[12.5px] text-brand-navy">
+            <div className="flex flex-none items-center gap-2.5 fm-count text-brand-navy">
               <b className="font-extrabold">{t("form.selected", { count: picked.size })}</b>
-              <button type="button" disabled={!companies.length} onClick={() => setPicked(new Set(companies.map((c) => c.code)))} className="cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-[#1d7bff] hover:underline disabled:cursor-not-allowed disabled:text-dash-faint">
+              <button type="button" disabled={!companies.length} onClick={() => setPicked(new Set(companies.map((c) => c.code)))} className="cursor-pointer border-none bg-transparent p-0 fm-btn-sm text-[#1d7bff] hover:underline disabled:cursor-not-allowed disabled:text-dash-faint">
                 {t("form.all")}
               </button>
-              <button type="button" onClick={() => setPicked(new Set())} className="cursor-pointer border-none bg-transparent p-0 text-[12px] font-bold text-[#1d7bff] hover:underline">
+              <button type="button" onClick={() => setPicked(new Set())} className="cursor-pointer border-none bg-transparent p-0 fm-btn-sm text-[#1d7bff] hover:underline">
                 {t("form.clear")}
               </button>
             </div>
@@ -400,7 +400,7 @@ function AddRow({ label, placeholder, value, onChange, onAdd, extra }) {
     <div className="flex-none">
       <div className="flex items-end gap-2 modal-short:items-center modal-short:[&_label>span]:hidden">
         <label className="block min-w-0 flex-1">
-          <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px]">{label}</span>
+          <span className="mb-1 ml-0.5 block truncate fm-label text-[#374151] modal-compact:mb-0.5">{label}</span>
           <TextInput
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -424,7 +424,7 @@ function AddRow({ label, placeholder, value, onChange, onAdd, extra }) {
 
 function EmptyList({ icon: Icon, text }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[rgba(130,155,195,0.45)] p-2.5 text-center text-[12.5px] text-[#8a96a8]">
+    <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[rgba(130,155,195,0.45)] p-2.5 text-center fm-empty text-[#8a96a8]">
       <Icon className="size-[22px] opacity-70" strokeWidth={1.8} />
       {text}
     </div>

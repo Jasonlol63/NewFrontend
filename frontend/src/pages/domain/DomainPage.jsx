@@ -245,7 +245,7 @@ export default function DomainPage() {
           {t("page.add")}
         </PrimaryButton>
 
-        <label className="flex h-9 w-full max-w-[280px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 text-[13px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
+        <label className="flex h-9 w-full max-w-[280px] min-w-[180px] flex-1 items-center gap-2 rounded-[10px] border border-dash-line bg-white px-3 type-body shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus-within:border-[#3b82f6]">
           <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
           <input
             value={view.search}
@@ -271,7 +271,7 @@ export default function DomainPage() {
           disabled={!selected || busy || readOnly}
           title={readOnly ? READ_ONLY : undefined}
           onClick={() => setToDelete(view.selectedRows)}
-          className="ml-auto inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] bg-[linear-gradient(180deg,#ff6b6b_0%,#dc2626_100%)] px-4 text-[13px] font-bold text-white shadow-[0_6px_14px_-6px_rgba(220,38,38,0.6)] transition-[filter] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100"
+          className="ml-auto inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] bg-[linear-gradient(180deg,#ff6b6b_0%,#dc2626_100%)] px-4 type-body font-semibold! text-white shadow-[0_6px_14px_-6px_rgba(220,38,38,0.6)] transition-[filter] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100"
         >
           <Trash2 className="size-4" strokeWidth={2.2} />
           {t("page.delete", { count: selected })}

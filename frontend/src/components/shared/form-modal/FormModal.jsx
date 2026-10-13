@@ -102,14 +102,14 @@ export default function FormModal({
               </div>
               <h1
                 id={titleId}
-                className="m-0 truncate whitespace-nowrap text-[clamp(20px,2.6dvh,26px)] font-extrabold leading-[1.1] tracking-[-0.3px] text-brand-navy modal-compact:text-[20px] modal-tiny:text-[18px]"
+                className="m-0 truncate whitespace-nowrap fm-title tracking-[-0.3px] text-brand-navy"
               >
                 {title}
               </h1>
             </div>
             <div className="flex flex-none items-center gap-2">
               {headerExtra}
-              <SoftButton onClick={onClose} aria-label={t("back")} className="h-9 px-4 @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
+              <SoftButton onClick={onClose} aria-label={t("back")} className="h-9 px-4 fm-btn @max-[479px]/main:px-2.5 modal-compact:h-8 modal-tiny:h-[30px] modal-tiny:px-3">
                 <ChevronLeft className="size-[15px]" strokeWidth={2.5} />
                 <span className="@max-[479px]/main:hidden">{t("back")}</span>
               </SoftButton>
@@ -120,7 +120,7 @@ export default function FormModal({
 
           <footer className="flex flex-none flex-wrap items-center justify-end gap-2 border-t border-modal-line px-(--pad) pb-(--pad) pt-2.5 modal-compact:pt-1.5">
             {footerStart}
-            <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
+            <SoftButton onClick={onClose} className="h-[38px] min-w-[112px] px-[22px] fm-btn modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1">
               {t("cancel")}
             </SoftButton>
             {footerExtra}
@@ -130,7 +130,7 @@ export default function FormModal({
               disabled={saveDisabled}
               className={cn(
                 primaryButtonClass,
-                "h-[38px] min-w-[112px] px-[22px] text-[13.5px] modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1",
+                "h-[38px] min-w-[112px] px-[22px] fm-btn modal-compact:h-8 modal-tiny:h-[30px] @max-[599px]/main:min-w-0 @max-[599px]/main:flex-1",
                 "whitespace-nowrap @max-[599px]/main:px-3 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
               )}
             >

@@ -14,9 +14,9 @@ import { inputClass, openFieldClass, primaryButtonClass } from "./fields.jsx";
  * items: [{ value, label, hint?, tag? }]; selected: Set; onChange(nextSet).
  */
 const chipClass =
-  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 text-[12px] font-extrabold text-brand-navy modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+  "inline-flex h-[26px] flex-none items-center gap-1.5 rounded-[7px] border border-[#7fb2ff] bg-row-stripe pl-2.5 pr-1 fm-btn-sm text-brand-navy modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
 const moreChipClass =
-  "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 text-[12px] font-extrabold text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
+  "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 fm-btn-sm text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5 modal-tiny:text-[11.5px]";
 
 export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder, className }) {
   const [open, setOpen] = useState(false);

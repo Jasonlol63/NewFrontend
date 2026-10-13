@@ -393,7 +393,7 @@ body {
    Text (not spacing) grows with the screen: 1.0x at 1366px and below, rising smoothly to --ts-max at 2560px.
    To make big screens larger or smaller, change --ts-max only (1 = no scaling).
    Roles (size at 1366): page-title 20/600, card-title 17/600, label 15/600, body 14/500,
-   table-head 13/600, table-cell 14/400, caption 12/400, kpi 28/600. */
+   table-head 14/600, table-cell 13/500, caption 12/400, kpi 28/600. */
 :root {
   --ts-max: 1.1;
   --ts-k: calc((var(--ts-max) - 1) / 1194);
@@ -419,13 +419,13 @@ body {
   line-height: 1.45;
 }
 @utility type-table-head {
-  font-size: clamp(13px, calc(13px + (100vw - 1366px) * 13 * var(--ts-k)), calc(13px * var(--ts-max)));
+  font-size: clamp(14px, calc(14px + (100vw - 1366px) * 14 * var(--ts-k)), calc(14px * var(--ts-max)));
   font-weight: 600;
   line-height: 1.4;
 }
 @utility type-table-cell {
-  font-size: clamp(14px, calc(14px + (100vw - 1366px) * 14 * var(--ts-k)), calc(14px * var(--ts-max)));
-  font-weight: 400;
+  font-size: clamp(13px, calc(13px + (100vw - 1366px) * 13 * var(--ts-k)), calc(13px * var(--ts-max)));
+  font-weight: 500;
   line-height: 1.4;
 }
 @utility type-caption {
@@ -481,37 +481,133 @@ body {
   }
 }
 
-/* Sidebar logo: a bright arc travels around the logo's border. --logo-ring-angle is a registered angle so the
-   gradient itself turns; the ring keeps its shape instead of the whole square spinning. */
-@property --logo-ring-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@keyframes logo-ring-turn {
-  to {
-    --logo-ring-angle: 360deg;
+/* Sidebar logo: a soft highlight sweeps across the logo every 4.5s, then rests. Only transform moves. */
+@keyframes logo-shine-sweep {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  85%,
+  100% {
+    transform: translateX(120%);
   }
 }
-.logo-ring {
+.logo-shine {
   position: relative;
-  isolation: isolate;
+  overflow: hidden;
 }
-.logo-ring::before {
+.logo-shine::after {
   content: "";
   position: absolute;
-  inset: -2px;
-  z-index: -1;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(from var(--logo-ring-angle), rgba(56, 189, 248, 0) 0%, #38bdf8 14%, rgba(255, 255, 255, 0.9) 18%, rgba(10, 63, 201, 0) 40%, rgba(56, 189, 248, 0) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: logo-ring-turn 4s linear infinite;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.65) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: logo-shine-sweep 4.5s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .logo-ring::before {
+  .logo-shine::after {
     animation: none;
+    opacity: 0;
   }
+}
+
+/* Form-modal type roles (Add / Edit pages, dialogs): one class sets size and weight, so every modal reads the same.
+   Sizes depend on the screen HEIGHT (tall, <=760, <=600: same breakpoints as modal-compact / modal-tiny) and grow with
+   the screen WIDTH from 1.0x at 1366px to 1.2x at 1920px and beyond. The title stays 30px on tall screens.
+   fm-title: full-area modal title   fm-section: card / dialog title   fm-label: field label   fm-opt: the "(opt.)" mark
+   fm-help: hint under a field       fm-input: text in inputs, menus   fm-btn / fm-btn-sm: buttons
+   fm-count: "0 added" and link buttons   fm-empty: empty-state text */
+:root {
+  --fm-k: calc(0.2 / 554);
+  --fm-title: 30;
+  --fm-title-max: 1;
+  --fm-section: 19;
+  --fm-label: 14;
+  --fm-opt: 12;
+  --fm-help: 12;
+  --fm-input: 14;
+  --fm-btn: 14;
+  --fm-btn-sm: 13;
+  --fm-count: 13;
+  --fm-empty: 13;
+}
+@media (max-height: 760px) {
+  :root {
+    --fm-title: 22;
+    --fm-title-max: 1.2;
+    --fm-section: 17;
+    --fm-label: 13.5;
+    --fm-opt: 11.5;
+    --fm-help: 12;
+    --fm-input: 13.5;
+    --fm-btn: 13.5;
+    --fm-btn-sm: 12.5;
+    --fm-count: 12.5;
+    --fm-empty: 12.5;
+  }
+}
+@media (max-height: 600px) {
+  :root {
+    --fm-title: 20;
+    --fm-section: 16;
+    --fm-label: 13;
+    --fm-opt: 11;
+    --fm-help: 11.5;
+    --fm-input: 13;
+    --fm-btn: 13;
+    --fm-btn-sm: 12;
+    --fm-count: 12;
+    --fm-empty: 12;
+  }
+}
+@utility fm-title {
+  font-size: clamp(calc(var(--fm-title) * 1px), calc(var(--fm-title) * 1px + (100vw - 1366px) * var(--fm-title) * var(--fm-k)), calc(var(--fm-title) * var(--fm-title-max) * 1px));
+  font-weight: 600;
+  line-height: 1.1;
+}
+@utility fm-section {
+  font-size: clamp(calc(var(--fm-section) * 1px), calc(var(--fm-section) * 1px + (100vw - 1366px) * var(--fm-section) * var(--fm-k)), calc(var(--fm-section) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility fm-label {
+  font-size: clamp(calc(var(--fm-label) * 1px), calc(var(--fm-label) * 1px + (100vw - 1366px) * var(--fm-label) * var(--fm-k)), calc(var(--fm-label) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.25;
+}
+@utility fm-opt {
+  font-size: clamp(calc(var(--fm-opt) * 1px), calc(var(--fm-opt) * 1px + (100vw - 1366px) * var(--fm-opt) * var(--fm-k)), calc(var(--fm-opt) * 1.2 * 1px));
+  font-weight: 500;
+}
+@utility fm-help {
+  font-size: clamp(calc(var(--fm-help) * 1px), calc(var(--fm-help) * 1px + (100vw - 1366px) * var(--fm-help) * var(--fm-k)), calc(var(--fm-help) * 1.2 * 1px));
+  font-weight: 400;
+  line-height: 1.35;
+}
+@utility fm-input {
+  font-size: clamp(calc(var(--fm-input) * 1px), calc(var(--fm-input) * 1px + (100vw - 1366px) * var(--fm-input) * var(--fm-k)), calc(var(--fm-input) * 1.2 * 1px));
+  font-weight: 500;
+  line-height: 1.4;
+}
+@utility fm-btn {
+  font-size: clamp(calc(var(--fm-btn) * 1px), calc(var(--fm-btn) * 1px + (100vw - 1366px) * var(--fm-btn) * var(--fm-k)), calc(var(--fm-btn) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility fm-btn-sm {
+  font-size: clamp(calc(var(--fm-btn-sm) * 1px), calc(var(--fm-btn-sm) * 1px + (100vw - 1366px) * var(--fm-btn-sm) * var(--fm-k)), calc(var(--fm-btn-sm) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility fm-count {
+  font-size: clamp(calc(var(--fm-count) * 1px), calc(var(--fm-count) * 1px + (100vw - 1366px) * var(--fm-count) * var(--fm-k)), calc(var(--fm-count) * 1.2 * 1px));
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility fm-empty {
+  font-size: clamp(calc(var(--fm-empty) * 1px), calc(var(--fm-empty) * 1px + (100vw - 1366px) * var(--fm-empty) * var(--fm-k)), calc(var(--fm-empty) * 1.2 * 1px));
+  font-weight: 400;
+  line-height: 1.4;
 }

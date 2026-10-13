@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const chip =
-  "inline-flex h-6 flex-none items-center rounded-lg border px-2.5 text-[12px] font-bold tracking-[0.2px] whitespace-nowrap max-[1280px]:px-2 max-[1280px]:text-[11.5px]";
+  "inline-flex h-6 flex-none items-center rounded-lg border px-2.5 type-caption font-semibold! tracking-[0.2px] whitespace-nowrap max-[1280px]:px-2";
 
 // Groups: soft blue fill. Companies: white with a blue edge. Same hue family, told apart by depth.
 const TONE = {

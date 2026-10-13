@@ -422,19 +422,19 @@ export default function DataTable({
         <table
           className={cn(
             "w-full border-separate",
-            dense ? "text-[12px]" : "text-[13px]",
+            dense ? "type-caption" : "type-table-cell",
             // Cards: 8px between rows (and under the header); -mt-2 drops the gap above the header.
             cards ? "-mt-2 border-spacing-x-0 border-spacing-y-2" : "border-spacing-0",
-            fitWidth && !dense && "max-[1100px]:text-[12px]",
+            fitWidth && !dense && "max-[1100px]:text-[13px]",
             minWidth
           )}
         >
           <thead className="sticky top-0 z-10">
             <tr
               className={cn(
-                "text-left font-bold",
-                cards ? "text-[14px] text-brand-navy" : cn("bg-brand-head text-white", dense ? "text-[12px]" : "text-[13px]"),
-                fitWidth && !dense && "max-[1100px]:text-[12px]"
+                "text-left",
+                dense ? "type-caption font-semibold!" : "type-table-head",
+                cards ? "text-brand-navy" : "bg-brand-head text-white"
               )}
             >
               {cols.map((col, i) => {

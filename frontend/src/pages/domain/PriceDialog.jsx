@@ -74,7 +74,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
             <div className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-brand-sweep text-white shadow-[0_10px_20px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] short:size-8">
               <CircleDollarSign className="size-5 short:size-[18px]" strokeWidth={2.2} />
             </div>
-            <h1 id={titleId} className="m-0 flex-1 text-[clamp(17px,2.4dvh,19px)] font-extrabold tracking-[-0.3px] text-brand-navy">
+            <h1 id={titleId} className="m-0 flex-1 fm-section tracking-[-0.3px] text-brand-navy">
               {t("priceDialog.title")}
             </h1>
             <button
@@ -88,7 +88,7 @@ export default function PriceDialog({ prices, onSave, onClose }) {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-(--pad-x) pb-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
-            <p className="m-0 mb-2 ml-0.5 text-[11px] text-[#8a96a8] @max-[463px]:hidden">{t("priceDialog.hint")}</p>
+            <p className="m-0 mb-2 ml-0.5 fm-help text-[#8a96a8] @max-[463px]:hidden">{t("priceDialog.hint")}</p>
 
             {/* The divider is its own 1px track so both columns, and so all ten inputs, are exactly the same width. */}
             <div className="grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-3.5 @max-[463px]:grid-cols-1 @max-[463px]:gap-y-2.5">
@@ -96,18 +96,18 @@ export default function PriceDialog({ prices, onSave, onClose }) {
                 <Fragment key={key}>
                   {i === 1 && <div aria-hidden="true" className="bg-modal-divider @max-[463px]:h-px" />}
                   <section className="min-w-0">
-                    <h2 className="m-0 mb-2 flex items-center gap-[7px] text-[13px] font-bold text-brand-navy">
+                    <h2 className="m-0 mb-2 flex items-center gap-[7px] fm-label text-brand-navy">
                       <Icon className={`size-4 ${iconClass}`} strokeWidth={2.2} />
                       {t(labelKey)}
                     </h2>
                     {PRICE_PERIODS.map(({ key: period }) => (
                       <label key={period} className="mb-1.5 grid grid-cols-[clamp(58px,17vw,68px)_minmax(0,1fr)] items-center gap-2 last:mb-0">
-                        <span className="whitespace-nowrap text-xs text-[#5b74a3]">{t(`period.${period}`)}</span>
+                        <span className="whitespace-nowrap fm-opt text-[#5b74a3]">{t(`period.${period}`)}</span>
                         <input
                           value={values[key][period]}
                           onChange={(e) => change(key, period, e.target.value)}
                           inputMode="decimal"
-                          className="h-(--row-h) w-full min-w-0 rounded-[9px] border border-modal-input-line bg-modal-input px-2.5 text-[13px] text-dash-ink shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
+                          className="h-(--row-h) w-full min-w-0 rounded-[9px] border border-modal-input-line bg-modal-input px-2.5 fm-input text-dash-ink shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
                         />
                       </label>
                     ))}
@@ -118,13 +118,13 @@ export default function PriceDialog({ prices, onSave, onClose }) {
           </div>
 
           <footer className="flex flex-none justify-end gap-2 border-t border-modal-line px-(--pad-x) pb-[calc(var(--pad-y)*0.9)] pt-2.5">
-            <SoftButton onClick={onClose} className="h-(--btn-h) min-w-[104px] px-[22px] text-[13.5px] @max-[463px]:min-w-0 @max-[463px]:flex-1">
+            <SoftButton onClick={onClose} className="h-(--btn-h) min-w-[104px] px-[22px] fm-btn @max-[463px]:min-w-0 @max-[463px]:flex-1">
               {t("common:cancel")}
             </SoftButton>
             <button
               type="button"
               onClick={() => onSave(values)}
-              className={`${primaryButtonClass} h-(--btn-h) min-w-[104px] px-[22px] text-[13.5px] @max-[463px]:min-w-0 @max-[463px]:flex-1`}
+              className={`${primaryButtonClass} h-(--btn-h) min-w-[104px] px-[22px] fm-btn @max-[463px]:min-w-0 @max-[463px]:flex-1`}
             >
               <Check className="size-[15px]" strokeWidth={2.5} />
               {t("common:save")}

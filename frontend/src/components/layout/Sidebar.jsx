@@ -14,8 +14,10 @@ import {
 import { unreadLabel } from "./notificationRules";
 import { useSidebarData } from "./useSidebarData";
 
+// A menu item is 38px tall (32px on short screens) but may shrink down to 26px, so the whole menu fits a very short
+// screen (1280x560) without a scrollbar; the nav only scrolls below that.
 const ITEM_CLASS =
-  "flex flex-none items-center gap-2 rounded-[11px] px-2 py-[9px] type-body font-semibold! tracking-[-0.01em] no-underline cursor-pointer short:py-1.5 short:text-[13px]";
+  "flex min-h-[26px] flex-[0_1_38px] items-center gap-2 rounded-[11px] px-2 type-body font-semibold! tracking-[-0.01em] no-underline cursor-pointer short:flex-[0_1_32px] short:text-[13px] modal-tiny:text-[12.5px]";
 
 const LANG_OPTIONS = [
   { value: "en", label: "EN" },
@@ -121,7 +123,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
       {/* Brand row: glowing icon + EAZYCOUNT + bell */}
       <div className="z-10 mb-3 flex items-center gap-1.5 short:mb-2.5">
         <div
-          className="logo-ring flex size-[38px] flex-none items-center justify-center rounded-[14px] border border-white/25 p-[5px] short:size-8 short:rounded-xl short:p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_10px_-4px_rgba(0,10,40,0.5)] backdrop-blur-[10px]"
+          className="logo-shine flex size-[38px] flex-none items-center justify-center rounded-[14px] border border-white/25 p-[5px] short:size-8 short:rounded-xl short:p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_10px_-4px_rgba(0,10,40,0.5)] backdrop-blur-[10px]"
           style={{ backgroundImage: "linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))" }}
         >
           <img src="/images/Logo-2.webp" alt="" className="h-full w-full object-contain" />

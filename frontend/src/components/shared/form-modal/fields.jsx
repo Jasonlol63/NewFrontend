@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // modal-compact / modal-tiny = short screens (see index.css).
 
 export const inputClass =
-  "h-9 w-full rounded-[10px] border border-modal-input-line bg-modal-input px-3 text-[13.5px] text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] @min-[900px]/main:@max-[1099px]/main:h-8 @min-[900px]/main:@max-[1099px]/main:text-[13px] modal-compact:h-[30px] modal-tiny:h-7 modal-tiny:text-[12.5px]";
+  "h-9 w-full rounded-[10px] border border-modal-input-line bg-modal-input px-3 fm-input text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] @min-[900px]/main:@max-[1099px]/main:h-8 modal-compact:h-[30px] modal-tiny:h-7";
 
 // Blue outline of a field whose popup is open (Select, date, multi-select).
 export const openFieldClass = "border-[#3b82f6] shadow-[0_0_0_3px_rgba(59,130,246,0.15)]";
@@ -26,10 +26,10 @@ export function Field({ label, optional, plain, as: Tag = "label", className, ch
   const { t } = useTranslation();
   return (
     <Tag className={cn("block min-w-0", className)}>
-      <span className="mb-1 ml-0.5 block truncate text-[12.5px] font-semibold text-[#374151] modal-compact:mb-0.5 modal-compact:text-[12px] modal-tiny:mb-px modal-tiny:text-[11.5px]">
+      <span className="mb-1 ml-0.5 block truncate fm-label text-[#374151] modal-compact:mb-0.5 modal-tiny:mb-px">
         {label}{" "}
         {plain ? null : optional ? (
-          <span className="text-[10px] font-medium text-[#8a96a8] @max-[219px]/info:hidden">{t("optional")}</span>
+          <span className="fm-opt text-[#8a96a8] @max-[219px]/info:hidden">{t("optional")}</span>
         ) : (
           <i className="not-italic text-[#ef4444]">*</i>
         )}
@@ -301,7 +301,7 @@ export function ToggleSwitch({ on, onToggle, label, disabled, className }) {
       onClick={onToggle}
       disabled={disabled}
       className={cn(
-        "inline-flex flex-none cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-[12px] font-semibold text-[#475569] disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex flex-none cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 fm-btn-sm text-[#475569] disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
     >
