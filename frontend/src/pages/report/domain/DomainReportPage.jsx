@@ -47,8 +47,8 @@ export default function DomainReportPage() {
   const rows = useMemo(() => report.rows.map((r) => normalizeDomainRow(r, isGroupOwn)), [report.rows, isGroupOwn]);
 
   const columns = [
-    { key: "process", label: t("cols.process"), sortable: false, cellClassName: "font-extrabold whitespace-nowrap", render: (r) => r.label },
-    { key: "turnover", label: t("cols.turnover"), sortable: false, className: "text-right", cellClassName: `${AMOUNT} font-bold`, render: (r) => formatAmount(r.turnover) },
+    { key: "process", label: t("cols.process"), sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.label },
+    { key: "turnover", label: t("cols.turnover"), sortable: false, className: "text-right", cellClassName: `${AMOUNT} font-semibold`, render: (r) => formatAmount(r.turnover) },
     { key: "win", label: t("cols.win"), sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${WIN_CLASS}`, render: (r) => formatAmount(r.win) },
     { key: "lose", label: t("cols.lose"), sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${LOSE_CLASS}`, render: (r) => formatAmount(r.lose) },
     { key: "winLose", label: t("cols.winLose"), sortable: false, className: "text-right", cellClassName: AMOUNT, render: (r) => <span className={signClass(r.winLose)}>{formatAmount(r.winLose)}</span> },
@@ -96,6 +96,7 @@ export default function DomainReportPage() {
         rows={rows}
         totalRow={totalRow}
         minWidth="min-w-[640px]"
+        rowHeight={26}
         emptyMessage={t("empty")}
       />
     </div>

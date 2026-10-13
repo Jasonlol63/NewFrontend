@@ -17,12 +17,12 @@ export function formatAmount(value) {
   return `${negative ? "-" : ""}${grouped}.${digits.slice(-2)}`;
 }
 
-export const WIN_CLASS = "font-bold text-[#172a9f]";
-export const LOSE_CLASS = "font-bold text-[#b91c1c]";
+export const WIN_CLASS = "font-semibold text-[#172a9f]";
+export const LOSE_CLASS = "font-semibold text-[#b91c1c]";
 
 // Win/Lose column: blue when above 0, red when below, plain at 0.
 export function signClass(value) {
   const n = Number(String(value ?? "").replace(/,/g, ""));
-  if (!Number.isFinite(n) || Math.abs(n) < 0.005) return "font-bold";
+  if (!Number.isFinite(n) || Math.abs(n) < 0.005) return "font-semibold";
   return n > 0 ? WIN_CLASS : LOSE_CLASS;
 }

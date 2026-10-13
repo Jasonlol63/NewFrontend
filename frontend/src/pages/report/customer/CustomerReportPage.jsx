@@ -29,7 +29,7 @@ import {
 const AMOUNT = "text-right tabular-nums";
 
 const baseColumns = [
-  { key: "account", label: "account", sortable: false, cellClassName: "font-extrabold whitespace-nowrap", render: (r) => r.accountCode },
+  { key: "account", label: "account", sortable: false, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.accountCode },
   { key: "name", label: "name", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.name },
   { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => r.currency },
   { key: "win", label: "win", sortable: false, className: "text-right", cellClassName: `${AMOUNT} ${WIN_CLASS}`, render: (r) => formatAmount(r.win) },
@@ -101,7 +101,7 @@ export default function CustomerReportPage() {
                 wrap onReorder={setCurrencyOrder}
               />
             ) : (
-              <span className="text-xs font-medium text-dash-faint">{t("noCurrency")}</span>
+              <span className="type-caption font-medium! text-dash-faint">{t("noCurrency")}</span>
             )}
           </FilterRow>
         }
@@ -130,6 +130,7 @@ export default function CustomerReportPage() {
         rows={rows}
         totalRow={totalRow}
         minWidth="min-w-[560px]"
+        rowHeight={26}
         emptyMessage={t("empty")}
       />
     </div>

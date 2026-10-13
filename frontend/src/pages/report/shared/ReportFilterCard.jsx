@@ -8,7 +8,7 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 export function Field({ label, children }) {
   return (
     <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="flex-none text-[13px] font-bold text-[#1f2937]">{label}</span>
+      <span className="flex-none type-label text-[#1f2937]">{label}</span>
       {children}
     </div>
   );

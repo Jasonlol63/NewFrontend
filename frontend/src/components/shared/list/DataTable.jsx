@@ -551,12 +551,12 @@ export default function DataTable({
               </tr>
             )}
             {rows.length > 0 && totalRow && (
-              <tr className="bg-[linear-gradient(180deg,#dcecfd_0%,#c9def8_100%)] font-extrabold">
+              <tr className="bg-[linear-gradient(180deg,#dcecfd_0%,#c9def8_100%)] font-semibold">
                 {totalRow.map((cell, i) => (
                   <td
                     key={i}
                     colSpan={cell.span ?? 1}
-                    className={cn("h-10 border-t-2 border-[#8fbdf5] py-0 pr-3 whitespace-nowrap", i === 0 && "pl-4", cell.className)}
+                    className={cn("h-8 border-t-2 border-[#8fbdf5] py-0 pr-3 whitespace-nowrap", i === 0 && "pl-4", cell.className)}
                   >
                     {cell.content}
                   </td>
