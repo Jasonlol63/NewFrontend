@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -98,6 +99,7 @@ public class BankProcessServiceImpl implements BankProcessService {
         SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
         AccessControlUtils.requireWritable(sessionUser);
 
+        validateProfitSharing(bankProcessDTO);
         BankProcess bankProcess = insertNewBankProcess(bankProcessDTO, sessionUser);
         AuditContext.captureAfter(bankProcess.getId(), AuditSnapshots.bankProcess(bankProcess));
         AuditContext.captureSummary(bankProcess.getId(), AuditLabels.create("合同", contractIdentity(bankProcess)));
@@ -131,6 +133,10 @@ public class BankProcessServiceImpl implements BankProcessService {
         AccessControlUtils.requireValidTenantId(bankProcessDTO.getTenantId());
 
         BankProcessUpdate updateResult = updateBankProcess(bankProcessDTO, sessionUser);
+        // A billing-locked process keeps its stored shares (the request's are ignored), so only an editable one is checked.
+        if (!isBillingLocked(updateResult.before())) {
+            validateProfitSharing(bankProcessDTO);
+        }
         BankProcess updated = updateResult.after();
         String diff = AuditSummaryDefaults.diffFieldNames(
                 AuditSnapshots.bankProcess(updateResult.before()), AuditSnapshots.bankProcess(updated));
@@ -499,6 +505,34 @@ public class BankProcessServiceImpl implements BankProcessService {
             return false;
         }
         return YearMonth.from(dayEnd).isBefore(YearMonth.from(LocalDate.now()));
+    }
+
+    /*
+     * Profit sharing 校验：每个分成金额不能为负，分成金额合计不能超过利润（利润 = customerPrice − supplierPrice，HALF_UP 到 2 位）。
+     * 价格缺失时无法算利润，跳过。前端只显示/预填金额，这里是权威校验。
+     */
+    static void validateProfitSharing(BankProcessDTO dto) {
+        if (dto == null || dto.getShares() == null || dto.getShares().isEmpty()) {
+            return;
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BankProcessShare share : dto.getShares()) {
+            if (share == null || share.getAmount() == null) {
+                continue;
+            }
+            if (share.getAmount().signum() < 0) {
+                throw new BusinessException("Profit sharing amount cannot be negative");
+            }
+            sum = sum.add(share.getAmount());
+        }
+        if (dto.getCustomerPrice() == null || dto.getSupplierPrice() == null) {
+            return;
+        }
+        BigDecimal profit = dto.getCustomerPrice().subtract(dto.getSupplierPrice()).setScale(2, RoundingMode.HALF_UP);
+        if (sum.setScale(2, RoundingMode.HALF_UP).compareTo(profit) > 0) {
+            throw new BusinessException("Profit sharing total (" + sum.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                    + ") cannot exceed the profit (" + profit.toPlainString() + ")");
+        }
     }
 
     private List<BankProcessShare> insertProfitSharing(Integer bankProcessId, List<BankProcessShare> shares) {
