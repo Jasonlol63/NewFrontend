@@ -36,3 +36,9 @@ export const showsZero = (value) => formatMoney(value) === "0.00";
 
 /** Sum of amounts as an exact decimal string. */
 export const sumMoney = (values) => values.reduce((total, v) => total.plus(toDecimal(v)), new Decimal(0)).toFixed();
+
+/** Half up to `scale` decimals as plain text, no thousands separators (for inputs and form values): "12.345" -> "12.35". */
+export const roundMoney = (value, scale = 2) => toDecimal(value).toDecimalPlaces(scale, Decimal.ROUND_HALF_UP).toFixed(scale);
+
+/** A percentage of an amount, half up to 2 decimals as plain text: ("1000", "12.5") -> "125.00". */
+export const percentOf = (amount, pct) => roundMoney(toDecimal(amount).mul(toDecimal(pct)).div(100));

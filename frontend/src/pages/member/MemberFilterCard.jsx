@@ -1,11 +1,13 @@
 import { FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { moneySign } from "@/lib/money";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import { fmt } from "@/pages/transaction-payment/transactionPaymentRules";
 
-const amountTone = (n) => (n > 0 ? "text-[#1d4ed8]" : n < 0 ? "text-[#dc2626]" : "text-dash-faint");
+// Colour from the raw amount: 0.002586 shows 0.00 but stays blue; only a real 0 is grey.
+const amountTone = (n) => (moneySign(n) > 0 ? "text-[#1d4ed8]" : moneySign(n) < 0 ? "text-[#dc2626]" : "text-dash-faint");
 
 function Row({ label, children }) {
   return (
@@ -36,7 +38,7 @@ function BalanceTable({ currencies, rows }) {
               <td className="px-3 py-[3px] text-left font-semibold text-brand-navy">{r.label}</td>
               {currencies.map((c) => (
                 <td key={c} className={cn("px-3 py-[3px] text-right font-semibold tabular-nums", amountTone(r.values[c]))}>
-                  {r.values[c] ? fmt(r.values[c]) : "-"}
+                  {moneySign(r.values[c]) ? fmt(r.values[c]) : "-"}
                 </td>
               ))}
             </tr>

@@ -147,24 +147,31 @@ export const rateAmount2 = (amount1, rate) => {
   return result.toDecimalPlaces(8, Decimal.ROUND_DOWN).toFixed();
 };
 
-// Middle-Man total shown in the Amount box: the Rate-Mul commission plus the Fee net of PT-Fee (each only when above 0).
-// Same formulas as the backend's RateMulCalculator.computeCommission.
+// Middle-Man total shown in the Amount box: the Rate-Mul commission plus the Fee net of PT-Fee (each only when above 0), as a
+// decimal string cut to 8 decimals ("" when 0). Same formulas as the backend's RateMulCalculator.computeCommission, worked in
+// Decimal (division at 20 decimals, half up) so nothing drifts like floating point does.
 export function middleManTotal({ amount1, rate, mul, fee, pt }) {
-  const from = toNumber(amount1);
+  const dec = (v) => new Decimal(plain(v) || "0");
+  const from = positive(amount1) ? dec(amount1) : new Decimal(0);
   const fx = parseRate(rate);
-  let commission = 0;
+  let commission = new Decimal(0);
   const text = plain(mul).replace("÷", "/");
-  if (from > 0 && fx && text) {
+  if (from.gt(0) && fx && text) {
     if (/^\/\d*\.?\d+$/.test(text)) {
-      const divisor = parseFloat(text.slice(1));
-      if (fx.divisor && divisor > 0) commission = from / fx.divisor - from / divisor;
-    } else if (/^\d*\.?\d+$/.test(text) && parseFloat(text) > 0) {
-      commission = fx.divisor ? parseFloat(text) * 1000 : from * (fx.value - parseFloat(text));
+      const divisor = dec(text.slice(1));
+      if (fx.divisor && divisor.gt(0)) {
+        const base = from.div(plain(rate).replace("÷", "/").slice(1)).toDecimalPlaces(20, Decimal.ROUND_HALF_UP);
+        commission = base.minus(from.div(divisor).toDecimalPlaces(20, Decimal.ROUND_HALF_UP));
+      }
+    } else if (/^\d*\.?\d+$/.test(text) && dec(text).gt(0)) {
+      commission = fx.divisor ? dec(text).mul(1000) : from.mul(dec(rate).minus(dec(text)));
     }
   }
-  const feeNet = (toNumber(fee) || 0) - (toNumber(pt) || 0);
-  const total = (commission > 0 ? commission : 0) + (feeNet > 0 ? feeNet : 0);
-  return total > 0 ? String(Math.round(total * 100) / 100) : "";
+  const eight = (d) => d.toDecimalPlaces(8, Decimal.ROUND_HALF_UP);
+  const feeNet = eight(dec(fee).minus(dec(pt)));
+  const ratePart = eight(commission);
+  const total = (ratePart.gt(0) ? ratePart : new Decimal(0)).plus(feeNet.gt(0) ? feeNet : new Decimal(0));
+  return total.gt(0) ? total.toFixed() : "";
 }
 
 /** The /api/transaction/submit body of the form, or throws the message to show (written with t, the `transaction` namespace's t). `f` is the form state, `cur` the resolved currencies. */

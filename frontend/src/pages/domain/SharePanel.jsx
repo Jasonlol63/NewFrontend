@@ -4,6 +4,7 @@ import { CalendarDays, Lock, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
 import { AMOUNT_PATTERN, DEPARTMENTS, PROFIT_ACCOUNT, amountOf, fmt, newRowId, pctOf, round2, splitEqually } from "./domainSettingsRules";
+import { roundMoney } from "@/lib/money";
 
 // Share % of a company / group: the price of the picked period is 100%, Sales / CS / IT take part of it and
 // Profit (C168, locked) is what is left. Everything is visible at once: the price line, the Profit card (with a
@@ -12,7 +13,7 @@ import { AMOUNT_PATTERN, DEPARTMENTS, PROFIT_ACCOUNT, amountOf, fmt, newRowId, p
 // edge (no left border, clipped by the rounded corners). The tabs grow with the screen height
 // (modal-compact / default / modal-roomy / modal-tall); only a long account list scrolls on its own.
 
-const pct2 = (n) => `${round2(n).toFixed(2)}%`;
+const pct2 = (n) => `${roundMoney(n)}%`;
 const PROFIT_COLOR = "#2f6fef";
 
 /**
@@ -234,7 +235,7 @@ function AccountRow({ row, price, noPrice, options, onChange, onRemove }) {
 
   const shown = (field) => {
     if (edit?.field === field) return edit.text;
-    return field === "amount" ? amountOf(price, row.pct).toFixed(2) : round2(row.pct).toFixed(2);
+    return field === "amount" ? roundMoney(amountOf(price, row.pct)) : roundMoney(row.pct);
   };
   const type = (field, text) => {
     if (!AMOUNT_PATTERN.test(text)) return;

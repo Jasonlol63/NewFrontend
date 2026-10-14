@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { moneySign } from "@/lib/money";
 import { fmt } from "@/pages/transaction-payment/transactionPaymentRules";
 
-const amountTone = (n) => (n > 0 ? "font-semibold text-[#1d4ed8]" : n < 0 ? "font-semibold text-[#dc2626]" : "");
-const flow = (n) => (n ? fmt(n) : "-");
+// Colour from the raw amount (0.002586 shows 0.00 but stays blue); a real 0 shows "-" in the flow columns.
+const amountTone = (n) => (moneySign(n) > 0 ? "font-semibold text-[#1d4ed8]" : moneySign(n) < 0 ? "font-semibold text-[#dc2626]" : "");
+const flow = (n) => (moneySign(n) ? fmt(n) : "-");
 const rowTone = (i) => cn(i % 2 ? "bg-white/65" : "bg-row-stripe", "hover:bg-row-hover");
 
 const COLS = [

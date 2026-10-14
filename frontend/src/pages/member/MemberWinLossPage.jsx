@@ -6,6 +6,7 @@ import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
+import { sumMoney } from "@/lib/money";
 import MemberFilterCard from "./MemberFilterCard.jsx";
 import MemberReport from "./MemberReport.jsx";
 import ExportPdfModal from "@/pages/transaction-payment/ExportPdfModal.jsx";
@@ -67,8 +68,8 @@ export default function MemberWinLossPage() {
   // Balance table: Total over the listed accounts, then one row each; Select narrows it to one account.
   const summary = useMemo(() => {
     const listed = filters.select === "ALL" ? accounts : accounts.filter((a) => a.value === filters.select);
-    const rows = listed.map((a) => ({ label: a.label, values: Object.fromEntries(shown.map((c) => [c, balances.value[a.value]?.[c] ?? 0])) }));
-    const total = { label: t("balance.total"), values: Object.fromEntries(shown.map((c) => [c, rows.reduce((s, r) => s + r.values[c], 0)])) };
+    const rows = listed.map((a) => ({ label: a.label, values: Object.fromEntries(shown.map((c) => [c, balances.value[a.value]?.[c] ?? "0"])) }));
+    const total = { label: t("balance.total"), values: Object.fromEntries(shown.map((c) => [c, sumMoney(rows.map((r) => r.values[c]))])) };
     return { currencies: shown, rows: [total, ...rows] };
   }, [accounts, shown, balances.value, filters.select, t]);
 

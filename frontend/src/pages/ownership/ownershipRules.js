@@ -1,4 +1,5 @@
 import i18n from "@/i18n";
+import { roundMoney } from "@/lib/money";
 // Rules of the Ownership page (no React here): the Group / Company directory, the rows of a company's ownership list,
 // the checks before a save and the request body. The wire format is Spring's TenantOwnershipDTO (snake_case).
 //
@@ -79,7 +80,7 @@ export const monthLabel = (key) => {
 
 // ---- Ownership rows ----
 
-export const formatPct = (n) => `${n.toFixed(2)}%`;
+export const formatPct = (n) => `${roundMoney(n)}%`;
 
 export const totalAllocation = (rows) => rows.reduce((sum, r) => sum + (Number(r.pct) || 0), 0);
 

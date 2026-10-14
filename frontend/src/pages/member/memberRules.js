@@ -1,7 +1,7 @@
 // Member Win/Loss: the requests of /api/member/* and the rows of its replies.
 
 import { formatRate, normalizeHistoryRow } from "@/pages/transaction-payment/paymentHistoryRules";
-import { toNumber } from "@/pages/transaction-payment/transactionPaymentRules";
+import { moneyText, sumMoney } from "@/lib/money";
 
 export const PROFILE_URL = "/api/member/profile";
 export const CURRENCIES_URL = "/api/member/account-currencies/batch";
@@ -27,11 +27,11 @@ export function currencyUnion(batch) {
   return [...new Set((batch ?? []).flatMap((entry) => (entry.currencies ?? []).map(code)).filter(Boolean))];
 }
 
-/** Balances as { [accountId]: { [currency]: number } }. */
+/** Balances as { [accountId]: { [currency]: decimal string } }. */
 export function balanceMap(rows) {
   const map = {};
   (rows ?? []).forEach((r) => {
-    (map[r.accountId] ??= {})[String(r.currency ?? "").toUpperCase()] = toNumber(r.balance) || 0;
+    (map[r.accountId] ??= {})[String(r.currency ?? "").toUpperCase()] = moneyText(r.balance);
   });
   return map;
 }
@@ -48,8 +48,8 @@ export function buildMemberBlocks(rows, currencies, bfLabel = "B/F") {
       date: r.bf ? bfLabel : dash(r.date),
       product: r.bf ? "-" : dash(r.product),
       rate: r.bf ? "-" : formatRate(r.rate),
-      winLoss: r.bf ? 0 : r.winLoss,
-      crDr: r.bf ? 0 : r.crDr,
+      winLoss: r.bf ? "0" : r.winLoss,
+      crDr: r.bf ? "0" : r.crDr,
       balance: r.balance,
       description: dash(r.description),
       remark: r.bf ? "-" : dash(r.remark),
@@ -58,9 +58,9 @@ export function buildMemberBlocks(rows, currencies, bfLabel = "B/F") {
       currency,
       rows: lines,
       totals: {
-        winLoss: lines.reduce((s, r) => s + r.winLoss, 0),
-        crDr: lines.reduce((s, r) => s + r.crDr, 0),
-        balance: lines.length ? lines[lines.length - 1].balance : 0,
+        winLoss: sumMoney(lines.map((r) => r.winLoss)),
+        crDr: sumMoney(lines.map((r) => r.crDr)),
+        balance: lines.length ? lines[lines.length - 1].balance : "0",
       },
     };
   });

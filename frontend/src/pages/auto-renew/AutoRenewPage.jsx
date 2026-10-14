@@ -1,3 +1,4 @@
+import { roundMoney } from "@/lib/money";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -183,7 +184,7 @@ export default function AutoRenewPage() {
       // every other column (and the whole table) shift while a Period is being picked.
       render: (r) => (
         <span className={cn("inline-block min-w-[54px]", !r.periodKey && "text-slate-300")}>
-          {r.periodKey ? rowPrice(r).toFixed(2) : "—"}
+          {r.periodKey ? roundMoney(rowPrice(r)) : "—"}
         </span>
       ),
     },

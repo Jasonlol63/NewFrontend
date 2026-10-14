@@ -5,6 +5,7 @@ import { Check, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { AddButton, SearchSelectField, TextInput, inputClass } from "@/components/shared/form-modal/fields.jsx";
+import { percentOf, roundMoney } from "@/lib/money";
 
 // Profit Sharing of the Bank Process modal, filled in right inside the card (no pop-up):
 //   "+ Select" opens a panel at the top with one row per account (Account, "+" / Edit, Amount, "%"); "+ Add Account" adds
@@ -48,7 +49,7 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
   };
   const addAll = () => {
     if (!ready.length) return;
-    onChange([...entries, ...ready.map((r) => ({ account: r.account, amount: Number(r.amount).toFixed(2) }))]);
+    onChange([...entries, ...ready.map((r) => ({ account: r.account, amount: roundMoney(r.amount) }))]);
     close();
   };
   const onEnter = (e) => e.key === "Enter" && addAll();
@@ -132,8 +133,9 @@ export default function BankProfitSharing({ entries, onChange, accounts, profit,
                       autoFocus
                       value={row.pct}
                       onChange={(e) => {
-                        const pct = numeric(e.target.value);
-                        patch(i, { pct, amount: pct ? ((profit * Number(pct)) / 100).toFixed(2) : "" });
+                        const typed = numeric(e.target.value);
+                        const pct = parseFloat(typed) > 100 ? "100" : typed;
+                        patch(i, { pct, amount: pct ? percentOf(profit, pct) : "" });
                       }}
                       onKeyDown={onEnter}
                       inputMode="decimal"

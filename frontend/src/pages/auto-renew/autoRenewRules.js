@@ -1,5 +1,6 @@
 import { addDays, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date";
 import { compareText, matchesSearch, sortRows } from "@/components/shared/list/listFormat";
+import { roundMoney } from "@/lib/money";
 
 // ===== Renew periods =====
 // key: the page's own key; code: what the back end calls it (renewal_period.code); domainKey: its key in the Domain page's
@@ -19,7 +20,7 @@ const periodByCode = (code) => PERIODS.find((p) => p.code === code) ?? null;
 // The list price of a period for this row's kind (company / group): the C168 price table, same for every row of a kind.
 export const priceOf = (row, periodKey) => {
   const price = row.periodPrices?.[periodKey];
-  return price == null ? null : price.toFixed(2);
+  return price == null ? null : roundMoney(price);
 };
 
 // The price of a row: the price it was approved at, else the list price of the picked period. Never typed in.

@@ -1,5 +1,12 @@
 import i18n from "@/i18n";
 import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
+import Decimal from "@/lib/decimal";
+import { roundMoney } from "@/lib/money";
+
+const toDec = (v) => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? new Decimal(String(v).trim()) : new Decimal(0);
+};
 // Options, validation and the request bodies of the Add / Edit Bank Process modal (/api/bank-process).
 
 export const BANK_ADD_URL = "/api/bank-process/add-bank-process";
@@ -62,8 +69,8 @@ export function contractDayEnd(dayStart, contract) {
 export const usesDayEnd = (frequency) => frequency === FIRST_OF_MONTH || frequency === "MONTHLY";
 
 export const money = (v) => String(v).replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-const round2 = (n) => Math.round(n * 100) / 100;
-export const profitOf = (form) => round2((parseFloat(form.sellPrice) || 0) - (parseFloat(form.buyPrice) || 0));
+// Profit = sell price - buy price, exact (Decimal), half up to 2 decimals; a number with at most 2 decimals.
+export const profitOf = (form) => Number(roundMoney(toDec(form.sellPrice).minus(toDec(form.buyPrice))));
 
 // The accounts the Supplier, Customer, Company and Profit Sharing selects offer (same list as the old Bank Process page):
 // these roles only, and only active accounts. CAPITAL, BANK, CASH, EXPENSES, COMPANY and DEBTOR are not offered.

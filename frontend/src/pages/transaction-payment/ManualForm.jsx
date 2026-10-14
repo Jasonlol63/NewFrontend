@@ -31,6 +31,7 @@ const INITIAL = {
 };
 // What stays after a submit: the picked currencies (the accounts, amounts and remarks are cleared).
 const KEEP = ["cur", "rCur1", "rCur2", "aCur"];
+const fmtTotal = (v) => (v ? formatMoney(v) : "");
 
 // Account | Account | Reverse: the Reverse column is as wide as its button (icon only below 1500px).
 const ACCOUNT_ROW = "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_var(--revw)] items-center gap-2";
@@ -236,7 +237,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
                 {input("rMul", { placeholder: t("form.rateMul") })}
                 {input("rFee", { inputMode: "decimal", placeholder: t("form.fee") })}
                 {input("rPT", { inputMode: "decimal", placeholder: t("form.ptFee") })}
-                <input className={INPUT} value={middleManTotal({ amount1: f.rAmt1, rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT })} readOnly aria-label={t("form.middleAmount")} placeholder={t("form.amount")} />
+                <input className={INPUT} value={fmtTotal(middleManTotal({ amount1: f.rAmt1, rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT }))} readOnly aria-label={t("form.middleAmount")} placeholder={t("form.amount")} />
               </div>
             </div>
           </>

@@ -11,6 +11,7 @@ import { shareSummary } from "@/pages/domain/domainSettingsRules";
 import ChargeSwitch from "./ChargeSwitch.jsx";
 import PeriodSelect from "./PeriodSelect.jsx";
 import { displayDate, newExpiryOf, periodOf, rowPrice, startOf } from "./autoRenewRules";
+import { roundMoney } from "@/lib/money";
 
 /**
  * The Comm button of an Auto Renew row: Period, Price, Charge and the Share split of that one renewal.
@@ -91,7 +92,7 @@ export default function ChargeDialog({ row, readOnly, accounts, onPatch, onSave,
 
         <Field label={t("charge.price")} plain>
           <TextInput
-            value={row.periodKey ? price.toFixed(2) : ""}
+            value={row.periodKey ? roundMoney(price) : ""}
             readOnly
             tabIndex={-1}
             placeholder={t("charge.pickPeriod")}

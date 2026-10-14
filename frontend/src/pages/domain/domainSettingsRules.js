@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/money";
+import { formatMoney, percentOf, roundMoney } from "@/lib/money";
 import i18n from "@/i18n";
 import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
 import { NO_EXPIRY, PERMANENT_EXPIRY, PRICE_PERIODS, formatExpiry } from "./domainRules";
@@ -22,7 +22,8 @@ export const PROFIT_ACCOUNT = "C168";
 // The back end also accepts an account called PROFIT when C168 itself was renamed.
 const PROFIT_ACCOUNT_CODES = [PROFIT_ACCOUNT, "PROFIT"];
 
-export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+// Half up to 2 decimals, exact (Decimal): still a number, with at most 2 decimals.
+export const round2 = (n) => Number(roundMoney(n));
 export const fmt = formatMoney;
 
 // Up to 2 decimals; anything else the user types or pastes is ignored.
@@ -81,7 +82,7 @@ export function expiryIsoOf(settings) {
 /** The same as dd-mm-yyyy ("No Expiry" for the permanent date); "" when there is none. */
 export const expiryOf = (settings) => formatExpiry(expiryIsoOf(settings));
 
-export const amountOf = (price, pct) => round2((price * pct) / 100);
+export const amountOf = (price, pct) => Number(percentOf(price, pct));
 export const pctOf = (price, amount) => (price > 0 ? (amount / price) * 100 : 0);
 
 /**

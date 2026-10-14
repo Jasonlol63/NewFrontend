@@ -1,3 +1,4 @@
+import { roundMoney } from "@/lib/money";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CalendarDays, FilePen, FilePlus2, Lock, Trash2 } from "lucide-react";
@@ -107,7 +108,7 @@ function formOf(process) {
 const sharingOf = (process) =>
   [...(process?.shares ?? [])]
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-    .map((s) => ({ account: idText(s.accountId), amount: (Number(s.amount) || 0).toFixed(2) }));
+    .map((s) => ({ account: idText(s.accountId), amount: roundMoney(s.amount) }));
 
 // The options plus the current value, so a value the list does not know (an old contract text) still shows.
 const withCurrent = (options, value) => (value && !options.some((o) => o.value === value) ? [{ value, label: value }, ...options] : options);
@@ -533,7 +534,7 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
               />
             </Field>
             <Field label={t("bank.form.profit")} plain as="div">
-              <div className={cn(inputClass, "flex items-center bg-modal-off tabular-nums", profit ? "font-semibold text-[#374151]" : "text-dash-faint")}>{profit.toFixed(2)}</div>
+              <div className={cn(inputClass, "flex items-center bg-modal-off tabular-nums", profit ? "font-semibold text-[#374151]" : "text-dash-faint")}>{roundMoney(profit)}</div>
             </Field>
           </div>
           <div className={pair}>
