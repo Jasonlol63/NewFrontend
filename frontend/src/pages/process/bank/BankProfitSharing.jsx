@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Plus, Trash2, X } from "lucide-react";
@@ -14,7 +15,7 @@ import { AddButton, SearchSelectField, TextInput, inputClass } from "@/component
 
 const blankRow = () => ({ account: "", amount: "", pct: "", pctOpen: false });
 const numeric = (v) => v.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = formatMoney;
 
 // As tall as an input at every modal height tier.
 const square = "size-9 @min-[900px]/main:@max-[1099px]/main:size-8 modal-compact:size-[30px] modal-tiny:size-7";

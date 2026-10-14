@@ -1,3 +1,4 @@
+import { formatMoney as formatMoney2 } from "@/lib/money";
 import { parseIsoDate, toIsoDate } from "@/lib/date";
 
 export const CURRENCY_COLORS = {
@@ -22,11 +23,9 @@ export function currencyColor(code) {
   return FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
 }
 
-const moneyFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 export function formatMoney(value) {
   if (value == null || Number.isNaN(Number(value))) return "—";
-  return moneyFormat.format(Number(value));
+  return formatMoney2(value);
 }
 
 export function formatSignedMoney(value) {

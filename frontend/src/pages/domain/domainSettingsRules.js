@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import i18n from "@/i18n";
 import { addDays, parseIsoDate, toIsoDate } from "@/lib/date";
 import { NO_EXPIRY, PERMANENT_EXPIRY, PRICE_PERIODS, formatExpiry } from "./domainRules";
@@ -22,7 +23,7 @@ export const PROFIT_ACCOUNT = "C168";
 const PROFIT_ACCOUNT_CODES = [PROFIT_ACCOUNT, "PROFIT"];
 
 export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-export const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const fmt = formatMoney;
 
 // Up to 2 decimals; anything else the user types or pastes is ignored.
 export const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/;

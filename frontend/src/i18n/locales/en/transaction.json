@@ -79,7 +79,8 @@
     "nonZero": "Enter a non-zero amount",
     "toFrom": "Select the To and From account",
     "differentAccounts": "The To and From account must be different",
-    "amountAbove0": "Enter an amount above 0"
+    "amountAbove0": "Enter an amount above 0",
+    "noCurrency": "{{account}} doesn't have the {{currency}} currency yet. Add it to the account first"
   },
   "history": {
     "title": "Payment History - {{name}} ({{code}})",

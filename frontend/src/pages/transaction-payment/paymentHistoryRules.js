@@ -1,6 +1,6 @@
 // Payment History: the address the popup is opened with, the request, and the rows of the reply.
 
-import { fmt, toNumber } from "./transactionPaymentRules";
+import { formatMoney, moneySign, moneyText } from "@/lib/money";
 
 export const HISTORY_URL = "/api/transaction/history";
 
@@ -44,9 +44,9 @@ export function normalizeHistoryRow(dto, index) {
     product: text(dto.product) || text(dto.cardOwner),
     currency: text(dto.currency).toUpperCase(),
     rate: text(dto.rate),
-    winLoss: toNumber(dto.winLoss) || 0,
-    crDr: toNumber(dto.crDr) || 0,
-    balance: toNumber(dto.balance) || 0,
+    winLoss: moneyText(dto.winLoss),
+    crDr: moneyText(dto.crDr),
+    balance: moneyText(dto.balance),
     description: text(dto.description),
     remark: text(dto.remark),
     createdBy: text(dto.createdBy),
@@ -54,7 +54,8 @@ export function normalizeHistoryRow(dto, index) {
 }
 
 // Win/Loss and Cr/Dr show a dash for 0.00; the Balance always shows its figure.
-export const flowAmount = (n) => (Math.round(n * 100) === 0 ? "-" : fmt(n));
+// An amount that shows 0.00 but still holds a remainder keeps its figure (and its colour).
+export const flowAmount = (n) => (moneySign(n) === 0 ? "-" : formatMoney(n));
 
 // "0.30000000" -> "0.3" (at most 6 decimals, cut not rounded); "/3" and other expressions stay as they are.
 export function formatRate(rate) {

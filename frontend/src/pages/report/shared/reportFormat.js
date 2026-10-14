@@ -1,21 +1,7 @@
-// Report amounts: 2 decimals (half up), thousands separators, and anything below 0.005 shows as 0.00.
-// Works on the decimal string so large amounts keep every digit.
-export function formatAmount(value) {
-  let raw = String(value ?? "").replace(/,/g, "").trim();
-  if (!/^-?\d+(\.\d+)?$/.test(raw)) {
-    const n = Number(raw);
-    if (raw === "" || !Number.isFinite(n)) return "0.00";
-    raw = n.toFixed(8);
-  }
-  const negative = raw.startsWith("-");
-  const [whole, fraction = ""] = raw.replace("-", "").split(".");
-  let cents = BigInt(whole + (fraction + "00").slice(0, 2));
-  if (fraction.length > 2 && fraction[2] >= "5") cents += 1n;
-  if (cents === 0n) return "0.00";
-  const digits = cents.toString().padStart(3, "0");
-  const grouped = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `${negative ? "-" : ""}${grouped}.${digits.slice(-2)}`;
-}
+import { formatMoney } from "@/lib/money";
+
+// Report amounts: 2 decimals (half up) with thousands separators, worked on the decimal string.
+export const formatAmount = formatMoney;
 
 export const WIN_CLASS = "font-semibold text-[#172a9f]";
 export const LOSE_CLASS = "font-semibold text-[#b91c1c]";

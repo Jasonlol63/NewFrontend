@@ -3,10 +3,10 @@ import DropdownSelect from "@/components/shared/DropdownSelect.jsx";
 
 // 30px controls of the Transaction Payment cards. The `!` marks win over DropdownSelect's own trigger classes.
 const SELECT =
-  "h-[30px]! w-full! gap-1! rounded-lg! border-modal-input-line! bg-white! px-2! py-0! type-table-cell! text-[#111827]! shadow-[0_1px_3px_rgba(15,23,42,0.05)]!";
+  "h-[30px]! w-full! gap-1! rounded-lg! border-modal-input-line! bg-white! px-2! py-0! type-table-cell! font-semibold! text-[#111827]! shadow-[0_1px_3px_rgba(15,23,42,0.05)]!";
 
 export const INPUT =
-  "h-[30px] w-full min-w-0 rounded-lg border border-modal-input-line bg-white px-3 type-table-cell text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] placeholder:text-[#9ca3af] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] read-only:bg-[#f1f5f9] read-only:text-[#475569] disabled:cursor-not-allowed disabled:bg-[rgba(226,232,240,0.55)]";
+  "h-[30px] w-full min-w-0 rounded-lg border border-modal-input-line bg-white px-3 type-table-cell font-semibold! text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.05)] outline-none transition-[border-color,box-shadow] placeholder:text-[#9ca3af] focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] read-only:bg-[#f1f5f9] read-only:text-[#475569] disabled:cursor-not-allowed disabled:bg-[rgba(226,232,240,0.55)]";
 
 export const LABEL = "type-table-cell font-semibold! whitespace-nowrap text-[#374151]";
 

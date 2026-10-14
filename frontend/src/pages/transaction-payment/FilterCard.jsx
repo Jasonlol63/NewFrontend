@@ -20,7 +20,7 @@ function Seg({ options, value, onChange, allowDeselect }) {
           type="button"
           onClick={() => onChange(allowDeselect && v === value ? null : v)}
           className={cn(
-            "flex-none cursor-pointer border-r border-dash-line px-3 py-1 type-table-cell font-medium! whitespace-nowrap transition-colors last:border-r-0",
+            "flex-none cursor-pointer border-r border-dash-line px-3 py-1 type-table-cell font-semibold! whitespace-nowrap transition-colors last:border-r-0",
             v === value ? "bg-seg-active text-white" : "bg-white text-[#1f2937] hover:bg-slate-50"
           )}
         >
@@ -52,7 +52,7 @@ function Pill({ label, checked, onChange }) {
         "inline-flex h-[30px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border bg-[#f8fafc] pr-2.5 pl-[5px] type-table-cell whitespace-nowrap transition-[border-color,box-shadow,color] @max-[560px]:gap-1.5 @max-[560px]:pr-[9px] @max-[560px]:pl-1 @max-[430px]:px-2",
         checked
           ? "border-[rgba(13,96,255,0.45)] font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)]"
-          : "border-dash-line font-medium text-[#475569] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-[#cbd5e1] hover:shadow-[0_2px_4px_rgba(15,23,42,0.08)]"
+          : "border-dash-line font-semibold text-[#475569] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-[#cbd5e1] hover:shadow-[0_2px_4px_rgba(15,23,42,0.08)]"
       )}
     >
       <span

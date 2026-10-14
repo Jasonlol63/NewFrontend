@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from "react";
 import { useSession } from "@/context/session";
 import {
+  ALL,
   companiesInGroup as companiesOf,
   firstOpenableGroup,
+  hasGroupAccess,
   hasIndependentCompanies,
   INDEPENDENT,
   loginSelection,
@@ -30,6 +32,11 @@ function defaultCompany(directory, group) {
 function resolveSelection(directory, tenantId) {
   if (!directory) return { group: null, company: undefined };
   const pick = sessionSelection(directory, tenantId) ?? loginSelection(directory);
+  if (!hasGroupAccess(directory)) {
+    // No Group access: there is no Group filter, the Company row lists every company this login can open.
+    const known = directory.companies.some((c) => c.code === pick?.company);
+    return { group: ALL, company: known ? pick.company : directory.companies[0]?.code };
+  }
   const groupCodes = [
     ...directory.groups.map((g) => g.code),
     ...(hasIndependentCompanies(directory) ? [INDEPENDENT] : []),
@@ -73,9 +80,11 @@ export function useListScope({ onChange } = {}) {
 
   const hasIndependent = hasIndependentCompanies(directory);
   const switchGroup = group === INDEPENDENT ? firstOpenableGroup(directory) : null;
+  // A Group listed only because one of its companies points at it is not a Group permission.
+  const groupAccess = hasGroupAccess(directory);
   const groupOptions = useMemo(
-    () => (directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code })),
-    [directory]
+    () => (groupAccess ? directory.groups.map((g) => ({ value: g.code, label: g.code })) : []),
+    [directory, groupAccess]
   );
   const companyOptions = useMemo(
     () => companiesOf(directory, group).map((c) => ({ value: c.code, label: c.code, tenantId: c.tenantId })),
@@ -122,8 +131,8 @@ export function useListScope({ onChange } = {}) {
     company: company ?? null,
     groupOptions,
     // One Group with independent companies still needs its chip, to switch between the two.
-    showGroups: groupOptions.length > 1 || (groupOptions.length > 0 && hasIndependent),
-    allowNoGroup: group !== INDEPENDENT && hasIndependent,
+    showGroups: groupAccess && (groupOptions.length > 1 || (groupOptions.length > 0 && hasIndependent)),
+    allowNoGroup: groupAccess && group !== INDEPENDENT && hasIndependent,
     companyOptions,
     allowNoCompany: group === INDEPENDENT ? Boolean(switchGroup) : canUseGroupItself(directory, group),
     onGroupChange: pickGroup,

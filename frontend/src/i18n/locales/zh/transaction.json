@@ -79,7 +79,8 @@
     "nonZero": "请输入不为 0 的金额",
     "toFrom": "请选择收款和付款账户",
     "differentAccounts": "收款账户和付款账户不能相同",
-    "amountAbove0": "请输入大于 0 的金额"
+    "amountAbove0": "请输入大于 0 的金额",
+    "noCurrency": "{{account}} 还没有 {{currency}} 币种，请先到账户中添加"
   },
   "history": {
     "title": "收付款记录 - {{name}} ({{code}})",

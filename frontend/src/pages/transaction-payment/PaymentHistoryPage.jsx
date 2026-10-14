@@ -3,6 +3,7 @@ import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { Download, History, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { moneySign } from "@/lib/money";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
 import { localizeBackend } from "@/i18n/backendMessages";
 import ExportPdfModal from "./ExportPdfModal.jsx";
@@ -10,7 +11,7 @@ import { closingBalances, flowAmount, formatRate, parseHistoryParams } from "./p
 import { fmt } from "./transactionPaymentRules";
 import { useHistory } from "./useTransactionData";
 
-const amountTone = (n) => (n > 0 ? "font-semibold text-[#1d4ed8]" : n < 0 ? "font-semibold text-[#dc2626]" : "");
+const amountTone = (n) => (moneySign(n) > 0 ? "font-semibold text-[#1d4ed8]" : moneySign(n) < 0 ? "font-semibold text-[#dc2626]" : "");
 
 // Column widths in %; Description takes what is left. Remark gets more room on narrower screens so it is never cut.
 const COLS = [
@@ -162,7 +163,7 @@ export default function PaymentHistoryPage() {
               <span>
                 {t("history.closing")}
                 {closing.map(([currency, balance]) => (
-                  <b key={currency} className={cn("ml-2", balance < 0 ? "text-[#dc2626]" : "text-brand-navy")}>
+                  <b key={currency} className={cn("ml-2", moneySign(balance) < 0 ? "text-[#dc2626]" : "text-brand-navy")}>
                     {closing.length > 1 && `${currency} `}
                     {fmt(balance)}
                   </b>

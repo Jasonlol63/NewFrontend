@@ -1,3 +1,5 @@
+import Decimal from "decimal.js";
+import { moneySign, moneyText, showsZero, sumMoney } from "@/lib/money";
 // Transaction Payment: constants, the Search request / rows, the display filters and the Submit payloads.
 
 export const SEARCH_URL = "/api/transaction/search";
@@ -35,7 +37,7 @@ export const ROLE_COLORS = {
 // Category filter: the account roles (a Set of them can be picked; none = every role).
 export const CATEGORY_ITEMS = Object.keys(ROLE_COLORS).map((v) => ({ value: v, label: v }));
 
-export const fmt = (n) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export { formatMoney as fmt } from "@/lib/money";
 
 export const todayDisplay = () => {
   const d = new Date();
@@ -69,20 +71,19 @@ export function normalizeSearchRow(dto) {
     name: String(dto.accountName ?? "").trim(),
     role: String(dto.role ?? "").trim().toUpperCase(),
     currency: String(dto.currencyCode ?? "").trim().toUpperCase(),
-    bf: toNumber(dto.bf) || 0,
-    winLoss: toNumber(dto.winLoss) || 0,
-    crDr: toNumber(dto.crDr) || 0,
-    balance: toNumber(dto.balance) || 0,
+    bf: moneyText(dto.bf),
+    winLoss: moneyText(dto.winLoss),
+    crDr: moneyText(dto.crDr),
+    balance: moneyText(dto.balance),
     hasWinLoss: Boolean(dto.hasWinLossInPeriod),
     hasCrDr: Boolean(dto.hasCrDrInPeriod),
     alert: Boolean(dto.alertActive),
   };
 }
 
-// Whole cents, so sums of many rows never drift.
-const cents = (n) => Math.round(n * 100);
-const sum = (rows, key) => rows.reduce((a, r) => a + cents(r[key]), 0) / 100;
-const isZero = (n) => cents(n) === 0;
+// Amounts stay decimal strings; a figure that shows 0.00 counts as zero here (what the lists hide), the colour uses the raw value.
+const sum = (rows, key) => sumMoney(rows.map((r) => r[key]));
+const isZero = showsZero;
 const hasCrDr = (r) => !isZero(r.crDr) || r.hasCrDr;
 const hasWinLoss = (r) => !isZero(r.winLoss) || r.hasWinLoss;
 
@@ -107,8 +108,8 @@ export function buildBlocks(rows, currencies, pills, today) {
   return Object.fromEntries(
     currencies.map((code) => {
       const shown = rows.filter((r) => r.currency === code && passes(r, options));
-      const left = shown.filter((r) => r.balance >= 0);
-      const right = shown.filter((r) => r.balance < 0);
+      const left = shown.filter((r) => moneySign(r.balance) >= 0);
+      const right = shown.filter((r) => moneySign(r.balance) < 0);
       return [code, { left, right, totals: totalsOf(shown), leftTotals: totalsOf(left), rightTotals: totalsOf(right) }];
     })
   );
@@ -137,10 +138,13 @@ export function parseRate(raw) {
 
 export const trim8 = (n) => String(Math.round(n * 1e8) / 1e8);
 
-// Amount 2 follows Amount 1 x Rate (the backend recomputes it the same way).
+// Amount 2 follows Amount 1 x Rate; "/N" divides by N itself (not by a 1/N cut to 8 decimals, which loses digits).
 export const rateAmount2 = (amount1, rate) => {
   const parsed = parseRate(rate);
-  return parsed && positive(amount1) ? trim8(toNumber(amount1) * parsed.value) : "";
+  if (!parsed || !positive(amount1)) return "";
+  const amount = new Decimal(plain(amount1));
+  const result = parsed.divisor ? amount.div(plain(rate).replace("÷", "/").slice(1)) : amount.mul(plain(rate));
+  return result.toDecimalPlaces(8, Decimal.ROUND_DOWN).toFixed();
 };
 
 // Middle-Man total shown in the Amount box: the Rate-Mul commission plus the Fee net of PT-Fee (each only when above 0).

@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { parseIsoDate, toIsoDate } from "@/lib/date";
 
 export const PENDING_URL = "/api/pending";
@@ -60,7 +61,7 @@ export function daysBack(dateIso, today = new Date()) {
   return Math.max(0, Math.round((base - parseIsoDate(dateIso)) / 86400000));
 }
 
-export const money = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const money = formatMoney;
 
 // [[currency, total], ...] in the order the currencies first appear.
 export function totalsByCurrency(rows) {

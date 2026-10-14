@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import i18n from "@/i18n";
 import { toIsoDate } from "@/lib/date";
 import { PRESET_DAYS } from "./accountFormOptions";
@@ -17,7 +18,7 @@ export function toLocalIsoDate(value) {
   return Number.isNaN(d.getTime()) ? "" : toIsoDate(d);
 }
 
-const formatAmount = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatAmount = formatMoney;
 
 // "-5,000.00" -> -5000; empty / not a number -> null.
 export function parseAlertAmount(text) {

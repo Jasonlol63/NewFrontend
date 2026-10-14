@@ -6,6 +6,7 @@ import { SelectBox } from "@/components/shared/list/DataTable.jsx";
 import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
+import { formatMoney } from "@/lib/money";
 import { INPUT, LABEL, Select } from "./fields.jsx";
 import {
   SUBMIT_URL,
@@ -19,7 +20,6 @@ import {
   rateAmount2,
   toNumber,
   todayDisplay,
-  trim8,
 } from "./transactionPaymentRules";
 import { useLinkedAccounts } from "./useTransactionData";
 
@@ -91,15 +91,17 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
     const held = holders(idByCode.get(ccy));
     return accountOptions(held ? accounts.filter((a) => held.has(String(a.id))) : accounts);
   };
+  const allAccounts = accountOptions(accounts);
   const opts = {
     to: optionsFor(code.std),
     from: optionsFor(code.std),
     aAcc: optionsFor(code.adj),
-    rTo1: optionsFor(code.rate1),
-    rFrom1: optionsFor(code.rate1),
-    rTo2: optionsFor(code.rate2),
-    rFrom2: optionsFor(code.rate2),
-    rMid: optionsFor(code.rate2),
+    // Rate lists every account whatever the currency; Submit checks that each one holds its currency.
+    rTo1: allAccounts,
+    rFrom1: allAccounts,
+    rTo2: allAccounts,
+    rFrom2: allAccounts,
+    rMid: allAccounts,
   };
   // A picked account that the currency no longer allows counts as not picked.
   const picked = Object.fromEntries(Object.entries(opts).map(([k, list]) => [k, list.some((o) => o.value === f[k]) ? f[k] : null]));
@@ -107,22 +109,16 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
   const swap = (a, b) => {
     setF((cur) => ({ ...cur, [a]: cur[b], [b]: cur[a] }));
   };
-  // Rate layout: Amount 2 follows Amount 1 x Rate; typing Amount 2 works the Rate out instead.
+  // Rate layout: Amount 2 is read-only, it always follows Amount 1 x Rate.
   const setRateField = (key, value) => {
     setF((cur) => {
       const next = { ...cur, [key]: value };
-      if (key === "rAmt2") {
-        if (positive(next.rAmt1) && positive(value)) next.rRate = trim8(toNumber(value) / toNumber(next.rAmt1));
-      } else if (parseRate(next.rRate)) {
-        next.rAmt2 = rateAmount2(next.rAmt1, next.rRate);
-      } else if (key === "rAmt1" && positive(value) && positive(next.rAmt2)) {
-        next.rRate = trim8(toNumber(next.rAmt2) / toNumber(value));
-      }
+      next.rAmt2 = rateAmount2(next.rAmt1, next.rRate);
       return next;
     });
   };
 
-  const acc = (key, placeholder) => <Select searchable options={opts[key]} value={picked[key]} onChange={(v) => set(key, v)} placeholder={placeholder} ariaLabel={placeholder} />;
+  const acc = (key, placeholder) => <Select searchable clearable options={opts[key]} value={picked[key]} onChange={(v) => set(key, v)} placeholder={placeholder} ariaLabel={placeholder} />;
   const cur = (key, all = false) => (
     <Select
       compact
@@ -142,6 +138,16 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
     } catch (err) {
       notify?.(err.message, "error");
       return;
+    }
+    if (type === "RATE") {
+      const legs = [[picked.rTo1, code.rate1], [picked.rFrom1, code.rate1], [picked.rTo2, code.rate2], [picked.rFrom2, code.rate2], [picked.rMid, code.rate2]];
+      for (const [id, ccy] of legs) {
+        const held = id ? holders(idByCode.get(ccy)) : null;
+        if (held && !held.has(String(id))) {
+          notify?.(t("errors.noCurrency", { account: opts.rTo1.find((o) => o.value === id)?.label ?? id, currency: ccy }), "error");
+          return;
+        }
+      }
     }
     setBusy(true);
     try {
@@ -215,7 +221,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
               {rateInput("rAmt1", { inputMode: "decimal", placeholder: t("form.amount") })}
               {rateInput("rRate", { placeholder: t("form.rate") })}
               {cur("rCur2", true)}
-              {rateInput("rAmt2", { inputMode: "decimal", placeholder: t("form.amount") })}
+              <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
             </div>
             <span className={LABEL}>{t("form.account")}</span>
             <div className={ACCOUNT_ROW}>

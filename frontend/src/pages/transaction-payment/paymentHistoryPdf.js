@@ -3,6 +3,7 @@
 // jsPDF is loaded only when a PDF is made. The Chinese font is a subset of Noto Sans SC kept in /fonts and loaded
 // only when the text has Chinese in it.
 
+import { moneySign, sumMoney } from "@/lib/money";
 import { flowAmount, formatRate } from "./paymentHistoryRules";
 
 const LOGO_PATH = "images/count_brandlogo.png";
@@ -102,19 +103,10 @@ function loadLogo() {
 // Numbers
 // ---------------------------------------------------------------------------
 
-const cents = (n) => Math.round(n * 100);
 
 // The totals of one currency: Win/Loss and Cr/Dr add up, the closing balance is the last Balance.
 function totalsOf(rows) {
-  let winLoss = 0;
-  let crDr = 0;
-  let closing = 0;
-  rows.forEach((r) => {
-    winLoss += cents(r.winLoss);
-    crDr += cents(r.crDr);
-    closing = r.balance;
-  });
-  return { winLoss: winLoss / 100, crDr: crDr / 100, closing };
+  return { winLoss: sumMoney(rows.map((r) => r.winLoss)), crDr: sumMoney(rows.map((r) => r.crDr)), closing: rows.length ? rows[rows.length - 1].balance : "0" };
 }
 
 // Every money cell shows a dash for 0.00 (the B/F row too).
@@ -123,10 +115,10 @@ const moneyText = (n) => flowAmount(n);
 function applyMoneyStyle(cell, n) {
   cell.styles.halign = "right";
   cell.styles.overflow = "hidden";
-  if (cents(n) > 0) {
+  if (moneySign(n) > 0) {
     cell.styles.textColor = [23, 42, 159];
     cell.styles.fontStyle = "bold";
-  } else if (cents(n) < 0) {
+  } else if (moneySign(n) < 0) {
     cell.styles.textColor = [185, 28, 28];
     cell.styles.fontStyle = "bold";
   } else {
