@@ -1,4 +1,4 @@
-import Decimal from "decimal.js";
+import Decimal from "@/lib/decimal";
 import { moneySign, moneyText, showsZero, sumMoney } from "@/lib/money";
 // Transaction Payment: constants, the Search request / rows, the display filters and the Submit payloads.
 

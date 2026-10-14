@@ -2,7 +2,7 @@
 // Amounts stay strings (or Decimal) all the way, never `Number`, so no digit is lost. What is shown is cut to 2
 // decimals, half up like the backend (SummaryAmountFormat), with thousands separators. The colour of an amount comes
 // from the raw value (moneySign), never from the shown text: 0.002586 shows 0.00 but is still positive (blue).
-import Decimal from "decimal.js";
+import Decimal from "@/lib/decimal";
 
 const toDecimal = (value) => {
   if (value instanceof Decimal) return value;

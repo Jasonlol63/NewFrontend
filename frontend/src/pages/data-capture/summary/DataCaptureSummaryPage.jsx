@@ -17,7 +17,8 @@ import { clearCaptureSession, loadCaptureSession } from "../shared/submitSnapsho
 import FormulaDialog from "./FormulaDialog.jsx";
 import { deleteFormulas, fetchAccounts, fetchCurrencies, fetchTemplates, saveFormula, submitSummary, updateFormula } from "./summaryApi";
 import { applyDraft, clearDraft, draftSignature, saveDraft } from "./summaryDraft";
-import { baseAmount, formatMoney, formulaDisplay, parseRate, parseSource, totalWithinTolerance } from "./summaryMath";
+import { formatMoney, moneySign } from "@/lib/money";
+import { baseAmount, formulaDisplay, parseRate, parseSource, totalWithinTolerance } from "./summaryMath";
 import { buildRows } from "./summaryPopulate";
 import { amountsByKey, capturedFromTable, checkSubmit, createRow, deleteTicked, hasAccount, idLabel, insertSub, rowName, submitLines, totalOf } from "./summaryRules";
 
@@ -391,6 +392,8 @@ function SummaryBoard({ capture, data, onRefresh }) {
   }
 
   const totalBad = !totalWithinTolerance(total);
+  // Inside +-0.05 the total is blue above 0 and red below it (by the raw value: 0.004 shows 0.00 but is still blue); a real 0 stays plain; outside the gate it is red.
+  const totalTone = totalBad || moneySign(total) < 0 ? "text-[#dc2626]" : moneySign(total) > 0 ? "text-[#1d4ed8]" : "text-brand-navy";
 
   return (
     <div className="relative h-full min-h-[520px] p-[clamp(8px,1.6dvh,16px)]">
@@ -534,7 +537,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                     <td colSpan={7} className={cn(TOTAL_CELL, "text-right")}>
                       {t("summary.table.total")}
                     </td>
-                    <td className={cn(TOTAL_CELL, "text-right tabular-nums", totalBad ? "text-[#dc2626]" : "text-[#1d4ed8]")} title={totalBad ? t("summary.table.totalTitle") : undefined}>
+                    <td className={cn(TOTAL_CELL, "text-right tabular-nums", totalTone)} title={totalBad ? t("summary.table.totalTitle") : undefined}>
                       {formatMoney(total)}
                     </td>
                     <td colSpan={2} className={TOTAL_CELL} />

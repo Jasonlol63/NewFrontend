@@ -1,7 +1,7 @@
 // Amount rules of the Data Capture Summary, the same as the old summary and the backend (SummaryAmountFormat):
 //   formula result x Source, then the Input Method, then the Rate cut down to 8 decimals, and the amount that is stored and
 //   totalled cut down to 6. Only the shown figures are rounded (half up, 2 decimals); a rounded figure is never calculated with.
-import Decimal from "../shared/paste/lib/decimalEngine.js";
+import Decimal from "../../../lib/decimal.js";
 
 const dec = (value) => new Decimal(value);
 
@@ -193,13 +193,6 @@ export function rowAmountOf(row, captured) {
 }
 
 export const sumAmounts = (amounts) => amounts.reduce((sum, a) => sum.add(a), dec(0));
-
-/** Half up to 2 decimals with thousands separators: what the list shows. */
-export function formatMoney(value) {
-  const rounded = dec(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  const [int, frac] = rounded.abs().toFixed(2).split(".");
-  return `${rounded.isNeg() && !rounded.isZero() ? "-" : ""}${int.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${frac}`;
-}
 
 /** The Submit gate: the total, rounded half up to 2 decimals, has to be within +-0.05. */
 export const totalWithinTolerance = (total) => dec(total).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).abs().lte(SUBMIT_TOLERANCE);

@@ -10,7 +10,8 @@
 //     row; it has the same idProduct / rowIndex and a subOrder 1..n; deleting it removes it
 //   - formula keeps its $n references; the list shows them as the captured numbers
 //   - sourcePercent is the Source column: a multiplier ("1", "2", "0.5"); inputMethod is a key of INPUT_METHODS
-import { formatMoney, formulaDisplay, rowAmountOf, sourceColumnsOf, sumAmounts, totalWithinTolerance } from "./summaryMath.js";
+import { formatMoney } from "@/lib/money";
+import { formulaDisplay, rowAmountOf, sourceColumnsOf, sumAmounts, totalWithinTolerance } from "./summaryMath.js";
 
 // ---- rows ----
 
@@ -182,6 +183,7 @@ export function submitLines(rows, amounts, captured) {
       currencyId: row.currencyId,
       sourceColumns: sourceColumnsOf(row.formula, row.idProduct, row.rowIndex) || null,
       sourcePercent: row.sourcePercent || "1",
+      inputMethod: row.inputMethod || "",
       enableSourcePercent: true,
       formula: formulaDisplay(row.formula, captured, row.rowIndex),
       processedAmount: amount ? amount.toFixed(6) : "0.000000",
