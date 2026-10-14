@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Repeat2, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -36,9 +36,16 @@ const fmtTotal = (v) => (v ? formatMoney(v) : "");
 
 // Account | Account | Reverse: the Reverse column is as wide as its button (icon only below 1500px).
 const ACCOUNT_ROW = "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_var(--revw)] items-center gap-2";
-// Currency row of the Rate layout: always one row, the currency dropdowns stay small.
+// Currency row of the Rate layout: always one row. The three boxes are as wide as their figures need ("1334933595", "/1.23258",
+// "74,705.85") and no wider; the two currency dropdowns take the room that is left, so they get big on a wide card.
 const CURRENCY_ROW =
-  "grid grid-cols-[76px_repeat(2,minmax(0,1fr))_76px_minmax(0,1fr)] gap-2 @max-[560px]:grid-cols-[66px_repeat(2,minmax(0,1fr))_66px_minmax(0,1fr)] @max-[560px]:gap-1.5 @max-[560px]:[&>input]:px-[7px] @max-[560px]:[&>button]:px-1.5!";
+  "grid grid-cols-[minmax(68px,1fr)_minmax(112px,150px)_minmax(86px,115px)_minmax(68px,1fr)_minmax(94px,130px)] gap-2 " +
+  "@max-[560px]:grid-cols-[minmax(64px,1fr)_minmax(96px,112px)_minmax(70px,78px)_minmax(64px,1fr)_minmax(76px,86px)] @max-[560px]:gap-1.5 @max-[560px]:[&>input]:px-[6px] @max-[560px]:[&>button]:px-1.5! " +
+  "@max-[500px]:grid-cols-[minmax(62px,1fr)_minmax(93px,106px)_minmax(69px,74px)_minmax(62px,1fr)_minmax(74px,82px)] @max-[500px]:gap-[3px] @max-[500px]:[&>input]:px-[5px] @max-[500px]:[&>button]:px-1! @max-[500px]:[&>button]:gap-0.5! " +
+  "@max-[470px]:grid-cols-[minmax(60px,1fr)_minmax(93px,106px)_minmax(69px,74px)_minmax(60px,1fr)_minmax(74px,82px)]";
+// Middle-Man on a compact card: the account box and four fields that are each as wide as their word needs ("PT-Fee").
+const MIDDLE_COMPACT = "grid grid-cols-[minmax(92px,1fr)_minmax(252px,1.6fr)] items-center gap-1.5";
+const MIDDLE_COMPACT_FIELDS = "grid grid-cols-[minmax(72px,1.2fr)_minmax(44px,0.8fr)_minmax(58px,1fr)_minmax(64px,1fr)] gap-1 [&>input]:px-1.5";
 // Middle-Man: the account dropdown keeps room for a full name; the four small fields share the rest (two rows of two
 // only on the narrowest cards). Above 620px it lines up with the To Account dropdown above.
 const MIDDLE_ROW =
@@ -72,6 +79,26 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
     setF((cur) => ({ ...cur, ...Object.fromEntries([...ACCOUNT_FIELDS, ...KEEP].map((k) => [k, null])) }));
   }
 
+  // How much room the card has (its width inside the padding): under 560px the Account placeholders are short words and the
+  // label column is narrower; under 440px the Rate layout is stacked, one block per leg.
+  const cardRef = useRef(null);
+  const [room, setRoom] = useState(1000);
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return undefined;
+    const update = () => setRoom(card.clientWidth - 32);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
+  const compact = room < 560;
+  const stacked = room < 440;
+  const ph = {
+    to: compact ? t("form.toShort") : t("form.selectTo"),
+    from: compact ? t("form.fromShort") : t("form.selectFrom"),
+    account: compact ? t("form.accountShort") : t("form.selectAccount"),
+  };
   const layout = layoutOf(type);
   const allCodes = useMemo(() => currencies.map((c) => c.code), [currencies]);
   const idByCode = useMemo(() => new Map(currencies.map((c) => [c.code, c.id])), [currencies]);
@@ -185,8 +212,8 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
         : picked.to && picked.from && positive(f.amount);
 
   return (
-    <section className="@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter [--revw:104px] max-[1500px]:[--revw:42px]">
-      <div className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-3 gap-y-[5px]">
+    <section ref={cardRef} className="@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter [--revw:104px] max-[1500px]:[--revw:42px]">
+      <div className={cn("grid items-center gap-y-[5px]", compact ? "grid-cols-[60px_minmax(0,1fr)] gap-x-2" : "grid-cols-[76px_minmax(0,1fr)] gap-x-3")}>
         <span className={LABEL}>{t("form.type")}</span>
         <Select options={typeOptions} value={type} onChange={setType} ariaLabel={t("form.type")} />
         <span className={LABEL}>{t("form.date")}</span>
@@ -196,8 +223,8 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
           <>
             <span className={LABEL}>{t("form.account")}</span>
             <div className={ACCOUNT_ROW}>
-              {acc("to", t("form.selectTo"))}
-              {acc("from", t("form.selectFrom"))}
+              {acc("to", ph.to)}
+              {acc("from", ph.from)}
               {reverse("to", "from")}
             </div>
             <span className={LABEL}>{t("form.currency")}</span>
@@ -211,30 +238,50 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
 
         {layout === "rate" && (
           <>
+            {stacked && <span className="col-span-2 ml-0.5 type-caption font-semibold! text-dash-faint">{t("form.leg1")}</span>}
             <span className={LABEL}>{t("form.account")}</span>
             <div className={ACCOUNT_ROW}>
-              {acc("rTo1", t("form.selectTo"))}
-              {acc("rFrom1", t("form.selectFrom"))}
+              {acc("rTo1", ph.to)}
+              {acc("rFrom1", ph.from)}
               {reverse("rTo1", "rFrom1")}
             </div>
-            <span className={LABEL}>{t("form.currency")}</span>
-            <div className={CURRENCY_ROW}>
-              {cur("rCur1", true)}
-              {rateInput("rAmt1", { inputMode: "decimal", placeholder: t("form.amount") })}
-              {rateInput("rRate", { placeholder: t("form.rate") })}
-              {cur("rCur2", true)}
-              <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
-            </div>
+            {stacked ? (
+              <>
+                <span className={LABEL}>{t("form.currency")}</span>
+                <div className="grid grid-cols-[66px_minmax(0,1fr)_minmax(0,0.8fr)] gap-1.5">
+                  {cur("rCur1", true)}
+                  {rateInput("rAmt1", { inputMode: "decimal", placeholder: t("form.amount") })}
+                  {rateInput("rRate", { placeholder: t("form.rate") })}
+                </div>
+                <span className="col-span-2 ml-0.5 type-caption font-semibold! text-dash-faint">{t("form.leg2")}</span>
+                <span className={LABEL}>{t("form.currency")}</span>
+                <div className="grid grid-cols-[66px_minmax(0,1fr)] gap-1.5">
+                  {cur("rCur2", true)}
+                  <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
+                </div>
+              </>
+            ) : (
+              <>
+                <span className={LABEL}>{t("form.currency")}</span>
+                <div className={CURRENCY_ROW}>
+                  {cur("rCur1", true)}
+                  {rateInput("rAmt1", { inputMode: "decimal", placeholder: t("form.amount") })}
+                  {rateInput("rRate", { placeholder: t("form.rate") })}
+                  {cur("rCur2", true)}
+                  <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
+                </div>
+              </>
+            )}
             <span className={LABEL}>{t("form.account")}</span>
             <div className={ACCOUNT_ROW}>
-              {acc("rTo2", t("form.selectTo"))}
-              {acc("rFrom2", t("form.selectFrom"))}
+              {acc("rTo2", ph.to)}
+              {acc("rFrom2", ph.from)}
               {reverse("rTo2", "rFrom2")}
             </div>
-            <span className={LABEL}>{t("form.middleMan")}</span>
-            <div className={MIDDLE_ROW}>
-              {acc("rMid", t("form.selectAccount"))}
-              <div className={MIDDLE_FIELDS}>
+            <span className={cn(LABEL, "whitespace-normal! break-words leading-[1.1]")}>{t("form.middleMan")}</span>
+            <div className={stacked ? "grid gap-1.5" : compact ? MIDDLE_COMPACT : MIDDLE_ROW}>
+              {acc("rMid", ph.account)}
+              <div className={stacked ? "grid grid-cols-[repeat(4,minmax(0,1fr))] gap-1.5 [&>input]:px-1.5" : compact ? MIDDLE_COMPACT_FIELDS : MIDDLE_FIELDS}>
                 {input("rMul", { placeholder: t("form.rateMul") })}
                 {input("rFee", { inputMode: "decimal", placeholder: t("form.fee") })}
                 {input("rPT", { inputMode: "decimal", placeholder: t("form.ptFee") })}
@@ -247,7 +294,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
         {layout === "adj" && (
           <>
             <span className={LABEL}>{t("form.account")}</span>
-            {acc("aAcc", t("form.selectTo"))}
+            {acc("aAcc", ph.to)}
             <span className={LABEL}>{t("form.currency")}</span>
             {cur("aCur")}
             <span className={LABEL}>{t("form.amount")}</span>

@@ -21,6 +21,7 @@ export default function DropdownSelect({
   clearable = false,
   panelClassName,
   listClassName,
+  optionClassName,
 }) {
   const { t } = useTranslation();
   const placeholder = placeholderProp ?? t("select");
@@ -114,6 +115,7 @@ export default function DropdownSelect({
                 onClick={() => pick(option)}
                 className={cn(
                   "block w-full cursor-pointer truncate rounded-lg px-2.5 py-1.5 text-left type-table-cell font-semibold! transition-colors",
+                  optionClassName,
                   option.value === value
                     ? "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,255,0.55)]"
                     : "text-[#1e3a6e] hover:bg-slate-100"
