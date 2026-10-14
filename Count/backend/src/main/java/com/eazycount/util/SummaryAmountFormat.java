@@ -91,6 +91,56 @@ public final class SummaryAmountFormat {
         return TransactionMoneyFormat.strip(total);
     }
 
+    /* Summary 行允许的金额误差：6 位精度的最小一格。前后端除法/截断的末位差异不算不一致。 */
+    public static final BigDecimal LINE_AMOUNT_TOLERANCE = new BigDecimal("0.000001");
+
+    /* Input Method（与前端 applyInputMethod 同一套 8 种）；未知/空 = 原值。 */
+    public static BigDecimal applyInputMethod(BigDecimal value, String method) {
+        String m = method == null ? "" : method;
+        boolean pos = value.signum() > 0;
+        boolean neg = value.signum() < 0;
+        switch (m) {
+            case "positive_to_negative_negative_to_positive":
+                return value.negate();
+            case "positive_to_negative_negative_to_zero":
+                return pos ? value.negate() : BigDecimal.ZERO;
+            case "negative_to_positive_positive_to_zero":
+                return neg ? value.negate() : BigDecimal.ZERO;
+            case "positive_unchanged_negative_to_zero":
+                return pos ? value : BigDecimal.ZERO;
+            case "negative_unchanged_positive_to_zero":
+                return neg ? value : BigDecimal.ZERO;
+            case "change_to_positive":
+                return value.abs();
+            case "change_to_negative":
+                return value.abs().negate();
+            case "change_to_zero":
+                return BigDecimal.ZERO;
+            default:
+                return value;
+        }
+    }
+
+    /*
+     * 行金额的服务端重算：公式（引用已展开成数字）× Source（接近 1 不乘）→ Input Method → Rate（8 位截断）→ 6 位截断。
+     * 公式或 Source 无法求值时返回 null（无法校验，不拒绝）。
+     */
+    public static BigDecimal recomputeLineAmount(String formula, String sourcePercent, String inputMethod, String rateExpression) {
+        BigDecimal value = SummaryFormulaEvaluator.evaluate(formula);
+        if (value == null) {
+            return null;
+        }
+        String sourceText = sourcePercent == null || sourcePercent.isBlank() ? "1" : sourcePercent;
+        BigDecimal source = SummaryFormulaEvaluator.evaluate(sourceText);
+        if (source == null) {
+            return null;
+        }
+        if (source.subtract(BigDecimal.ONE).abs().compareTo(new BigDecimal("0.0001")) >= 0) {
+            value = value.multiply(source);
+        }
+        return computeProcessedAmount(applyInputMethod(value, inputMethod), rateExpression);
+    }
+
     /* 仅用于校验的取整（HALF_UP → 2 位）；与前端合计展示一致。永不入库。 */
     public static BigDecimal roundTotalForValidation(BigDecimal total) {
         return TransactionMoneyFormat.nz(total).setScale(VALIDATION_SCALE, RoundingMode.HALF_UP);

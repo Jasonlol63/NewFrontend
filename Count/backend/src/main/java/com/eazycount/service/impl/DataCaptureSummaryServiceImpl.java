@@ -601,9 +601,22 @@ public class DataCaptureSummaryServiceImpl implements DataCaptureSummaryService 
         // transmitted, so the rate step itself can't be redone here) — re-truncate defensively so a
         // malformed/imprecise client value can never bypass the 6dp ROUND_DOWN storage rule.
         BigDecimal clientAmount = parseAmount(line.getProcessedAmount());
+        BigDecimal finalAmount = SummaryAmountFormat.finalizeProcessedAmount(clientAmount);
+        // 公式、Source、Input Method、Rate 都在行上：用同一套规则重算，和前端传来的金额对不上就拒绝。
+        // 旧客户端不带 inputMethod、或公式无法求值时无法校验，保持原行为。
+        String formula = NormalizeUtils.trimToNull(line.getFormula());
+        if (formula != null && line.getInputMethod() != null) {
+            BigDecimal expected = SummaryAmountFormat.recomputeLineAmount(
+                    formula, line.getSourcePercent(), line.getInputMethod(), line.getRateValue());
+            if (expected != null
+                    && expected.subtract(finalAmount).abs().compareTo(SummaryAmountFormat.LINE_AMOUNT_TOLERANCE) > 0) {
+                throw new BusinessException("Amount of " + line.getIdProduct() + " does not match its formula (expected "
+                        + expected.toPlainString() + ", got " + finalAmount.toPlainString() + "); please reload and submit again");
+            }
+        }
         ComputedLine computed = new ComputedLine();
         computed.dto = line;
-        computed.finalAmount = SummaryAmountFormat.finalizeProcessedAmount(clientAmount);
+        computed.finalAmount = finalAmount;
         computed.rate = SummaryAmountFormat.parseRateOperand(line.getRateValue());
         return computed;
     }

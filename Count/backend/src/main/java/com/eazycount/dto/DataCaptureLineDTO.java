@@ -38,4 +38,6 @@ public class DataCaptureLineDTO {
     private String processedAmount;
     /* Raw rate expression e.g. "*3" / "/3" / "3"; null when the row has no rate. */
     private String rateValue;
+    /* Input Method key ("change_to_positive", ...; "" = none). null = an older client: the amount cannot be re-checked. */
+    private String inputMethod;
 }
