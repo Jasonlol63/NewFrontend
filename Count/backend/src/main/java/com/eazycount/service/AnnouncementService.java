@@ -29,6 +29,12 @@ public interface AnnouncementService {
     // Unread announcement count for the logged-in account (0 for IT operators).
     int countUnreadAnnouncements();
 
+    // Ids of the unread announcements of the logged-in account, newest first (empty for IT operators).
+    List<Integer> findUnreadAnnouncementIds();
+
+    // Marks one announcement as read for the logged-in account (no-op for IT operators).
+    void markAnnouncementRead(Integer announcementId);
+
     // Marks all current announcements as read for the logged-in account (no-op for IT operators).
     void markAnnouncementsRead();
 }

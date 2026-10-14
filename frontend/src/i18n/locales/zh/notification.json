@@ -6,6 +6,7 @@
   "empty": "暂无公告。",
   "version": "Version {{version}}",
   "unread": "未读",
+  "markRead": "标为已读",
   "showMore": "展开",
   "showLess": "收起"
 }

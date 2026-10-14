@@ -23,7 +23,13 @@ export async function fetchUnreadCount() {
   return Number(data?.unreadCount) || 0;
 }
 
-export const markAnnouncementsRead = () => postJson(`${ANNOUNCEMENT}/markRead`, {});
+export async function fetchUnreadIds() {
+  const { data } = await getJson(`${ANNOUNCEMENT}/unreadIds`);
+  return (data?.ids ?? []).map(Number);
+}
+
+/** One announcement (id) or, without an id, all of them. */
+export const markAnnouncementsRead = (id) => postJson(`${ANNOUNCEMENT}/markRead`, id == null ? {} : { id });
 
 export const createAnnouncement =({ title, listTitle, content }) =>
   postJson(`${ANNOUNCEMENT}/addAnnouncementContent`, { title, content: joinContent(listTitle, content) });

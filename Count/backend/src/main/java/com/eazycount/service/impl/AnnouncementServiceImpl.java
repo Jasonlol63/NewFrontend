@@ -57,6 +57,24 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     }
 
     @Override
+    public List<Integer> findUnreadAnnouncementIds() {
+        final SessionUser current = AccessControlUtils.requireLoggedIn();
+        if (!hasReadStateIdentity(current)) {
+            return List.of();
+        }
+        return announcementDao.findUnreadAnnouncementIds(readStateUserType(current), current.user_id);
+    }
+
+    @Override
+    public void markAnnouncementRead(Integer announcementId) {
+        final SessionUser current = AccessControlUtils.requireLoggedIn();
+        if (announcementId == null || !hasReadStateIdentity(current)) {
+            return;
+        }
+        announcementDao.markAnnouncementRead(readStateUserType(current), current.user_id, announcementId);
+    }
+
+    @Override
     public void markAnnouncementsRead() {
         final SessionUser current = AccessControlUtils.requireLoggedIn();
         if (!hasReadStateIdentity(current)) {

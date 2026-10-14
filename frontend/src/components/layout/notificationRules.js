@@ -1,14 +1,9 @@
 // Rules for the bell's notification panel (the announcements users see). What is unread is decided by the backend, per login
-// account: the unread count is the number of announcements newer than the account's last "mark all as read".
+// account and announcement (announcement_read): the backend returns the unread ids and count. An announcement becomes read
+// by the check button, Show more, a click on its card, or "mark all as read". Opening the bell reads nothing.
 
 /** Newest first. */
 export const newestFirst = (list) => [...list].sort((a, b) => b.id - a.id);
-
-/**
- * The ids of the unread announcements. The list is newest first and the count covers every announcement newer than the last
- * read, so the unread ones are the first `count` of the list (the list itself is capped, hence the min).
- */
-export const unreadIdsOf = (items, count) => new Set(items.slice(0, Math.max(0, count)).map((a) => a.id));
 
 /** "11/09/2026 06:31" from "2026-09-11 06:31" (what the announcements carry); anything else is returned as it is. */
 export function formatNotificationDate(createdAt) {

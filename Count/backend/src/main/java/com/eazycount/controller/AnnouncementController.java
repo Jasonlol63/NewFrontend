@@ -58,9 +58,24 @@ public class AnnouncementController {
         );
     }
 
+    @GetMapping("/unreadIds")
+    public ResponseEntity<Map<String, Object>> getUnreadIds(){
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "OK",
+                "data", Map.of("ids", announcementService.findUnreadAnnouncementIds()))
+        );
+    }
+
+    /** Body {"id": n} marks that one announcement as read; an empty body marks all of them. */
     @PostMapping("/markRead")
-    public ResponseEntity<Map<String, Object>> markRead(){
-        announcementService.markAnnouncementsRead();
+    public ResponseEntity<Map<String, Object>> markRead(@RequestBody(required = false) Map<String, Object> request){
+        final Object id = request == null ? null : request.get("id");
+        if (id instanceof Number n) {
+            announcementService.markAnnouncementRead(n.intValue());
+        } else {
+            announcementService.markAnnouncementsRead();
+        }
         final Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", true);
         body.put("message", "OK");

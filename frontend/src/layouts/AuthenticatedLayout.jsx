@@ -94,6 +94,7 @@ function Shell() {
           unreadCount={notifications.unreadCount}
           loading={notifications.loading}
           error={notifications.error}
+          onMarkRead={notifications.markRead}
           onMarkAllRead={notifications.markAllRead}
           onRetry={notifications.reload}
         />

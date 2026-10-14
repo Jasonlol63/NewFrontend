@@ -35,6 +35,10 @@ public interface AnnouncementDao {
     /* Execute Mark Read Function in Announcement */
     int countUnreadAnnouncements(@Param("userType") String userType, @Param("userId") Integer userId);
 
+    List<Integer> findUnreadAnnouncementIds(@Param("userType") String userType, @Param("userId") Integer userId);
+
+    void markAnnouncementRead(@Param("userType") String userType, @Param("userId") Integer userId, @Param("announcementId") Integer announcementId);
+
     void markAnnouncementsRead(@Param("userType") String userType, @Param("userId") Integer userId);
 
 }

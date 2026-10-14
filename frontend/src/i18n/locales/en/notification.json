@@ -6,6 +6,7 @@
   "empty": "No announcements yet.",
   "version": "Version {{version}}",
   "unread": "Unread",
+  "markRead": "Mark as read",
   "showMore": "Show more",
   "showLess": "Show less"
 }

@@ -72,5 +72,5 @@
 ## 5. 已知限制
 
 - **移动端未改**：`c168_mobile` 仍使用自己的按日期判断的本地「已读」存储，和桌面端不互通。
-- 「已读」是全量的：一次 `markRead` 把该账号截至当前的所有公告都标为已读，不记录单条。
+- **2026-10 起改为单条已读**：`announcement_read_state`（每账号一个 `last_read_at`）被 `announcement_read(user_type, user_id, announcement_id)` 取代（脚本 `migrate_announcement_read_per_item.sql`，旧表迁移后可删）。未读 = 公告 ACTIVE/C168、晚于账号创建时间、且在 `announcement_read` 没有记录。`POST /markRead {id}` 标单条，无 body 标全部（把当前未读全部插入）；`GET /unreadIds` 返回未读 id。打开铃铛不再自动已读；卡片打勾、Show more、点击卡片空白处都算单条已读。上文 2.1 / 2.2 / 2.3 的表结构与规则以此为准。
 - 公告被编辑（update）不会重新变未读，只有新发布（`created_at` 更晚）的才会计入。

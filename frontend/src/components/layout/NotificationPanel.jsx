@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, CheckCheck, ChevronDown, X } from "lucide-react";
+import { Bell, Check, CheckCheck, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichContent } from "@/pages/announcement/RichText.jsx";
 import { DEFAULT_LIST_TITLE, THANKS_LINE, versionOf } from "@/pages/announcement/announcementRules";
@@ -13,9 +13,10 @@ const iconButton =
  * The bell's panel: the announcements, newest first, sliding in from the right over the content area (the sidebar stays
  * visible and sharp). Mount it inside the content area's relative wrapper (AuthenticatedLayout), after #main-overlay so it
  * sits above the modals there; below 520px wide it fills the whole content area.
- * items / isUnread(item): the list and which ones are new; onMarkAllRead marks them all; Esc, the backdrop and X close it.
+ * items / isUnread(item): the list and which ones are new. Opening the panel reads nothing: onMarkRead(id) runs for the check
+ * button, Show more and any click on a card; onMarkAllRead marks them all; Esc, the backdrop and X close it.
  */
-export default function NotificationPanel({ open, onClose, items, isUnread, unreadCount, loading, error, onMarkAllRead, onRetry }) {
+export default function NotificationPanel({ open, onClose, items, isUnread, unreadCount, loading, error, onMarkRead, onMarkAllRead, onRetry }) {
   const { t } = useTranslation(["notification", "common"]);
   useEffect(() => {
     if (!open) return undefined;
@@ -81,7 +82,7 @@ export default function NotificationPanel({ open, onClose, items, isUnread, unre
             <div className="rounded-xl border border-dashed border-modal-off-line px-3 py-8 text-center type-table-cell font-normal! text-[#8a96a8]">{t("empty")}</div>
           )}
           {items.map((a) => (
-            <NotificationCard key={a.id} item={a} unread={isUnread(a)} />
+            <NotificationCard key={a.id} item={a} unread={isUnread(a)} onMarkRead={onMarkRead} />
           ))}
         </div>
       </section>
@@ -90,11 +91,12 @@ export default function NotificationPanel({ open, onClose, items, isUnread, unre
 }
 
 // One announcement in the format of the Notification preview on the Announcement page.
-function NotificationCard({ item, unread }) {
+function NotificationCard({ item, unread, onMarkRead }) {
   const { t } = useTranslation("notification");
   const version = versionOf(item.content);
   return (
     <article
+      onClick={unread ? () => onMarkRead(item.id) : undefined}
       className={cn(
         "relative flex-none overflow-hidden rounded-2xl border border-modal-line bg-white py-3 pl-4 pr-3.5 shadow-modal-card",
         "before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-[3px]",
@@ -108,6 +110,17 @@ function NotificationCard({ item, unread }) {
         <b className="min-w-0 break-words type-body font-semibold! text-brand-navy">{item.title}</b>
         {version && <span className="inline-flex h-[18px] flex-none items-center rounded-full bg-[#e8f1ff] px-[7px] type-caption font-semibold! text-[#1d4ed8]">{t("version", { version })}</span>}
         {unread && <i aria-label={t("unread")} className="size-2 flex-none rounded-full bg-[#3b82f6] shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />}
+        {unread && (
+          <button
+            type="button"
+            onClick={() => onMarkRead(item.id)}
+            aria-label={t("markRead")}
+            title={t("markRead")}
+            className="ml-auto flex size-6 flex-none cursor-pointer items-center justify-center rounded-full border border-[#bfd6ff] bg-[#f3f8ff] text-[#1d7bff] transition-colors hover:bg-[#1d7bff] hover:text-white"
+          >
+            <Check className="size-3.5" strokeWidth={2.8} />
+          </button>
+        )}
       </div>
       <div className="mb-1 type-table-cell font-semibold! text-brand-navy">{item.listTitle || DEFAULT_LIST_TITLE}</div>
       <ClampedContent html={item.content} />

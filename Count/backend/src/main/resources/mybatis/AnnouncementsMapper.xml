@@ -96,26 +96,45 @@
         where id = #{id}
     </delete>
 
+    <!-- Unread = ACTIVE C168 announcement published after the account was created and not yet in announcement_read. -->
+    <sql id="unreadWhere">
+        a.company_code = 'C168'
+        and a.status = 'ACTIVE'
+        and a.created_at > case #{userType}
+                when 'user'   then (select u.created_at from `user` u where u.id = #{userId})
+                when 'owner'  then (select o.created_at from `owner` o where o.id = #{userId})
+                when 'member' then (select ac.created_at from `account` ac where ac.id = #{userId})
+            end
+        and not exists (
+            select 1 from announcement_read r
+            where r.user_type = #{userType} and r.user_id = #{userId} and r.announcement_id = a.id)
+    </sql>
+
     <select id="countUnreadAnnouncements" resultType="int">
         select count(*)
         from announcements a
-        where a.company_code = 'C168'
-          and a.status = 'ACTIVE'
-          and a.created_at > coalesce(
-              (select rs.last_read_at
-               from announcement_read_state rs
-               where rs.user_type = #{userType} and rs.user_id = #{userId}),
-              case #{userType}
-                  when 'user'   then (select u.created_at from `user` u where u.id = #{userId})
-                  when 'owner'  then (select o.created_at from `owner` o where o.id = #{userId})
-                  when 'member' then (select ac.created_at from `account` ac where ac.id = #{userId})
-              end)
+        where <include refid="unreadWhere"/>
     </select>
 
+    <select id="findUnreadAnnouncementIds" resultType="int">
+        select a.id
+        from announcements a
+        where <include refid="unreadWhere"/>
+        order by a.id desc
+    </select>
+
+    <insert id="markAnnouncementRead">
+        insert ignore into announcement_read(user_type, user_id, announcement_id, read_at)
+        select #{userType}, #{userId}, a.id, now()
+        from announcements a
+        where a.id = #{announcementId}
+    </insert>
+
     <insert id="markAnnouncementsRead">
-        insert into announcement_read_state(user_type, user_id, last_read_at)
-        values(#{userType}, #{userId}, NOW())
-        on duplicate key update last_read_at = NOW()
+        insert ignore into announcement_read(user_type, user_id, announcement_id, read_at)
+        select #{userType}, #{userId}, a.id, now()
+        from announcements a
+        where <include refid="unreadWhere"/>
     </insert>
 
 </mapper>
