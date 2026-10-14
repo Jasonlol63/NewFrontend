@@ -43,6 +43,9 @@ public interface AuthDao {
 
     Owner findOwnerByOwnerCode(@Param("ownerCode") String ownerCode);
 
+    /** Password reset by name: may return several owners sharing one email. */
+    List<Owner> findOwnersByEmail(@Param("email") String email);
+
     User findMemberByAccountId(@Param("accountId") String accountId);
 
     /** Member login: account_id scoped to login group/company code (supports same code in other tenants). */

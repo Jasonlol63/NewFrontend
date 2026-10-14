@@ -407,6 +407,18 @@
         LIMIT 1
     </select>
 
+    <!-- Password reset by name: owner.email has no unique key, so this may return several rows (the caller filters by name). -->
+    <select id="findOwnersByEmail" resultType="com.eazycount.entity.Owner">
+        SELECT id,
+               owner_code             AS ownerCode,
+               name,
+               email,
+               status
+        FROM owner
+        WHERE LOWER(TRIM(email)) = LOWER(TRIM(#{email}))
+          AND status = 'ACTIVE'
+    </select>
+
     <select id="findMemberByAccountId" resultType="com.eazycount.entity.User">
         SELECT id,
                account_id             AS accountId,

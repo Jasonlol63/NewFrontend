@@ -3,9 +3,8 @@
 > **范围**：`AuthController` / `AuthService` / `AuthServiceImpl` 新增两个端点，新建
 > `PasswordResetTacStore`（Redis）+ `PasswordResetMailService`（JavaMail），`AuthDao` /
 > `LoginMapper.xml` 补两条 SQL，`pom.xml` + `application.yml` 加 mail 依赖与配置。
-> **只覆盖 admin/user（`user` 表）**，owner 那一半（`password_reset_tac_owner`）尚未实现，见
-> 第 6 节。
-> **最后更新**：2026-08-27
+> **2026-10 起 admin 与 owner 都支持，且接口参数已改**——以第 8 节为准；第 2、5、6 节描述的是最初只支持 admin 的版本。
+> **最后更新**：2026-10-14
 
 ---
 
@@ -131,6 +130,48 @@ resetPassword(tenantCode, email, tac, newPassword):
   是否 `DROP` 待之后决定。
 - 尚未做端到端的真实 SMTP 联调测试（本地 `mvn compile` 已通过，但收发邮件那一步需要人工用真实
   Gmail 账号或 MailHog 验证）。
+
+---
+
+## 8. 2026-10 更新：Admin / Owner 都可重置
+
+### 8.1 接口（form-data）
+
+| 路径 | 参数 |
+|---|---|
+| `POST /auth/send-reset-tac` | `role`(`admin`\|`owner`), `tenant_code`, `login_id` **或** `name`, `email` |
+| `POST /auth/reset-password` | 同上 + `tac`, `new_password` |
+
+- 账号怎么找：`login_id` 非空时按登录 ID（admin：该公司下的 `login_id`；owner：`owner_code`）；为空则按 `name` + `email`。**两种方式邮箱都必须和账号登记的邮箱一致**，并且账号要对该 `tenant_code` 有访问权限。
+- 用名字找 owner 时，`owner.email` 没有唯一约束，如果「同邮箱 + 同名」找到多个 owner，按「找不到」处理（不发验证码）。admin 因 `user.email` 唯一，按邮箱找到后再核对名字。
+- 角色由前端的 Admin / Owner 选择决定，不再先查 admin 再查 owner，所以同一个邮箱既是 admin 又是 owner 也不会混。
+- `send-reset-tac` 仍然对任何输入回同一句成功话术；找不到账号、邮箱不符、角色选错都不发信、不报错。
+
+### 8.2 只改主密码
+
+- **二级密码不受影响，也不接收二级密码参数**（owner 一定有、admin 仅 C168 且设置过才有；登录后是否要输入二级密码仍由账号当前状态决定）。要改二级密码走客服/IT。
+- 新密码在**消耗验证码之前**先校验（6 位以上、不超过 72 字节，bcrypt 只读前 72 字节），不合格不会白白用掉验证码。
+
+### 8.3 Redis key 的变化
+
+| Key | 现在的 identity |
+|---|---|
+| 冷却 `reset-cooldown:{role}:…` | `{公司}:{邮箱}` |
+| 验证码 / 失败次数 `reset-tac:{role}:…` | **账号 id**（解析到账号后才有），验证码绑定具体账号，不再绑定输入的字符串 |
+
+`reset-password` 的顺序：校验新密码 → 解析账号（找不到 = 「验证码无效或已过期」）→ 验证并消耗验证码 → 更新密码。
+
+### 8.4 重置成功之后
+
+- `AuthTokenStore.deleteAllForUser`：结束该账号的全部会话。会话 jti 按账号记在 Redis 集合 `ec:auth-user-sessions:{user_type}:{id}`（TTL 8 天，长于 JWT 的 7 天上限）；**部署前已登录的旧会话没有记入集合，不会被踢**，它们最多再存活 1 小时空闲时间。
+- 给账号邮箱发「密码已更改」通知邮件。
+- 邮件改成**异步发送**（`PasswordResetMailService` 内的小线程池）：请求不再等 SMTP，账号存在与否的响应时间一致，避免靠耗时猜账号。
+
+### 8.5 仍需注意
+
+- `owner.email` 没有唯一约束（另行处理）；没有邮箱的 owner 无法使用此功能。
+- IT 运维账号（`it-operators.yml`）和 member 不支持重置。
+- 本地只验证了编译通过；发信、Redis 流程需要真实 SMTP/MailHog 联调。
 
 ---
 

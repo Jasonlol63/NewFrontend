@@ -48,9 +48,10 @@ public interface AuthService {
 
     Map<String, Object> switchSessionTenant(int tenantId, SessionUser current, String jti, long ttlMillis);
 
-    //Sends a password reset TAC to the admin/user account's email, scoped to the given tenant.
-    void sendResetTac(String tenantCode, String email);
+    // Sends a password reset TAC to the email of an Admin ("admin") or Owner ("owner") account of the given tenant.
+    // The account is found by loginId, or (when loginId is blank) by name + email.
+    void sendResetTac(String role, String tenantCode, String loginId, String name, String email);
 
-    // Verifies the TAC (one-time use) and updates the admin/user's password.
-    void resetPassword(String tenantCode, String email, String tac, String newPassword);
+    // Verifies the TAC (one-time use), sets the new primary password and ends the account's sessions. The secondary password is never touched.
+    void resetPassword(String role, String tenantCode, String loginId, String name, String email, String tac, String newPassword);
 }

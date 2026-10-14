@@ -166,16 +166,21 @@ public class AuthController {
     }
 
     // Always reports success regardless of whether the account exists (avoids enumeration).
+    // role = admin | owner; the account is named by login_id or, when that is blank, by name.
     @PostMapping("/send-reset-tac")
-    public Map<String, Object> sendResetTac(@RequestParam("tenant_code") String tenantCode, @RequestParam String email) {
-        authService.sendResetTac(tenantCode, email);
+    public Map<String, Object> sendResetTac(@RequestParam String role, @RequestParam("tenant_code") String tenantCode,
+                                            @RequestParam(value = "login_id", required = false) String loginId,
+                                            @RequestParam(required = false) String name, @RequestParam String email) {
+        authService.sendResetTac(role, tenantCode, loginId, name, email);
         return Map.of("success", true, "message", "If this account exists, a verification code has been sent.");
     }
 
     @PostMapping("/reset-password")
-    public Map<String, Object> resetPassword(@RequestParam("tenant_code") String tenantCode, @RequestParam String email,
+    public Map<String, Object> resetPassword(@RequestParam String role, @RequestParam("tenant_code") String tenantCode,
+                                             @RequestParam(value = "login_id", required = false) String loginId,
+                                             @RequestParam(required = false) String name, @RequestParam String email,
                                              @RequestParam String tac, @RequestParam("new_password") String newPassword) {
-        authService.resetPassword(tenantCode, email, tac, newPassword);
+        authService.resetPassword(role, tenantCode, loginId, name, email, tac, newPassword);
         return Map.of("success", true, "message", "Password has been reset");
     }
 
