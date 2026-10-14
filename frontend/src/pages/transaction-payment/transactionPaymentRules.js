@@ -1,5 +1,6 @@
 import Decimal from "@/lib/decimal";
 import { moneySign, moneyText, showsZero, sumMoney } from "@/lib/money";
+import { ROLE_PRIORITY } from "@/pages/account/accountRules";
 // Transaction Payment: constants, the Search request / rows, the display filters and the Submit payloads.
 
 export const SEARCH_URL = "/api/transaction/search";
@@ -36,6 +37,16 @@ export const ROLE_COLORS = {
 
 // Category filter: the account roles (a Set of them can be picked; none = every role).
 export const CATEGORY_ITEMS = Object.keys(ROLE_COLORS).map((v) => ({ value: v, label: v }));
+
+// Account order on this page: by role (ROLE_PRIORITY from the Account page, unknown roles last), then by account
+// code numbers-first (23, 58, 977, 1039, AG…). Replaces the plain 1-Z order of the account code.
+const roleRank = (role) => {
+  const i = ROLE_PRIORITY.indexOf(role);
+  return i === -1 ? ROLE_PRIORITY.length : i;
+};
+export const compareByRole = (a, b) =>
+  roleRank(a.role) - roleRank(b.role) ||
+  String(a.accountId ?? "").localeCompare(String(b.accountId ?? ""), undefined, { sensitivity: "base", numeric: true });
 
 export { formatMoney as fmt } from "@/lib/money";
 
@@ -109,7 +120,7 @@ export function buildBlocks(rows, currencies, pills, today) {
   const options = { zero: Boolean(pills.zero), payment: Boolean(pills.payment), winLoss: Boolean(pills.winLoss), today };
   return Object.fromEntries(
     currencies.map((code) => {
-      const shown = rows.filter((r) => r.currency === code && passes(r, options));
+      const shown = rows.filter((r) => r.currency === code && passes(r, options)).sort(compareByRole);
       const left = shown.filter((r) => moneySign(r.balance) >= 0);
       const right = shown.filter((r) => moneySign(r.balance) < 0);
       return [code, { left, right, totals: totalsOf(shown), leftTotals: totalsOf(left), rightTotals: totalsOf(right) }];
@@ -122,7 +133,7 @@ export function buildBlocks(rows, currencies, pills, today) {
 // ---------------------------------------------------------------------------
 
 export const accountLabel = (a) => `${a.accountId}[${a.name || a.accountId}]`;
-export const accountOptions = (accounts) => accounts.map((a) => ({ value: String(a.id), label: accountLabel(a) }));
+export const accountOptions = (accounts) => [...accounts].sort(compareByRole).map((a) => ({ value: String(a.id), label: accountLabel(a) }));
 
 const plain = (value) => String(value ?? "").replace(/,/g, "").trim();
 const idOf = (value) => (value ? Number(value) : null);
