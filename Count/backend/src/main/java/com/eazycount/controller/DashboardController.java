@@ -6,6 +6,7 @@ import com.eazycount.dto.DashboardCurrencyAmountDTO;
 import com.eazycount.dto.DashboardKpiDTO;
 import com.eazycount.dto.DashboardTrendPointDTO;
 import com.eazycount.entity.Tenant;
+import com.eazycount.service.AuthService;
 import com.eazycount.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,9 @@ public class DashboardController {
     // Reused only to resolve a "C168"-style tenant code to an id, same helper as TenantOwnershipController.
     @Autowired
     private TenantDao tenantDao;
+
+    @Autowired
+    private AuthService authService;
 
     // ==================== 单 Company ====================
     @GetMapping("/kpi")
@@ -211,23 +215,32 @@ public class DashboardController {
 
     // ==================== 共享辅助方法 ====================
 
+    // Every tenant id that reaches the service goes through one of the helpers below, and each of
+    // them ends in this check: a Dashboard request may only read tenants the login can open.
+    private <T extends java.util.Collection<Integer>> T requireAccess(T tenantIds) {
+        authService.requireAccessibleTenants(tenantIds);
+        return tenantIds;
+    }
+
     private Integer resolveTenantId(String tenantIdStr) {
         if (tenantIdStr == null || tenantIdStr.isBlank()) {
             throw new BusinessException("tenant_id is required");
         }
+        Integer tenantId;
         try {
-            return Integer.valueOf(tenantIdStr.trim());
+            tenantId = Integer.valueOf(tenantIdStr.trim());
         } catch (NumberFormatException e) {
             Tenant tenant = tenantDao.findTenantByCode(tenantIdStr.trim());
-            if (tenant != null) {
-                return tenant.getId();
-            } else {
+            if (tenant == null) {
                 throw new BusinessException("Tenant '" + tenantIdStr + "' not found");
             }
+            tenantId = tenant.getId();
         }
+        requireAccess(List.of(tenantId));
+        return tenantId;
     }
 
-    private static List<Integer> parseTenantIds(String tenantIdsStr) {
+    private List<Integer> parseTenantIds(String tenantIdsStr) {
         if (tenantIdsStr == null || tenantIdsStr.isBlank()) {
             throw new BusinessException("tenant_ids is required");
         }
@@ -246,10 +259,10 @@ public class DashboardController {
         if (ids.isEmpty()) {
             throw new BusinessException("tenant_ids is required");
         }
-        return ids;
+        return requireAccess(ids);
     }
 
-    private static List<Integer> parseGroupTenantIds(String groupTenantIdsStr) {
+    private List<Integer> parseGroupTenantIds(String groupTenantIdsStr) {
         if (groupTenantIdsStr == null || groupTenantIdsStr.isBlank()) {
             throw new BusinessException("group_tenant_ids is required");
         }
@@ -268,10 +281,10 @@ public class DashboardController {
         if (ids.isEmpty()) {
             throw new BusinessException("group_tenant_ids is required");
         }
-        return ids;
+        return requireAccess(ids);
     }
 
-    private static List<Integer> parseTenantIdsAllowEmpty(String tenantIdsStr) {
+    private List<Integer> parseTenantIdsAllowEmpty(String tenantIdsStr) {
         if (tenantIdsStr == null || tenantIdsStr.isBlank()) {
             return List.of();
         }
@@ -287,7 +300,7 @@ public class DashboardController {
                 throw new BusinessException("Invalid tenant id in company_tenant_ids: '" + trimmed + "'");
             }
         }
-        return ids;
+        return ids.isEmpty() ? ids : requireAccess(ids);
     }
 
     private static ResponseEntity<Map<String, Object>> ok(Object data) {

@@ -17,6 +17,7 @@ import {
   canViewGroupItself,
   companiesInGroup,
   firstOpenableGroup,
+  hasGroupAccess,
   hasIndependentCompanies,
   INDEPENDENT,
   loginSelection,
@@ -52,6 +53,7 @@ const isAggregate = (pick) => pick?.company === ALL || (pick?.group === ALL && p
 // empty selection.
 function resolveSelection(directory, saved, tenantId) {
   if (!directory) return { group: ALL, company: null };
+  if (!hasGroupAccess(directory)) return resolveCompanyOnlySelection(directory, saved, tenantId);
   const savedAll = saved && isAggregate(saved) && (saved.loginStamp ?? null) === currentLoginStamp();
   const pick = savedAll ? saved : (sessionSelection(directory, tenantId) ?? loginSelection(directory));
   const savedGroupOk =
@@ -69,6 +71,17 @@ function resolveSelection(directory, saved, tenantId) {
         ? canViewGroupItself(directory, group)
         : companiesInGroup(directory, group).some((x) => x.code === c));
   return { group, company: savedCompanyOk ? c : defaultCompany(directory, group) };
+}
+
+// A login with no Group access has no Group filter: the Company row lists every company it can open,
+// across all Groups. Any saved Group pick is ignored; only a saved "All" view carries over.
+function resolveCompanyOnlySelection(directory, saved, tenantId) {
+  if (saved?.company === ALL && (saved.loginStamp ?? null) === currentLoginStamp()) {
+    return { group: ALL, company: ALL };
+  }
+  const pick = sessionSelection(directory, tenantId) ?? loginSelection(directory);
+  const known = directory.companies.some((c) => c.code === pick?.company);
+  return { group: ALL, company: known ? pick.company : (directory.companies[0]?.code ?? ALL) };
 }
 
 export default function DashboardPage() {
@@ -109,6 +122,8 @@ export default function DashboardPage() {
     () => [{ value: ALL, label: t("common:all") }, ...(directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code }))],
     [directory, t]
   );
+  // The Group row only exists for a login that has Group access.
+  const showGroup = hasGroupAccess(directory) && groupOptions.length > 1;
   // Clicking the active Group again switches to the independent companies, when there are any.
   const allowNoGroup = group !== ALL && group !== INDEPENDENT && hasIndependentCompanies(directory);
   const groupCompanies = useMemo(() => companiesInGroup(directory, group), [directory, group]);
@@ -179,6 +194,7 @@ export default function DashboardPage() {
       <DashboardFilterPanel
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
+        showGroup={showGroup}
         groupOptions={groupOptions}
         group={group}
         onGroupChange={handleGroupChange}

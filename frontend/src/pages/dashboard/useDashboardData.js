@@ -30,7 +30,16 @@ function buildDirectory(rows, loginTenant) {
     }
   }
   const byCode = (a, b) => a.code.localeCompare(b.code, undefined, { numeric: true });
-  return { groups: [...groups.values()].sort(byCode), companies: companies.sort(byCode), loginTenant: loginTenant || null };
+  // Companies are kept together by Group (A-Z, independent companies last), each block sorted 1-Z.
+  const byGroupThenCode = (a, b) => {
+    if (a.groupCode !== b.groupCode) {
+      if (!a.groupCode) return 1;
+      if (!b.groupCode) return -1;
+      return a.groupCode.localeCompare(b.groupCode, undefined, { numeric: true });
+    }
+    return byCode(a, b);
+  };
+  return { groups: [...groups.values()].sort(byCode), companies: companies.sort(byGroupThenCode), loginTenant: loginTenant || null };
 }
 
 export function useTenantDirectory() {
@@ -54,6 +63,13 @@ export function companiesInGroup(directory, groupCode) {
   if (groupCode === ALL) return directory.companies;
   if (groupCode === INDEPENDENT) return directory.companies.filter((c) => !c.groupCode);
   return directory.companies.filter((c) => c.groupCode === groupCode);
+}
+
+// Whether this login holds access to at least one Group itself. A Group that is only listed because
+// one of its companies points at it (no tenantId) is not a Group permission, so a login with only
+// company access gets no Group filter.
+export function hasGroupAccess(directory) {
+  return Boolean(directory?.groups.some((g) => g.tenantId));
 }
 
 export function hasIndependentCompanies(directory) {

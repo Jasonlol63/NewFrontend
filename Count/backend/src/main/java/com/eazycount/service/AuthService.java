@@ -26,6 +26,10 @@ public interface AuthService {
 
     Map<String, Object> accessibleTenants(boolean all);
 
+    // Throws unless the logged-in user may open every given tenant (same rule as switch-tenant).
+    // Loads the user's tenants once, so a long id list is not one query per id.
+    void requireAccessibleTenants(java.util.Collection<Integer> tenantIds);
+
     Map<String, Object> tenantByCode(String code);
 
     UserDTO requireIdentity(String userType, String identifier);

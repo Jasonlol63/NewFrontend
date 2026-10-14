@@ -7,6 +7,7 @@ import FilterRow from "@/components/shared/FilterRow.jsx";
 export default function DashboardFilterPanel({
   dateRange,
   onDateRangeChange,
+  showGroup,
   groupOptions,
   group,
   onGroupChange,
@@ -34,7 +35,7 @@ export default function DashboardFilterPanel({
         <FilterRow label={t("filter.dateRange")}>
           <DateRangePicker from={dateRange.from} to={dateRange.to} onChange={onDateRangeChange} />
         </FilterRow>
-        {groupOptions.length > 1 && (
+        {showGroup && (
           <FilterRow label={t("filter.group")}>
             <SegmentGroup options={groupOptions} value={group} onChange={onGroupChange} allowDeselect={allowNoGroup} />
           </FilterRow>

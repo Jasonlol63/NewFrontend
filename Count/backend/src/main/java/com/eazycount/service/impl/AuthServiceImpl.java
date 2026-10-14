@@ -48,12 +48,15 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
@@ -676,38 +679,56 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private boolean userCanAccessTenantId(SessionUser user, int tenantId) {
+        return userCanAccessTenantIds(user, List.of(tenantId));
+    }
+
+    @Override
+    public void requireAccessibleTenants(Collection<Integer> tenantIds) {
+        SessionUser user = AccessControlUtils.requireLoggedIn();
+        if (!userCanAccessTenantIds(user, tenantIds)) {
+            throw new BusinessException("No permission to access this Group/Company");
+        }
+    }
+
+    // True only when every id is a non-expired tenant the user may open.
+    private boolean userCanAccessTenantIds(SessionUser user, Collection<Integer> tenantIds) {
         if (user == null) {
             return false;
         }
+        final LocalDate today = LocalDate.now();
         if (AccessControlUtils.isItOperator(user.role)) {
             // IT has no per-tenant assignment row to check against (it is a separate track from
             // the admin/user permission system) — any active, non-expired tenant is in scope.
-            Tenant tenant = tenantDao.findTenantById(tenantId);
-            if (tenant == null) {
-                return false;
+            for (Integer tenantId : tenantIds) {
+                Tenant tenant = tenantId == null ? null : tenantDao.findTenantById(tenantId);
+                if (tenant == null
+                        || (tenant.getExpirationDate() != null && tenant.getExpirationDate().isBefore(today))) {
+                    return false;
+                }
             }
-            return tenant.getExpirationDate() == null || !tenant.getExpirationDate().isBefore(LocalDate.now());
+            return true;
         }
         if (user.user_id == null) {
             return false;
         }
         final String userType = String.valueOf(user.user_type).trim().toLowerCase();
         final List<TenantDTO> rows = findAllTenantsByUserType(userType, user.user_id);
-        final LocalDate today = LocalDate.now();
+        final Set<Integer> allowed = new HashSet<>();
         for (TenantDTO row : rows) {
             if (row == null || row.getTenant() == null || row.getTenant().getId() == null) {
                 continue;
             }
-            if (row.getTenant().getId() != tenantId) {
-                continue;
+            Tenant tenant = row.getTenant();
+            if (tenant.getExpirationDate() == null || !tenant.getExpirationDate().isBefore(today)) {
+                allowed.add(tenant.getId());
             }
-            if (row.getTenant().getExpirationDate() != null
-                    && row.getTenant().getExpirationDate().isBefore(today)) {
+        }
+        for (Integer tenantId : tenantIds) {
+            if (tenantId == null || !allowed.contains(tenantId)) {
                 return false;
             }
-            return true;
         }
-        return false;
+        return true;
     }
 
     private SessionUser rebuildSessionUserWithTenant(SessionUser current, Tenant tenant, List<FeatureModule> featureModules) {
