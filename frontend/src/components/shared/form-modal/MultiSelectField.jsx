@@ -11,6 +11,8 @@ import { inputClass, openFieldClass, primaryButtonClass } from "./fields.jsx";
  * the right. The chips stay on one line: the ones that don't fit collapse into a "+N" chip (its
  * tooltip lists them), so the field never grows however many are picked.
  * Clicking opens a popup with search, Select all / Clear, the tickable list and Done.
+ * `wrap`: every picked value stays a chip and the chips go onto more lines (the field grows, up to about three lines, then
+ * scrolls) instead of collapsing into "+N".
  * items: [{ value, label, hint?, tag? }]; selected: Set; onChange(nextSet).
  */
 const chipClass =
@@ -18,7 +20,7 @@ const chipClass =
 const moreChipClass =
   "inline-flex h-[26px] flex-none items-center rounded-[7px] border border-[#bfd8ff] bg-white px-2.5 fm-btn-sm text-[#1d4ed8] modal-compact:h-[22px] modal-tiny:h-5";
 
-export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder, className }) {
+export default function MultiSelectField({ items, selected, onChange, placeholder = "Choose", searchPlaceholder, className, wrap = false }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -33,7 +35,7 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
   useEffect(() => {
     const field = fieldRef.current;
     const copy = measureRef.current;
-    if (!field || !copy) return undefined;
+    if (wrap || !field || !copy) return undefined;
     const measure = () => {
       const chips = [...copy.querySelectorAll("[data-chip]")];
       const moreWidth = copy.querySelector("[data-more]")?.offsetWidth ?? 40;
@@ -53,8 +55,8 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
     observer.observe(field);
     observer.observe(copy);
     return () => observer.disconnect();
-  }, []);
-  const shownChips = fits === null ? picked : picked.slice(0, fits);
+  }, [wrap]);
+  const shownChips = wrap || fits === null ? picked : picked.slice(0, fits);
   const hiddenChips = picked.slice(shownChips.length);
 
   const handleOpenChange = (next) => {
@@ -83,7 +85,8 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
           }}
           className={cn(
             inputClass,
-            "relative flex h-auto min-h-9 cursor-pointer flex-nowrap items-center gap-1 overflow-hidden py-[3px] pl-[5px] pr-16 hover:border-[#93c5fd]",
+            "relative flex h-auto min-h-9 cursor-pointer gap-1 py-[3px] pl-[5px] pr-16 hover:border-[#93c5fd]",
+            wrap ? "max-h-[96px] flex-wrap items-center overflow-y-auto [scrollbar-width:thin]" : "flex-nowrap items-center overflow-hidden",
             "@min-[900px]/main:@max-[1099px]/main:min-h-8 modal-compact:min-h-[30px] modal-tiny:min-h-7",
             open && openFieldClass,
             className
@@ -115,6 +118,7 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
             </span>
           )}
           {/* Invisible copy of every chip (+ the "+N" chip), only there to measure how many fit. */}
+          {!wrap && (
           <span ref={measureRef} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex gap-1 whitespace-nowrap">
             {picked.map((it) => (
               <span key={it.value} data-chip className={chipClass}>
@@ -126,7 +130,8 @@ export default function MultiSelectField({ items, selected, onChange, placeholde
               +{picked.length}
             </span>
           </span>
-          <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5 fm-opt font-semibold! text-[#8a96a8]">
+          )}
+          <span className={cn("absolute right-2.5 flex items-center gap-1.5 fm-opt font-semibold! text-[#8a96a8]", wrap ? "top-2.5" : "top-1/2 -translate-y-1/2")}>
             {selected.size}/{items.length}
             <ChevronDown className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180 text-[#3b82f6]")} strokeWidth={2.4} />
           </span>

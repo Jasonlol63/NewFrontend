@@ -266,7 +266,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
           </button>
         </div>
         <PrimaryButton
-          className="h-[30px]! min-w-[104px] justify-center rounded-lg! py-0!"
+          className="h-[30px]! min-w-[104px] justify-center rounded-lg! py-0! type-table-cell font-semibold!"
           disabled={readOnly || !confirm || !valid || busy}
           title={readOnly ? t("readOnly") : undefined}
           onClick={submit}
@@ -277,7 +277,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
           type="button"
           disabled
           title={t("form.comingSoon")}
-          className="inline-flex h-[30px] min-w-[104px] cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-[rgba(13,96,255,0.45)] bg-white px-[18px] type-body font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors hover:border-[#0d60ff] hover:bg-[#eef5ff]"
+          className="inline-flex h-[30px] min-w-[104px] cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-[rgba(13,96,255,0.45)] bg-white px-[18px] type-table-cell font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors hover:border-[#0d60ff] hover:bg-[#eef5ff]"
         >
           <Search className="size-[15px]" strokeWidth={2.4} />
           {t("form.search")}

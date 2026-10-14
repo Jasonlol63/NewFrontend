@@ -93,8 +93,8 @@ export default function ReportBlocks({ blocks, currencies, showName, shut, onTog
             </div>
             <div className="mt-(--gap) flex justify-center">
               <div className="w-[min(clamp(260px,19.8vw,380px),100%)] overflow-hidden rounded-lg">
-                <div className="flex h-[clamp(30px,2.1vw,40px)] items-center justify-center bg-brand-head px-4 type-body font-semibold! text-white">{t("table.total")}</div>
-                <table className="w-full border-collapse type-body">
+                <div className="flex h-[clamp(30px,2.1vw,40px)] items-center justify-center bg-brand-head px-4 type-table-head text-white">{t("table.total")}</div>
+                <table className="w-full border-collapse type-table-cell">
                   <tbody>
                     {["bf", "winLoss", "crDr", "balance"].map((key, i) => (
                       <tr key={key} className={rowTone(i)}>
