@@ -422,7 +422,7 @@ export default function DataTable({
   const winEnd = virtual ? Math.min(win.end, rows.length) : rows.length;
   const shown = useMemo(() => (virtual ? rows.slice(winStart, winEnd) : rows), [virtual, rows, winStart, winEnd]);
   useFitColumns(fitWidth, scrollRef, shown, layout.alt, layout.onFit);
-  const frozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}`, rows.length > 0);
+  const frozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0);
   useRowSweep(cards, scrollRef, rows);
   const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth);
   const selectable = rows.filter(canSelect);

@@ -13,6 +13,7 @@ import { postJson } from "@/lib/api";
 import CurrencyFilterRow from "../shared/CurrencyFilterRow.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useCurrencyFilters } from "../shared/useCurrencyFilters";
+import { syncGroupSelection } from "../shared/groupSelection.js";
 import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
 import {
   BANK_PROCESS_DELETE_URL,
@@ -77,8 +78,13 @@ export default function BankProcessMaintenancePage() {
     noun: "bank process",
     push,
     label: (r) => `${r.account} ${r.amount}`,
+    // One posting (Buy / Sell / Profit / Profit Sharing) is always deleted as a whole.
+    note: (picked) => (picked.some((r) => r.groupId) ? t("linked.note") : undefined),
     onDeleted: clearSelection,
   });
+
+  // Ticking a row ticks the rest of its posting (the loaded part of it), unticking clears them.
+  const onSelectedChange = (next) => setSelected((prev) => syncGroupSelection(prev, next, rows, canSelect));
 
   useErrorToasts(push, [
     [filters.scope.error, t("errors.scope")],
@@ -108,7 +114,7 @@ export default function BankProcessMaintenancePage() {
         scrollResetKey={request}
         rowHeight={26}
         selected={selected}
-        onSelectedChange={setSelected}
+        onSelectedChange={onSelectedChange}
         canSelect={canSelect}
         lockedSelect={(r) => r.deleted}
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}

@@ -21,7 +21,7 @@ function BalanceTable({ currencies, rows }) {
   const { t } = useTranslation("member");
   return (
     <div className="max-w-full overflow-x-auto rounded-lg border border-dash-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
-      <table className="border-collapse type-table-cell">
+      <table className="w-full border-collapse type-table-cell">
         <thead>
           <tr>
             <th className="bg-brand-head px-3 py-[3px] text-left font-semibold text-white">{t("balance.currency")}</th>

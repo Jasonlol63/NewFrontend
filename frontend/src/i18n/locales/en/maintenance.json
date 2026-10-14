@@ -57,8 +57,8 @@
     "list": "Couldn't load the records",
     "accounts": "Couldn't load the accounts"
   },
-  "payment": {
-    "rateNote": "A RATE is deleted together with all its entries: both currencies, the Middle-Man and the fees."
+  "linked": {
+    "note": "This record is deleted together with the records linked to it (same entry), including any the list is not showing."
   },
   "formula": {
     "edit": "Edit Formula",

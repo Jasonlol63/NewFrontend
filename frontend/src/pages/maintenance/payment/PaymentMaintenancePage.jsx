@@ -15,6 +15,7 @@ import { Field } from "@/pages/report/shared/ReportFilterCard.jsx";
 import CurrencyFilterRow from "../shared/CurrencyFilterRow.jsx";
 import MaintenanceFilterCard from "../shared/MaintenanceFilterCard.jsx";
 import { useCurrencyFilters } from "../shared/useCurrencyFilters";
+import { syncGroupSelection } from "../shared/groupSelection.js";
 import { useInfiniteMaintenanceList } from "../shared/useInfiniteMaintenanceList";
 import {
   PAYMENT_DELETE_URL,
@@ -83,10 +84,14 @@ export default function PaymentMaintenancePage() {
     noun: "payment",
     push,
     label: (r) => `${r.toAccount} ${r.amount}`,
-    // The API deletes a whole RATE (both currencies, the Middle-Man and the fees) even when only one of its rows is picked.
-    note: (list) => (list.some((r) => r.type === "RATE") ? t("payment.rateNote") : undefined),
+    // The API deletes the whole group (a Rate's two currencies + Middle-Man + fees, or a Domain charge's fee + commissions)
+    // even when only one of its rows is picked; rows hidden by the filters go with it, so say so.
+    note: (list) => (list.some((r) => r.groupId) ? t("linked.note") : undefined),
     onDeleted: clearSelection,
   });
+
+  // Ticking a row ticks the rest of its group (the loaded part of it), unticking clears them.
+  const onSelectedChange = (next) => setSelected((prev) => syncGroupSelection(prev, next, rows, canSelect));
 
   useErrorToasts(push, [
     [filters.scope.error, t("errors.scope")],
@@ -129,7 +134,7 @@ export default function PaymentMaintenancePage() {
         scrollResetKey={request}
         rowHeight={26}
         selected={selected}
-        onSelectedChange={setSelected}
+        onSelectedChange={onSelectedChange}
         canSelect={canSelect}
         lockedSelect={(r) => r.deleted}
         rowClassName={(r) => r.deleted && "[&>td]:text-dash-down [&>td]:line-through"}

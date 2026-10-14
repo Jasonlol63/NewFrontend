@@ -18,6 +18,7 @@ export function normalizeBankProcessRow(raw) {
     id: `${deleted ? "d" : "l"}${raw.id}`,
     transactionId: raw.id,
     deleted,
+    groupId: text(raw.groupId),
     createdAt: raw.createdAt ?? "",
     account: text(raw.toAccountCode),
     from: text(raw.fromAccountCode),
