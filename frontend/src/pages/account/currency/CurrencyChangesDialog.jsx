@@ -119,7 +119,7 @@ export default function CurrencyChangesDialog({ changes, accountsById, saving = 
                     type="button"
                     onClick={() => pick(c)}
                     className={cn(
-                      "flex h-[38px] w-full flex-none cursor-pointer items-center gap-2 rounded-[10px] border px-2.5 text-left fm-btn text-brand-navy max-[640px]:w-auto max-[640px]:min-w-[92px]",
+                      "flex h-[38px] w-full flex-none cursor-pointer items-center gap-2 rounded-[10px] border px-2.5 text-left fm-btn-sm text-brand-navy max-[640px]:w-auto max-[640px]:min-w-[92px]",
                       on ? "border-[#7fb2ff] bg-row-stripe" : "border-transparent bg-transparent hover:bg-[#f1f6fd]",
                       empty && "opacity-45"
                     )}

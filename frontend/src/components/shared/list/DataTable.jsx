@@ -311,7 +311,7 @@ function useFrozenColumns(enabled, ref, key, ready) {
     // Natural widths (as narrow as the content allows) ...
     const before = table.style.width;
     table.style.width = "max-content";
-    const natural = heads.map((h) => h.getBoundingClientRect().width);
+    const natural = heads.map((h) => Math.ceil(h.getBoundingClientRect().width) + 1);
     table.style.width = before;
     // ... then the room that is left is shared by every column in proportion to its natural width, exactly as the
     // browser's own layout does while the list is empty — except columns with an explicit width class (No., the select
@@ -326,6 +326,96 @@ function useFrozenColumns(enabled, ref, key, ready) {
     }
     setWidths(out);
   });
+  return enabled ? widths : null;
+}
+
+// A few rows that stand for the whole list when the columns are measured: per column the two longest values and every
+// different value (up to 8, so each role / status badge is in it), plus the rows with the most text overall. So the widths
+// come from the whole list, not from the page that happens to be shown.
+function measureSample(rows, cols) {
+  if (!rows?.length) return [];
+  const size = (v) => (v == null ? 0 : Array.isArray(v) ? v.length * 4 : typeof v === "object" ? 0 : String(v).length);
+  const picked = new Set();
+  for (const col of cols) {
+    [...rows].sort((a, b) => size(b[col.key]) - size(a[col.key])).slice(0, 2).forEach((r) => picked.add(r));
+    const seen = new Set();
+    for (const r of rows) {
+      const v = r[col.key];
+      if (typeof v === "object" && v !== null) continue;
+      const k = String(v);
+      if (seen.has(k) || seen.size >= 8) continue;
+      seen.add(k);
+      picked.add(r);
+    }
+  }
+  const total = (r) => Object.values(r).reduce((sum, v) => sum + size(v), 0);
+  [...rows].sort((a, b) => total(b) - total(a)).slice(0, 12).forEach((r) => picked.add(r));
+  return [...picked];
+}
+
+// Paged lists: the column widths come from the whole list (see measureSample), not from the rows of the page, and stay the
+// same while paging, so the header never moves. The natural widths are read from a hidden copy of the table; the card's spare
+// room goes to the `fit` (text) columns only, and when the card is too narrow only those give up the difference (longest
+// first, never below their header), their text then ends in "..." with the full text in the hover card.
+function useStableColumns(enabled, ref, measureRef, key, ready) {
+  const [widths, setWidths] = useState(null);
+  const compute = useCallback(() => {
+    const body = ref.current;
+    const table = measureRef.current;
+    if (!body || !table) return;
+    const heads = [...table.querySelectorAll("thead th")];
+    if (!heads.length) return;
+    const natural = heads.map((h) => h.getBoundingClientRect().width);
+    const fit = heads.map((h) => h.dataset.fit === "1");
+    const labels = heads.map((h) => (h.querySelector("[data-head]")?.getBoundingClientRect().width ?? 0) + 20);
+    const room = body.clientWidth;
+    const sum = natural.reduce((a, b) => a + b, 0);
+    let out = natural.slice();
+    const targets = fit.some(Boolean) ? fit : fit.map(() => true);
+    if (sum < room) {
+      const open = natural.map((_, i) => !heads[i].dataset.fixed);
+      const weight = natural.map((w, i) => (open[i] ? w * (fit[i] ? 1.5 : 1) : 0));
+      const total = weight.reduce((acc, w) => acc + w, 0) || 1;
+      out = natural.map((w, i) => w + ((room - sum) * weight[i]) / total);
+    } else if (sum > room) {
+      const mins = natural.map((w, i) => Math.min(w, Math.max(FIT_MIN, labels[i])));
+      const give = (level) => natural.reduce((acc, w, i) => (fit[i] ? acc + Math.max(0, w - Math.max(mins[i], level)) : acc), 0);
+      const take = Math.min(sum - room, give(0));
+      let low = 0;
+      let high = Math.max(...natural);
+      for (let i = 0; i < 24; i++) {
+        const mid = (low + high) / 2;
+        if (give(mid) > take) low = mid;
+        else high = mid;
+      }
+      out = natural.map((w, i) => (fit[i] ? Math.min(w, Math.max(mins[i], high)) : w));
+    }
+    const whole = out.map((w) => Math.ceil(w));
+    let over = whole.reduce((acc, w) => acc + w, 0) - room;
+    // A pixel too many (rounding up) is taken from the widest text column, never from a column that needs it.
+    const widest = whole.map((w, i) => (fit[i] ? i : -1)).filter((i) => i >= 0).sort((x, y) => whole[y] - whole[x])[0];
+    if (over > 0 && widest !== undefined) whole[widest] -= Math.min(over, whole[widest] - 40), (over = 0);
+    setWidths(whole);
+  }, [ref, measureRef]);
+  useLayoutEffect(() => {
+    setWidths(null);
+  }, [key]);
+  useLayoutEffect(() => {
+    if (enabled && ready && !widths) compute();
+  });
+  useEffect(() => {
+    const body = ref.current;
+    if (!enabled || !body) return undefined;
+    let last = body.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (Math.abs(body.clientWidth - last) < 1) return;
+      last = body.clientWidth;
+      setWidths(null);
+    });
+    observer.observe(body);
+    document.fonts?.ready.then(() => setWidths(null));
+    return () => observer.disconnect();
+  }, [enabled, ref]);
   return enabled ? widths : null;
 }
 
@@ -392,6 +482,8 @@ export default function DataTable({
   variant = "table",
   boxedPager = false,
   virtual = false,
+  stableColumns = false,
+  measureRows,
   hasMore = false,
   loadingMore = false,
   onLoadMore,
@@ -421,15 +513,22 @@ export default function DataTable({
   const winStart = virtual ? Math.min(win.start, Math.max(0, rows.length - 1)) : 0;
   const winEnd = virtual ? Math.min(win.end, rows.length) : rows.length;
   const shown = useMemo(() => (virtual ? rows.slice(winStart, winEnd) : rows), [virtual, rows, winStart, winEnd]);
-  useFitColumns(fitWidth, scrollRef, shown, layout.alt, layout.onFit);
-  const frozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0);
+  const stable = stableColumns && !virtual && !altColumns && !cards && Boolean(measureRows);
+  useFitColumns(fitWidth && !stable, scrollRef, shown, layout.alt, layout.onFit);
+  const measureRef = useRef(null);
+  const sample = useMemo(() => (stable ? measureSample(measureRows, cols) : []), [stable, measureRows, cols]);
+  const stableKey = `${cols.map((c) => c.key).join("|")}|${selectColumn}|${measureRows?.length}|${sample.map((r) => r.id).join(",")}`;
+  const stableWidths = useStableColumns(stable, scrollRef, measureRef, stableKey, rows.length > 0);
+  const virtualFrozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0);
+  const frozen = virtualFrozen ?? stableWidths;
   useRowSweep(cards, scrollRef, rows);
-  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth);
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth || stable);
   const selectable = rows.filter(canSelect);
   const selectedCount = selectable.filter((r) => selected.has(r.id)).length;
   const headChecked = selectedCount === 0 ? false : selectedCount === selectable.length ? true : "mixed";
   // The delete-selection column only shows when this page has rows that can be deleted (inactive).
-  const showSelect = selectColumn && selectable.length > 0;
+  // Stable columns: decided by the whole list, so the column does not come and go while paging.
+  const showSelect = selectColumn && (stable ? measureRows.some(canSelect) : selectable.length > 0);
   // Without it, the last data column takes over the right-edge padding.
   const edge = (c) => !showSelect && c === cols.length - 1 && (dense ? "pr-3" : "pr-4");
 
@@ -471,6 +570,42 @@ export default function DataTable({
           cards ? "overflow-hidden" : "overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_100%)]"
         )}
       >
+        {stable && (
+          // A hidden copy with the sample rows: its automatic layout gives each column the width the whole list needs.
+          <div aria-hidden inert className="pointer-events-none invisible absolute top-0 left-0 -z-10 h-0 w-0 overflow-hidden">
+            <table
+              ref={measureRef}
+              style={{ width: "max-content" }}
+              className={cn("border-separate border-spacing-0", dense ? "type-table-cell font-medium!" : "type-table-cell")}
+            >
+              <thead>
+                <tr className={cn("text-left", dense ? "type-table-cell font-semibold! min-[1600px]:type-table-head" : "type-table-head")}>
+                  {cols.map((col, i) => (
+                    <th key={col.key} data-fit={col.fit ? "1" : "0"} data-fixed={/w-\[[\d.]+px\]/.test(col.className ?? "") ? "1" : undefined} className={cn("py-2.5 whitespace-nowrap", pad, i === 0 && "pl-4", edge(i), col.className)}>
+                      <span data-head={col.key} className={cn("inline-flex items-center", dense && "relative")}>
+                        {col.label}
+                        {col.sortable !== false && <SortIcon active={false} dir={1} overlay={dense} />}
+                      </span>
+                    </th>
+                  ))}
+                  {showSelect && <th data-fit="0" data-fixed="1" className="w-[44px] py-2.5 pr-4" />}
+                </tr>
+              </thead>
+              <tbody>
+                {sample.map((row, k) => (
+                  <tr key={rowKey(row)}>
+                    {cols.map((col, c) => (
+                      <td key={col.key} className={cn(td, pad, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
+                        <span className="whitespace-nowrap">{col.render(row, offset + k + 1)}</span>
+                      </td>
+                    ))}
+                    {showSelect && <td className="pr-4" />}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         <table
           className={cn(
             "w-full border-separate",
@@ -478,7 +613,8 @@ export default function DataTable({
             // Cards: 8px between rows (and under the header); -mt-2 drops the gap above the header.
             cards ? "-mt-2 border-spacing-x-0 border-spacing-y-2" : "border-spacing-0",
             fitWidth && !dense && "max-[1100px]:text-[13px]",
-            frozen && "[&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap",
+            frozen && !stable && "[&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap",
+            stable && "[&_td]:whitespace-nowrap",
             minWidth
           )}
           style={frozen ? { tableLayout: "fixed" } : undefined}
@@ -514,7 +650,7 @@ export default function DataTable({
                       sortable && "cursor-pointer select-none"
                     )}
                   >
-                    <span data-head={fitWidth && col.fit ? col.key : undefined} className={cn(virtual && col.key === "no" && total > 0 ? "inline-grid" : "inline-flex items-center", dense && "relative")}>
+                    <span data-head={(fitWidth || stable) && col.fit ? col.key : undefined} className={cn(virtual && col.key === "no" && total > 0 ? "inline-grid" : "inline-flex items-center", dense && "relative")}>
                       {col.label}
                       {virtual && col.key === "no" && total > 0 && (
                         // Invisible: as wide as the longest row number, so the frozen column never cuts a number to "11…".
@@ -573,8 +709,8 @@ export default function DataTable({
                     )}
                   >
                     {cols.map((col, c) => (
-                      <td key={col.key} className={cn(cell, pad, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
-                        {fitWidth && col.fit ? (
+                      <td key={col.key} data-fit={stable && col.fit ? col.key : undefined} className={cn(cell, pad, c === 0 && "pl-4", edge(c), stable && col.fit && "overflow-hidden text-ellipsis", col.className, col.cellClassName)}>
+                        {fitWidth && col.fit && !stable ? (
                           <span data-fit={col.key} data-fit-max={col.fitMax} data-fit-min={col.fitMin} className="block overflow-hidden text-ellipsis whitespace-nowrap">
                             {col.render(row, offset + i + 1)}
                           </span>

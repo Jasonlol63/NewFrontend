@@ -302,7 +302,7 @@ function CurrencyCard({ currencies, picked, setPicked, onCreate, onDelete }) {
               aria-pressed={on}
               title={removable ? t("form.deleteCode", { code: c.code }) : undefined}
               className={cn(
-                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 fm-btn transition-colors modal-compact:h-9 modal-tiny:h-8",
+                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-8 fm-btn-sm transition-colors modal-compact:h-9 modal-tiny:h-8",
                 // Below 1440 the tiles are plain (no tick circle): selected = blue, about 5 per row.
                 "@max-[1209px]/main:h-[34px] @max-[1209px]/main:justify-center @max-[1209px]/main:px-1 @max-[1209px]/main:modal-compact:h-8 @max-[1209px]/main:modal-tiny:h-[30px]",
                 "disabled:cursor-not-allowed disabled:opacity-45",

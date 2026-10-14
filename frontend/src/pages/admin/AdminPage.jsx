@@ -59,9 +59,9 @@ export default function AdminPage() {
 
   const columns = [
     { key: "no", label: t("col.no"), sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "loginId", label: t("col.loginId"), cellClassName: "font-semibold whitespace-nowrap", render: (u) => u.loginId },
-    { key: "name", label: t("col.name"), cellClassName: "whitespace-nowrap", render: (u) => u.name },
-    { key: "email", label: t("col.email"), cellClassName: "text-[#374151]", render: (u) => u.email },
+    { key: "loginId", label: t("col.loginId"), fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (u) => u.loginId },
+    { key: "name", label: t("col.name"), fit: true, cellClassName: "whitespace-nowrap", render: (u) => u.name },
+    { key: "email", label: t("col.email"), fit: true, cellClassName: "text-[#374151]", render: (u) => u.email },
     {
       key: "role",
       label: t("col.role"),
@@ -81,8 +81,8 @@ export default function AdminPage() {
       ),
     },
     { key: "lastLogin", label: t("col.lastLogin"), render: (u) => <DateText value={u.lastLogin} variant="gradient" /> },
-    { key: "lastLogout", label: t("col.lastLogout"), cellClassName: "text-[#374151]", render: (u) => <DateText value={u.lastLogout} variant="gradient" /> },
-    { key: "createdBy", label: t("col.createdBy"), cellClassName: "whitespace-nowrap", render: (u) => u.createdBy || "-" },
+    { key: "lastLogout", label: t("col.lastLogout"), render: (u) => <DateText value={u.lastLogout} variant="gradient" /> },
+    { key: "createdBy", label: t("col.createdBy"), fit: true, cellClassName: "whitespace-nowrap", render: (u) => u.createdBy || "-" },
     {
       key: "action",
       label: t("col.action"),
@@ -139,6 +139,9 @@ export default function AdminPage() {
         noun="users"
         loading={loading}
         boxedPager
+        stableColumns
+        measureRows={view.table.allRows}
+        minWidth="min-w-0"
         {...view.table}
       />
 

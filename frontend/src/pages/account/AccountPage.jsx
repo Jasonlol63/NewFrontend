@@ -135,8 +135,8 @@ export default function AccountPage() {
 
   const columns = [
     { key: "no", label: t("col.no"), sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "accountId", label: t("col.accountId"), cellClassName: "font-semibold whitespace-nowrap", render: (a) => a.accountId },
-    { key: "name", label: t("col.name"), cellClassName: "whitespace-nowrap", render: (a) => a.name },
+    { key: "accountId", label: t("col.accountId"), fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (a) => a.accountId },
+    { key: "name", label: t("col.name"), fit: true, cellClassName: "whitespace-nowrap", render: (a) => a.name },
     { key: "role", label: t("col.role"), render: (a) => <Badge className={ROLE_BADGE[a.role] ?? ROLE_BADGE_NONE}>{t(`role.${a.role}`, { defaultValue: a.role })}</Badge> },
     {
       key: "alert",
@@ -158,9 +158,10 @@ export default function AccountPage() {
       ),
     },
     { key: "lastLogin", label: t("col.lastLogin"), render: (a) => <DateText value={a.lastLogin} variant="gradient" /> },
-    { key: "lastLogout", label: t("col.lastLogout"), cellClassName: "text-[#374151]", render: (a) => <DateText value={a.lastLogout} variant="gradient" /> },
+    { key: "lastLogout", label: t("col.lastLogout"), render: (a) => <DateText value={a.lastLogout} variant="gradient" /> },
     {
       key: "remark",
+      fit: true,
       label: t("col.remark"),
       cellClassName: "max-w-[220px] truncate text-[#374151]",
       render: (a) => <span title={a.remark || undefined}>{a.remark || "-"}</span>,
@@ -228,7 +229,7 @@ export default function AccountPage() {
         scope={scope}
       />
 
-      <DataTable columns={columns} noun="accounts" loading={loading} boxedPager {...view.table} />
+      <DataTable columns={columns} noun="accounts" loading={loading} boxedPager stableColumns measureRows={view.table.allRows} minWidth="min-w-0" {...view.table} />
 
       {actions.dialogs}
 

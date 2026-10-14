@@ -534,12 +534,18 @@ body {
   --fm-empty: 13;
   --fm-amount: 28;
 }
+/* Field labels read one step smaller on laptop screens (up to 900px tall). */
+@media (max-height: 900px) {
+  :root {
+    --fm-label: 13;
+  }
+}
 @media (max-height: 760px) {
   :root {
     --fm-title: 22;
     --fm-title-max: 1.2;
     --fm-section: 17;
-    --fm-label: 13.5;
+    --fm-label: 13;
     --fm-opt: 11.5;
     --fm-help: 12;
     --fm-input: 13.5;
@@ -554,7 +560,7 @@ body {
   :root {
     --fm-title: 20;
     --fm-section: 16;
-    --fm-label: 13;
+    --fm-label: 12.5;
     --fm-opt: 11;
     --fm-help: 11.5;
     --fm-input: 13;

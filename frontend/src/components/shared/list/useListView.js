@@ -84,6 +84,7 @@ export function useListView(rows, { filter, sort: sortRowsBy, canSelect, rowGap 
       rows: pageRows,
       offset,
       total: visible.length,
+      allRows: visible,
       paged,
       // Paged rows stretch to fill the body; "Show All" scrolls at the plain height.
       rowHeight: paged ? rowHeight : rowMin,

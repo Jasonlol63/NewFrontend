@@ -18,22 +18,21 @@ import ProcessFormModal from "./games/ProcessFormModal.jsx";
 import { DAYS, filterProcesses, sortProcesses } from "./games/processRules";
 import { useProcessList } from "./games/useProcessList";
 
-// The seven weekdays, the ones the process runs on lit blue. Slightly smaller on narrow screens.
+// Only the weekdays the process runs on, each as a three-letter chip (MON, TUE ...; 周一 in Chinese) at every screen size.
 function DayUse({ days }) {
   const { t } = useTranslation("process");
   const on = new Set(days);
+  const list = DAYS.filter(({ day }) => on.has(day));
+  if (!list.length) return <span className="text-dash-faint">-</span>;
   return (
-    <span className="flex gap-[3px] max-[1100px]:gap-0.5">
-      {DAYS.map(({ day }) => (
+    <span className="flex gap-[3px]">
+      {list.map(({ day }) => (
         <span
           key={day}
           title={t(`days.${day}.full`)}
-          className={cn(
-            "inline-flex h-[22px] min-w-[27px] items-center justify-center rounded-[5px] border type-caption font-semibold! max-[1100px]:min-w-[23px]",
-            on.has(day) ? "border-[#bcd9fb] bg-[#e0edff] text-[#1d4ed8]" : "border-transparent bg-[#eef2f7] text-[#9ca3af]"
-          )}
+          className="inline-flex h-[20px] items-center justify-center rounded-[5px] border border-[#bcd9fb] bg-[#e0edff] px-1.5 type-caption font-semibold! text-[#1d4ed8]"
         >
-          {t(`days.${day}.short`)}
+          {t(`days.${day}.abbr`).toUpperCase()}
         </span>
       ))}
     </span>
@@ -99,7 +98,7 @@ export default function ProcessPage() {
 
   const columns = [
     { key: "no", label: t("col.no"), sortable: false, className: "w-[56px]", cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
-    { key: "code", label: t("col.code"), cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.code },
+    { key: "code", label: t("col.code"), fit: true, cellClassName: "whitespace-nowrap font-semibold", render: (p) => p.code },
     { key: "description", label: t("col.description"), fit: true, render: (p) => p.description || "-" },
     {
       key: "status",
@@ -160,7 +159,7 @@ export default function ProcessPage() {
         scope={scope}
       />
 
-      <DataTable columns={columns} noun="processes" loading={loading} boxedPager fitWidth minWidth="min-w-[640px]" {...view.table} />
+      <DataTable columns={columns} noun="processes" loading={loading} boxedPager fitWidth stableColumns measureRows={view.table.allRows} minWidth="min-w-0" {...view.table} />
 
       {actions.dialogs}
 

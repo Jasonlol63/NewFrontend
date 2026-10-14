@@ -19,7 +19,7 @@ const COLS = [
   ["remark", "text-left", "w-[15%]"],
 ];
 const TH =
-  "h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] type-caption font-semibold! whitespace-nowrap text-white first:rounded-tl-lg last:rounded-tr-lg last:border-r-0";
+  "h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] type-table-head whitespace-nowrap text-white first:rounded-tl-lg last:rounded-tr-lg last:border-r-0";
 const TD = "h-[26px] overflow-hidden border-b border-[rgba(130,155,195,0.2)] px-[clamp(6px,0.42vw,8px)] text-ellipsis whitespace-nowrap font-semibold text-[#374151] tabular-nums";
 const TOTAL = "h-7 border-t border-[rgba(47,111,239,0.35)] bg-white/40 px-[clamp(6px,0.42vw,8px)] text-right font-semibold text-brand-navy tabular-nums";
 

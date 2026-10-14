@@ -8,6 +8,7 @@ import { useNotice } from "@/hooks/useNotice";
 import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx";
 import { CheckListTools } from "@/components/shared/form-modal/CheckList.jsx";
 import { filterItems } from "@/components/shared/form-modal/listSelection";
+import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 import { applyLinkOp, fetchAccountLinks } from "./linkAccountApi";
 import { diffLinks } from "./linkAccountRules";
 
@@ -97,7 +98,7 @@ export default function LinkAccountModal({ account, accounts, tenantId, onClose,
     () =>
       accounts
         .filter((a) => a.id !== account.id)
-        .map((a) => ({ value: a.id, label: a.accountId }))
+        .map((a) => ({ value: a.id, label: a.accountId, hint: String(a.name ?? "").toUpperCase() }))
         .sort((x, y) => (x.label < y.label ? -1 : x.label > y.label ? 1 : 0)),
     [accounts, account.id]
   );
@@ -322,6 +323,8 @@ function SelectedCard({ current, initial, labelOf, onFlip, onRemove, count }) {
 
 function AccountsCard({ items, total, current, mode, query, onQuery, onClick, onSelectAll, onClear, loading }) {
   const { t: tr } = useTranslation("account");
+  // A code or name that is cut off shows in full in a hover card (same card as the lists).
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
   return (
     <FormCard
       title={tr("link.accounts")}
@@ -350,9 +353,11 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
         className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2"
       />
       <div
+        {...cellTipHandlers}
+        onScroll={hideCellTip}
         className={cn(
-          "grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(124px,1fr))] content-start gap-2 overflow-y-auto px-3.5 pb-3.5 pt-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]",
-          "@max-[1209px]/main:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] modal-compact:gap-1.5 modal-compact:px-3 modal-compact:pb-2.5 modal-compact:pt-2",
+          "grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(132px,1fr))] content-start gap-2 overflow-y-auto px-3.5 pb-3.5 pt-3 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]",
+          "@max-[1209px]/main:grid-cols-[repeat(auto-fill,minmax(116px,1fr))] modal-compact:gap-1.5 modal-compact:px-3 modal-compact:pb-2.5 modal-compact:pt-2",
           stackBody
         )}
       >
@@ -367,11 +372,17 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
               aria-pressed={Boolean(type)}
               title={type === "in" ? tr("link.tileIn") : type ? tr(`link.${type}`) : tr("link.addAsType", { type: tr(`link.${mode}`) })}
               className={cn(
-                "relative flex h-10 cursor-pointer items-center rounded-[11px] border pl-3.5 pr-10 text-left fm-btn transition-colors modal-compact:h-9 modal-tiny:h-8",
+                "relative flex h-11 min-w-0 cursor-pointer flex-col justify-center gap-px rounded-[11px] border pl-3 text-left fm-btn-sm transition-colors modal-compact:h-10 modal-tiny:h-9",
+                t ? "pr-9" : "pr-3",
                 t ? t.tile : "border-modal-off-line bg-white/60 text-[#374151] hover:border-[#93c5fd]"
               )}
             >
-              <span className="truncate">{p.label}</span>
+              <span data-fit="code" className="block truncate leading-[1.25]">{p.label}</span>
+              {p.hint && (
+                <span data-fit="name" className="block truncate fm-help font-semibold! leading-[1.25] opacity-70">
+                  {p.hint}
+                </span>
+              )}
               {t && (
                 <span className={cn("absolute right-[9px] top-1/2 grid h-[18px] w-6 -translate-y-1/2 place-items-center rounded-md text-white", t.badge)}>
                   <t.Icon className="size-3.5" strokeWidth={3} />
@@ -383,6 +394,7 @@ function AccountsCard({ items, total, current, mode, query, onQuery, onClick, on
         {items.length === 0 && (
           <div className="col-span-full py-6 text-center fm-empty text-dash-faint">{loading ? tr("form.loading") : tr("link.noMatches")}</div>
         )}
+        {cellTip}
       </div>
     </FormCard>
   );

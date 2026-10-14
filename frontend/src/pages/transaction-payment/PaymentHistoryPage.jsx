@@ -28,7 +28,7 @@ const COLS = [
 ];
 
 const TH =
-  "sticky top-0 z-[2] h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] type-caption font-semibold! tracking-[0.2px] whitespace-nowrap text-white last:border-r-0";
+  "sticky top-0 z-[2] h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.55vw,10px)] type-table-head tracking-[0.2px] whitespace-nowrap text-white last:border-r-0";
 const TD =
   "h-[26px] overflow-hidden border-b border-[rgba(130,155,195,0.16)] px-[clamp(6px,0.55vw,10px)] text-ellipsis whitespace-nowrap tabular-nums";
 

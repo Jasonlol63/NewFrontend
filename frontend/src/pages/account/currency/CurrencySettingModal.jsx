@@ -293,10 +293,10 @@ export default function CurrencySettingModal({ tenantId, accounts, onClose, onSa
                     >
                       {state === "rm" && <Tag className="bg-[#fee2e2] text-[#b91c1c]">{t("setting.tagRemove")}</Tag>}
                       {state === "new" && <Tag className="bg-[#d1fae5] text-[#047857]">{t("setting.tagNew")}</Tag>}
-                      <b data-fit="id" className={cn("truncate type-table-cell font-semibold! text-[#374151]", state === "on" && "text-brand-navy", state === "new" && "text-[#065f46]", state === "rm" && "text-[#b91c1c] line-through decoration-[1.5px]")}>
+                      <b data-fit="id" className={cn("truncate fm-btn-sm text-[#374151]", state === "on" && "text-brand-navy", state === "new" && "text-[#065f46]", state === "rm" && "text-[#b91c1c] line-through decoration-[1.5px]")}>
                         {a.accountId}
                       </b>
-                      <span data-fit="name" data-tip={String(a.name ?? "").toUpperCase()} className={cn("truncate type-caption font-semibold! uppercase text-[#7b8794]", state === "on" && "text-[#4a6aa5]", state === "new" && "text-[#059669]", state === "rm" && "text-[#d57a7a]")}>{a.name}</span>
+                      <span data-fit="name" data-tip={String(a.name ?? "").toUpperCase()} className={cn("truncate fm-help font-semibold! uppercase text-[#7b8794]", state === "on" && "text-[#4a6aa5]", state === "new" && "text-[#059669]", state === "rm" && "text-[#d57a7a]")}>{a.name}</span>
                     </button>
                   );
                 })}
@@ -381,9 +381,9 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
             placeholder={t("setting.placeholder")}
             aria-label={t("form.newCurrencyCode")}
             autoComplete="off"
-            className="min-w-0 flex-1 uppercase type-body"
+            className="min-w-0 flex-1 uppercase fm-input"
           />
-          <button type="button" onClick={add} className={cn(primaryButtonClass, "h-9 flex-none px-3 type-table-cell font-semibold! modal-compact:h-[30px] modal-tiny:h-7")}>
+          <button type="button" onClick={add} className={cn(primaryButtonClass, "h-9 flex-none px-3 fm-btn-sm modal-compact:h-[30px] modal-tiny:h-7")}>
             <Plus className="size-3.5" strokeWidth={2.6} />
             {t("setting.add")}
           </button>
@@ -392,7 +392,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
             onClick={() => setDeleting((v) => !v)}
             aria-pressed={deleting}
             className={cn(
-              "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 type-table-cell font-semibold! modal-compact:h-[30px] modal-tiny:h-7",
+              "inline-flex h-9 flex-none cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 fm-btn-sm modal-compact:h-[30px] modal-tiny:h-7",
               deleting ? "border-[#dc2626] bg-[#dc2626] text-white" : "border-[#fecaca] bg-white/70 text-[#dc2626] hover:bg-white"
             )}
           >
@@ -428,7 +428,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
                 }
                 aria-pressed={deleting ? undefined : on}
                 className={cn(
-                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 type-table-cell font-semibold! transition-colors modal-compact:h-8 modal-tiny:h-[30px] disabled:cursor-not-allowed disabled:opacity-45",
+                  "relative flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border px-1.5 fm-btn-sm transition-colors modal-compact:h-8 modal-tiny:h-[30px] disabled:cursor-not-allowed disabled:opacity-45",
                   deleting
                     ? "border-[#fecaca] bg-white text-[#b91c1c] hover:border-[#f87171] hover:bg-[#fef2f2]"
                     : on
@@ -440,7 +440,7 @@ function CurrencyManager({ currencies, active, onPick, changed, counts, deletabl
                 {deleting ? (
                   <X className="size-3 text-[#ef4444]" strokeWidth={3.2} />
                 ) : (
-                  <span className="type-caption font-semibold! text-[#6b86b3]">{counts[c]?.size ?? 0}</span>
+                  <span className="fm-help font-semibold! text-[#6b86b3]">{counts[c]?.size ?? 0}</span>
                 )}
                 {!deleting && changed.has(c) && <i className="absolute -right-1 -top-1 size-[11px] rounded-full border-2 border-white bg-[#f59e0b] shadow-[0_1px_3px_rgba(180,83,9,0.4)]" />}
               </button>

@@ -12,7 +12,7 @@ const amountTone = (n) => (moneySign(n) > 0 ? "font-semibold text-[#1d4ed8]" : m
 const rowTone = (i) => cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover");
 
 const TH =
-  "h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] text-right type-caption font-semibold! whitespace-nowrap text-white first:rounded-tl-lg first:text-left last:rounded-tr-lg last:border-r-0";
+  "h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] text-right type-table-head whitespace-nowrap text-white first:rounded-tl-lg first:text-left last:rounded-tr-lg last:border-r-0";
 // A red row (Payment Alert) keeps its white bold text on hover too.
 const ALERT = "bg-[#dc2626] font-semibold text-white hover:bg-[#b91c1c]";
 const TD = "h-[26px] border-b border-[rgba(130,155,195,0.2)] px-[clamp(6px,0.42vw,8px)] text-right font-semibold text-[#374151] tabular-nums";
