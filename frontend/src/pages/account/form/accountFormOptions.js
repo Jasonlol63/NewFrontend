@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { addDays, parseIsoDate } from "@/lib/date";
 import { ROLE_PRIORITY } from "../accountRules";
 
@@ -50,7 +51,7 @@ function ordinal(n) {
 
 // The alert amount is a negative threshold: "5000" / "-5,000" both become -5000 (empty stays empty).
 export function normalizeAlertAmount(text) {
-  const n = Number(String(text).replace(/[,\s]/g, ""));
-  if (!String(text).trim() || Number.isNaN(n)) return "";
-  return (-Math.abs(n)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const raw = String(text).replace(/[,\s]/g, "");
+  if (!/^-?(\d+\.?\d*|\.\d+)$/.test(raw)) return "";
+  return formatMoney(`-${raw.replace("-", "")}`);
 }

@@ -49,7 +49,7 @@ export const formFromRow = (row) => ({
 // Source accepts a non-negative decimal; "", "." and "0." are fine while typing, so only the typed characters are checked.
 const SOURCE_TYPING = /^(?:\d+(?:\.\d*)?|\.\d*)?$/;
 export const sourceAfterTyping = (previous, next) => (SOURCE_TYPING.test(next) ? next : previous);
-export const isSourceValid = (source) => source.trim() !== "" && Number.isFinite(Number(source));
+export const isSourceValid = (source) => /\d/.test(source) && SOURCE_TYPING.test(source.trim());
 
 const formulaLetters = (value) => String(value ?? "").match(/[A-Za-z]/g) ?? [];
 

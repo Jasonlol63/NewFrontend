@@ -46,6 +46,8 @@ export const todayDisplay = () => {
 
 export const toNumber = (value) => parseFloat(String(value ?? "").replace(/,/g, ""));
 export const positive = (value) => toNumber(value) > 0;
+// A typed amount (e.g. "-5,000.5") that is a number and not 0, worked on the text.
+export const isNonZeroAmount = (value) => /^-?(\d+\.?\d*|\.\d+)$/.test(plain(value)) && moneySign(plain(value)) !== 0;
 
 // ---------------------------------------------------------------------------
 // Search
@@ -136,8 +138,6 @@ export function parseRate(raw) {
   return null;
 }
 
-export const trim8 = (n) => String(Math.round(n * 1e8) / 1e8);
-
 // Amount 2 follows Amount 1 x Rate; "/N" divides by N itself (not by a 1/N cut to 8 decimals, which loses digits).
 export const rateAmount2 = (amount1, rate) => {
   const parsed = parseRate(rate);
@@ -207,9 +207,8 @@ export function buildSubmitRequest({ tenantId, type, f, cur, t }) {
     };
   }
   if (type === "ADJUSTMENT") {
-    const amount = toNumber(f.aAmt);
     if (!f.aAcc) throw new Error(t("errors.selectAccount"));
-    if (!Number.isFinite(amount) || amount === 0) throw new Error(t("errors.nonZero"));
+    if (!isNonZeroAmount(f.aAmt)) throw new Error(t("errors.nonZero"));
     return { ...base, toAccountId: idOf(f.aAcc), currencyCode: cur.adj, amount: plain(f.aAmt), remark: f.aRemark.trim() || null };
   }
   if (!f.to || !f.from) throw new Error(t("errors.toFrom"));

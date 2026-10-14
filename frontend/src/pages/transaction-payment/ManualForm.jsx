@@ -18,6 +18,7 @@ import {
   parseRate,
   positive,
   rateAmount2,
+  isNonZeroAmount,
   toNumber,
   todayDisplay,
 } from "./transactionPaymentRules";
@@ -180,7 +181,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
     layout === "rate"
       ? picked.rTo1 && picked.rFrom1 && picked.rTo2 && picked.rFrom2 && positive(f.rAmt1) && parseRate(f.rRate)
       : layout === "adj"
-        ? picked.aAcc && Number.isFinite(toNumber(f.aAmt)) && toNumber(f.aAmt) !== 0
+        ? picked.aAcc && isNonZeroAmount(f.aAmt)
         : picked.to && picked.from && positive(f.amount);
 
   return (

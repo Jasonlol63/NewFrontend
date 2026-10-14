@@ -37,7 +37,7 @@ export function alertFromRow(row) {
     type,
     custom: type !== "monthly" && !PRESET_DAYS.includes(type), // the Custom day grid is open
     startDate: toLocalIsoDate(row?.alertStartDate) || toIsoDate(new Date()),
-    amount: row?.alertAmount == null ? "" : formatAmount(Number(row.alertAmount)),
+    amount: row?.alertAmount == null ? "" : formatAmount(row.alertAmount),
   };
 }
 
