@@ -32,7 +32,7 @@ public class TransactionHistoryLineRow {
     private String toAccountCode;
     private String fromAccountCode;
 
-    private String rateGroupId;
+    private String groupId;
     private String rateExpression;
     private String rateCurrencyFromCode;
     private BigDecimal rateAmountFrom;

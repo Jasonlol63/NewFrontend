@@ -17,7 +17,7 @@
 -- process_duplicate_merge_map / MIGRATION_LOG.md §4.2) do NOT affect this script -- verified none of
 -- legacy `transactions.source_bank_process_id` reference any of those 7 ids (0 rows; that column
 -- references legacy `bank_process.id`, an entirely different id space from `process.id`, and the
--- Bank Process domain hasn't been migrated yet anyway -- see the bank_process_posted_id note below).
+-- Bank Process domain hasn't been migrated yet anyway -- see the group_id note below).
 -- `transactions` has no process_id/data_capture_id column at all in either schema, so the two ledgers
 -- are fully decoupled; the merge only ever mattered for Process/Data Capture, already handled there.
 --
@@ -25,12 +25,18 @@
 --   - scope_type/scope_id ignored throughout (same as every other domain) -- company_id is
 --     authoritative even for the handful of scope_type='group' rows in transactions_deleted (5 rows,
 --     company_id populated correctly regardless -- verified).
---   - `bank_process_posted_id` left NULL for every migrated row. It is a NEW aggregation concept
---     (one posted batch can own many transactions) that has no 1:1 legacy source -- legacy
---     `source_bank_process_id`/`source_bank_process_period_type` point at individual bank_process
---     rows, not posted batches, and the Bank Process domain (which owns
---     bank_process_accounting_posted, the FK target) hasn't been migrated yet. Backfilling this is
---     part of the future Bank Process migration, not this script.
+--   - `group_id` (2026-10-14: replaces the old transactions.rate_group_id + bank_process_posted_id
+--     pair; see logs/GROUP_ID_MERGE_20261014.md). One operation = one group_id: RG-/RATE_ = Rate,
+--     BK-<bank_process_accounting_posted.id> = Bank Process posting, DF-<min id> = Domain fee/renewal
+--     charge, NULL = single transaction / Data Capture. THIS script sets it for RATE rows (section 2,
+--     copied from the legacy rate_group_id) and Domain-fee rows (section 4). Bank Process rows keep
+--     group_id NULL here: it is a NEW aggregation concept (one posted batch can own many
+--     transactions) with no 1:1 legacy source -- legacy `source_bank_process_id`/
+--     `source_bank_process_period_type` point at individual bank_process rows, not posted
+--     batches, and bank_process_accounting_posted (which owns the BK- id) isn't migrated yet.
+--     migrate_data_bank_process_accounting_due_from_legacy.sql section 4 backfills those.
+--     (Mentions of rate_group_id below that read the legacy DB (c168_net_legacy_*) are the LEGACY
+--     column names and stay as they are.)
 --   - created_by / approved_by / deleted_by: legacy splits "who did it" across two parallel nullable
 --     int columns (a `user.id` column and an `owner.id` column) instead of one polymorphic
 --     (id, type) pair like other domains used. Verified 350/11685 transactions rows have BOTH
@@ -107,7 +113,7 @@ LEFT JOIN user u2 ON u2.id = t.approved_by
 LEFT JOIN owner o2 ON o2.id = t.approved_by_owner;
 
 -- =============================================================================
--- 2. transactions_rate (RATE group headers) + transactions.rate_group_id backfill on the 2 legs.
+-- 2. transactions_rate (RATE group headers) + transactions.group_id backfill on the 2 legs.
 --
 --    Legacy links a RATE group to its ledger rows via transactions_rate_details(rate_group_id,
 --    transaction_id, record_type): 'first_from'/'first_to' both point at the SAME transactions.id
@@ -126,11 +132,11 @@ LEFT JOIN owner o2 ON o2.id = t.approved_by_owner;
 --    just left without a rate_group_id / RATE counterpart). Expect 175 - 2 = 173 header rows.
 -- =============================================================================
 CREATE TEMPORARY TABLE _resolve_rate (
-    rate_group_id VARCHAR(50) NOT NULL PRIMARY KEY,
+    group_id      VARCHAR(50) NOT NULL PRIMARY KEY,
     leg1_id       INT NOT NULL,
     leg2_id       INT NOT NULL
 );
-INSERT INTO _resolve_rate (rate_group_id, leg1_id, leg2_id)
+INSERT INTO _resolve_rate (group_id, leg1_id, leg2_id)
 SELECT tr.rate_group_id, tr.transaction_id, trd.transaction_id
 FROM c168_net_legacy_20260827.transactions_rate tr
 JOIN c168_net_legacy_20260827.transactions_rate_details trd
@@ -140,7 +146,7 @@ JOIN c168_net_legacy_20260827.transactions_rate_details trd
 -- stored the computed exchange_rate/middleman_rate numerics, never the raw UI input string; Platform
 -- Fee is a feature added after this backup) -- left NULL, not fabricated.
 INSERT INTO transactions_rate (
-    tenant_id, rate_group_id, leg1_transaction_id, leg2_transaction_id, exchange_rate,
+    tenant_id, group_id, leg1_transaction_id, leg2_transaction_id, exchange_rate,
     currency_from_id, amount_from, currency_to_id, amount_to,
     middleman_account_id, middleman_rate, middleman_amount,
     created_at, updated_at
@@ -161,7 +167,7 @@ SELECT
     tr.created_at,
     tr.updated_at
 FROM c168_net_legacy_20260827.transactions_rate tr
-JOIN _resolve_rate r ON r.rate_group_id = tr.rate_group_id
+JOIN _resolve_rate r ON r.group_id = tr.rate_group_id
 JOIN c168_net_legacy_20260827.company c ON c.id = tr.company_id
 JOIN tenant ten ON ten.tenant_type = 'COMPANY' AND ten.code = c.company_id
 JOIN _map_currency mcf ON mcf.old_currency_id = tr.rate_from_currency_id
@@ -169,7 +175,7 @@ JOIN _map_currency mct ON mct.old_currency_id = tr.rate_to_currency_id;
 
 UPDATE transactions t
 JOIN _resolve_rate r ON t.id = r.leg1_id OR t.id = r.leg2_id
-SET t.rate_group_id = r.rate_group_id;
+SET t.group_id = r.group_id;
 
 DROP TEMPORARY TABLE _resolve_rate;
 
@@ -185,7 +191,7 @@ DROP TEMPORARY TABLE _resolve_rate;
 --    unrecoverable -- skipped, not fabricated. A further 49 of the remaining rows have an invalid
 --    transaction_type for the new enum (48 empty-string, 1 RECEIVE) and are also skipped.
 --    Net: 1097 rows pass the company/account existence check, 1048 also pass the transaction_type
---    check -- that's what this INSERT actually produces. rate_group_id is left NULL throughout (no
+--    check -- that's what this INSERT actually produces. group_id is left NULL for RATE rows (no
 --    reliable legacy source for deleted RATE rows -- transactions_rate_details only covers live
 --    groups, and a deleted RATE submission's header row is typically gone too).
 -- =============================================================================
@@ -218,5 +224,57 @@ LEFT JOIN owner o1 ON o1.id = td.created_by_owner
 LEFT JOIN user u2 ON u2.id = td.deleted_by_user_id
 LEFT JOIN owner o2 ON o2.id = td.deleted_by_owner_id
 WHERE td.transaction_type IN ('WIN','LOSE','PAYMENT','CONTRA','CLAIM','RATE','CLEAR','ADJUSTMENT');
+
+-- =============================================================================
+-- 4. Domain fee / renewal charges -> group_id 'DF-<min id>' (live + archived). One charge =
+--    DOMAIN_FEE + DOMAIN_COMMISSION* + DOMAIN_NET_PROFIT lines written in one go (see
+--    DomainFeeChargeServiceImpl): same tenant + same created_by + same created_at. Only well-formed
+--    charges are tagged (exactly one DOMAIN_FEE, at most one DOMAIN_NET_PROFIT); the rest stay NULL --
+--    check the SELECT at the end of this section. The NET_PROFIT line is inserted last, so it can land
+--    one second after the others: a leftover NET_PROFIT joins the DF- group whose DOMAIN_FEE is at most
+--    1s earlier (same tenant + creator) and which has no NET_PROFIT yet.
+-- =============================================================================
+UPDATE transactions t
+JOIN (
+    SELECT MIN(id) AS gid, tenant_id, created_by, created_at
+    FROM transactions
+    WHERE remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT')
+    GROUP BY tenant_id, created_by, created_at
+    HAVING SUM(remark = 'DOMAIN_FEE') = 1 AND SUM(remark = 'DOMAIN_NET_PROFIT') <= 1
+) g ON g.tenant_id = t.tenant_id AND g.created_by <=> t.created_by AND g.created_at = t.created_at
+SET t.group_id = CONCAT('DF-', g.gid)
+WHERE t.remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT') AND t.group_id IS NULL;
+
+UPDATE transactions n
+JOIN transactions f
+  ON f.tenant_id = n.tenant_id AND f.created_by <=> n.created_by
+ AND f.remark = 'DOMAIN_FEE' AND f.group_id LIKE 'DF-%'
+ AND f.created_at BETWEEN n.created_at - INTERVAL 1 SECOND AND n.created_at
+LEFT JOIN (SELECT DISTINCT group_id FROM transactions
+           WHERE remark = 'DOMAIN_NET_PROFIT' AND group_id LIKE 'DF-%') hn ON hn.group_id = f.group_id
+SET n.group_id = f.group_id
+WHERE n.remark = 'DOMAIN_NET_PROFIT' AND n.group_id IS NULL AND hn.group_id IS NULL;
+
+UPDATE transactions_deleted d
+JOIN (
+    SELECT MIN(transaction_id) AS gid, tenant_id, created_by, created_at
+    FROM transactions_deleted
+    WHERE remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT') AND group_id IS NULL
+    GROUP BY tenant_id, created_by, created_at
+    HAVING SUM(remark = 'DOMAIN_FEE') = 1 AND SUM(remark = 'DOMAIN_NET_PROFIT') <= 1
+) g ON g.tenant_id = d.tenant_id AND g.created_by <=> d.created_by AND g.created_at <=> d.created_at
+SET d.group_id = CONCAT('DF-', g.gid)
+WHERE d.remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT') AND d.group_id IS NULL;
+
+-- Domain charges left untagged (expected: none; otherwise review by hand)
+SELECT 'live' AS src, tenant_id, created_by, created_at, GROUP_CONCAT(id) AS ids
+FROM transactions
+WHERE remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT') AND group_id IS NULL
+GROUP BY tenant_id, created_by, created_at
+UNION ALL
+SELECT 'deleted', tenant_id, created_by, created_at, GROUP_CONCAT(transaction_id)
+FROM transactions_deleted
+WHERE remark IN ('DOMAIN_FEE', 'DOMAIN_COMMISSION', 'DOMAIN_NET_PROFIT') AND group_id IS NULL
+GROUP BY tenant_id, created_by, created_at;
 
 DROP TEMPORARY TABLE _map_currency;

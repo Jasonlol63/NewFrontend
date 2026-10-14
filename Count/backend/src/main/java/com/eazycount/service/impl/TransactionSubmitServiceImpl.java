@@ -24,6 +24,7 @@ import com.eazycount.util.AssertUtils;
 import com.eazycount.util.NormalizeUtils;
 import com.eazycount.util.RateMulCalculator;
 import com.eazycount.util.TransactionDateParse;
+import com.eazycount.util.TransactionGroupId;
 import com.eazycount.util.TransactionMoneyFormat;
 import com.eazycount.websocket.RealtimeDomain;
 import com.eazycount.websocket.RealtimeEventPublisher;
@@ -38,7 +39,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class TransactionSubmitServiceImpl implements TransactionSubmitService {
@@ -204,7 +204,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
 
         String remark = NormalizeUtils.trimToNull(request.getRemark());
         LocalDate transactionDate = resolveTransactionDate(request);
-        String rateGroupId = newRateGroupId();
+        String groupId = newGroupId();
 
         String leg1Ccy = currencyCode(leg1.currency());
         String leg2Ccy = currencyCode(leg2.currency());
@@ -225,12 +225,12 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
         Transaction leg1Txn = insertTransactionRow(
                 session, tenantId, Transaction.TransactionType.RATE,
                 leg1.toAccountId(), leg1.fromAccountId(), leg1.currency().getId(),
-                amountFrom, transactionDate, remark, leg1Description, rateSummary, rateGroupId);
+                amountFrom, transactionDate, remark, leg1Description, rateSummary, groupId);
         // leg2 flat 毛额，不受 Rate-Mul/Fee/Platform Fee 影响；下面的扣减都记在leg2.fromAccountId()（from account）上。
         Transaction leg2Txn = insertTransactionRow(
                 session, tenantId, Transaction.TransactionType.RATE,
                 leg2.toAccountId(), leg2.fromAccountId(), leg2.currency().getId(),
-                grossTo, transactionDate, remark, leg2Description, rateSummary, rateGroupId);
+                grossTo, transactionDate, remark, leg2Description, rateSummary, groupId);
 
         Integer middlemanRateTxnId = null;
         Integer middlemanFeeTxnId = null;
@@ -246,7 +246,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
                         session, tenantId, Transaction.TransactionType.RATE,
                         leg2.fromAccountId, middleman.accountId(), leg2.currency().getId(),
                         middleman.ratePortion(), transactionDate, remark,
-                        rateMarkup, AuditLabels.middlemanRate(leg2Ccy), rateGroupId);
+                        rateMarkup, AuditLabels.middlemanRate(leg2Ccy), groupId);
                 middlemanRateTxnId = rateTxn.getId();
             }
             if (middleman.feePortion() != null) {
@@ -257,7 +257,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
                         session, tenantId, Transaction.TransactionType.RATE,
                         leg2.fromAccountId, middleman.accountId(), leg2.currency().getId(),
                         middleman.feePortion(), transactionDate, remark,
-                        feeMarkup, AuditLabels.middlemanFee(leg2Ccy), rateGroupId);
+                        feeMarkup, AuditLabels.middlemanFee(leg2Ccy), groupId);
                 middlemanFeeTxnId = feeTxn.getId();
             }
             if (middleman.platformFeeInput() != null) {
@@ -266,14 +266,14 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
                         session, tenantId, Transaction.TransactionType.RATE,
                         leg2.fromAccountId, null, leg2.currency().getId(),
                         middleman.platformFeeInput(), transactionDate, remark,
-                        platformFeeDescription, AuditLabels.platformFee(leg2Ccy), rateGroupId);
+                        platformFeeDescription, AuditLabels.platformFee(leg2Ccy), groupId);
                 middlemanPlatformFeeTxnId = platformFeeTxn.getId();
             }
         }
 
         TransactionRate header = new TransactionRate();
         header.setTenantId(tenantId);
-        header.setRateGroupId(rateGroupId);
+        header.setGroupId(groupId);
         header.setLeg1TransactionId(leg1Txn.getId());
         header.setLeg2TransactionId(leg2Txn.getId());
         header.setExchangeRate(exchangeRate);
@@ -322,7 +322,7 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
         result.setAmountDisplay(TransactionMoneyFormat.formatMoney(amountFrom));
         result.setTransactionDate(formatDate(transactionDate));
         result.setRemark(remark != null ? remark : "");
-        result.setRateGroupId(rateGroupId);
+        result.setGroupId(groupId);
         result.setLeg1Id(leg1Txn.getId());
         result.setLeg2Id(leg2Txn.getId());
         result.setMiddlemanId(middlemanRateTxnId != null ? middlemanRateTxnId : middlemanFeeTxnId);
@@ -527,18 +527,18 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
     private TransactionSubmitDTO insertAndBuildResult(SessionUser session, Integer tenantId, Transaction.TransactionType transactionType,
                                                       Integer toAccountId, Integer fromAccountId, Currency currency,
                                                       BigDecimal amount, LocalDate transactionDate, String remark,
-                                                      String description, String auditSummary, String rateGroupId) {
+                                                      String description, String auditSummary, String groupId) {
         return insertAndBuildResult(session, tenantId, transactionType, toAccountId, fromAccountId,
-                currency, amount, transactionDate, remark, description, auditSummary, rateGroupId, null);
+                currency, amount, transactionDate, remark, description, auditSummary, groupId, null);
     }
 
     private TransactionSubmitDTO insertAndBuildResult(SessionUser session, Integer tenantId, Transaction.TransactionType transactionType,
                                                       Integer toAccountId, Integer fromAccountId, Currency currency, BigDecimal amount,
                                                       LocalDate transactionDate, String remark, String description,
-                                                      String auditSummary, String rateGroupId, Integer bankProcessId) {
+                                                      String auditSummary, String groupId, Integer bankProcessId) {
         Transaction txn = insertTransactionRow(
                 session, tenantId, transactionType, toAccountId, fromAccountId,
-                currency.getId(), amount, transactionDate, remark, description, auditSummary, rateGroupId, bankProcessId);
+                currency.getId(), amount, transactionDate, remark, description, auditSummary, groupId, bankProcessId);
 
         TransactionSubmitDTO result = new TransactionSubmitDTO();
         result.setId(txn.getId());
@@ -558,15 +558,15 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
 
     private Transaction insertTransactionRow(SessionUser session, Integer tenantId, Transaction.TransactionType transactionType,
                                        Integer toAccountId, Integer fromAccountId, Integer currencyId, BigDecimal amount,
-                                       LocalDate transactionDate, String remark, String description, String auditSummary, String rateGroupId) {
+                                       LocalDate transactionDate, String remark, String description, String auditSummary, String groupId) {
         return insertTransactionRow(session, tenantId, transactionType, toAccountId, fromAccountId,
-                currencyId, amount, transactionDate, remark, description, auditSummary, rateGroupId, null);
+                currencyId, amount, transactionDate, remark, description, auditSummary, groupId, null);
     }
 
     private Transaction insertTransactionRow(SessionUser session, Integer tenantId, Transaction.TransactionType transactionType,
                                        Integer toAccountId, Integer fromAccountId, Integer currencyId, BigDecimal amount,
                                        LocalDate transactionDate, String remark, String description, String auditSummary,
-                                       String rateGroupId, Integer bankProcessId) {
+                                       String groupId, Integer bankProcessId) {
         String createdBy = session.login_id;
         LocalDateTime now = LocalDateTime.now();
 
@@ -593,9 +593,8 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
             txn.setApprovedBy(null);
             txn.setApprovedAt(null);
         }
-        txn.setBankProcessPostedId(null);
         txn.setBankProcessId(bankProcessId);
-        txn.setRateGroupId(rateGroupId);
+        txn.setGroupId(groupId);
 
         transactionDao.insert(txn);
         AuditContext.captureAfter(txn.getId(), AuditSnapshots.transaction(txn));
@@ -688,9 +687,8 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
         return amount;
     }
 
-    private static String newRateGroupId() {
-        return "RG-" + System.currentTimeMillis() + "-"
-                + ThreadLocalRandom.current().nextInt(1000, 10000);
+    private static String newGroupId() {
+        return TransactionGroupId.newRate();
     }
 
     private static String formatDate(LocalDate date) {

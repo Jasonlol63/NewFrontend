@@ -2,6 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.eazycount.dao.TransactionSearchDao">
 
+    <!-- group_id: BK- = Bank Process posting; RG- (Rate), DF- (Domain fee) and NULL are not. So "group_id IS NULL" alone does NOT mean
+         "not Bank Process"; use these. ${t} = the transactions (or transactions_deleted) alias. -->
+    <sql id="isBankLine">${t}.group_id LIKE 'BK-%'</sql>
+    <sql id="notBankLine">(${t}.group_id IS NULL OR ${t}.group_id NOT LIKE 'BK-%')</sql>
+
     <!-- 手动转账 Cr/Dr 类型：PAYMENT/CLAIM/CLEAR/CONTRA/RATE（To −，From +）；仅未过账 bank_process -->
     <sql id="manualCrDrTransactionTypes">
         'PAYMENT', 'CLAIM', 'CLEAR', 'CONTRA', 'RATE'
@@ -15,7 +20,7 @@
             SELECT 1
             FROM transactions_rate tr
             WHERE tr.tenant_id = t.tenant_id
-            AND tr.rate_group_id = t.rate_group_id
+            AND tr.group_id = t.group_id
             AND (t.id = tr.leg1_transaction_id OR t.id = tr.leg2_transaction_id)
             )
         )
@@ -46,7 +51,7 @@
             SELECT 1
             FROM transactions_rate tr
             WHERE tr.tenant_id = t.tenant_id
-              AND tr.rate_group_id = t.rate_group_id
+              AND tr.group_id = t.group_id
               AND tr.middleman_account_id IS NOT NULL
               AND t.id &lt;&gt; tr.leg1_transaction_id
               AND t.id &lt;&gt; tr.leg2_transaction_id
@@ -86,7 +91,7 @@
         INNER JOIN account a ON a.id = t.account_id
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
         <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
@@ -139,7 +144,7 @@
         INNER JOIN account a ON a.id = t.account_id
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
         <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
@@ -198,7 +203,7 @@
             INNER JOIN account a ON a.id = t.account_id
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type IN (<include refid="manualCrDrTransactionTypes"/>)
               AND <include refid="rateTransferLegOnly"/>
@@ -245,7 +250,7 @@
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type IN (<include refid="manualCrDrTransactionTypes"/>)
               AND <include refid="rateTransferLegOnly"/>
@@ -299,7 +304,7 @@
         INNER JOIN account a ON a.id = t.account_id
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type = 'ADJUSTMENT'
         <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
@@ -354,7 +359,7 @@
             INNER JOIN account a ON a.id = t.account_id
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'PROFIT'
             <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
@@ -397,7 +402,7 @@
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'PROFIT'
             <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
@@ -455,7 +460,7 @@
             INNER JOIN account a ON a.id = t.account_id
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'RATE'
               AND t.from_account_id IS NULL
@@ -502,7 +507,7 @@
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'RATE'
               AND <include refid="rateMiddlemanFeeLeg"/>
@@ -554,7 +559,7 @@
         INNER JOIN account a ON a.id = t.account_id
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type = 'RATE'
           AND t.from_account_id IS NOT NULL

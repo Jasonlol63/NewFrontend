@@ -5,11 +5,11 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO transactions (
             tenant_id, transaction_type, account_id, from_account_id, currency_id, amount, transaction_date, description,
-            remark,created_by, updated_by,approval_status,approved_by,approved_at,bank_process_posted_id,bank_process_id,rate_group_id)
+            remark,created_by, updated_by,approval_status,approved_by,approved_at,bank_process_id,group_id)
         VALUES (
                 #{tenantId}, #{transactionType}, #{accountId},  #{fromAccountId},  #{currencyId}, #{amount},
                 #{transactionDate},#{description}, #{remark}, #{createdBy}, #{updatedBy}, #{approvalStatus},
-                #{approvedBy}, #{approvedAt}, #{bankProcessPostedId}, #{bankProcessId}, #{rateGroupId}
+                #{approvedBy}, #{approvedAt}, #{bankProcessId}, #{groupId}
                )
     </insert>
 

@@ -2,6 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.eazycount.dao.MaintenanceDao">
 
+    <!-- group_id: BK- = Bank Process posting; RG- (Rate), DF- (Domain fee) and NULL are not. So "group_id IS NULL" alone does NOT mean
+         "not Bank Process"; use these. ${t} = the transactions (or transactions_deleted) alias. -->
+    <sql id="isBankLine">${t}.group_id LIKE 'BK-%'</sql>
+    <sql id="notBankLine">(${t}.group_id IS NULL OR ${t}.group_id NOT LIKE 'BK-%')</sql>
+
     <!-- Payment Maintenance: manual Cr/Dr + ADJUSTMENT / PROFIT (Domain/Renew are PAYMENT). No WIN/LOSE. -->
     <sql id="paymentMaintenanceTransactionTypes">
         'PAYMENT', 'CLAIM', 'CLEAR', 'CONTRA', 'RATE', 'ADJUSTMENT', 'PROFIT'
@@ -29,8 +34,7 @@
             t.approval_status AS approvalStatus,
             t.approved_by AS approvedBy,
             t.approved_at AS approvedAt,
-            t.bank_process_posted_id AS bankProcessPostedId,
-            t.rate_group_id AS rateGroupId,
+            t.group_id AS groupId,
             t.created_at AS createdAt,
             t.updated_at AS updatedAt
         FROM transactions t
@@ -56,16 +60,16 @@
             transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
             transaction_date, description, remark, approval_status, approved_by, approved_at,
             created_by, created_at, deleted_by, deleted_at,
-            bank_process_posted_id, rate_group_id
+            group_id
         )
         SELECT
             t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
             t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
             t.created_by, t.created_at,  #{deletedBy}, NOW(),
-            t.bank_process_posted_id, t.rate_group_id
+            t.group_id
         FROM transactions t
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
           AND t.id IN
@@ -80,16 +84,16 @@
             transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
             transaction_date, description, remark, approval_status, approved_by, approved_at,
             created_by, created_at, deleted_by, deleted_at,
-            bank_process_posted_id, rate_group_id )
+            group_id )
         SELECT
             t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
             t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
             t.created_by, t.created_at, #{deletedBy}, NOW(),
-            t.bank_process_posted_id, t.rate_group_id
+            t.group_id
         FROM transactions t
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND bpap.outcome = 'POSTED'
           AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
@@ -99,25 +103,25 @@
         </foreach>
     </insert>
 
-    <select id="findBankProcessMaintenanceIdsByPostedIds" resultType="int">
+    <select id="findBankProcessMaintenanceIdsByGroupIds" resultType="int">
         SELECT t.id
         FROM transactions t
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND bpap.outcome = 'POSTED'
           AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
-          AND t.bank_process_posted_id IN
-        <foreach collection="postedIds" item="postedId" open="(" separator="," close=")">
-            #{postedId}
+          AND t.group_id IN
+        <foreach collection="groupIds" item="groupId" open="(" separator="," close=")">
+            #{groupId}
         </foreach>
     </select>
 
     <select id="findBankProcessIdsByTransactionIds" resultType="int">
         SELECT DISTINCT bpap.bank_process_id
         FROM transactions t
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         WHERE t.tenant_id = #{tenantId}
           AND t.id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
@@ -128,7 +132,7 @@
     <select id="findBankProcessCardOwnersByTransactionIds" resultType="map">
         SELECT t.id AS id, bp.card_owner AS cardOwner
         FROM transactions t
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         INNER JOIN bank_process bp ON bp.id = bpap.bank_process_id
         WHERE t.tenant_id = #{tenantId}
           AND t.id IN
@@ -137,22 +141,22 @@
         </foreach>
     </select>
 
-    <select id="findPaymentMaintenanceIdsByRateGroupIds" resultType="int">
+    <select id="findPaymentMaintenanceIdsByGroupIds" resultType="int">
         SELECT t.id
         FROM transactions t
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
-          AND t.rate_group_id IN
-        <foreach collection="rateGroupIds" item="rateGroupId" open="(" separator="," close=")">
-            #{rateGroupId}
+          AND t.group_id IN
+        <foreach collection="groupIds" item="groupId" open="(" separator="," close=")">
+            #{groupId}
         </foreach>
     </select>
 
     <!-- Payment Maintenance WHERE, live rows (aliases t / c / to_a / from_a); shared by the page and the count query. -->
     <sql id="paymentLiveWhere">
         t.tenant_id = #{tenantId}
-        AND t.bank_process_posted_id IS NULL
+        AND <include refid="notBankLine"><property name="t" value="t"/></include>
         AND t.approval_status = 'APPROVED'
         AND t.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
         AND t.transaction_date &gt;= #{dateFrom}
@@ -180,7 +184,7 @@
     <!-- Same for the soft-deleted rows (aliases td / c / to_a / from_a), searchable by deleter too. -->
     <sql id="paymentDeletedWhere">
         td.tenant_id = #{tenantId}
-        AND td.bank_process_posted_id IS NULL
+        AND <include refid="notBankLine"><property name="t" value="td"/></include>
         AND td.transaction_type IN (<include refid="paymentMaintenanceTransactionTypes"/>)
         AND td.transaction_date &gt;= #{dateFrom}
         AND td.transaction_date &lt;= #{dateTo}
@@ -212,7 +216,7 @@
     <!-- instead of sorting every row of the date range. Needs the index (SqlEtcForMigrate/fixes). -->
     <select id="findPaymentMaintenancePage" resultType="com.eazycount.dto.MaintenancePaymentDTO">
         SELECT u.id, u.transactionType, u.createdAt, u.toAccountCode, u.fromAccountCode, u.amount, u.currencyCode,
-               u.description, u.remark, u.createdBy, u.deleted, u.deletedBy, u.deletedAt
+               u.description, u.remark, u.createdBy, u.deleted, u.deletedBy, u.deletedAt, u.groupId
         FROM (
             (
                 SELECT STRAIGHT_JOIN
@@ -229,6 +233,7 @@
                     FALSE AS deleted,
                     NULL AS deletedBy,
                     NULL AS deletedAt,
+                    t.group_id AS groupId,
                     1 AS src
                 FROM transactions t FORCE INDEX (idx_txn_tenant_created)
                 INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
@@ -259,6 +264,7 @@
                     TRUE,
                     td.deleted_by,
                     td.deleted_at,
+                    td.group_id,
                     0
                 FROM transactions_deleted td
                 INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
@@ -298,18 +304,18 @@
             )
     </select>
 
-    <!-- Bank Process Maintenance list: posted WIN/LOSE ({@code bank_process_posted_id IS NOT NULL}). -->
+    <!-- Bank Process Maintenance list: posted WIN/LOSE ({@code group_id LIKE 'BK-%'}). -->
     <!-- FROM + WHERE of the live rows (aliases t / c / to_a / from_a / bpap / bp / bps); shared by the page and the count. -->
     <sql id="bankProcessLiveSource">
         FROM transactions t
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         INNER JOIN account to_a ON to_a.id = t.account_id
         LEFT JOIN account from_a ON from_a.id = t.from_account_id
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         INNER JOIN bank_process bp ON bp.id = bpap.bank_process_id
         LEFT JOIN bank_process_share bps ON bps.bank_process_id = bp.id AND bps.account_id = t.account_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND bpap.outcome = 'POSTED'
           AND t.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
@@ -339,11 +345,11 @@
         INNER JOIN currency c ON c.id = td.currency_id AND c.tenant_id = td.tenant_id
         INNER JOIN account to_a ON to_a.id = td.account_id
         LEFT JOIN account from_a ON from_a.id = td.from_account_id
-        LEFT JOIN bank_process_accounting_posted bpap ON bpap.id = td.bank_process_posted_id
+        LEFT JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = td.tenant_id AND bpap.group_id = td.group_id
         LEFT JOIN bank_process bp ON bp.id = bpap.bank_process_id
         LEFT JOIN bank_process_share bps ON bps.bank_process_id = bp.id AND bps.account_id = td.account_id
         WHERE td.tenant_id = #{tenantId}
-          AND td.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="td"/></include>
           AND td.transaction_type IN (<include refid="bankProcessMaintenanceTransactionTypes"/>)
           AND td.transaction_date &gt;= #{dateFrom}
           AND td.transaction_date &lt;= #{dateTo}
@@ -373,7 +379,7 @@
     <select id="findBankProcessMaintenancePage" resultType="com.eazycount.dto.MaintenanceBankProcessDTO">
         SELECT u.id, u.transactionType, u.createdAt, u.toAccountCode, u.fromAccountCode, u.amount, u.currencyCode,
                u.description, u.remark, u.createdBy, u.deleted, u.deletedBy, u.deletedAt,
-               u.bankProcessId, u.periodType, u.transactionDate, u.chargeCategory
+               u.bankProcessId, u.periodType, u.transactionDate, u.chargeCategory, u.groupId
         FROM (
             (
                 SELECT
@@ -400,6 +406,7 @@
                         WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
                         ELSE NULL
                     END AS chargeCategory,
+                    t.group_id AS groupId,
                     1 AS src
                 <include refid="bankProcessLiveSource"/>
                 <if test="cursorId != null">
@@ -436,6 +443,7 @@
                         WHEN bps.account_id IS NOT NULL THEN 'PROFIT_SHARING'
                         ELSE NULL
                     END,
+                    td.group_id,
                     0
                 <include refid="bankProcessDeletedSource"/>
                 <if test="cursorId != null">
@@ -752,20 +760,20 @@
     </select>
 
     <!-- Archive the WIN/LOSE transactions those lines generated (explicit id list — capture-generated rows -->
-    <!-- have bank_process_posted_id NULL and type WIN/LOSE, so neither Payment's nor BankProcess Maintenance's -->
+    <!-- are not Bank Process lines (group_id not BK-%) and type WIN/LOSE, so neither Payment's nor BankProcess Maintenance's -->
     <!-- archive method would match them; caller hard-deletes afterward via the existing deleteByIdsAndTenantId). -->
     <insert id="archiveCaptureTransactionsToDeleted">
         INSERT INTO transactions_deleted (
             transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
             transaction_date, description, remark, approval_status, approved_by, approved_at,
             created_by, created_at, deleted_by, deleted_at,
-            bank_process_posted_id, rate_group_id
+            group_id
         )
         SELECT
             t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
             t.transaction_date, t.description, t.remark, t.approval_status, t.approved_by, t.approved_at,
             t.created_by, t.created_at, #{deletedBy}, NOW(),
-            t.bank_process_posted_id, t.rate_group_id
+            t.group_id
         FROM transactions t
         WHERE t.tenant_id = #{tenantId}
           AND t.id IN

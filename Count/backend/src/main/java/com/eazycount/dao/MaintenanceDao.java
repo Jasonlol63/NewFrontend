@@ -22,6 +22,7 @@ public interface MaintenanceDao {
 
     int deleteByIdsAndTenantId(@Param("tenantId") Integer tenantId, @Param("ids") List<Integer> ids);
 
+
     // Archive live payment-maintenance lines into transactions_deleted; caller then deletes from transactions.
     int archivePaymentMaintenanceToDeleted(
             @Param("tenantId") Integer tenantId,
@@ -34,10 +35,10 @@ public interface MaintenanceDao {
             @Param("ids") List<Integer> ids,
             @Param("deletedBy") String deletedBy);
 
-    // Deletable Bank Process Maintenance ids sharing any of the given posted ids.
-    List<Integer> findBankProcessMaintenanceIdsByPostedIds(
+    // Deletable Bank Process Maintenance ids sharing any of the given group ids (BK-…, one posting).
+    List<Integer> findBankProcessMaintenanceIdsByGroupIds(
             @Param("tenantId") Integer tenantId,
-            @Param("postedIds") List<Integer> postedIds);
+            @Param("groupIds") List<String> groupIds);
 
     // Distinct bank_process.id for live maintenance transaction ids being deleted.
     List<Integer> findBankProcessIdsByTransactionIds(
@@ -49,10 +50,10 @@ public interface MaintenanceDao {
             @Param("tenantId") Integer tenantId,
             @Param("ids") List<Integer> ids);
 
-    // Deletable Payment Maintenance ids sharing any of the given RATE group ids.
-    List<Integer> findPaymentMaintenanceIdsByRateGroupIds(
+    // Deletable Payment Maintenance ids sharing any of the given group ids (RG- Rate, DF- Domain fee).
+    List<Integer> findPaymentMaintenanceIdsByGroupIds(
             @Param("tenantId") Integer tenantId,
-            @Param("rateGroupIds") List<String> rateGroupIds);
+            @Param("groupIds") List<String> groupIds);
 
     // Payment Maintenance, one page (keyset): live bill lines (manual/Domain/Renew) + soft-deleted ones, newest first.
     // cursorId == null is the first page; otherwise the three cursor values are the last row of the previous page

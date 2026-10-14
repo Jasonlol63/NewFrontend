@@ -15,6 +15,7 @@ import com.eazycount.entity.Transaction;
 import com.eazycount.security.SessionUser;
 import com.eazycount.service.DomainFeeChargeService;
 import com.eazycount.util.AccessControlUtils;
+import com.eazycount.util.TransactionGroupId;
 import com.eazycount.util.TransactionMoneyFormat;
 import com.eazycount.websocket.RealtimeDomain;
 import com.eazycount.websocket.RealtimeEventPublisher;
@@ -146,10 +147,12 @@ public class DomainFeeChargeServiceImpl implements DomainFeeChargeService {
         LocalDateTime approvedAt = LocalDateTime.now();
         String createdBy = session.login_id;
 
+        // Every line of this one charge shares a group id, so Maintenance deletes the whole charge together.
+        String groupId = TransactionGroupId.newDomainFee();
         List<Transaction> lines = new ArrayList<>();
 
         lines.add(buildPaymentLine(c168TenantId, payerAccountId, profitAccountId, currencyId,
-                domainFeeAmount, transactionDate, "PAY DOMAIN FEE", REMARK_DOMAIN_FEE, createdBy, approvedAt));
+                domainFeeAmount, transactionDate, "PAY DOMAIN FEE", REMARK_DOMAIN_FEE, createdBy, approvedAt, groupId));
 
         BigDecimal commissionTotal = BigDecimal.ZERO;
         for (TenantFeeShareAllocate row : allocations) {
@@ -177,7 +180,7 @@ public class DomainFeeChargeServiceImpl implements DomainFeeChargeService {
             lines.add(buildPaymentLine(c168TenantId, profitAccountId, row.getAccountId(), currencyId,
                     amount, transactionDate,
                     row.getShareType().name() + " COMMISSION FROM " + payerCode,
-                    REMARK_DOMAIN_COMMISSION, createdBy, approvedAt));
+                    REMARK_DOMAIN_COMMISSION, createdBy, approvedAt, groupId));
         }
 
         BigDecimal profitAmount = TransactionMoneyFormat.normalizeComputedNormal(domainFeeAmount.subtract(commissionTotal));
@@ -187,7 +190,7 @@ public class DomainFeeChargeServiceImpl implements DomainFeeChargeService {
         if (profitAmount.compareTo(BigDecimal.ZERO) > 0) {
             lines.add(buildPaymentLine(c168TenantId, profitAccountId, profitAccountId, currencyId,
                     profitAmount, transactionDate, "NET PROFIT FROM " + payerCode,
-                    REMARK_DOMAIN_NET_PROFIT, createdBy, approvedAt));
+                    REMARK_DOMAIN_NET_PROFIT, createdBy, approvedAt, groupId));
         }
 
         for (Transaction line : lines) {
@@ -213,7 +216,7 @@ public class DomainFeeChargeServiceImpl implements DomainFeeChargeService {
     /* Build Payment Details Use */
     private Transaction buildPaymentLine(Integer tenantId, Integer toAccountId, Integer fromAccountId,
             Integer currencyId, BigDecimal amount, LocalDate transactionDate, String description,
-            String remark, String createdBy, LocalDateTime approvedAt) {
+            String remark, String createdBy, LocalDateTime approvedAt, String groupId) {
         Transaction txn = new Transaction();
         txn.setTenantId(tenantId);
         txn.setTransactionType(Transaction.TransactionType.PAYMENT);
@@ -229,7 +232,7 @@ public class DomainFeeChargeServiceImpl implements DomainFeeChargeService {
         txn.setApprovalStatus(Transaction.ApprovalStatus.APPROVED);
         txn.setApprovedBy(createdBy);
         txn.setApprovedAt(approvedAt);
-        txn.setBankProcessPostedId(null);
+        txn.setGroupId(groupId);
         return txn;
     }
 

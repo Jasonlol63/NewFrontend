@@ -2,9 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.eazycount.dao.ReportDao">
 
+    <!-- group_id: BK- = Bank Process posting; RG- (Rate), DF- (Domain fee) and NULL are not. So "group_id IS NULL" alone does NOT mean
+         "not Bank Process"; use these. ${t} = the transactions (or transactions_deleted) alias. -->
+    <sql id="notBankLine">(${t}.group_id IS NULL OR ${t}.group_id NOT LIKE 'BK-%')</sql>
+
     <!--
       Customer Report: one row per (account, account_currency) under the tenant, LEFT JOINed to its
-      Data-Capture-originated WIN/LOSE transactions (bank_process_posted_id IS NULL — same definition
+      Data-Capture-originated WIN/LOSE transactions (not a Bank Process line (group_id not BK-%) — same definition
       Payment History uses for the "DATA CAPTURE" product label) for the requested date range. No
       approval_status filter: Data Capture entries never require approval. account_currency (not a
       fixed single currency) drives which currencies each account reports on — matches legacy
@@ -27,7 +31,7 @@
             ON t.account_id = a.id
            AND t.tenant_id = #{tenantId}
            AND t.currency_id = ac.currency_id
-           AND t.bank_process_posted_id IS NULL
+           AND <include refid="notBankLine"><property name="t" value="t"/></include>
            AND t.transaction_type IN ('WIN', 'LOSE')
            AND t.transaction_date &gt;= #{dateFrom}
            AND t.transaction_date &lt;= #{dateTo}
@@ -48,7 +52,7 @@
 
     <!--
       Domain Report: one row per GAME-category process under the tenant, LEFT JOINed to its
-      Data-Capture-originated WIN/LOSE transactions (bank_process_posted_id IS NULL — same definition
+      Data-Capture-originated WIN/LOSE transactions (not a Bank Process line (group_id not BK-%) — same definition
       Customer Report / Payment History use) for the requested date range. process is the driving
       table — processes with no matching transactions still come back with 0/0 totals (no Show All
       toggle on this report, every process always shows). Lose stays positive here (NOT negated like
@@ -75,7 +79,7 @@
         LEFT JOIN transactions t
             ON t.id = dl.transaction_id
            AND t.tenant_id = p.tenant_id
-           AND t.bank_process_posted_id IS NULL
+           AND <include refid="notBankLine"><property name="t" value="t"/></include>
            AND t.transaction_type IN ('WIN', 'LOSE')
         <where>
             AND p.tenant_id = #{tenantId}

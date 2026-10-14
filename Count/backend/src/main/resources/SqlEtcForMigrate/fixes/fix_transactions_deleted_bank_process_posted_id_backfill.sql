@@ -1,3 +1,8 @@
+-- 2026-10-14: transactions_deleted.bank_process_posted_id no longer exists -- it is replaced by group_id
+-- (BK-<ledger id>, copied from bank_process_accounting_posted.group_id; see logs/GROUP_ID_MERGE_20261014.md).
+-- This script resolves exactly the same rows as before and now writes td.group_id instead. Run it after
+-- migrate_data_bank_process_accounting_due_from_legacy.sql (which gives every ledger row its group_id).
+--
 -- One-off DATA CORRECTION (not raw migration): backfills `transactions_deleted.bank_process_posted_id`
 -- database-wide -- this column exists on the table (added at some point for the Bank Process
 -- Maintenance feature) but was never populated by ANY prior migration round (original full migration,
@@ -56,7 +61,7 @@ JOIN bank_process_accounting_posted bap
         END
    )
 WHERE td.transaction_type IN ('WIN','LOSE')
-  AND td.bank_process_posted_id IS NULL
+  AND td.group_id IS NULL
   AND ltd.source_bank_process_id IS NOT NULL;
 
 -- Verified before running: resolved_count == COUNT(DISTINCT td_id) (no ambiguous multi-match) --
@@ -69,7 +74,8 @@ SELECT COUNT(*) AS resolved_count, COUNT(DISTINCT td_id) AS distinct_td FROM _re
 
 UPDATE transactions_deleted td
 JOIN _resolve r ON r.td_id = td.id
-SET td.bank_process_posted_id = r.resolved_bap_id;
+JOIN bank_process_accounting_posted b ON b.id = r.resolved_bap_id
+SET td.group_id = b.group_id;
 
 DROP TEMPORARY TABLE _resolve;
 
@@ -93,12 +99,13 @@ JOIN bank_process_accounting_posted bap
    AND bap.bank_process_id = ltd.source_bank_process_id
    AND bap.posted_date = ltd.transaction_date
 WHERE td.transaction_type IN ('WIN','LOSE')
-  AND td.bank_process_posted_id IS NULL
+  AND td.group_id IS NULL
   AND ltd.source_bank_process_id IS NOT NULL;
 
 UPDATE transactions_deleted td
 JOIN _resolve2 r ON r.td_id = td.id
-SET td.bank_process_posted_id = r.resolved_bap_id;
+JOIN bank_process_accounting_posted b ON b.id = r.resolved_bap_id
+SET td.group_id = b.group_id;
 
 DROP TEMPORARY TABLE _resolve2;
 

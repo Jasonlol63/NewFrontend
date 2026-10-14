@@ -75,7 +75,7 @@ public class TransactionSubmitDTO {
     private String exchangeRateDisplay;
 
     /* RATE only. */
-    private String rateGroupId;
+    private String groupId;
     private Integer leg1Id;
     private Integer leg2Id;
     private Integer middlemanId;

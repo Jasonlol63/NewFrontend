@@ -14,7 +14,7 @@
 --     simultaneously-open rows for the same bank_process_id in a few cases, which the new schema's
 --     "at most one open make-up per process" model can't represent as-is; needs a product decision
 --     on conflict resolution, not a guess.
---   - bank_process_accounting_posted / the transactions.bank_process_posted_id backfill -- legacy
+--   - bank_process_accounting_posted / the transactions.group_id (BK-) backfill -- legacy
 --     `process_accounting_posted.period_type` has two values ('manual_inactive', and
 --     `process_accounting_due_dismissed`'s 'resend_monthly_reopen') with no confirmed mapping to the
 --     new period_type ENUM, and disambiguating legacy 'monthly' into the new schema's FIRST_MONTH vs

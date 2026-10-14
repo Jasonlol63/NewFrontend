@@ -45,13 +45,13 @@
             transaction_id, tenant_id, transaction_type, account_id, from_account_id, currency_id, amount,
             transaction_date, description, remark, approval_status, approved_by, approved_at,
             created_by, created_at, deleted_by, deleted_at,
-            bank_process_posted_id, rate_group_id
+            group_id
         )
         SELECT
             t.id, t.tenant_id, t.transaction_type, t.account_id, t.from_account_id, t.currency_id, t.amount,
             t.transaction_date, t.description, t.remark, 'REJECTED', #{rejectedBy}, NOW(),
             t.created_by, t.created_at, #{rejectedBy}, NOW(),
-            t.bank_process_posted_id, t.rate_group_id
+            t.group_id
         FROM transactions t
         WHERE t.tenant_id = #{tenantId}
           AND t.id = #{id}

@@ -18,7 +18,7 @@ public interface TransactionSearchDao {
             @Param("currencyCodes") List<String> currencyCodes,
             @Param("categories") List<String> categories);
 
-    // Data Capture Summary Win/Loss aggregate (direct submit, no bank_process_posted_id);
+    // Data Capture Summary Win/Loss aggregate (direct submit, not a Bank Process line);
     // same shape as aggregateBankProcessWinLoss.
     List<TransactionSearchAggregateRow> aggregateDataCaptureWinLoss(
             @Param("tenantId") Integer tenantId,

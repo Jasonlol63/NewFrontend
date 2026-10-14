@@ -43,6 +43,9 @@ public class BkProcessAccountingPosted {
 
     private String createdBy;
 
+    /** BK-…, shared by every transaction of this posting; null for SKIPPED rows (no transactions). */
+    private String groupId;
+
     @Getter
     public enum PeriodType {
         MONTHLY,

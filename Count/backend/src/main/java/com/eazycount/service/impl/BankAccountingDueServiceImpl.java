@@ -20,6 +20,7 @@ import com.eazycount.service.AccountingDueService;
 import com.eazycount.service.BankProcessResendService;
 import com.eazycount.util.AccessControlUtils;
 import com.eazycount.util.AssertUtils;
+import com.eazycount.util.TransactionGroupId;
 import com.eazycount.util.TransactionMoneyFormat;
 import com.eazycount.websocket.RealtimeDomain;
 import com.eazycount.websocket.RealtimeEventPublisher;
@@ -1128,9 +1129,12 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
         ledger.setBillingStart(billingStart);
         ledger.setBillingEnd(billingEnd);
         ledger.setCreatedBy(createdBy);
+        // One posting = one group: the ledger row and every transaction line below share this id.
+        String groupId = TransactionGroupId.newBankProcess();
+        ledger.setGroupId(groupId);
         accountingDueDao.insertLedgerEntry(ledger);
-        Integer postedId = ledger.getId();
-        if (postedId == null) {
+        Integer ledgerId = ledger.getId();
+        if (ledgerId == null) {
             throw new BusinessException("Failed to record accounting posted ledger!");
         }
 
@@ -1141,21 +1145,21 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
             insertTxnLine(tenantId, Transaction.TransactionType.WIN, bankProcess.getSupplierAccountId(),
                     currencyId, buy, transactionDate,
                     buildLineDescription(bankProcess, periodType, postedDate, billingStart, billingEnd, buy, buyBase, bankName, compensation),
-                    createdBy, approvedAt, postedId);
+                    createdBy, approvedAt, groupId);
             created++;
         }
         if (sell.compareTo(BigDecimal.ZERO) > 0) {
             insertTxnLine(tenantId, Transaction.TransactionType.LOSE, bankProcess.getCustomerAccountId(),
                     currencyId, sell, transactionDate,
                     buildLineDescription(bankProcess, periodType, postedDate, billingStart, billingEnd, sell, sellBase, bankName, compensation),
-                    createdBy, approvedAt, postedId);
+                    createdBy, approvedAt, groupId);
             created++;
         }
         if (profit.compareTo(BigDecimal.ZERO) >= 0) {
             insertTxnLine(tenantId, Transaction.TransactionType.WIN, bankProcess.getCompanyAccountId(),
                     currencyId, profit, transactionDate,
                     buildLineDescription(bankProcess, periodType, postedDate, billingStart, billingEnd, profit, profitBase, bankName, compensation),
-                    createdBy, approvedAt, postedId);
+                    createdBy, approvedAt, groupId);
             created++;
         }
 
@@ -1172,7 +1176,7 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
                 BigDecimal shareBase = TransactionMoneyFormat.normalizeComputedNormal(nz(share.getAmount()));
                 insertTxnLine(tenantId, Transaction.TransactionType.WIN, share.getAccountId(), currencyId, shareAmount, transactionDate,
                         buildLineDescription(bankProcess, periodType, postedDate, billingStart, billingEnd, shareAmount, shareBase, bankName, compensation),
-                        createdBy, approvedAt, postedId);
+                        createdBy, approvedAt, groupId);
                 created++;
             }
         }
@@ -1210,6 +1214,8 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
         row.setBillingStart(dayStart);
         row.setBillingEnd(dayStart);
         row.setCreatedBy(createdBy);
+        // Marker row without transactions; still gets an id so every POSTED ledger row has one (as in the backfill).
+        row.setGroupId(TransactionGroupId.newBankProcess());
         accountingDueDao.insertLedgerEntry(row);
     }
 
@@ -1320,7 +1326,7 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
 
     private void insertTxnLine(Integer tenantId, Transaction.TransactionType type, Integer accountId, Integer currencyId,
                                BigDecimal amount, LocalDate transactionDate, String description, String createdBy,
-                               LocalDateTime approvedAt, Integer bankProcessPostedId) {
+                               LocalDateTime approvedAt, String groupId) {
         Transaction txn = new Transaction();
         txn.setTenantId(tenantId);
         txn.setTransactionType(type);
@@ -1336,7 +1342,7 @@ public class BankAccountingDueServiceImpl implements AccountingDueService {
         txn.setApprovalStatus(Transaction.ApprovalStatus.APPROVED);
         txn.setApprovedBy(createdBy);
         txn.setApprovedAt(approvedAt);
-        txn.setBankProcessPostedId(bankProcessPostedId);
+        txn.setGroupId(groupId);
         transactionDao.insert(txn);
     }
 

@@ -1705,3 +1705,14 @@ AG110，经核对精确等于 leg2 的 **To** 账号），跟现在 `submitRate(
 账号，所以不需要再单独为 §35 那批旧数据打补丁——36.2 这一处 mapper/展示层改动，新提交数据和旧数据的
 "中间人视角文案对手方显示错"是同一个问题，同一次改动一起修好了。
 
+
+---
+
+## 37. `transactions` 分组字段合并成 `group_id`——目标库表结构变了，迁移脚本已同步（2026-10-14）
+
+`rate_group_id` 和 `bank_process_posted_id` 合并为一个 `group_id`（`RG-` Rate、`BK-` Bank Process 记账、`DF-` Domain 收费，
+NULL = 单笔），`bank_process_accounting_posted` 和 `transactions_rate` 同步加 / 改 `group_id`。
+上面 §12、§13 里提到的 `bank_process_posted_id` 回填，现在写的是 `group_id`。
+
+**改了 4 个脚本、新增 Domain 归组、副本试跑结果、下次重新迁移的执行顺序和已知问题**，全部写在 [`GROUP_ID_MERGE_20261014.md`](GROUP_ID_MERGE_20261014.md)。
+重新迁移前先读那一篇。

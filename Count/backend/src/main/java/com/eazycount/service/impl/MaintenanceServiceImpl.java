@@ -27,6 +27,7 @@ import com.eazycount.service.MaintenanceService;
 import com.eazycount.util.AccessControlUtils;
 import com.eazycount.util.NormalizeUtils;
 import com.eazycount.util.TransactionDateParse;
+import com.eazycount.util.TransactionGroupId;
 import com.eazycount.websocket.RealtimeDomain;
 import com.eazycount.websocket.RealtimeEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -437,12 +438,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         String deletedBy = session.login_id.trim();
         int archived = maintenanceDao.archivePaymentMaintenanceToDeleted(
                 tenantId, batch.ids(), deletedBy);
-        if (archived <= 0) {
+        // Every row about to be deleted must have been archived; otherwise roll the whole delete back.
+        if (archived != batch.ids().size()) {
             throw new BusinessException("Failed to archive payment maintenance records");
         }
 
-        if (!batch.rateGroupIds().isEmpty()) {
-            transactionRateDao.deleteByTenantIdAndRateGroupIds(tenantId, batch.rateGroupIds());
+        // transactions_rate only has rows for Rate groups; other group ids simply match nothing.
+        if (!batch.groupIds().isEmpty()) {
+            transactionRateDao.deleteByTenantIdAndGroupIds(tenantId, batch.groupIds());
         }
 
         int removed = maintenanceDao.deleteByIdsAndTenantId(tenantId, batch.ids());
@@ -489,7 +492,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         String deletedBy = session.login_id.trim();
         int archived = maintenanceDao.archiveBankProcessMaintenanceToDeleted(
                 tenantId, batch.ids(), deletedBy);
-        if (archived <= 0) {
+        if (archived != batch.ids().size()) {
             throw new BusinessException("Failed to archive bank process maintenance records");
         }
 
@@ -515,11 +518,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             return new BankProcessDeletableBatch(List.of(), List.of());
         }
 
-        List<Integer> postedIds = postedIdsFrom(selected, ids);
-        if (!postedIds.isEmpty()) {
+        // One posting = one group: deleting any of its lines (Buy / Sell / Profit / Profit Sharing) takes the rest along.
+        List<String> groupIds = groupIdsFrom(selected, ids);
+        if (!groupIds.isEmpty()) {
             Set<Integer> expanded = new LinkedHashSet<>(ids);
             expanded.addAll(
-                    maintenanceDao.findBankProcessMaintenanceIdsByPostedIds(tenantId, postedIds));
+                    maintenanceDao.findBankProcessMaintenanceIdsByGroupIds(tenantId, groupIds));
             ids = new ArrayList<>(expanded);
         }
 
@@ -537,7 +541,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             if (row == null || row.getId() == null || row.getId() <= 0) {
                 continue;
             }
-            if (row.getBankProcessPostedId() == null) {
+            if (!TransactionGroupId.isBankProcess(row.getGroupId())) {
                 continue;
             }
             Transaction.TransactionType type = row.getTransactionType();
@@ -552,22 +556,23 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         return ids;
     }
 
-    private static List<Integer> postedIdsFrom(List<Transaction> rows, List<Integer> ids) {
+    /** The distinct group ids of the given transactions (RG- Rate, BK- Bank Process, DF- Domain fee); singles have none. */
+    private static List<String> groupIdsFrom(List<Transaction> rows, List<Integer> ids) {
         if (rows == null || rows.isEmpty() || ids == null || ids.isEmpty()) {
             return List.of();
         }
         Set<Integer> idSet = new LinkedHashSet<>(ids);
-        Set<Integer> postedIds = new LinkedHashSet<>();
+        Set<String> groupIds = new LinkedHashSet<>();
         for (Transaction row : rows) {
             if (row == null || row.getId() == null || !idSet.contains(row.getId())) {
                 continue;
             }
-            Integer postedId = row.getBankProcessPostedId();
-            if (postedId != null && postedId > 0) {
-                postedIds.add(postedId);
+            String groupId = NormalizeUtils.trimToNull(row.getGroupId());
+            if (groupId != null) {
+                groupIds.add(groupId);
             }
         }
-        return new ArrayList<>(postedIds);
+        return new ArrayList<>(groupIds);
     }
 
     private DeletableBatch resolveDeletableBatch(int tenantId, List<Integer> requestedIds) {
@@ -577,14 +582,15 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             return new DeletableBatch(List.of(), List.of());
         }
 
-        List<String> rateGroupIds = rateGroupIdsFrom(selected, ids);
-        if (!rateGroupIds.isEmpty()) {
+        // One Rate (both currencies, Middle-Man, fees) or one Domain charge (fee, commissions, net profit) = one group.
+        List<String> groupIds = groupIdsFrom(selected, ids);
+        if (!groupIds.isEmpty()) {
             Set<Integer> expanded = new LinkedHashSet<>(ids);
-            expanded.addAll(maintenanceDao.findPaymentMaintenanceIdsByRateGroupIds(tenantId, rateGroupIds));
+            expanded.addAll(maintenanceDao.findPaymentMaintenanceIdsByGroupIds(tenantId, groupIds));
             ids = new ArrayList<>(expanded);
         }
 
-        return new DeletableBatch(ids, rateGroupIds);
+        return new DeletableBatch(ids, groupIds);
     }
 
     private static List<Integer> filterDeletableIds(List<Transaction> rows) {
@@ -596,7 +602,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             if (row == null || row.getId() == null || row.getId() <= 0) {
                 continue;
             }
-            if (row.getBankProcessPostedId() != null) {
+            if (TransactionGroupId.isBankProcess(row.getGroupId())) {
                 continue;
             }
             Transaction.TransactionType type = row.getTransactionType();
@@ -606,24 +612,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             ids.add(row.getId());
         }
         return ids;
-    }
-
-    private static List<String> rateGroupIdsFrom(List<Transaction> rows, List<Integer> ids) {
-        if (rows == null || rows.isEmpty() || ids == null || ids.isEmpty()) {
-            return List.of();
-        }
-        Set<Integer> idSet = new LinkedHashSet<>(ids);
-        Set<String> rateGroupIds = new LinkedHashSet<>();
-        for (Transaction row : rows) {
-            if (row == null || row.getId() == null || !idSet.contains(row.getId())) {
-                continue;
-            }
-            String rateGroupId = NormalizeUtils.trimToNull(row.getRateGroupId());
-            if (rateGroupId != null) {
-                rateGroupIds.add(rateGroupId);
-            }
-        }
-        return new ArrayList<>(rateGroupIds);
     }
 
     private static DateRangeTenantQuery parseDateRangeTenantQuery(
@@ -772,7 +760,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             String category,
             String q) {}
 
-    private record DeletableBatch(List<Integer> ids, List<String> rateGroupIds) {}
+    private record DeletableBatch(List<Integer> ids, List<String> groupIds) {}
 
     private record BankProcessDeletableBatch(List<Integer> ids, List<Integer> bankProcessIds) {}
 

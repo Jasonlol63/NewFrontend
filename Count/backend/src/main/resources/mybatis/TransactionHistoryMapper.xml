@@ -2,6 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.eazycount.dao.TransactionHistoryDao">
 
+    <!-- group_id: BK- = Bank Process posting; RG- (Rate), DF- (Domain fee) and NULL are not. So "group_id IS NULL" alone does NOT mean
+         "not Bank Process"; use these. ${t} = the transactions (or transactions_deleted) alias. -->
+    <sql id="isBankLine">${t}.group_id LIKE 'BK-%'</sql>
+    <sql id="notBankLine">(${t}.group_id IS NULL OR ${t}.group_id NOT LIKE 'BK-%')</sql>
+
     <!--
       Fragments below are intentionally duplicated from TransactionSearchMapper.xml (not shared via
       cross-namespace <include>) so this file stays self-contained and matches TransactionHistoryDao
@@ -10,7 +15,7 @@
       (see docs/frontend-springboot-migration.md 第25节).
     -->
 
-    <!-- Manual transfer Cr/Dr types: PAYMENT / CLAIM / CLEAR / CONTRA / RATE (To −, From +); bank_process_posted_id IS NULL -->
+    <!-- Manual transfer Cr/Dr types: PAYMENT / CLAIM / CLEAR / CONTRA / RATE (To −, From +); not a Bank Process line (group_id not BK-%) -->
     <sql id="manualCrDrTransactionTypes">
         'PAYMENT', 'CLAIM', 'CLEAR', 'CONTRA', 'RATE'
     </sql>
@@ -23,7 +28,7 @@
             SELECT 1
             FROM transactions_rate tr
             WHERE tr.tenant_id = t.tenant_id
-            AND tr.rate_group_id = t.rate_group_id
+            AND tr.group_id = t.group_id
             AND (t.id = tr.leg1_transaction_id OR t.id = tr.leg2_transaction_id)
             )
         )
@@ -53,7 +58,7 @@
             SELECT 1
             FROM transactions_rate tr
             WHERE tr.tenant_id = t.tenant_id
-              AND tr.rate_group_id = t.rate_group_id
+              AND tr.group_id = t.group_id
               AND tr.middleman_account_id IS NOT NULL
               AND t.id &lt;&gt; tr.leg1_transaction_id
               AND t.id &lt;&gt; tr.leg2_transaction_id
@@ -70,7 +75,7 @@
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
           AND t.transaction_date &lt; #{dateFrom}
@@ -84,7 +89,7 @@
         ORDER BY currencyCode ASC
     </select>
 
-    <!-- Data Capture Summary Win/Loss BF (bank_process_posted_id IS NULL; counterpart to aggregateBankProcessBfByAccount). -->
+    <!-- Data Capture Summary Win/Loss BF (not a Bank Process line (group_id not BK-%); counterpart to aggregateBankProcessBfByAccount). -->
     <select id="aggregateDataCaptureBfByAccount" resultType="com.eazycount.dto.TransactionHistoryBfAggregateRow">
         SELECT
             UPPER(c.code) AS currencyCode,
@@ -95,7 +100,7 @@
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
           AND t.transaction_date &lt; #{dateFrom}
@@ -124,7 +129,7 @@
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
               AND t.account_id = #{accountId}
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type IN (<include refid="manualCrDrTransactionTypes"/>)
               AND <include refid="rateTransferLegOnly"/>
@@ -152,7 +157,7 @@
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id = #{accountId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type IN (<include refid="manualCrDrTransactionTypes"/>)
               AND <include refid="rateTransferLegOnly"/>
@@ -187,11 +192,11 @@
             TRUE AS bankProcessLine
         FROM transactions t
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
-        INNER JOIN bank_process_accounting_posted bpap ON bpap.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted bpap ON bpap.tenant_id = t.tenant_id AND bpap.group_id = t.group_id
         INNER JOIN bank_process bp ON bp.id = bpap.bank_process_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NOT NULL
+          AND <include refid="isBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
           AND t.transaction_date &gt;= #{dateFrom}
@@ -206,7 +211,7 @@
     </select>
 
     <!--
-      Data Capture Summary Win/Loss lines (bank_process_posted_id IS NULL; counterpart to
+      Data Capture Summary Win/Loss lines (not a Bank Process line (group_id not BK-%); counterpart to
       findBankProcessHistoryLines). No bank_process_accounting_posted/bank_process join — these never
       go through the Bank Process posting flow, so cardOwner is NULL. bankProcessLine is still set TRUE
       so History renders them in the Win/Loss column like Bank Process lines (see toHistoryRow()).
@@ -244,7 +249,7 @@
         LEFT JOIN data_captures dc ON dc.id = dcl.capture_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN ('WIN', 'LOSE')
           AND t.transaction_date &gt;= #{dateFrom}
@@ -284,7 +289,7 @@
             t.from_account_id AS fromAccountId,
             to_a.account_id AS toAccountCode,
             from_a.account_id AS fromAccountCode,
-            t.rate_group_id AS rateGroupId,
+            tr.group_id AS groupId,
             COALESCE(
                 NULLIF(TRIM(tr.rate_expression), ''),
                 TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(tr.exchange_rate AS CHAR)))
@@ -318,7 +323,7 @@
         LEFT JOIN account from_a ON from_a.id = t.from_account_id
         LEFT JOIN transactions_rate tr
             ON tr.tenant_id = t.tenant_id
-           AND tr.rate_group_id = t.rate_group_id
+           AND tr.group_id = t.group_id
         LEFT JOIN currency cf ON cf.id = tr.currency_from_id AND cf.tenant_id = t.tenant_id
         LEFT JOIN currency ct ON ct.id = tr.currency_to_id AND ct.tenant_id = t.tenant_id
         LEFT JOIN transactions leg1_t ON leg1_t.id = tr.leg1_transaction_id
@@ -326,7 +331,7 @@
         LEFT JOIN transactions leg2_t ON leg2_t.id = tr.leg2_transaction_id
         LEFT JOIN account leg2_to ON leg2_to.id = leg2_t.account_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type IN (<include refid="manualCrDrTransactionTypes"/>)
           AND (
@@ -352,7 +357,7 @@
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type = 'ADJUSTMENT'
           AND t.transaction_date &lt; #{dateFrom}
@@ -384,7 +389,7 @@
         INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
         WHERE t.tenant_id = #{tenantId}
           AND t.account_id = #{accountId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type = 'ADJUSTMENT'
           AND t.transaction_date &gt;= #{dateFrom}
@@ -410,7 +415,7 @@
             INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
             WHERE t.tenant_id = #{tenantId}
               AND t.account_id = #{accountId}
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'PROFIT'
               AND t.transaction_date &lt; #{dateFrom}
@@ -431,7 +436,7 @@
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id = #{accountId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'PROFIT'
               AND t.transaction_date &lt; #{dateFrom}
@@ -473,7 +478,7 @@
         INNER JOIN account to_a ON to_a.id = t.account_id
         LEFT JOIN account from_a ON from_a.id = t.from_account_id
         WHERE t.tenant_id = #{tenantId}
-          AND t.bank_process_posted_id IS NULL
+          AND <include refid="notBankLine"><property name="t" value="t"/></include>
           AND t.approval_status = 'APPROVED'
           AND t.transaction_type = 'PROFIT'
           AND (
@@ -505,7 +510,7 @@
               AND t.account_id = #{accountId}
               AND t.from_account_id IS NULL
               AND <include refid="rateMiddlemanFeeDescription"/>
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'RATE'
               AND <include refid="rateMiddlemanFeeLeg"/>
@@ -527,7 +532,7 @@
             WHERE t.tenant_id = #{tenantId}
               AND t.account_id = #{accountId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'RATE'
               AND <include refid="rateMiddlemanFeeLeg"/>
@@ -549,7 +554,7 @@
             WHERE t.tenant_id = #{tenantId}
               AND t.from_account_id = #{accountId}
               AND t.from_account_id IS NOT NULL
-              AND t.bank_process_posted_id IS NULL
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
               AND t.approval_status = 'APPROVED'
               AND t.transaction_type = 'RATE'
               AND <include refid="rateMiddlemanFeeLeg"/>

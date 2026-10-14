@@ -195,19 +195,19 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         Map<String, TransactionHistoryLineRow> mainLineByGroup = new LinkedHashMap<>();
         Map<String, BigDecimal> platformFeeByGroup = new LinkedHashMap<>();
         for (TransactionHistoryLineRow line : lines) {
-            if (line.getRateGroupId() == null) {
+            if (line.getGroupId() == null) {
                 continue;
             }
             if (!Boolean.TRUE.equals(line.getRateMiddlemanFee())
                     && line.getFromAccountId() != null
                     && accountId.equals(line.getFromAccountId())) {
-                mainLineByGroup.put(line.getRateGroupId(), line);
+                mainLineByGroup.put(line.getGroupId(), line);
             }
             if (Boolean.TRUE.equals(line.getRateMiddlemanFee())
                     && line.getFromAccountId() == null
                     && line.getToAccountId() != null
                     && accountId.equals(line.getToAccountId())) {
-                platformFeeByGroup.put(line.getRateGroupId(), TransactionMoneyFormat.nz(line.getAmount()));
+                platformFeeByGroup.put(line.getGroupId(), TransactionMoneyFormat.nz(line.getAmount()));
             }
         }
         if (mainLineByGroup.isEmpty()) {
@@ -222,13 +222,13 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
             if (line.getToAccountId() == null || !accountId.equals(line.getToAccountId())) {
                 continue;
             }
-            TransactionHistoryLineRow mainLine = mainLineByGroup.get(line.getRateGroupId());
+            TransactionHistoryLineRow mainLine = mainLineByGroup.get(line.getGroupId());
             if (mainLine == null) {
                 continue;
             }
             BigDecimal delta = TransactionMoneyFormat.nz(line.getSignedAmount());
             if (isRateMiddlemanFeeKind(line)) {
-                BigDecimal platformFee = platformFeeByGroup.get(line.getRateGroupId());
+                BigDecimal platformFee = platformFeeByGroup.get(line.getGroupId());
                 if (platformFee != null) {
                     delta = delta.subtract(platformFee);
                 }

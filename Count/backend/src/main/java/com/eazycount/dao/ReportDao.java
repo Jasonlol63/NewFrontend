@@ -12,7 +12,7 @@ import java.util.List;
 public interface ReportDao {
 
     // Customer Report: one row per (account, account_currency) under the tenant, left-joined to its
-    // Data-Capture-originated WIN/LOSE transactions (bank_process_posted_id IS NULL) for the date range.
+    // Data-Capture-originated WIN/LOSE transactions (not a Bank Process line) for the date range.
     // Accounts with no matching transactions still come back with 0/0 totals for each assigned currency.
     List<CustomerReportDTO> findCustomerReportRows(
             @Param("tenantId") Integer tenantId,
@@ -22,7 +22,7 @@ public interface ReportDao {
             @Param("accountId") Integer accountId);
 
     // Domain Report: one row per GAME-category process under the tenant, left-joined to its
-    // Data-Capture-originated WIN/LOSE transactions (bank_process_posted_id IS NULL) for the date
+    // Data-Capture-originated WIN/LOSE transactions (not a Bank Process line) for the date
     // range. process is the driving table — processes with no matching transactions still come back
     // with 0/0 totals. No currency dimension, no Show All (always every process).
     List<DomainReportDTO> findDomainReportRows(

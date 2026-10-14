@@ -1074,7 +1074,7 @@ CREATE TABLE `bank_process_share` (
   COMMENT='Profit sharing lines (replaces profit_sharing TEXT)';
 
 -- Accounting Due ledger: which period was posted / skipped.
--- One posted row can own many transactions via transactions.bank_process_posted_id (no single transaction_id).
+-- One posted row can own many transactions via transactions.group_id = bank_process_accounting_posted.group_id (no single transaction_id).
 CREATE TABLE `bank_process_accounting_posted` (
   `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `tenant_id`       INT UNSIGNED NOT NULL COMMENT 'FK tenant.id',
@@ -1087,8 +1087,10 @@ CREATE TABLE `bank_process_accounting_posted` (
   `billing_end`     DATE DEFAULT NULL COMMENT 'Optional period end for display / clear',
   `created_at`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_by`      VARCHAR(50) DEFAULT NULL COMMENT 'Actor login_id (admin=user.login_id; owner=owner_code)',
+  `group_id`        VARCHAR(50) DEFAULT NULL COMMENT 'BK-…; shared by every transactions row of this posting (NULL for SKIPPED rows: no transactions)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_bpap` (`tenant_id`, `bank_process_id`, `posted_date`, `period_type`),
+  UNIQUE KEY `uk_bpap_group` (`tenant_id`, `group_id`),
   KEY `idx_bpap_tenant_date` (`tenant_id`, `posted_date`),
   KEY `idx_bpap_process` (`bank_process_id`),
   KEY `idx_bpap_tenant_process` (`tenant_id`, `bank_process_id`),
@@ -1120,9 +1122,9 @@ CREATE TABLE `bank_process_resend_daily_guard` (
   COMMENT='Same-day Resend lock per process+day_start after Post; Maintenance txn delete clears';
 
 -- Tenant transaction lines (replaces legacy PHP transactions).
--- One row = one account amount. Bank Process Post: N lines share one bank_process_posted_id.
+-- One row = one account amount. Bank Process Post: N lines share one group_id (BK-…).
 -- Manual Payment / History remark uses remark (not legacy sms).
--- RATE: two rows (leg1 + leg2) share rate_group_id; Cr/Dr = To− / From+ (same as PAYMENT).
+-- RATE: two rows (leg1 + leg2) share group_id (RG-…); Cr/Dr = To− / From+ (same as PAYMENT).
 -- Legacy PHP RATE ledgers transactions_rate_details / transaction_entry are NOT in this schema.
 CREATE TABLE `transactions` (
     `id`                     INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1145,10 +1147,9 @@ CREATE TABLE `transactions` (
     `approved_by`            VARCHAR(50) DEFAULT NULL COMMENT 'Approver login_id (same convention as created_by)',
     `approved_at`            TIMESTAMP NULL DEFAULT NULL,
 
-    `bank_process_posted_id` INT UNSIGNED DEFAULT NULL COMMENT 'FK bank_process_accounting_posted.id; NULL = manual / non-BP txn',
-    `bank_process_id`        INT UNSIGNED DEFAULT NULL COMMENT 'FK bank_process.id; direct link for one-off transactions tied to the process itself (e.g. Bank Balance), independent of periodic postings (see bank_process_posted_id)',
+    `bank_process_id`        INT UNSIGNED DEFAULT NULL COMMENT 'FK bank_process.id; direct link for one-off transactions tied to the process itself (e.g. Bank Balance), independent of periodic postings (see group_id BK-…)',
 
-    `rate_group_id`          VARCHAR(50) DEFAULT NULL COMMENT 'RATE only: shared by leg1+leg2; NULL for other types',
+    `group_id`               VARCHAR(50) DEFAULT NULL COMMENT 'One operation = one group: RG-=Rate (shared by leg1+leg2+fees), BK-=Bank Process posting (= bank_process_accounting_posted.group_id), DF-=Domain fee/renewal; NULL=single transaction / Data Capture',
 
     `created_at`             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1157,11 +1158,10 @@ CREATE TABLE `transactions` (
     KEY `idx_txn_tenant_date` (`tenant_id`, `transaction_date`),
     KEY `idx_txn_tenant_created` (`tenant_id`, `created_at`, `id`),
     KEY `idx_txn_tenant_account_date` (`tenant_id`, `account_id`, `transaction_date`),
-    KEY `idx_txn_posted` (`bank_process_posted_id`),
     KEY `idx_txn_bank_process` (`bank_process_id`),
     KEY `idx_txn_approval` (`tenant_id`, `approval_status`),
     KEY `idx_txn_currency` (`currency_id`),
-    KEY `idx_txn_tenant_rate_group` (`tenant_id`, `rate_group_id`),
+    KEY `idx_txn_tenant_group` (`tenant_id`, `group_id`),
 
     CONSTRAINT `fk_txn_tenant`
         FOREIGN KEY (`tenant_id`) REFERENCES `tenant` (`id`) ON DELETE CASCADE,
@@ -1171,14 +1171,11 @@ CREATE TABLE `transactions` (
         FOREIGN KEY (`from_account_id`) REFERENCES `account` (`id`) ON DELETE SET NULL,
     CONSTRAINT `fk_txn_currency`
         FOREIGN KEY (`currency_id`) REFERENCES `currency` (`id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_txn_bp_posted`
-        FOREIGN KEY (`bank_process_posted_id`) REFERENCES `bank_process_accounting_posted` (`id`)
-            ON DELETE SET NULL,
     CONSTRAINT `fk_txn_bank_process`
         FOREIGN KEY (`bank_process_id`) REFERENCES `bank_process` (`id`)
             ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Tenant transaction lines; audit via login_id; BP Post via bank_process_posted_id';
+  COMMENT='Tenant transaction lines; audit via login_id; one operation = one group_id (RG-/BK-/DF-)';
 
 -- RATE group header (1 row per submit). Ledger = transactions legs; this row = FX metadata + links.
 -- Example: MYR 1000 @ 1.7 → CNY 1700 → two transactions + one transactions_rate.
@@ -1189,7 +1186,7 @@ CREATE TABLE `transactions` (
 CREATE TABLE `transactions_rate` (
     `id`                   INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `tenant_id`            INT UNSIGNED NOT NULL COMMENT 'FK tenant.id',
-    `rate_group_id`        VARCHAR(50)  NOT NULL COMMENT 'Shared with transactions.rate_group_id',
+    `group_id`             VARCHAR(50)  NOT NULL COMMENT 'Shared with transactions.group_id (RG-…)',
 
     `leg1_transaction_id`  INT UNSIGNED NOT NULL COMMENT 'First currency leg FK transactions.id (e.g. MYR)',
     `leg2_transaction_id`  INT UNSIGNED NOT NULL COMMENT 'Second currency leg FK transactions.id (e.g. CNY)',
@@ -1211,7 +1208,7 @@ CREATE TABLE `transactions_rate` (
     `updated_at`           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_rate_group` (`tenant_id`, `rate_group_id`),
+    UNIQUE KEY `uk_rate_group` (`tenant_id`, `group_id`),
     KEY `idx_rate_leg1` (`leg1_transaction_id`),
     KEY `idx_rate_leg2` (`leg2_transaction_id`),
 
@@ -1251,12 +1248,11 @@ CREATE TABLE `transactions_deleted` (
     `created_at`               timestamp NULL DEFAULT NULL,
     `deleted_by`               varchar(100) DEFAULT NULL COMMENT 'Deleter login_id',
     `deleted_at`               timestamp NULL DEFAULT NULL,
-    `bank_process_posted_id`   int(11) DEFAULT NULL COMMENT 'NULL = Payment Maintenance; set for BP Maintenance',
-    `rate_group_id`            varchar(50) DEFAULT NULL COMMENT 'RATE group when applicable',
+    `group_id`                 varchar(50) DEFAULT NULL COMMENT 'Mirrors transactions.group_id at archive time (BK- = Bank Process Maintenance, otherwise Payment Maintenance)',
     INDEX `idx_tenant_date` (`tenant_id`, `transaction_date`),
     INDEX `idx_transaction_id` (`transaction_id`),
     INDEX `idx_deleted_at` (`deleted_at`),
-    INDEX `idx_bp_posted` (`tenant_id`, `bank_process_posted_id`)
+    INDEX `idx_group` (`tenant_id`, `group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Archived soft-deleted transactions (Payment + Bank Process Maintenance)';
 
@@ -1390,9 +1386,9 @@ LEFT JOIN account coa ON coa.id = bp.company_account_id;
 
 -- transactions with company/account/currency codes resolved, plus the product name the row
 -- posted against -- resolved through bank_process_id directly OR through
--- bank_process_posted_id -> bank_process_accounting_posted.bank_process_id, matching how the
+-- group_id -> bank_process_accounting_posted.bank_process_id, matching how the
 -- frontend "ID PRODUCT" column is derived (see the 2026-09-22 TRAVELMINI/QIN RESTAURANT
--- bank_process_posted_id backfill fixes for why both paths matter).
+-- legacy posted-id backfill fixes for why both paths matter).
 CREATE OR REPLACE VIEW v_transactions_detail AS
 SELECT
     tx.id,
@@ -1420,7 +1416,7 @@ FROM transactions tx
 JOIN tenant t ON t.id = tx.tenant_id
 JOIN account a ON a.id = tx.account_id
 LEFT JOIN currency cur ON cur.id = tx.currency_id
-LEFT JOIN bank_process_accounting_posted bap ON bap.id = tx.bank_process_posted_id
+LEFT JOIN bank_process_accounting_posted bap ON bap.tenant_id = tx.tenant_id AND bap.group_id = tx.group_id
 LEFT JOIN bank_process bp ON bp.id = COALESCE(tx.bank_process_id, bap.bank_process_id);
 
 -- account_currency with company/account/currency codes resolved instead of raw ids.

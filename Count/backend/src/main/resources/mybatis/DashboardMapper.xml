@@ -11,7 +11,7 @@
                 SELECT 1
                 FROM transactions_rate tr
                 WHERE tr.tenant_id = t.tenant_id
-                  AND tr.rate_group_id = t.rate_group_id
+                  AND tr.group_id = t.group_id
                   AND (t.id = tr.leg1_transaction_id OR t.id = tr.leg2_transaction_id)
             )
         )
@@ -33,7 +33,7 @@
             SELECT 1
             FROM transactions_rate tr
             WHERE tr.tenant_id = t.tenant_id
-              AND tr.rate_group_id = t.rate_group_id
+              AND tr.group_id = t.group_id
               AND tr.middleman_account_id IS NOT NULL
               AND t.id &lt;&gt; tr.leg1_transaction_id
               AND t.id &lt;&gt; tr.leg2_transaction_id

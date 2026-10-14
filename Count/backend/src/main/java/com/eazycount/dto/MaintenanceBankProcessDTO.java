@@ -46,6 +46,9 @@ public class MaintenanceBankProcessDTO {
     private String deletedBy;
     private LocalDateTime deletedAt;
 
+    /** Rows created by one posting share a group id (BK-…); the page ticks them together. */
+    private String groupId;
+
     private Integer bankProcessId;
 
     private String periodType;

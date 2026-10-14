@@ -11,7 +11,7 @@ public interface TransactionRateDao {
 
     void insert(TransactionRate row);
 
-    int deleteByTenantIdAndRateGroupIds(
+    int deleteByTenantIdAndGroupIds(
             @Param("tenantId") Integer tenantId,
-            @Param("rateGroupIds") List<String> rateGroupIds);
+            @Param("groupIds") List<String> groupIds);
 }

@@ -5,7 +5,7 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO transactions_rate (
             tenant_id,
-            rate_group_id,
+            group_id,
             leg1_transaction_id,
             leg2_transaction_id,
             exchange_rate,
@@ -21,7 +21,7 @@
             platform_fee_amount
         ) VALUES (
             #{tenantId},
-            #{rateGroupId},
+            #{groupId},
             #{leg1TransactionId},
             #{leg2TransactionId},
             #{exchangeRate},
@@ -38,12 +38,12 @@
         )
     </insert>
 
-    <delete id="deleteByTenantIdAndRateGroupIds">
+    <delete id="deleteByTenantIdAndGroupIds">
         DELETE FROM transactions_rate
         WHERE tenant_id = #{tenantId}
-          AND rate_group_id IN
-        <foreach collection="rateGroupIds" item="rateGroupId" open="(" separator="," close=")">
-            #{rateGroupId}
+          AND group_id IN
+        <foreach collection="groupIds" item="groupId" open="(" separator="," close=")">
+            #{groupId}
         </foreach>
     </delete>
 

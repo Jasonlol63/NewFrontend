@@ -66,7 +66,8 @@
             skip_reason,
             billing_start,
             billing_end,
-            created_by
+            created_by,
+            group_id
         ) VALUES (
             #{tenantId},
             #{bankProcessId},
@@ -76,7 +77,8 @@
             #{skipReason},
             #{billingStart},
             #{billingEnd},
-            #{createdBy}
+            #{createdBy},
+            #{groupId}
         )
     </insert>
 
@@ -100,7 +102,7 @@
     <select id="countCompensationTransactions" resultType="int">
         SELECT COUNT(*)
         FROM transactions t
-        INNER JOIN bank_process_accounting_posted p ON p.id = t.bank_process_posted_id
+        INNER JOIN bank_process_accounting_posted p ON p.tenant_id = t.tenant_id AND p.group_id = t.group_id
         WHERE t.tenant_id = #{tenantId}
           AND p.bank_process_id = #{bankProcessId}
           AND p.outcome = 'POSTED'

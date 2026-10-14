@@ -210,9 +210,8 @@ public final class AuditSnapshots {
         snapshot.put("approval_status", t.getApprovalStatus());
         snapshot.put("approved_by", t.getApprovedBy());
         snapshot.put("approved_at", t.getApprovedAt());
-        snapshot.put("bank_process_posted_id", t.getBankProcessPostedId());
         snapshot.put("bank_process_id", t.getBankProcessId());
-        snapshot.put("rate_group_id", t.getRateGroupId());
+        snapshot.put("group_id", t.getGroupId());
         snapshot.put("created_at", t.getCreatedAt());
         snapshot.put("updated_at", t.getUpdatedAt());
         return snapshot;
@@ -225,9 +224,9 @@ public final class AuditSnapshots {
      * transaction_rate has no id of its own in that list) — folded into leg1's transaction
      * snapshot under a nested "rate" key instead, as a stopgap.
      *
-     * <p>Deliberately omits {@code tenant_id}, {@code rate_group_id}, {@code leg1_transaction_id},
+     * <p>Deliberately omits {@code tenant_id}, {@code group_id}, {@code leg1_transaction_id},
      * {@code currency_from_id} and {@code amount_from} — by construction (see submitRate) these
-     * are always identical to leg1's own {@code tenant_id}/{@code rate_group_id}/{@code
+     * are always identical to leg1's own {@code tenant_id}/{@code group_id}/{@code
      * currency_id}/{@code amount} fields already sitting at the top level of the very same
      * snapshot, and {@code leg1_transaction_id} always equals this row's own 记录ID/entity_id.
      * Manually restoring the {@code transaction_rate} row: reuse those top-level values for the

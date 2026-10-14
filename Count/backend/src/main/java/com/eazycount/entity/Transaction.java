@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 /**
  * Maps to {@code transactions} — one tenant transaction line (one account amount).
- * Bank Process Post may create N lines that share the same {@link #bankProcessPostedId}.
+ * One operation (Rate, Bank Process posting, Domain fee) may create N lines that share the same {@link #groupId}.
  */
 @Getter
 @Setter
@@ -51,11 +51,10 @@ public class Transaction {
 
     private LocalDateTime approvedAt;
 
-    private Integer bankProcessPostedId;
-
     private Integer bankProcessId;
 
-    private String rateGroupId;
+    /** One operation = one group (RG- Rate, BK- Bank Process posting, DF- Domain fee); null for a single transaction. */
+    private String groupId;
 
     private LocalDateTime createdAt;
 

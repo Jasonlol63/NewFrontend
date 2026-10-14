@@ -24,7 +24,7 @@ public class TransactionRate {
 
     private Integer tenantId;
 
-    private String rateGroupId;
+    private String groupId;
 
     private Integer leg1TransactionId;
 

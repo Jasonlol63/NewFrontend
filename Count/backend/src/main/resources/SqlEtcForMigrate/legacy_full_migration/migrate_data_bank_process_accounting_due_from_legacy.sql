@@ -1,5 +1,5 @@
 -- One-off DATA migration: Bank Process Accounting Due ledger + the one still-open Resend schedule +
--- the transactions.bank_process_posted_id backfill. Follow-up to
+-- the transactions.group_id (BK-) backfill. Follow-up to
 -- migrate_data_bank_process_from_legacy.sql (§13.2 in MIGRATION_LOG.md) -- the pieces deferred there
 -- because their legacy period_type values had no confirmed mapping. Confirmed by reading the legacy
 -- PHP source at C:\Users\User\OneDrive\Desktop\count168test before writing this (see decisions below).
@@ -79,7 +79,13 @@
 --     dismissed: 25 legacy rows, 20 resolve.
 --
 -- Idempotency: NOT idempotent -- intended for a single run against an empty bank_process_accounting_
--- posted table, with transactions.bank_process_posted_id still all NULL.
+-- posted table, with transactions.group_id still NULL on every Bank Process row.
+--
+-- group_id (2026-10-14, replaces transactions.bank_process_posted_id; see logs/GROUP_ID_MERGE_20261014.md):
+-- every ledger row of section 2 gets group_id = CONCAT('BK-', id) -- POSTED and SKIPPED alike, because a
+-- SKIPPED ledger row can still be referenced by archived transactions_deleted lines and the Bank Process
+-- Maintenance "deleted" list joins to it by group_id. Section 3 (due_dismissed: SKIPPED, never any
+-- transactions) leaves it NULL. Section 4 copies it onto the live transactions of each POSTED period.
 --
 -- Usage:
 --   mysql -u root count_real < backend/src/main/resources/SqlEtcForMigrate/migrate_data_bank_process_accounting_due_from_legacy.sql
@@ -112,9 +118,9 @@ WHERE id IN (694, 701) AND accounting_resend_relax_created_floor = 1;
 --    on the bank_process 420 day_end_tail case).
 -- =============================================================================
 INSERT INTO bank_process_accounting_posted (
-    id, tenant_id, bank_process_id, posted_date, period_type, outcome, created_at
+    id, tenant_id, bank_process_id, posted_date, period_type, outcome, created_at, group_id
 )
-SELECT id, tenant_id, bank_process_id, posted_date, period_type, outcome, created_at
+SELECT id, tenant_id, bank_process_id, posted_date, period_type, outcome, created_at, CONCAT('BK-', id)
 FROM (
     SELECT
         p.id,
@@ -216,7 +222,7 @@ WHERE NOT EXISTS (
 );
 
 -- =============================================================================
--- 4. transactions.bank_process_posted_id backfill. Legacy transactions.source_bank_process_id +
+-- 4. transactions.group_id (BK-) backfill. Legacy transactions.source_bank_process_id +
 --    source_bank_process_period_type + transaction_date identify which process_accounting_posted
 --    row a transaction line came from -- posted_date alone is NOT enough (verified: 32 transactions
 --    have 2 candidate posted rows on the same date for the same process, disambiguated only by also
@@ -231,5 +237,5 @@ JOIN c168_net_legacy_20260827.process_accounting_posted lp
    AND lp.posted_date = lt.transaction_date
    AND lp.period_type = lt.source_bank_process_period_type
 JOIN bank_process_accounting_posted bap ON bap.id = lp.id
-SET t.bank_process_posted_id = bap.id
+SET t.group_id = bap.group_id
 WHERE lt.source_bank_process_id IS NOT NULL;

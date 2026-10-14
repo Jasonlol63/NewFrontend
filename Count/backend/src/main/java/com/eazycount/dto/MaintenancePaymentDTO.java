@@ -46,4 +46,7 @@ public class MaintenancePaymentDTO {
     private Boolean deleted;
     private String deletedBy;
     private LocalDateTime deletedAt;
+
+    /** Rows created by one operation share a group id (RG- Rate, BK- Bank Process posting, DF- Domain fee); null for a single row. */
+    private String groupId;
 }
