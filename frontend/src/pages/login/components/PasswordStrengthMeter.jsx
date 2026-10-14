@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 function scorePassword(pw) {
   let score = 0;
   if (pw.length >= 6) score++;
@@ -9,12 +11,13 @@ function scorePassword(pw) {
 }
 
 function levelFromScore(score) {
-  if (score <= 2) return { label: "Weak", fillCount: 1, color: "#e0533d" };
-  if (score <= 3) return { label: "Medium", fillCount: 2, color: "#d99a1f" };
-  return { label: "Strong", fillCount: 3, color: "#2fae6b" };
+  if (score <= 2) return { label: "weak", fillCount: 1, color: "#e0533d" };
+  if (score <= 3) return { label: "medium", fillCount: 2, color: "#d99a1f" };
+  return { label: "strong", fillCount: 3, color: "#2fae6b" };
 }
 
 export default function PasswordStrengthMeter({ password }) {
+  const { t } = useTranslation("login");
   if (!password) return null;
 
   const level = levelFromScore(scorePassword(password));
@@ -35,7 +38,7 @@ export default function PasswordStrengthMeter({ password }) {
         ))}
       </div>
       <span className="mt-1.5 block text-[11px] font-semibold" style={{ color: level.color }}>
-        {level.label}
+        {t(`strength.${level.label}`)}
       </span>
     </div>
   );

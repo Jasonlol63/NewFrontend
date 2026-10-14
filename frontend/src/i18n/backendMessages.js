@@ -153,6 +153,16 @@ const ZH = [
   [e("Secondary password is incorrect"), "二级密码不正确。"],
   [e("Username or password is incorrect"), "用户名或密码不正确。"],
   [e("Verification code is invalid or expired"), "验证码无效或已过期。"],
+  [e("Login ID or name is required"), "请输入登录ID或名字。"],
+  [e("Login ID not found"), "找不到这个登录ID，请检查登录ID和所选的角色（管理员/户主）。"],
+  [e("Email not found"), "找不到这个邮箱，请检查邮箱和所选的角色（管理员/户主）。"],
+  [e("Email does not match this account"), "邮箱和该账号登记的邮箱不一致。"],
+  [e("Name does not match this email"), "名字和该邮箱对应的账号不一致。"],
+  [e("More than one account matches, please use your Login ID"), "找到多个匹配的账号，请改用登录ID。"],
+  [e("Password is too long"), "密码太长了。"],
+  [/^Please wait (\d+)s before requesting another code$/i, "请等待 $1 秒后再重新获取验证码。"],
+  [e("No permission to access this Group/Company"), "没有访问这个集团/公司的权限。"],
+  [e("System is currently under maintenance\\. Please try again later"), "系统正在维护中，请稍后再试。"],
 
   // ---- statuses / accounting due ----
   [e("Auto renew request is not pending"), "该续期申请已不是待处理状态。"],

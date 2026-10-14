@@ -1,27 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Building2, Check, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { postForm } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import PillField from "./components/PillField.jsx";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
+import StatusDialog from "@/components/shared/StatusDialog.jsx";
+import { loginErrorTitle } from "./loginErrors";
 import StepDots from "./components/StepDots.jsx";
 import PasswordStrengthMeter from "./components/PasswordStrengthMeter.jsx";
 
 // Same as the backend's resend cooldown.
 const RESEND_SECONDS = 60;
-const MIN_PASSWORD_LENGTH = 6;
 const INVALID_CODE = "Verification code is invalid or expired";
-
-const ROLE_OPTIONS = [
-  { value: "admin", label: "Admin" },
-  { value: "owner", label: "Owner" },
-];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // The account is named by its login ID or, for someone who forgot it, by its name; the email must match either way.
+// labelKey / placeholderKey are in the login namespace (reset.*).
 const LOOKUPS = {
-  loginId: { label: "ID", placeholder: "Login ID", param: "login_id" },
-  name: { label: "Name", placeholder: "Your name", param: "name" },
+  loginId: { labelKey: "reset.lookupId", placeholderKey: "reset.loginId", param: "login_id" },
+  name: { labelKey: "reset.lookupName", placeholderKey: "reset.name", param: "name" },
 };
 
 function maskEmail(email) {
@@ -32,8 +31,13 @@ function maskEmail(email) {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation(["login", "common"]);
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const roleOptions = [
+    { value: "admin", label: t("roles.admin") },
+    { value: "owner", label: t("roles.owner") },
+  ];
 
   const [role, setRole] = useState("admin");
   const [companyId, setCompanyId] = useState("");
@@ -41,7 +45,13 @@ export default function ResetPasswordPage() {
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  // Every error is a popup, like on the login page: the dialog title is the (localized) message.
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const showError = (title) => {
+    setErrorTitle(title);
+    setErrorOpen(true);
+  };
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -69,7 +79,6 @@ export default function ResetPasswordPage() {
   const sendCode = async (nextStep) => {
     if (submitting) return;
     setSubmitting(true);
-    setError("");
     try {
       await postForm("/auth/send-reset-tac", accountParams());
       setSecondsLeft(RESEND_SECONDS);
@@ -79,7 +88,7 @@ export default function ResetPasswordPage() {
         setStep(nextStep);
       }
     } catch (err) {
-      setError(err.message);
+      showError(loginErrorTitle(err));
     } finally {
       setSubmitting(false);
     }
@@ -87,6 +96,19 @@ export default function ResetPasswordPage() {
 
   const onSendCode = (e) => {
     e.preventDefault();
+    const missing = !companyId.trim()
+      ? t("validation.companyId")
+      : !identifier.trim()
+        ? t(lookup === "loginId" ? "validation.loginId" : "validation.name")
+        : !email.trim()
+          ? t("validation.email")
+          : !EMAIL_PATTERN.test(email.trim())
+            ? t("validation.emailInvalid")
+            : "";
+    if (missing) {
+      showError(missing);
+      return;
+    }
     sendCode(2);
   };
 
@@ -97,26 +119,29 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     if (otp.length < 6) {
       setOtpError(true);
+      showError(t("reset.codeIncomplete"));
       return;
     }
     setOtpError(false);
-    setError("");
     setStep(3);
   };
 
   const onResetPassword = async (e) => {
     e.preventDefault();
     if (submitting) return;
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    if (!newPassword) {
+      showError(t("validation.newPassword"));
+      return;
+    }
+    if (!confirmPassword) {
+      showError(t("validation.confirmPassword"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      showError(t("reset.mismatch"));
       return;
     }
     setSubmitting(true);
-    setError("");
     try {
       await postForm("/auth/reset-password", { ...accountParams(), tac: otp, new_password: newPassword });
       setStep(4);
@@ -126,7 +151,7 @@ export default function ResetPasswordPage() {
         setOtpError(true);
         setStep(2);
       }
-      setError(err.message);
+      showError(loginErrorTitle(err));
     } finally {
       setSubmitting(false);
     }
@@ -137,15 +162,8 @@ export default function ResetPasswordPage() {
       navigate("/login");
       return;
     }
-    setError("");
     setStep((s) => s - 1);
   };
-
-  const errorMessage = error && (
-    <p role="alert" className="m-0 text-center text-xs font-medium text-red-500">
-      {error}
-    </p>
-  );
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 bg-[#dbe9fb] bg-[url('/images/count_bg.webp')] bg-cover bg-center bg-no-repeat">
@@ -154,7 +172,7 @@ export default function ResetPasswordPage() {
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back"
+            aria-label={t("common:back")}
             className="absolute left-6 top-[26px] z-10 flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#2f6fef] transition-colors hover:bg-[#2f6fef]/10"
           >
             <ArrowLeft size={20} />
@@ -165,23 +183,23 @@ export default function ResetPasswordPage() {
           {step === 1 && (
             <div key="step-1" className="animate-[fadeSlide_0.32s_ease]">
               <h1 className="mb-6 text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
-                Reset Password
+                {t("reset.title")}
               </h1>
 
-              <form onSubmit={onSendCode} className="flex flex-col gap-3.5">
+              <form noValidate onSubmit={onSendCode} className="flex flex-col gap-3.5">
                 <div className="flex justify-center">
-                  <PillSwitch options={ROLE_OPTIONS} value={role} onChange={setRole} itemWidth={104} />
+                  <PillSwitch options={roleOptions} value={role} onChange={setRole} itemWidth={104} />
                 </div>
                 <PillField
                   icon={Building2}
-                  placeholder="Company / Group ID"
+                  placeholder={t("companyId")}
                   required
                   value={companyId}
                   onChange={(e) => setCompanyId(e.target.value.toUpperCase())}
                 />
                 <PillField
                   icon={User}
-                  placeholder={LOOKUPS[lookup].placeholder}
+                  placeholder={t(LOOKUPS[lookup].placeholderKey)}
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(lookup === "loginId" ? e.target.value.toUpperCase() : e.target.value)}
@@ -189,7 +207,7 @@ export default function ResetPasswordPage() {
                   trailing={
                     <div
                       role="group"
-                      aria-label="Find my account by"
+                      aria-label={t("reset.lookupLabel")}
                       className="absolute right-[7px] top-1/2 flex -translate-y-1/2 rounded-full bg-[#e3edfb] p-[3px]"
                     >
                       {Object.entries(LOOKUPS).map(([key, opt]) => (
@@ -207,7 +225,7 @@ export default function ResetPasswordPage() {
                             lookup === key ? "bg-white text-[#2f6fef] shadow-[0_1px_3px_rgba(20,70,160,0.25)]" : "bg-transparent text-[#7c93b8]"
                           )}
                         >
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </button>
                       ))}
                     </div>
@@ -216,20 +234,18 @@ export default function ResetPasswordPage() {
                 <PillField
                   icon={Mail}
                   type="email"
-                  placeholder="Enter your email address"
+                  placeholder={t("reset.email")}
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-
-                {errorMessage}
 
                 <button
                   type="submit"
                   disabled={submitting}
                   className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Send Verification Code
+                  {t("reset.sendCode")}
                 </button>
               </form>
             </div>
@@ -238,15 +254,15 @@ export default function ResetPasswordPage() {
           {step === 2 && (
             <div key="step-2" className="animate-[fadeSlide_0.32s_ease]">
               <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
-                Verify Code
+                {t("reset.verifyTitle")}
               </h1>
               <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
-                We sent a 6-digit code to
+                {t("reset.sentTo")}
                 <br />
                 <b className="font-semibold text-[#35538c]">{maskEmail(email || "you@example.com")}</b>
               </p>
 
-              <form onSubmit={onVerifyCode} className="flex flex-col gap-3.5">
+              <form noValidate onSubmit={onVerifyCode} className="flex flex-col gap-3.5">
                 <PillField
                   center
                   inputMode="numeric"
@@ -261,35 +277,30 @@ export default function ResetPasswordPage() {
                 />
 
                 <div className="-mt-1.5 mb-1 text-center text-xs text-[#8fa8cf]">
-                  Didn&apos;t receive it?{" "}
+                  {t("reset.noCode")}{" "}
                   <button
                     type="button"
                     onClick={onResendCode}
                     disabled={secondsLeft > 0 || submitting}
                     className="cursor-pointer border-none bg-transparent p-0 font-semibold text-[#2f6fef] disabled:cursor-default disabled:text-[#a9c3e6]"
                   >
-                    {secondsLeft > 0 ? `Resend in ${secondsLeft}s` : "Resend code"}
+                    {secondsLeft > 0 ? t("reset.resendIn", { seconds: secondsLeft }) : t("reset.resendCode")}
                   </button>
                 </div>
-
-                {errorMessage}
 
                 <button
                   type="submit"
                   className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
                 >
-                  Continue
+                  {t("reset.continue")}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setError("");
-                    setStep(1);
-                  }}
+                  onClick={() => setStep(1)}
                   className="mt-1 block w-full cursor-pointer border-none bg-transparent text-center text-xs font-semibold text-[#2f6fef]"
                 >
-                  ← Use a different email
+                  {t("reset.differentEmail")}
                 </button>
               </form>
             </div>
@@ -298,17 +309,17 @@ export default function ResetPasswordPage() {
           {step === 3 && (
             <div key="step-3" className="animate-[fadeSlide_0.32s_ease]">
               <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
-                Set New Password
+                {t("reset.newTitle")}
               </h1>
               <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
-                Create a new password. Your secondary password stays as it is.
+                {t("reset.newHint")}
               </p>
 
-              <form onSubmit={onResetPassword} className="flex flex-col gap-3.5">
+              <form noValidate onSubmit={onResetPassword} className="flex flex-col gap-3.5">
                 <PillField
                   icon={Lock}
                   type={showNewPassword ? "text" : "password"}
-                  placeholder="New Password"
+                  placeholder={t("reset.newPassword")}
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -316,7 +327,7 @@ export default function ResetPasswordPage() {
                     <button
                       type="button"
                       onClick={() => setShowNewPassword((v) => !v)}
-                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      aria-label={showNewPassword ? t("common:hidePassword") : t("common:showPassword")}
                       className="absolute right-[18px] top-1/2 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[#4f8ef0]"
                     >
                       {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -329,7 +340,7 @@ export default function ResetPasswordPage() {
                 <PillField
                   icon={Lock}
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm New Password"
+                  placeholder={t("reset.confirmPassword")}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -337,7 +348,7 @@ export default function ResetPasswordPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((v) => !v)}
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={showConfirmPassword ? t("common:hidePassword") : t("common:showPassword")}
                       className="absolute right-[18px] top-1/2 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[#4f8ef0]"
                     >
                       {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -345,14 +356,12 @@ export default function ResetPasswordPage() {
                   }
                 />
 
-                {errorMessage}
-
                 <button
                   type="submit"
                   disabled={submitting}
                   className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Reset Password
+                  {t("reset.submit")}
                 </button>
               </form>
             </div>
@@ -363,23 +372,25 @@ export default function ResetPasswordPage() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55)]">
                 <Check size={26} strokeWidth={3} />
               </div>
-              <h2 className="mb-2 text-[18px] font-semibold text-[#14336b]">Password Reset</h2>
+              <h2 className="mb-2 text-[18px] font-semibold text-[#14336b]">{t("reset.doneTitle")}</h2>
               <p className="mb-[22px] text-[12.5px] leading-relaxed text-[#7c93b8]">
-                Your password has been updated successfully.
+                {t("reset.doneBody1")}
                 <br />
-                You can now log in with your new password.
+                {t("reset.doneBody2")}
               </p>
               <button
                 type="button"
                 onClick={() => navigate("/login")}
                 className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
               >
-                Back to Login
+                {t("reset.backToLogin")}
               </button>
             </div>
           )}
         </div>
       </div>
+
+      <StatusDialog open={errorOpen} onOpenChange={setErrorOpen} type="error" title={errorTitle} confirmText={t("tryAgain")} />
     </div>
   );
 }

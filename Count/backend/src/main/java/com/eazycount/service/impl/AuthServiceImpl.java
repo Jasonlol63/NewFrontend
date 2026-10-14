@@ -88,7 +88,6 @@ public class AuthServiceImpl implements AuthService {
 
     private static final String RESET_SCOPE_ADMIN = "admin";
     private static final String RESET_SCOPE_OWNER = "owner";
-    private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_BYTES = 72;
     private static final SecureRandom TAC_RANDOM = new SecureRandom();
 
@@ -524,18 +523,20 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("Login ID or name is required");
         }
 
+        // A wrong company / login ID / name / email is reported to the user (strict), so he can fix it. This lets someone
+        // probe whether an account exists; the resend cooldown below limits the mail, not the probing.
+        findActiveTenantsByLoginCode(code);
+        ResetTarget target = resolveResetTarget(scope, code, loginId, name, normalizedEmail, true);
+
+        // Claimed only after the account is found, so a typo does not lock the user out for a minute.
         long remaining = passwordResetTacStore.tryClaimCooldown(scope, code + ":" + normalizedEmail);
         if (remaining > 0) {
             throw new BusinessException("Please wait " + remaining + "s before requesting another code");
         }
 
-        // Never reveal whether the account exists — only send when it genuinely resolves.
-        ResetTarget target = resolveResetTarget(scope, code, loginId, name, normalizedEmail);
-        if (target != null) {
-            String tac = generateTac();
-            passwordResetTacStore.saveCode(target.scope(), String.valueOf(target.id()), tac);
-            passwordResetMailService.sendResetCode(target.email(), tac);
-        }
+        String tac = generateTac();
+        passwordResetTacStore.saveCode(target.scope(), String.valueOf(target.id()), tac);
+        passwordResetMailService.sendResetCode(target.email(), tac);
     }
 
     @Override
@@ -554,7 +555,7 @@ public class AuthServiceImpl implements AuthService {
         // Checked before the code is spent, so a rejected password does not cost the user a new code.
         validateNewPassword(newPassword);
 
-        ResetTarget target = resolveResetTarget(scope, code, loginId, name, normalizedEmail);
+        ResetTarget target = resolveResetTarget(scope, code, loginId, name, normalizedEmail, false);
         if (target == null || !passwordResetTacStore.verifyAndConsume(target.scope(), String.valueOf(target.id()), trimmedTac)) {
             throw new BusinessException("Verification code is invalid or expired");
         }
@@ -571,45 +572,66 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Finds the account a reset request names, or null. The account is found by login ID (admin: login_id of that company,
-     * owner: owner_code) or, without one, by name + email; the email must in every case be the one on the account, and the
-     * account must have access to the tenant. More than one owner with the same email and name counts as not found.
+     * Finds the account a reset request names. The account is found by login ID (admin: login_id of that company, owner:
+     * owner_code) or, without one, by name + email; the email must in every case be the one on the account, and the account
+     * must have access to the tenant. More than one owner with the same email and name counts as not found.
+     * strict = say what is wrong (send-reset-tac); otherwise return null (reset-password, where the code decides).
      */
-    private ResetTarget resolveResetTarget(String scope, String code, String loginId, String name, String normalizedEmail) {
+    private ResetTarget resolveResetTarget(String scope, String code, String loginId, String name, String normalizedEmail, boolean strict) {
         String id = normalize(loginId);
+        boolean byId = !id.isBlank();
         if (RESET_SCOPE_OWNER.equals(scope)) {
-            Owner owner = null;
-            if (!id.isBlank()) {
-                Owner byCode = authDao.findOwnerByOwnerCode(id);
-                if (byCode != null && normalizedEmail.equals(normalizeEmail(byCode.getEmail()))) {
-                    owner = byCode;
+            Owner owner;
+            if (byId) {
+                owner = authDao.findOwnerByOwnerCode(id);
+                if (owner == null) {
+                    return reject(strict, "Login ID not found");
+                }
+                if (!normalizedEmail.equals(normalizeEmail(owner.getEmail()))) {
+                    return reject(strict, "Email does not match this account");
                 }
             } else {
-                List<Owner> matches = authDao.findOwnersByEmail(normalizedEmail).stream()
-                        .filter(o -> sameName(o.getName(), name))
-                        .toList();
-                if (matches.size() == 1) {
-                    owner = matches.get(0);
+                List<Owner> sameEmail = authDao.findOwnersByEmail(normalizedEmail);
+                if (sameEmail.isEmpty()) {
+                    return reject(strict, "Email not found");
                 }
+                List<Owner> matches = sameEmail.stream().filter(o -> sameName(o.getName(), name)).toList();
+                if (matches.isEmpty()) {
+                    return reject(strict, "Name does not match this email");
+                }
+                if (matches.size() > 1) {
+                    return reject(strict, "More than one account matches, please use your Login ID");
+                }
+                owner = matches.get(0);
             }
-            if (owner == null || findAccessibleTenantsByOwnerId(owner.getId(), code).isEmpty()) {
-                return null;
+            if (findAccessibleTenantsByOwnerId(owner.getId(), code).isEmpty()) {
+                return reject(strict, "You do not have access to this Company or Group");
             }
             return new ResetTarget(RESET_SCOPE_OWNER, "owner", owner.getId(), owner.getEmail());
         }
 
         // user.email is unique, so by name the email alone finds the one admin.
-        Admin admin = id.isBlank() ? authDao.findAdminByEmail(normalizedEmail) : authDao.findAdminByLoginId(id, code);
-        if (admin == null || !normalizedEmail.equals(normalizeEmail(admin.getEmail()))) {
-            return null;
+        Admin admin = byId ? authDao.findAdminByLoginId(id, code) : authDao.findAdminByEmail(normalizedEmail);
+        if (admin == null) {
+            return reject(strict, byId ? "Login ID not found" : "Email not found");
         }
-        if (id.isBlank() && !sameName(admin.getName(), name)) {
-            return null;
+        if (byId && !normalizedEmail.equals(normalizeEmail(admin.getEmail()))) {
+            return reject(strict, "Email does not match this account");
+        }
+        if (!byId && !sameName(admin.getName(), name)) {
+            return reject(strict, "Name does not match this email");
         }
         if (findAccessibleTenantsByAdminId(admin.getId(), code).isEmpty()) {
-            return null;
+            return reject(strict, "You do not have access to this Company or Group");
         }
         return new ResetTarget(RESET_SCOPE_ADMIN, "user", admin.getId(), admin.getEmail());
+    }
+
+    private static ResetTarget reject(boolean strict, String message) {
+        if (strict) {
+            throw new BusinessException(message);
+        }
+        return null;
     }
 
     private static String resetScope(String role) {
@@ -620,13 +642,10 @@ public class AuthServiceImpl implements AuthService {
         throw new BusinessException("Invalid role");
     }
 
-    // bcrypt only reads the first 72 bytes, so a longer password would silently lose its tail.
+    // No strength rules on purpose (same as creating an account). Only the bcrypt limit stays: it reads the first 72 bytes only.
     private static void validateNewPassword(String newPassword) {
-        if (newPassword == null || newPassword.isBlank()) {
+        if (newPassword == null || newPassword.isEmpty()) {
             throw new BusinessException("New password is required");
-        }
-        if (newPassword.length() < MIN_PASSWORD_LENGTH) {
-            throw new BusinessException("Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
         }
         if (newPassword.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
             throw new BusinessException("Password is too long");

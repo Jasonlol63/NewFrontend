@@ -1,0 +1,76 @@
+{
+  "title": "会计管理系统",
+  "roles": {
+    "admin": "管理员",
+    "member": "会员",
+    "owner": "户主"
+  },
+  "companyId": "集团 / 公司ID",
+  "username": "用户名",
+  "password": "密码",
+  "rememberMe": "记住我",
+  "forgotPassword": "忘记密码",
+  "login": "登录",
+  "tryAgain": "重新输入",
+  "telegram": {
+    "aria": "通过 Telegram 联系客服",
+    "label": "通过 Telegram 联系我们"
+  },
+  "errorTitles": {
+    "companyNotFound": "找不到该集团/公司",
+    "wrongCredentials": "用户名或密码不正确",
+    "noAccess": "没有访问该公司/集团的权限"
+  },
+  "secondary": {
+    "titleLine1": "二级密码",
+    "titleLine2": "验证",
+    "hint": "请输入 6 位二级密码以继续",
+    "placeholder": "请输入 6 位二级密码",
+    "verify": "验证",
+    "incorrect": "二级密码不正确"
+  },
+  "reset": {
+    "title": "重置密码",
+    "loginId": "登录ID",
+    "name": "你的名字",
+    "lookupId": "ID",
+    "lookupName": "名字",
+    "lookupLabel": "账号查找方式",
+    "email": "请输入你的邮箱",
+    "sendCode": "发送验证码",
+    "verifyTitle": "输入验证码",
+    "sentTo": "我们已将 6 位验证码发送至",
+    "noCode": "没收到？",
+    "resendIn": "{{seconds}} 秒后可重发",
+    "resendCode": "重新发送",
+    "continue": "继续",
+    "differentEmail": "← 换一个邮箱",
+    "codeIncomplete": "请输入 6 位验证码",
+    "newTitle": "设置新密码",
+    "newHint": "请设置新密码，二级密码保持不变。",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "mismatch": "两次输入的密码不一致",
+    "submit": "重置密码",
+    "doneTitle": "密码已重置",
+    "doneBody1": "你的密码已更新成功。",
+    "doneBody2": "现在可以用新密码登录了。",
+    "backToLogin": "返回登录"
+  },
+  "validation": {
+    "companyId": "请输入集团 / 公司ID",
+    "username": "请输入用户名",
+    "password": "请输入密码",
+    "loginId": "请输入登录ID",
+    "name": "请输入你的名字",
+    "email": "请输入邮箱",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "newPassword": "请输入新密码",
+    "confirmPassword": "请再次输入新密码"
+  },
+  "strength": {
+    "weak": "弱",
+    "medium": "中",
+    "strong": "强"
+  }
+}

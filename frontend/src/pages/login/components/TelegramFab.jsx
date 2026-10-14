@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 // Same outline as the Telegram logo's paper plane (the cut-out of its circle), without the circle, so the button can
 // carry it on the system's own blue. The viewBox is cropped to the plane so it centres exactly.
 const PLANE =
@@ -11,12 +13,13 @@ const PLANE =
  *  - href: the saved https link (the page renders this only when there is one)
  */
 export default function TelegramFab({ href }) {
+  const { t } = useTranslation("login");
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Contact support on Telegram"
+      aria-label={t("telegram.aria")}
       className="group fixed bottom-[clamp(16px,3dvh,32px)] right-[clamp(16px,2.2vw,32px)] z-10 pointer-events-none flex flex-row-reverse items-center gap-2.5 outline-none"
     >
       <span className="pointer-events-auto relative grid size-[clamp(54px,6.4dvh,64px)] place-items-center rounded-full bg-[linear-gradient(135deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] shadow-[0_14px_26px_-10px_rgba(20,90,220,0.7),inset_0_-3px_6px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(255,255,255,0.35)] transition-transform duration-200 group-hover:-translate-y-[3px] group-hover:scale-[1.04] group-focus-visible:-translate-y-[3px] group-focus-visible:scale-[1.04] group-focus-visible:ring-4 group-focus-visible:ring-brand-blue/40 motion-reduce:transition-none">
@@ -29,7 +32,7 @@ export default function TelegramFab({ href }) {
         aria-hidden="true"
         className="pointer-events-none translate-x-2 whitespace-nowrap rounded-full border border-brand-blue/25 bg-white/90 px-4 py-[9px] text-[13px] font-semibold text-brand-navy opacity-0 shadow-[0_12px_24px_-12px_rgba(20,51,107,0.45)] transition-[opacity,transform] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 max-sm:hidden motion-reduce:transition-none"
       >
-        Contact us on Telegram
+        {t("telegram.label")}
       </span>
     </a>
   );

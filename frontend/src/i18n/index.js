@@ -16,6 +16,8 @@ import enMaintenance from "./locales/en/maintenance.json";
 import enAutoRenew from "./locales/en/autorenew.json";
 import enMember from "./locales/en/member.json";
 import enNotification from "./locales/en/notification.json";
+import enLogin from "./locales/en/login.json";
+import zhLogin from "./locales/zh/login.json";
 import zhCommon from "./locales/zh/common.json";
 import zhSidebar from "./locales/zh/sidebar.json";
 import zhDashboard from "./locales/zh/dashboard.json";
@@ -49,13 +51,13 @@ function initialLanguage() {
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount, ownership: enOwnership, process: enProcess, capture: enCapture, transaction: enTransaction, report: enReport, maintenance: enMaintenance, autorenew: enAutoRenew, member: enMember },
-    zh: { common: zhCommon, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount, ownership: zhOwnership, process: zhProcess, capture: zhCapture, transaction: zhTransaction, report: zhReport, maintenance: zhMaintenance, autorenew: zhAutoRenew, member: zhMember },
+    en: { common: enCommon, login: enLogin, sidebar: enSidebar, notification: enNotification, dashboard: enDashboard, domain: enDomain, announcement: enAnnouncement, admin: enAdmin, account: enAccount, ownership: enOwnership, process: enProcess, capture: enCapture, transaction: enTransaction, report: enReport, maintenance: enMaintenance, autorenew: enAutoRenew, member: enMember },
+    zh: { common: zhCommon, login: zhLogin, sidebar: zhSidebar, notification: zhNotification, dashboard: zhDashboard, domain: zhDomain, announcement: zhAnnouncement, admin: zhAdmin, account: zhAccount, ownership: zhOwnership, process: zhProcess, capture: zhCapture, transaction: zhTransaction, report: zhReport, maintenance: zhMaintenance, autorenew: zhAutoRenew, member: zhMember },
   },
   lng: initialLanguage(),
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account", "ownership", "process", "capture", "transaction", "report", "maintenance", "autorenew", "member"],
+  ns: ["common", "login", "sidebar", "notification", "dashboard", "domain", "announcement", "admin", "account", "ownership", "process", "capture", "transaction", "report", "maintenance", "autorenew", "member"],
   interpolation: { escapeValue: false },
 });
 

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, Building2, Eye, EyeOff, Lock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { loginErrorTitle } from "./loginErrors";
+import { LANG_OPTIONS } from "./langOptions";
 import IconInput from "./components/IconInput.jsx";
 import RoleTabs from "./components/RoleTabs.jsx";
 import MaintenanceNotice from "./components/MaintenanceNotice.jsx";
@@ -14,32 +17,11 @@ import { APP_SHELL_IMAGES, preloadImages } from "@/lib/preloadImages";
 import { loadSessionUser, markLogin } from "@/hooks/useSavedState";
 import { homePath } from "@/components/layout/sidebarConfig";
 
-const ROLE_OPTIONS = [
-  { value: "admin", label: "Admin" },
-  { value: "member", label: "Member" },
-];
-
-// Backend login error messages -> dialog title. Anything unlisted (expired,
-// maintenance, network) is shown as the backend sent it.
-const ERROR_TITLES = {
-  "Group/Company Not Found!": "Group/Company Not Found",
-  "Username or password is incorrect": "Username/Password Not Found",
-  "Account ID, Company ID or password is incorrect": "Username/Password Not Found",
-  "You do not have access to this Company or Group": "Invalid access this tenant",
-};
-
 // Backend `redirect` values that mean "verify the secondary password next".
 const SECONDARY_REDIRECTS = {
   "/owner-secondary-password": "owner",
   "/user-secondary-password": "user",
 };
-
-const CONFIRM_TEXT = { en: "Try again", zh: "重新输入" };
-
-const LANG_OPTIONS = [
-  { value: "en", label: "EN" },
-  { value: "zh", label: "中" },
-];
 
 // the gif's final (fully-assembled) frame holds from 2.12s to 2.91s before
 // it loops back to frame 1 — swap mid-hold, well clear of either edge, so
@@ -50,8 +32,12 @@ const LOGO_ANIMATION_MS = 2500;
 const SAFE_LINK = /^https:\/\/[^\s"<>]+$/i;
 
 export default function LoginPage() {
+  const { t, i18n } = useTranslation(["login", "common"]);
+  const roleOptions = [
+    { value: "admin", label: t("roles.admin") },
+    { value: "member", label: t("roles.member") },
+  ];
   const [role, setRole] = useState("admin");
-  const [lang, setLang] = useState("en");
   const [companyId, setCompanyId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -116,6 +102,12 @@ export default function LoginPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
+    const missing = !companyId.trim() ? "companyId" : !username.trim() ? "username" : !password ? "password" : "";
+    if (missing) {
+      setErrorTitle(t(`validation.${missing}`));
+      setErrorOpen(true);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await postForm("/auth/login", {
@@ -127,12 +119,12 @@ export default function LoginPage() {
       markLogin();
       const secondaryFor = SECONDARY_REDIRECTS[res.redirect];
       if (secondaryFor) {
-        navigate("/secondary-password", { state: { userType: secondaryFor, lang } });
+        navigate("/secondary-password", { state: { userType: secondaryFor } });
       } else {
         navigate(role === "member" ? "/member/win-loss" : "/dashboard");
       }
     } catch (err) {
-      setErrorTitle(ERROR_TITLES[err.message] ?? err.message);
+      setErrorTitle(loginErrorTitle(err));
       setErrorOpen(true);
     } finally {
       setSubmitting(false);
@@ -151,21 +143,22 @@ export default function LoginPage() {
         </div>
 
         <h1 className="m-0 mb-fluid-md text-[clamp(18px,3dvh,21px)] font-semibold tracking-[-0.2px] text-[#14336b]">
-          Accounting Management System
+          {t("title")}
         </h1>
 
         {notice && <MaintenanceNotice prefix={notice.prefix} text={notice.text} className="mb-fluid-sm" />}
 
         <div className="overflow-hidden rounded-[24px] bg-gradient-to-b from-white to-[#f5f9ff] shadow-[0_30px_60px_-20px_rgba(20,70,160,0.35),0_10px_25px_-10px_rgba(20,70,160,0.25),inset_0_1px_0_rgba(255,255,255,0.6)]">
-          <RoleTabs options={ROLE_OPTIONS} value={role} onChange={setRole} />
+          <RoleTabs options={roleOptions} value={role} onChange={setRole} />
 
           <form
+            noValidate
             onSubmit={onSubmit}
             className="flex flex-col gap-[clamp(8px,1.5dvh,12px)] px-[26px] py-fluid-md text-left"
           >
             <IconInput
               icon={Building2}
-              placeholder="Company / Group ID"
+              placeholder={t("companyId")}
               required
               value={companyId}
               onChange={(e) => setCompanyId(e.target.value.toUpperCase())}
@@ -173,7 +166,7 @@ export default function LoginPage() {
 
             <IconInput
               icon={User}
-              placeholder="Username"
+              placeholder={t("username")}
               required
               value={username}
               onChange={(e) => setUsername(e.target.value.toUpperCase())}
@@ -182,7 +175,7 @@ export default function LoginPage() {
             <IconInput
               icon={Lock}
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder={t("password")}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -191,7 +184,7 @@ export default function LoginPage() {
                   type="button"
                   className="absolute right-[14px] top-1/2 flex h-[15px] w-[15px] -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[#6fa8ea]"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("common:hidePassword") : t("common:showPassword")}
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -213,13 +206,13 @@ export default function LoginPage() {
                     "peer-checked:bg-[linear-gradient(100deg,#0a3fc9_0%,#3fc4ff_100%)] peer-checked:after:translate-x-[14px]"
                   )}
                 />
-                Remember me
+                {t("rememberMe")}
               </label>
               <Link
                 to="/reset-password"
                 className="font-semibold text-[#2f6fef] no-underline"
               >
-                Forget Password
+                {t("forgotPassword")}
               </Link>
             </div>
 
@@ -228,12 +221,12 @@ export default function LoginPage() {
               disabled={submitting}
               className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
             >
-              Login
+              {t("login")}
               <ArrowRight size={15} />
             </button>
 
             <div className="mt-fluid-xs flex justify-center">
-              <PillSwitch options={LANG_OPTIONS} value={lang} onChange={setLang} />
+              <PillSwitch options={LANG_OPTIONS} value={i18n.resolvedLanguage} onChange={(lng) => i18n.changeLanguage(lng)} />
             </div>
           </form>
         </div>
@@ -246,7 +239,7 @@ export default function LoginPage() {
         onOpenChange={setErrorOpen}
         type="error"
         title={errorTitle}
-        confirmText={CONFIRM_TEXT[lang] ?? CONFIRM_TEXT.en}
+        confirmText={t("tryAgain")}
       />
     </div>
   );

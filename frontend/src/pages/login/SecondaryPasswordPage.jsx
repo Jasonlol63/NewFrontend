@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 import StatusDialog from "@/components/shared/StatusDialog.jsx";
 import { postForm } from "@/lib/api";
 import { clearSession, loadSessionUser } from "@/hooks/useSavedState";
+import { loginErrorTitle } from "./loginErrors";
 
 // Owner and admin ("user") have separate verify endpoints.
 const VERIFY_URLS = {
@@ -12,15 +14,8 @@ const VERIFY_URLS = {
   user: "/auth/verify-user-secondary-password",
 };
 
-// Backend verify error messages -> dialog title. Anything unlisted is shown
-// as the backend sent it.
-const ERROR_TITLES = {
-  "Secondary password is incorrect": "Username/Password Incorrect",
-};
-
-const CONFIRM_TEXT = { en: "Try again", zh: "重新输入" };
-
 export default function SecondaryPasswordPage() {
+  const { t } = useTranslation(["login", "common"]);
   const navigate = useNavigate();
   const { state } = useLocation();
   const [password, setPassword] = useState("");
@@ -65,7 +60,7 @@ export default function SecondaryPasswordPage() {
       clearSession(); // the cached session still says "secondary pending"
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setErrorTitle(ERROR_TITLES[err.message] ?? err.message);
+      setErrorTitle(err.message === "Secondary password is incorrect" ? t("secondary.incorrect") : loginErrorTitle(err));
       setErrorOpen(true);
       setPassword("");
     } finally {
@@ -80,19 +75,19 @@ export default function SecondaryPasswordPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            aria-label="Back"
+            aria-label={t("common:back")}
             className="absolute left-6 top-[26px] flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#2f6fef] transition-colors hover:bg-[#2f6fef]/10"
           >
             <ArrowLeft size={20} />
           </button>
 
           <h1 className="mt-1 text-center text-[20px] font-semibold leading-[1.3] tracking-[-0.2px] text-[#14336b]">
-            Secondary Password
+            {t("secondary.titleLine1")}
             <br />
-            Verification
+            {t("secondary.titleLine2")}
           </h1>
           <p className="mb-[26px] mt-2.5 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
-            Please enter your 6-digit secondary password to continue
+            {t("secondary.hint")}
           </p>
 
           <form onSubmit={onSubmit} className="flex flex-col gap-6">
@@ -105,7 +100,7 @@ export default function SecondaryPasswordPage() {
                 autoFocus
                 type={showPassword ? "text" : "password"}
                 inputMode="numeric"
-                placeholder="Enter 6-digit password"
+                placeholder={t("secondary.placeholder")}
                 value={password}
                 onChange={onChangePassword}
                 className="h-12 w-full rounded-full border-[1.5px] border-[#bcd9fb] bg-gradient-to-b from-white to-[#f7fbff] px-[46px] text-[13px] tracking-[1px] text-[#35538c] shadow-[inset_0_1px_2px_rgba(20,70,160,0.05)] outline-none transition-[border-color,box-shadow] placeholder:tracking-normal placeholder:text-[#a9c3e6] focus:border-[#4f8ef0] focus:shadow-[0_0_0_4px_rgba(79,142,240,0.12)]"
@@ -122,7 +117,7 @@ export default function SecondaryPasswordPage() {
                   input.focus();
                   input.setSelectionRange(input.value.length, input.value.length);
                 }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("common:hidePassword") : t("common:showPassword")}
                 className="absolute right-[18px] top-1/2 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[#4f8ef0]"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -134,7 +129,7 @@ export default function SecondaryPasswordPage() {
               disabled={submitting || password.length !== 6}
               className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
             >
-              Verify
+              {t("secondary.verify")}
             </button>
           </form>
         </div>
@@ -145,7 +140,7 @@ export default function SecondaryPasswordPage() {
         onOpenChange={setErrorOpen}
         type="error"
         title={errorTitle}
-        confirmText={CONFIRM_TEXT[state.lang] ?? CONFIRM_TEXT.en}
+        confirmText={t("tryAgain")}
         // Back to the (cleared) password box instead of the Verify button, ready to retype.
         onCloseAutoFocus={(e) => {
           e.preventDefault();

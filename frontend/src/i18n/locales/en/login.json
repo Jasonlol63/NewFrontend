@@ -1,0 +1,76 @@
+{
+  "title": "Accounting Management System",
+  "roles": {
+    "admin": "Admin",
+    "member": "Member",
+    "owner": "Owner"
+  },
+  "companyId": "Company / Group ID",
+  "username": "Username",
+  "password": "Password",
+  "rememberMe": "Remember me",
+  "forgotPassword": "Forget Password",
+  "login": "Login",
+  "tryAgain": "Try again",
+  "telegram": {
+    "aria": "Contact support on Telegram",
+    "label": "Contact us on Telegram"
+  },
+  "errorTitles": {
+    "companyNotFound": "Group/Company Not Found",
+    "wrongCredentials": "Username/Password Not Found",
+    "noAccess": "No access to this Company/Group"
+  },
+  "secondary": {
+    "titleLine1": "Secondary Password",
+    "titleLine2": "Verification",
+    "hint": "Please enter your 6-digit secondary password to continue",
+    "placeholder": "Enter 6-digit password",
+    "verify": "Verify",
+    "incorrect": "Secondary Password Incorrect"
+  },
+  "reset": {
+    "title": "Reset Password",
+    "loginId": "Login ID",
+    "name": "Your name",
+    "lookupId": "ID",
+    "lookupName": "Name",
+    "lookupLabel": "Find my account by",
+    "email": "Enter your email address",
+    "sendCode": "Send Verification Code",
+    "verifyTitle": "Verify Code",
+    "sentTo": "We sent a 6-digit code to",
+    "noCode": "Didn't receive it?",
+    "resendIn": "Resend in {{seconds}}s",
+    "resendCode": "Resend code",
+    "continue": "Continue",
+    "differentEmail": "← Use a different email",
+    "codeIncomplete": "Please enter the 6-digit verification code",
+    "newTitle": "Set New Password",
+    "newHint": "Create a new password. Your secondary password stays as it is.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "mismatch": "Passwords do not match",
+    "submit": "Reset Password",
+    "doneTitle": "Password Reset",
+    "doneBody1": "Your password has been updated successfully.",
+    "doneBody2": "You can now log in with your new password.",
+    "backToLogin": "Back to Login"
+  },
+  "validation": {
+    "companyId": "Please enter Company / Group ID",
+    "username": "Please enter username",
+    "password": "Please enter password",
+    "loginId": "Please enter Login ID",
+    "name": "Please enter your name",
+    "email": "Please enter your email address",
+    "emailInvalid": "Please enter a valid email address",
+    "newPassword": "Please enter a new password",
+    "confirmPassword": "Please confirm the new password"
+  },
+  "strength": {
+    "weak": "Weak",
+    "medium": "Medium",
+    "strong": "Strong"
+  }
+}

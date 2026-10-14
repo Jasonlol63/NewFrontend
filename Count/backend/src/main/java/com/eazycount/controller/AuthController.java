@@ -165,14 +165,14 @@ public class AuthController {
         return Map.of("success", true, "message", "Verified");
     }
 
-    // Always reports success regardless of whether the account exists (avoids enumeration).
+    // A wrong company / login ID / name / email is answered with an error saying which one, so the user can fix it.
     // role = admin | owner; the account is named by login_id or, when that is blank, by name.
     @PostMapping("/send-reset-tac")
     public Map<String, Object> sendResetTac(@RequestParam String role, @RequestParam("tenant_code") String tenantCode,
                                             @RequestParam(value = "login_id", required = false) String loginId,
                                             @RequestParam(required = false) String name, @RequestParam String email) {
         authService.sendResetTac(role, tenantCode, loginId, name, email);
-        return Map.of("success", true, "message", "If this account exists, a verification code has been sent.");
+        return Map.of("success", true, "message", "Verification code has been sent.");
     }
 
     @PostMapping("/reset-password")

@@ -22,7 +22,7 @@
 
 | 方法 | 路径 | 参数（form-data） | 说明 |
 |------|------|----|------|
-| POST | `/auth/send-reset-tac` | `tenant_code`, `email` | 校验通过就寄 TAC；**不管账号是否存在都回同一句成功话术**，避免枚举账号 |
+| POST | `/auth/send-reset-tac` | `tenant_code`, `email` | 校验通过就寄 TAC；找不到账号会返回具体错误，见第 8 节 |
 | POST | `/auth/reset-password` | `tenant_code`, `email`, `tac`, `new_password` | 验证 TAC（一次性消费）成功后更新 `user.password` |
 
 两个端点都在 `AuthController`（[`AuthController.java`](../backend/src/main/java/com/eazycount/controller/AuthController.java)），委托给 `AuthServiceImpl.sendResetTac` /
@@ -145,12 +145,12 @@ resetPassword(tenantCode, email, tac, newPassword):
 - 账号怎么找：`login_id` 非空时按登录 ID（admin：该公司下的 `login_id`；owner：`owner_code`）；为空则按 `name` + `email`。**两种方式邮箱都必须和账号登记的邮箱一致**，并且账号要对该 `tenant_code` 有访问权限。
 - 用名字找 owner 时，`owner.email` 没有唯一约束，如果「同邮箱 + 同名」找到多个 owner，按「找不到」处理（不发验证码）。admin 因 `user.email` 唯一，按邮箱找到后再核对名字。
 - 角色由前端的 Admin / Owner 选择决定，不再先查 admin 再查 owner，所以同一个邮箱既是 admin 又是 owner 也不会混。
-- `send-reset-tac` 仍然对任何输入回同一句成功话术；找不到账号、邮箱不符、角色选错都不发信、不报错。
+- `send-reset-tac` **会说明哪里不对**（2026-10 改动，方便用户自己改正）：公司不存在 → `Group/Company Not Found!`；登录ID不存在 / 邮箱不存在 → `Login ID not found` / `Email not found`；邮箱与账号不符 → `Email does not match this account`；名字与邮箱不符 → `Name does not match this email`；同邮箱同名的 owner 多于一个 → 请改用登录ID；账号无权访问该公司 → `You do not have access to this Company or Group`。代价是别人可以借此探测账号是否存在，已有的发信冷却只限制发信、不限制探测。`reset-password` 仍然只回「验证码无效或已过期」。冷却改为**找到账号之后**才占用，输错信息不会锁住用户 60 秒。
 
 ### 8.2 只改主密码
 
 - **二级密码不受影响，也不接收二级密码参数**（owner 一定有、admin 仅 C168 且设置过才有；登录后是否要输入二级密码仍由账号当前状态决定）。要改二级密码走客服/IT。
-- 新密码在**消耗验证码之前**先校验（6 位以上、不超过 72 字节，bcrypt 只读前 72 字节），不合格不会白白用掉验证码。
+- 新密码在**消耗验证码之前**先校验（不设强度限制，只要求非空、不超过 72 字节——bcrypt 只读前 72 字节），不合格不会白白用掉验证码。
 
 ### 8.3 Redis key 的变化
 
@@ -165,7 +165,7 @@ resetPassword(tenantCode, email, tac, newPassword):
 
 - `AuthTokenStore.deleteAllForUser`：结束该账号的全部会话。会话 jti 按账号记在 Redis 集合 `ec:auth-user-sessions:{user_type}:{id}`（TTL 8 天，长于 JWT 的 7 天上限）；**部署前已登录的旧会话没有记入集合，不会被踢**，它们最多再存活 1 小时空闲时间。
 - 给账号邮箱发「密码已更改」通知邮件。
-- 邮件改成**异步发送**（`PasswordResetMailService` 内的小线程池）：请求不再等 SMTP，账号存在与否的响应时间一致，避免靠耗时猜账号。
+- 邮件改成**异步发送**（`PasswordResetMailService` 内的小线程池），请求不再等 SMTP。
 
 ### 8.5 仍需注意
 
