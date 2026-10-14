@@ -27,7 +27,7 @@ function CurrencyDonut({ rows, activeCode }) {
     : [];
 
   return (
-    <div className="relative size-[150px] short:size-[112px] flex-none">
+    <div className="@container relative size-[150px] short:size-[112px] flex-none">
       <svg viewBox="0 0 120 120" className="size-full -rotate-90">
         <circle cx="60" cy="60" r={RADIUS} fill="none" stroke="#f1f5f9" strokeWidth="11" />
         {slices.map((s) => (
@@ -44,10 +44,15 @@ function CurrencyDonut({ rows, activeCode }) {
           />
         ))}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <b className="type-card-title leading-none text-dash-ink tabular-nums">{share.toFixed(1)}%</b>
-        <span className="mt-1 type-caption font-semibold text-dash-sub uppercase">{activeCode}</span>
-        <span className="type-caption text-dash-faint">{t("breakdown.share")}</span>
+      {/* Sized in cqw (the donut's own width), not the page type scale: the page text grows with the
+          viewport while the donut stays 150/112px, so the label has to follow the ring, not the screen.
+          Kept inside the ring's hole (~68%, thick active slice included). */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="flex w-[68%] flex-col items-center text-center whitespace-nowrap">
+          <b className="text-[11.5cqw] font-semibold leading-none text-dash-ink tabular-nums">{share.toFixed(1)}%</b>
+          <span className="mt-[0.8cqw] text-[8cqw] font-semibold leading-tight text-dash-sub uppercase">{activeCode}</span>
+          <span className="text-[7.5cqw] leading-tight text-dash-faint">{t("breakdown.share")}</span>
+        </div>
       </div>
     </div>
   );
