@@ -2,7 +2,6 @@ import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { moneySign } from "@/lib/money";
-import { openPaymentHistory } from "./paymentHistoryRules";
 import { ROLE_COLORS, fmt } from "./transactionPaymentRules";
 
 const DEBTOR = ROLE_COLORS.DEBTOR;
@@ -12,11 +11,11 @@ const amountTone = (n) => (moneySign(n) > 0 ? "font-semibold text-[#1d4ed8]" : m
 const rowTone = (i) => cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row-hover");
 
 const TH =
-  "h-7 border-r border-white/25 bg-brand-head px-[clamp(6px,0.42vw,8px)] text-right type-table-head whitespace-nowrap text-white first:rounded-tl-lg first:text-left last:rounded-tr-lg last:border-r-0";
+  "h-[22px] border-r border-white/25 bg-brand-head px-[clamp(4px,0.3vw,6px)] text-right type-table-head whitespace-nowrap text-white first:rounded-tl-lg first:text-left last:rounded-tr-lg last:border-r-0 max-[1024px]:h-5 max-[1024px]:text-[12px]";
 // A red row (Payment Alert) keeps its white bold text on hover too.
 const ALERT = "bg-[#dc2626] font-semibold text-white hover:bg-[#b91c1c]";
-const TD = "h-[26px] border-b border-[rgba(130,155,195,0.2)] px-[clamp(6px,0.42vw,8px)] text-right font-semibold text-[#374151] tabular-nums";
-const TOTAL = "h-7 border-t border-[rgba(47,111,239,0.35)] bg-white/40 px-[clamp(6px,0.42vw,8px)] text-right font-semibold text-brand-navy tabular-nums";
+const TD = "h-5 border-b border-[rgba(130,155,195,0.2)] px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-[#374151] tabular-nums max-[1024px]:h-[18px] max-[1024px]:text-[12px]";
+const TOTAL = "h-[22px] border-t border-[rgba(47,111,239,0.35)] bg-white/40 px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-brand-navy tabular-nums max-[1024px]:h-5 max-[1024px]:text-[12px]";
 
 function AccountTable({ rows, totals, showName, onOpen }) {
   const { t } = useTranslation("transaction");
@@ -77,7 +76,7 @@ export default function ReportBlocks({ blocks, currencies, showName, shut, onTog
           type="button"
           aria-expanded={!shut[c]}
           onClick={() => onToggle(c)}
-          className="sticky top-0 z-[6] mb-2.5 flex w-full cursor-pointer items-center gap-2 rounded-[10px] bg-[rgba(226,235,247,0.82)] px-2.5 py-1.5 text-left type-card-title text-brand-navy shadow-[0_2px_8px_-4px_rgba(20,51,107,0.3)] backdrop-blur-[10px] before:h-4 before:w-1 before:rounded-sm before:bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)] before:content-['']"
+          className="sticky top-0 z-[6] mb-1.5 flex w-full cursor-pointer items-center gap-2 rounded-[10px] bg-[rgba(226,235,247,0.82)] px-2.5 py-0.5 text-left type-label text-brand-navy shadow-[0_2px_8px_-4px_rgba(20,51,107,0.3)] backdrop-blur-[10px] before:h-3.5 before:w-1 before:rounded-sm before:bg-[linear-gradient(180deg,#3fc4ff,#0a3fc9)] before:content-['']"
         >
           {t("table.currency", { code: c })}
           <span className="ml-auto inline-flex items-center gap-2 type-caption font-semibold! text-dash-sub">
@@ -93,13 +92,13 @@ export default function ReportBlocks({ blocks, currencies, showName, shut, onTog
             </div>
             <div className="mt-(--gap) flex justify-center">
               <div className="w-[min(clamp(260px,19.8vw,380px),100%)] overflow-hidden rounded-lg">
-                <div className="flex h-[clamp(30px,2.1vw,40px)] items-center justify-center bg-brand-head px-4 type-table-head text-white">{t("table.total")}</div>
+                <div className="flex h-[clamp(20px,1.2vw,24px)] items-center justify-center bg-brand-head px-4 type-table-head text-white">{t("table.total")}</div>
                 <table className="w-full border-collapse type-table-cell">
                   <tbody>
                     {["bf", "winLoss", "crDr", "balance"].map((key, i) => (
                       <tr key={key} className={rowTone(i)}>
-                        <th className="h-[clamp(26px,1.9vw,36px)] w-[48%] border-b border-[rgba(130,155,195,0.2)] px-[clamp(10px,0.83vw,16px)] text-left font-semibold text-brand-navy">{t(`table.${key}`)}</th>
-                        <td className={cn("h-[clamp(26px,1.9vw,36px)] border-b border-[rgba(130,155,195,0.2)] px-[clamp(10px,0.83vw,16px)] text-right font-semibold tabular-nums", amountTone(block.totals[key]) || "text-[#374151]")}>{fmt(block.totals[key])}</td>
+                        <th className="h-[clamp(18px,1.1vw,22px)] w-[48%] border-b border-[rgba(130,155,195,0.2)] px-[clamp(6px,0.5vw,10px)] text-left font-semibold text-brand-navy">{t(`table.${key}`)}</th>
+                        <td className={cn("h-[clamp(18px,1.1vw,22px)] border-b border-[rgba(130,155,195,0.2)] px-[clamp(6px,0.5vw,10px)] text-right font-semibold tabular-nums", amountTone(block.totals[key]) || "text-[#374151]")}>{fmt(block.totals[key])}</td>
                       </tr>
                     ))}
                   </tbody>
