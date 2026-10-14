@@ -10,10 +10,10 @@ export default function PillField({ icon: Icon, trailing, className, center, ...
       )}
       <input
         className={cn(
-          "h-[46px] w-full rounded-full border-[1.5px] border-[#bcd9fb] bg-gradient-to-b from-white to-[#f7fbff] text-[12.5px] text-[#35538c] shadow-[inset_0_1px_2px_rgba(20,70,160,0.05)] outline-none transition-[border-color,box-shadow] placeholder:text-[#a9c3e6] focus:border-[#4f8ef0] focus:shadow-[0_0_0_4px_rgba(79,142,240,0.12)]",
+          "h-[46px] w-full rounded-full border-[1.5px] border-[#bcd9fb] bg-gradient-to-b from-white to-[#f7fbff] type-body text-[#35538c] shadow-[inset_0_1px_2px_rgba(20,70,160,0.05)] outline-none transition-[border-color,box-shadow] placeholder:text-[#a9c3e6] focus:border-[#4f8ef0] focus:shadow-[0_0_0_4px_rgba(79,142,240,0.12)]",
           Icon ? "pl-[46px] pr-[18px]" : "px-[18px]",
           trailing && "pr-[46px]",
-          center && "text-center text-base font-semibold tracking-[8px]",
+          center && "text-center type-label tracking-[8px]",
           className
         )}
         {...props}

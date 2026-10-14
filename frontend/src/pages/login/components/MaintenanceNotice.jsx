@@ -80,7 +80,7 @@ export default function MaintenanceNotice({ prefix, text, className }) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const copy = "inline-block whitespace-nowrap text-[12.5px] font-medium tabular-nums text-brand-navy";
+  const copy = "inline-block whitespace-nowrap type-caption font-medium! tabular-nums text-brand-navy";
 
   return (
     <div
@@ -93,7 +93,7 @@ export default function MaintenanceNotice({ prefix, text, className }) {
       <span className="flex size-7 flex-none items-center justify-center rounded-full bg-white text-brand-blue shadow-[0_2px_6px_-2px_rgba(20,70,160,0.3)]">
         <Wrench size={15} aria-hidden="true" />
       </span>
-      {prefix && <b className="max-w-[45%] flex-none truncate text-[12.5px] font-semibold text-brand-navy">{prefix}</b>}
+      {prefix && <b className="max-w-[45%] flex-none truncate type-caption font-semibold! text-brand-navy">{prefix}</b>}
       <div
         ref={windowRef}
         title={text}

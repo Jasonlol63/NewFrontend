@@ -81,12 +81,12 @@ export default function SecondaryPasswordPage() {
             <ArrowLeft size={20} />
           </button>
 
-          <h1 className="mt-1 text-center text-[20px] font-semibold leading-[1.3] tracking-[-0.2px] text-[#14336b]">
+          <h1 className="mt-1 text-center type-page-title tracking-[-0.2px] text-[#14336b]">
             {t("secondary.titleLine1")}
             <br />
             {t("secondary.titleLine2")}
           </h1>
-          <p className="mb-[26px] mt-2.5 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
+          <p className="mb-[26px] mt-2.5 text-center type-caption leading-relaxed text-[#7c93b8]">
             {t("secondary.hint")}
           </p>
 
@@ -103,7 +103,7 @@ export default function SecondaryPasswordPage() {
                 placeholder={t("secondary.placeholder")}
                 value={password}
                 onChange={onChangePassword}
-                className="h-12 w-full rounded-full border-[1.5px] border-[#bcd9fb] bg-gradient-to-b from-white to-[#f7fbff] px-[46px] text-[13px] tracking-[1px] text-[#35538c] shadow-[inset_0_1px_2px_rgba(20,70,160,0.05)] outline-none transition-[border-color,box-shadow] placeholder:tracking-normal placeholder:text-[#a9c3e6] focus:border-[#4f8ef0] focus:shadow-[0_0_0_4px_rgba(79,142,240,0.12)]"
+                className="h-12 w-full rounded-full border-[1.5px] border-[#bcd9fb] bg-gradient-to-b from-white to-[#f7fbff] px-[46px] type-body tracking-[1px] text-[#35538c] shadow-[inset_0_1px_2px_rgba(20,70,160,0.05)] outline-none transition-[border-color,box-shadow] placeholder:tracking-normal placeholder:text-[#a9c3e6] focus:border-[#4f8ef0] focus:shadow-[0_0_0_4px_rgba(79,142,240,0.12)]"
               />
               <button
                 type="button"
@@ -127,7 +127,7 @@ export default function SecondaryPasswordPage() {
             <button
               type="submit"
               disabled={submitting || password.length !== 6}
-              className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+              className="h-11 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
             >
               {t("secondary.verify")}
             </button>

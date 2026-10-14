@@ -45,7 +45,7 @@
 
 ## 进度
 
-- 已完成:Dashboard、Report、Maintenance、Auto Renew、Announcement 等大部分共享组件(列表、对话框、分段按钮等),以及 Data Capture(共用部件、表格、Bank、Game、Summary、公式弹窗,`paste/` 解析逻辑不涉及界面)。
+- 已完成:Login 相关页面（登录、二级密码、重置密码及其组件，`PillSwitch` 是共享组件未动）、Dashboard、Report、Maintenance、Auto Renew、Announcement 等大部分共享组件(列表、对话框、分段按钮等),以及 Data Capture(共用部件、表格、Bank、Game、Summary、公式弹窗,`paste/` 解析逻辑不涉及界面)。
 - 其余页面按这套角色逐页迁移,遇到仍在用 `text-[…px]` 的地方就归并到上面的角色。
 - 每页迁移后要在 1366×610、1536×730、1920×950 下检查:无页面滚动、无横向溢出。
 - 全部完成后,把"字号只用 type-* / fm-*,字重只用 400/500/600"写进 `frontend/CLAUDE.md`。

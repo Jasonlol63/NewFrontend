@@ -30,7 +30,7 @@ export default function TelegramFab({ href }) {
       </span>
       <span
         aria-hidden="true"
-        className="pointer-events-none translate-x-2 whitespace-nowrap rounded-full border border-brand-blue/25 bg-white/90 px-4 py-[9px] text-[13px] font-semibold text-brand-navy opacity-0 shadow-[0_12px_24px_-12px_rgba(20,51,107,0.45)] transition-[opacity,transform] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 max-sm:hidden motion-reduce:transition-none"
+        className="pointer-events-none translate-x-2 whitespace-nowrap rounded-full border border-brand-blue/25 bg-white/90 px-4 py-[9px] type-table-cell font-semibold! text-brand-navy opacity-0 shadow-[0_12px_24px_-12px_rgba(20,51,107,0.45)] transition-[opacity,transform] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 max-sm:hidden motion-reduce:transition-none"
       >
         {t("telegram.label")}
       </span>

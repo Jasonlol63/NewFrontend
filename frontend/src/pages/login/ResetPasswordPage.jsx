@@ -193,7 +193,7 @@ export default function ResetPasswordPage() {
 
           {step === 1 && (
             <div key="step-1" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="mb-6 text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="mb-6 text-center type-page-title tracking-[-0.2px] text-[#14336b]">
                 {t("reset.title")}
               </h1>
 
@@ -232,7 +232,7 @@ export default function ResetPasswordPage() {
                             setIdentifier("");
                           }}
                           className={cn(
-                            "cursor-pointer rounded-full border-none px-2.5 py-[3px] text-[11px] font-semibold transition-colors",
+                            "cursor-pointer rounded-full border-none px-2.5 py-[3px] type-caption font-semibold! transition-colors",
                             lookup === key ? "bg-white text-[#2f6fef] shadow-[0_1px_3px_rgba(20,70,160,0.25)]" : "bg-transparent text-[#7c93b8]"
                           )}
                         >
@@ -254,7 +254,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {t("reset.sendCode")}
                 </button>
@@ -264,10 +264,10 @@ export default function ResetPasswordPage() {
 
           {step === 2 && (
             <div key="step-2" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="text-center type-page-title tracking-[-0.2px] text-[#14336b]">
                 {t("reset.verifyTitle")}
               </h1>
-              <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
+              <p className="mb-6 mt-2 text-center type-caption leading-relaxed text-[#7c93b8]">
                 {t("reset.sentTo")}
                 <br />
                 <b className="font-semibold text-[#35538c]">{maskEmail(email || "you@example.com")}</b>
@@ -287,13 +287,13 @@ export default function ResetPasswordPage() {
                   className={otpError ? "border-red-400 focus:border-red-400 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.12)]" : undefined}
                 />
 
-                <div className="-mt-1.5 mb-1 text-center text-xs text-[#8fa8cf]">
+                <div className="-mt-1.5 mb-1 text-center type-caption text-[#8fa8cf]">
                   {t("reset.noCode")}{" "}
                   <button
                     type="button"
                     onClick={onResendCode}
                     disabled={secondsLeft > 0 || submitting}
-                    className="cursor-pointer border-none bg-transparent p-0 font-semibold text-[#2f6fef] disabled:cursor-default disabled:text-[#a9c3e6]"
+                    className="cursor-pointer border-none bg-transparent p-0 font-semibold! text-[#2f6fef] disabled:cursor-default disabled:text-[#a9c3e6]"
                   >
                     {secondsLeft > 0 ? t("reset.resendIn", { seconds: secondsLeft }) : t("reset.resendCode")}
                   </button>
@@ -302,7 +302,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {t("reset.continue")}
                 </button>
@@ -310,7 +310,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="mt-1 block w-full cursor-pointer border-none bg-transparent text-center text-xs font-semibold text-[#2f6fef]"
+                  className="mt-1 block w-full cursor-pointer border-none bg-transparent text-center type-caption font-semibold! text-[#2f6fef]"
                 >
                   {t("reset.differentEmail")}
                 </button>
@@ -320,10 +320,10 @@ export default function ResetPasswordPage() {
 
           {step === 3 && (
             <div key="step-3" className="animate-[fadeSlide_0.32s_ease]">
-              <h1 className="text-center text-[20px] font-semibold tracking-[-0.2px] text-[#14336b]">
+              <h1 className="text-center type-page-title tracking-[-0.2px] text-[#14336b]">
                 {t("reset.newTitle")}
               </h1>
-              <p className="mb-6 mt-2 text-center text-[12.5px] leading-relaxed text-[#7c93b8]">
+              <p className="mb-6 mt-2 text-center type-caption leading-relaxed text-[#7c93b8]">
                 {t("reset.newHint")}
               </p>
 
@@ -371,7 +371,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {t("reset.submit")}
                 </button>
@@ -384,8 +384,8 @@ export default function ResetPasswordPage() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55)]">
                 <Check size={26} strokeWidth={3} />
               </div>
-              <h2 className="mb-2 text-[18px] font-semibold text-[#14336b]">{t("reset.doneTitle")}</h2>
-              <p className="mb-[22px] text-[12.5px] leading-relaxed text-[#7c93b8]">
+              <h2 className="mb-2 type-card-title text-[#14336b]">{t("reset.doneTitle")}</h2>
+              <p className="mb-[22px] type-caption leading-relaxed text-[#7c93b8]">
                 {t("reset.doneBody1")}
                 <br />
                 {t("reset.doneBody2")}
@@ -393,7 +393,7 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={() => navigate("/login")}
-                className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
               >
                 {t("reset.backToLogin")}
               </button>

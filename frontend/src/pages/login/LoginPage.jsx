@@ -142,7 +142,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <h1 className="m-0 mb-fluid-md text-[clamp(18px,3dvh,21px)] font-semibold tracking-[-0.2px] text-[#14336b]">
+        <h1 className="m-0 mb-fluid-md type-page-title tracking-[-0.2px] text-[#14336b]">
           {t("title")}
         </h1>
 
@@ -191,7 +191,7 @@ export default function LoginPage() {
               }
             />
 
-            <div className="mb-fluid-xs mt-0.5 flex items-center justify-between text-xs">
+            <div className="mb-fluid-xs mt-0.5 flex items-center justify-between type-caption">
               <label className="flex cursor-pointer items-center gap-[7px] text-[#4a5568]">
                 <input
                   type="checkbox"
@@ -210,7 +210,7 @@ export default function LoginPage() {
               </label>
               <Link
                 to="/reset-password"
-                className="font-semibold text-[#2f6fef] no-underline"
+                className="font-semibold! text-[#2f6fef] no-underline"
               >
                 {t("forgotPassword")}
               </Link>
@@ -219,7 +219,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
+              className="mt-1 flex disabled:cursor-not-allowed disabled:opacity-70 h-[clamp(38px,5.5dvh,42px)] w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] type-body font-semibold! text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)]"
             >
               {t("login")}
               <ArrowRight size={15} />
