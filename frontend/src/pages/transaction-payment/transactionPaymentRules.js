@@ -50,11 +50,6 @@ export const compareByRole = (a, b) =>
 
 export { formatMoney as fmt } from "@/lib/money";
 
-export const todayDisplay = () => {
-  const d = new Date();
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-};
-
 export const toNumber = (value) => parseFloat(String(value ?? "").replace(/,/g, ""));
 export const positive = (value) => toNumber(value) > 0;
 // A typed amount (e.g. "-5,000.5") that is a number and not 0, worked on the text.
@@ -187,7 +182,7 @@ export function middleManTotal({ amount1, rate, mul, fee, pt }) {
 
 /** The /api/transaction/submit body of the form, or throws the message to show (written with t, the `transaction` namespace's t). `f` is the form state, `cur` the resolved currencies. */
 export function buildSubmitRequest({ tenantId, type, f, cur, t }) {
-  const base = { tenantId, transactionType: type };
+  const base = { tenantId, transactionType: type, transactionDate: f.date };
   if (type === "RATE") {
     const rate = parseRate(f.rRate);
     if (!f.rTo1 || !f.rFrom1) throw new Error(t("errors.toFirst"));

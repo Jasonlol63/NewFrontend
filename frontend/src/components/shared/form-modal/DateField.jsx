@@ -15,9 +15,10 @@ const tileClass = "cursor-pointer rounded-lg border-none py-2 fm-btn-sm transiti
 /**
  * Single-date field: a plain input-style box (yyyy-mm-dd + calendar icon) that opens the
  * Dashboard calendar (month / year views). Picking a day sets it and closes the popup.
- * value / onChange use ISO "yyyy-mm-dd" strings.
+ * value / onChange use ISO "yyyy-mm-dd" strings. `display` overrides the text in the box
+ * (the value is still ISO); `triggerClassName` restyles the box (e.g. the 30px Transaction form).
  */
-export default function DateField({ value, onChange, placeholder, popupClassName, disabled = false }) {
+export default function DateField({ value, onChange, placeholder, popupClassName, disabled = false, display, triggerClassName }) {
   const { t } = useTranslation();
   const MONTHS = t("calendar.months", { returnObjects: true });
   const WEEKDAYS = t("calendar.weekdays", { returnObjects: true });
@@ -52,10 +53,11 @@ export default function DateField({ value, onChange, placeholder, popupClassName
             inputClass,
             "flex cursor-pointer items-center gap-2 text-left hover:border-[#93c5fd]",
             "disabled:cursor-not-allowed disabled:bg-modal-off disabled:text-dash-faint disabled:hover:border-modal-input-line",
-            open && openFieldClass
+            open && openFieldClass,
+            triggerClassName
           )}
         >
-          <span className={cn("min-w-0 flex-1 truncate tabular-nums", !value && "text-dash-faint")}>{value || placeholder || t("select")}</span>
+          <span className={cn("min-w-0 flex-1 truncate tabular-nums", !value && "text-dash-faint")}>{display ?? (value || placeholder || t("select"))}</span>
           <CalendarDays className="size-[15px] flex-none text-dash-faint" strokeWidth={2} />
         </button>
       </Popover.Trigger>

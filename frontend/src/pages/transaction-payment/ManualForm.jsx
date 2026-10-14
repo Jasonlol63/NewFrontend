@@ -6,7 +6,9 @@ import { SelectBox } from "@/components/shared/list/DataTable.jsx";
 import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
+import { formatDisplayDate, toIsoDate } from "@/lib/date";
 import { formatMoney } from "@/lib/money";
+import DateField from "@/components/shared/form-modal/DateField.jsx";
 import { INPUT, LABEL, Select } from "./fields.jsx";
 import {
   SUBMIT_URL,
@@ -19,14 +21,12 @@ import {
   positive,
   rateAmount2,
   isNonZeroAmount,
-  toNumber,
-  todayDisplay,
 } from "./transactionPaymentRules";
 import { useLinkedAccounts } from "./useTransactionData";
 
 const ACCOUNT_FIELDS = ["to", "from", "rTo1", "rFrom1", "rTo2", "rFrom2", "rMid", "aAcc"];
 const INITIAL = {
-  to: null, from: null, cur: null, amount: "", remark: "",
+  to: null, from: null, cur: null, amount: "", remark: "", date: null,
   rTo1: null, rFrom1: null, rCur1: null, rAmt1: "", rRate: "", rCur2: null, rAmt2: "", rTo2: null, rFrom2: null, rMid: null, rMul: "", rFee: "", rPT: "",
   aAcc: null, aCur: null, aAmt: "", aRemark: "",
 };
@@ -52,6 +52,9 @@ const MIDDLE_ROW =
   "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_var(--revw)] items-center gap-2 @max-[439px]:grid-cols-[160px_minmax(0,1fr)] @min-[440px]:@max-[520px]:grid-cols-[148px_minmax(0,1fr)] @min-[521px]:@max-[620px]:grid-cols-[160px_minmax(0,1fr)]";
 const MIDDLE_FIELDS =
   "col-[2/4] grid min-w-0 grid-cols-[1.5fr_1fr_1fr_1.3fr] gap-2 @max-[620px]:col-[2] @max-[439px]:grid-cols-2 @min-[440px]:@max-[520px]:grid-cols-[1.55fr_1fr_1fr_1.15fr] @min-[440px]:@max-[520px]:gap-[5px] @min-[521px]:@max-[620px]:grid-cols-[1.5fr_1fr_1fr_1.2fr] [&>input]:px-1.5 @min-[440px]:@max-[520px]:[&>input]:px-1";
+// Date popup: the same calendar as the Bank Process dayStart field, but capped small — the field here is far
+// wider than the popup needs to be.
+const DATE_POPUP = "max-w-[260px]";
 
 /**
  * Right top card: the manual transaction form. The Type picks the layout: Rate and Adjustment have their own, every
@@ -65,7 +68,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
   const { t } = useTranslation("transaction");
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const [type, setType] = useState("CONTRA");
-  const [f, setF] = useState(INITIAL);
+  const [f, setF] = useState(() => ({ ...INITIAL, date: toIsoDate(new Date()) }));
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const set = (key, value) => {
@@ -182,7 +185,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
     try {
       const reply = await postJson(SUBMIT_URL, body);
       const status = reply.data?.approvalStatus ?? "APPROVED";
-      setF((cur) => ({ ...INITIAL, ...Object.fromEntries(KEEP.map((k) => [k, cur[k]])) }));
+      setF((cur) => ({ ...INITIAL, date: toIsoDate(new Date()), ...Object.fromEntries(KEEP.map((k) => [k, cur[k]])) }));
       setConfirm(false);
       notify?.(status === "PENDING" ? t("toast.submittedPending") : t("toast.submitted"));
       onSubmitted?.(status);
@@ -217,7 +220,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
         <span className={LABEL}>{t("form.type")}</span>
         <Select options={typeOptions} value={type} onChange={setType} ariaLabel={t("form.type")} />
         <span className={LABEL}>{t("form.date")}</span>
-        <input className={INPUT} value={todayDisplay()} readOnly aria-label={t("form.date")} />
+        <DateField value={f.date} display={formatDisplayDate(f.date)} onChange={(v) => set("date", v)} placeholder="DD/MM/YYYY" triggerClassName={INPUT} popupClassName={DATE_POPUP} />
 
         {layout === "std" && (
           <>
