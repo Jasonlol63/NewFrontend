@@ -31,7 +31,7 @@ function AlertPill({ on, onToggle, disabled }) {
       title={disabled ? t("page.readOnly") : t("page.alertSwitch")}
       // Rounded rectangle (rounded-md) to line up with the Role / Status badges.
       className={cn(
-        "relative inline-flex h-[22px] w-[46px] items-center rounded-md border-none text-[10.5px] font-semibold tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
+        "relative inline-flex h-[22px] w-[54px] items-center rounded-md border-none type-table-cell font-semibold! leading-none tracking-[0.3px] text-white transition-[filter] enabled:cursor-pointer enabled:hover:brightness-105 disabled:cursor-not-allowed",
         on
           ? "justify-start bg-alert-on pl-2 shadow-[0_4px_10px_-4px_rgba(5,150,105,0.6),inset_0_0_0_1px_rgba(4,120,87,0.25)]"
           : "justify-end bg-alert-off pr-[7px] shadow-[0_4px_10px_-4px_rgba(229,62,62,0.6),inset_0_0_0_1px_rgba(185,28,28,0.25)]"

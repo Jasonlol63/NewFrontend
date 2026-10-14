@@ -35,8 +35,8 @@ function presetRange(preset) {
 const SIZE = {
   // The popup is always exactly as wide as this box; the calendar takes whatever the presets leave.
   trigger: "w-[330px]",                         // width of the date box AND of the popup
-  presetColumn: "w-[92px] p-1",                 // left preset list width + padding
-  presetItem: "px-2 py-1.5 type-caption font-semibold!",        // each preset row
+  presetColumn: "w-[96px] p-1",                 // left preset list width + padding
+  presetItem: "px-1.5 py-1.5 text-[12px] font-semibold! whitespace-nowrap",        // each preset row: one line ("This Month"), the same 12px on every screen
   calendar: "p-2.5",                            // right calendar padding
   header: "mb-2",                               // gap under the < Sep 2026 > row
   headerButton: "px-2 py-[calc(var(--spacing)*1.2)] type-caption font-semibold!",      // "Sep" / "2026" buttons

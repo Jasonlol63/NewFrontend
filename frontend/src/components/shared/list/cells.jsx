@@ -4,7 +4,7 @@ import { Clock, SquarePen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BADGE, formatDateTime } from "./listFormat";
 
-const badge = "inline-flex rounded-md border px-2 py-0.5 type-caption font-semibold! tracking-wide whitespace-nowrap capitalize";
+const badge = "inline-flex h-[22px] items-center rounded-md border px-2 type-table-cell font-semibold! tracking-wide whitespace-nowrap capitalize";
 
 export function Badge({ className, children, ...props }) {
   return (

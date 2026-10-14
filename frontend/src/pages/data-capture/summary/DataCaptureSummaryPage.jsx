@@ -40,7 +40,7 @@ const COLS = [
 const th =
   "sticky top-0 z-[2] h-7 overflow-hidden border-r border-white/25 bg-[linear-gradient(180deg,#60c1fe,#1a6bff)] px-1 text-center type-caption font-semibold! text-white last:border-r-0 min-[1701px]:whitespace-nowrap max-[1700px]:py-0.5 max-[1700px]:leading-[1.15] max-[1250px]:px-0.5 short:h-[26px]";
 const td =
-  "h-7 overflow-hidden text-ellipsis whitespace-nowrap border-r border-b border-[#e8eef7] px-1.5 type-table-cell text-[#1f2937] last:border-r-0 group-even:bg-[#f7faff] group-hover:bg-[#e9f3ff] max-[1400px]:px-1 short:h-[25px]";
+  "h-7 overflow-hidden text-ellipsis whitespace-nowrap border-r border-b border-[#e8eef7] px-1.5 type-table-cell font-semibold! text-[#1f2937] last:border-r-0 group-even:bg-[#f7faff] group-hover:bg-[#e9f3ff] max-[1400px]:px-1 short:h-[25px]";
 const smallButton = "h-7 whitespace-nowrap rounded-lg py-0 type-table-cell font-semibold!";
 const actionButton = "h-8 whitespace-nowrap rounded-lg py-0 type-body font-semibold!";
 

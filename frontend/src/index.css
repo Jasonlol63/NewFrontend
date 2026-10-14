@@ -527,17 +527,18 @@ body {
   --fm-label: 14;
   --fm-opt: 12;
   --fm-help: 12;
-  --fm-input: 14;
+  --fm-input: 13;
   --fm-btn: 14;
   --fm-btn-sm: 13;
   --fm-count: 13;
   --fm-empty: 13;
   --fm-amount: 28;
 }
-/* Field labels read one step smaller on laptop screens (up to 900px tall). */
+/* Laptop screens (up to 900px tall): labels one step smaller, and what is typed in a field stays one step under its label. */
 @media (max-height: 900px) {
   :root {
     --fm-label: 13;
+    --fm-input: 12.5;
   }
 }
 @media (max-height: 760px) {
@@ -548,7 +549,7 @@ body {
     --fm-label: 13;
     --fm-opt: 11.5;
     --fm-help: 12;
-    --fm-input: 13.5;
+    --fm-input: 12.5;
     --fm-btn: 13.5;
     --fm-btn-sm: 12.5;
     --fm-count: 12.5;
@@ -563,7 +564,7 @@ body {
     --fm-label: 12.5;
     --fm-opt: 11;
     --fm-help: 11.5;
-    --fm-input: 13;
+    --fm-input: 12;
     --fm-btn: 13;
     --fm-btn-sm: 12;
     --fm-count: 12;

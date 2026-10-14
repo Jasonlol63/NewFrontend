@@ -30,7 +30,7 @@ function DayUse({ days }) {
         <span
           key={day}
           title={t(`days.${day}.full`)}
-          className="inline-flex h-[20px] items-center justify-center rounded-[5px] border border-[#bcd9fb] bg-[#e0edff] px-1.5 type-caption font-semibold! text-[#1d4ed8]"
+          className="inline-flex h-[20px] items-center justify-center rounded-[5px] border border-[#bcd9fb] bg-[#e0edff] px-1.5 type-table-cell font-semibold! text-[#1d4ed8]"
         >
           {t(`days.${day}.abbr`).toUpperCase()}
         </span>

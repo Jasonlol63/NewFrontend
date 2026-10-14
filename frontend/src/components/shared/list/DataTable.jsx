@@ -353,55 +353,79 @@ function measureSample(rows, cols) {
   return [...picked];
 }
 
+// What a hidden measuring table says about its columns: the width each needs, which of them are text (`fit`) or fixed, and
+// the narrowest a text column may get (its header, or its fitMin).
+function readLayout(table) {
+  const heads = table ? [...table.querySelectorAll("thead th")] : [];
+  if (!heads.length) return null;
+  const natural = heads.map((h) => Math.ceil(h.getBoundingClientRect().width) + 1);
+  const label = heads.map((h) => (h.querySelector("[data-head]")?.getBoundingClientRect().width ?? 0) + 20);
+  return {
+    natural,
+    fit: heads.map((h) => h.dataset.fit === "1"),
+    fixed: heads.map((h) => Boolean(h.dataset.fixed)),
+    mins: heads.map((h, i) => Math.min(natural[i], Math.max(FIT_MIN, Number(h.dataset.fitmin) || 0, label[i]))),
+    sum: natural.reduce((a, b) => a + b, 0),
+  };
+}
+
+// The narrowest the layout can get by shortening its text columns (the others keep their width).
+function narrowest(layout) {
+  return layout.natural.reduce((acc, w, i) => acc + (layout.fit[i] ? layout.mins[i] : w), 0);
+}
+
+// Whole-pixel column widths for a card `room` px wide. Spare room is shared by every column without a fixed width (text
+// columns count 1.5x); too little room is taken from the text columns only, longest first, never below their minimum.
+function spreadWidths(layout, room) {
+  const { natural, fit, fixed, mins, sum } = layout;
+  let out = natural.slice();
+  if (sum < room) {
+    const weight = natural.map((w, i) => (fixed[i] ? 0 : w * (fit[i] ? 1.5 : 1)));
+    const total = weight.reduce((acc, w) => acc + w, 0) || 1;
+    out = natural.map((w, i) => w + ((room - sum) * weight[i]) / total);
+  } else if (sum > room) {
+    const give = (level) => natural.reduce((acc, w, i) => (fit[i] ? acc + Math.max(0, w - Math.max(mins[i], level)) : acc), 0);
+    const take = Math.min(sum - room, give(0));
+    let low = 0;
+    let high = Math.max(...natural);
+    for (let i = 0; i < 24; i++) {
+      const mid = (low + high) / 2;
+      if (give(mid) > take) low = mid;
+      else high = mid;
+    }
+    out = natural.map((w, i) => (fit[i] ? Math.min(w, Math.max(mins[i], high)) : w));
+  }
+  const whole = out.map((w) => Math.ceil(w));
+  const over = whole.reduce((acc, w) => acc + w, 0) - room;
+  // A pixel too many (rounding up) is taken from the widest text column, never from a column that needs it.
+  const widest = whole.map((w, i) => (fit[i] ? i : -1)).filter((i) => i >= 0).sort((x, y) => whole[y] - whole[x])[0];
+  if (over > 0 && widest !== undefined) whole[widest] -= Math.min(over, Math.max(0, whole[widest] - mins[widest]));
+  return whole;
+}
+
 // Paged lists: the column widths come from the whole list (see measureSample), not from the rows of the page, and stay the
-// same while paging, so the header never moves. The natural widths are read from a hidden copy of the table; the card's spare
-// room goes to the `fit` (text) columns only, and when the card is too narrow only those give up the difference (longest
-// first, never below their header), their text then ends in "..." with the full text in the hover card.
-function useStableColumns(enabled, ref, measureRef, key, ready) {
-  const [widths, setWidths] = useState(null);
+// same while paging, so the header never moves. The natural widths are read from hidden copies of the table (one for
+// `columns`, one for `altColumns`). `columns` is used while its text columns can shrink far enough to fit the card (the
+// text that is cut ends in "..." with the full text in the hover card); only when even that is not enough the compact
+// `altColumns` take over.
+function useStableColumns(enabled, ref, measureRef, altMeasureRef, key, ready) {
+  const [state, setState] = useState(null);
   const compute = useCallback(() => {
     const body = ref.current;
-    const table = measureRef.current;
-    if (!body || !table) return;
-    const heads = [...table.querySelectorAll("thead th")];
-    if (!heads.length) return;
-    const natural = heads.map((h) => h.getBoundingClientRect().width);
-    const fit = heads.map((h) => h.dataset.fit === "1");
-    const labels = heads.map((h) => (h.querySelector("[data-head]")?.getBoundingClientRect().width ?? 0) + 20);
+    const first = readLayout(measureRef.current);
+    if (!body || !first) return;
+    const second = readLayout(altMeasureRef.current);
     const room = body.clientWidth;
-    const sum = natural.reduce((a, b) => a + b, 0);
-    let out = natural.slice();
-    const targets = fit.some(Boolean) ? fit : fit.map(() => true);
-    if (sum < room) {
-      const open = natural.map((_, i) => !heads[i].dataset.fixed);
-      const weight = natural.map((w, i) => (open[i] ? w * (fit[i] ? 1.5 : 1) : 0));
-      const total = weight.reduce((acc, w) => acc + w, 0) || 1;
-      out = natural.map((w, i) => w + ((room - sum) * weight[i]) / total);
-    } else if (sum > room) {
-      const mins = natural.map((w, i) => Math.min(w, Math.max(FIT_MIN, labels[i])));
-      const give = (level) => natural.reduce((acc, w, i) => (fit[i] ? acc + Math.max(0, w - Math.max(mins[i], level)) : acc), 0);
-      const take = Math.min(sum - room, give(0));
-      let low = 0;
-      let high = Math.max(...natural);
-      for (let i = 0; i < 24; i++) {
-        const mid = (low + high) / 2;
-        if (give(mid) > take) low = mid;
-        else high = mid;
-      }
-      out = natural.map((w, i) => (fit[i] ? Math.min(w, Math.max(mins[i], high)) : w));
-    }
-    const whole = out.map((w) => Math.ceil(w));
-    let over = whole.reduce((acc, w) => acc + w, 0) - room;
-    // A pixel too many (rounding up) is taken from the widest text column, never from a column that needs it.
-    const widest = whole.map((w, i) => (fit[i] ? i : -1)).filter((i) => i >= 0).sort((x, y) => whole[y] - whole[x])[0];
-    if (over > 0 && widest !== undefined) whole[widest] -= Math.min(over, whole[widest] - 40), (over = 0);
-    setWidths(whole);
-  }, [ref, measureRef]);
+    // The normal layout stays while its text columns can give up enough room (their cut text shows in the hover card);
+    // the compact one only comes in when even that is not enough.
+    const alt = Boolean(second) && narrowest(first) > room;
+    setState({ alt, widths: spreadWidths(alt ? second : first, room) });
+  }, [ref, measureRef, altMeasureRef]);
   useLayoutEffect(() => {
-    setWidths(null);
+    setState(null);
   }, [key]);
   useLayoutEffect(() => {
-    if (enabled && ready && !widths) compute();
+    if (enabled && ready && !state) compute();
   });
   useEffect(() => {
     const body = ref.current;
@@ -410,13 +434,13 @@ function useStableColumns(enabled, ref, measureRef, key, ready) {
     const observer = new ResizeObserver(() => {
       if (Math.abs(body.clientWidth - last) < 1) return;
       last = body.clientWidth;
-      setWidths(null);
+      setState(null);
     });
     observer.observe(body);
-    document.fonts?.ready.then(() => setWidths(null));
+    document.fonts?.ready.then(() => setState(null));
     return () => observer.disconnect();
   }, [enabled, ref]);
-  return enabled ? widths : null;
+  return enabled ? state : null;
 }
 
 const NO_SELECTION = new Set();
@@ -498,8 +522,22 @@ export default function DataTable({
     : td;
   const localBodyRef = useRef(null);
   const scrollRef = bodyRef ?? localBodyRef;
-  const layout = useAltColumns(columns, fitWidth ? altColumns : undefined, onAltChange);
-  const cols = layout.cols;
+  const stable = stableColumns && !virtual && !cards && Boolean(measureRows);
+  const measureRef = useRef(null);
+  const altMeasureRef = useRef(null);
+  const colSig = [...columns, ...(altColumns ?? [])].map((c) => `${c.key}${c.fit ? "*" : ""}`).join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sample = useMemo(() => (stable ? measureSample(measureRows, [...columns, ...(altColumns ?? [])]) : []), [stable, measureRows, colSig]);
+  const stableKey = `${colSig}|${selectColumn}|${measureRows?.length}|${sample.map((r) => r.id).join(",")}`;
+  const stableState = useStableColumns(stable, scrollRef, measureRef, altMeasureRef, stableKey, rows.length > 0);
+  const stableWidths = stableState?.widths ?? null;
+  const lastAlt = useRef(false);
+  const stableAlt = stableState ? stableState.alt : lastAlt.current;
+  useEffect(() => {
+    lastAlt.current = stableAlt;
+  }, [stableAlt]);
+  const layout = useAltColumns(columns, fitWidth && !stable ? altColumns : undefined, onAltChange);
+  const cols = stable && altColumns ? (stableAlt ? altColumns : columns) : layout.cols;
   const { win, update: updateWindow } = useRowWindow({
     enabled: virtual,
     ref: scrollRef,
@@ -513,12 +551,12 @@ export default function DataTable({
   const winStart = virtual ? Math.min(win.start, Math.max(0, rows.length - 1)) : 0;
   const winEnd = virtual ? Math.min(win.end, rows.length) : rows.length;
   const shown = useMemo(() => (virtual ? rows.slice(winStart, winEnd) : rows), [virtual, rows, winStart, winEnd]);
-  const stable = stableColumns && !virtual && !altColumns && !cards && Boolean(measureRows);
   useFitColumns(fitWidth && !stable, scrollRef, shown, layout.alt, layout.onFit);
-  const measureRef = useRef(null);
-  const sample = useMemo(() => (stable ? measureSample(measureRows, cols) : []), [stable, measureRows, cols]);
-  const stableKey = `${cols.map((c) => c.key).join("|")}|${selectColumn}|${measureRows?.length}|${sample.map((r) => r.id).join(",")}`;
-  const stableWidths = useStableColumns(stable, scrollRef, measureRef, stableKey, rows.length > 0);
+  // Tells the page which of the two column sets is drawn (e.g. to give two-line rows more height).
+  useEffect(() => {
+    if (stable && altColumns) onAltChange?.(stableAlt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stable, stableAlt]);
   const virtualFrozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0);
   const frozen = virtualFrozen ?? stableWidths;
   useRowSweep(cards, scrollRef, rows);
@@ -571,45 +609,55 @@ export default function DataTable({
         )}
       >
         {stable && (
-          // A hidden copy with the sample rows: its automatic layout gives each column the width the whole list needs.
+          // Hidden copies with the sample rows, one per column set: their automatic layout gives each column the width the
+          // whole list needs.
           <div aria-hidden inert className="pointer-events-none invisible absolute top-0 left-0 -z-10 h-0 w-0 overflow-hidden">
-            <table
-              ref={measureRef}
-              style={{ width: "max-content" }}
-              className={cn("border-separate border-spacing-0", dense ? "type-table-cell font-medium!" : "type-table-cell")}
-            >
-              <thead>
-                <tr className={cn("text-left", dense ? "type-table-cell font-semibold! min-[1600px]:type-table-head" : "type-table-head")}>
-                  {cols.map((col, i) => (
-                    <th key={col.key} data-fit={col.fit ? "1" : "0"} data-fixed={/w-\[[\d.]+px\]/.test(col.className ?? "") ? "1" : undefined} className={cn("py-2.5 whitespace-nowrap", pad, i === 0 && "pl-4", edge(i), col.className)}>
-                      <span data-head={col.key} className={cn("inline-flex items-center", dense && "relative")}>
-                        {col.label}
-                        {col.sortable !== false && <SortIcon active={false} dir={1} overlay={dense} />}
-                      </span>
-                    </th>
-                  ))}
-                  {showSelect && <th data-fit="0" data-fixed="1" className="w-[44px] py-2.5 pr-4" />}
-                </tr>
-              </thead>
-              <tbody>
-                {sample.map((row, k) => (
-                  <tr key={rowKey(row)}>
-                    {cols.map((col, c) => (
-                      <td key={col.key} className={cn(td, pad, c === 0 && "pl-4", edge(c), col.className, col.cellClassName)}>
-                        <span className="whitespace-nowrap">{col.render(row, offset + k + 1)}</span>
-                      </td>
+            {[[columns, measureRef], ...(altColumns ? [[altColumns, altMeasureRef]] : [])].map(([set, setRef], n) => (
+              <table
+                key={n}
+                ref={setRef}
+                style={{ width: "max-content" }}
+                className={cn("border-separate border-spacing-0", "type-table-cell font-semibold!")}
+              >
+                <thead>
+                  <tr className={cn("text-left", dense ? "type-table-cell font-semibold! min-[1600px]:type-table-head" : "type-table-head")}>
+                    {set.map((col, i) => (
+                      <th
+                        key={col.key}
+                        data-fit={col.fit ? "1" : "0"}
+                        data-fitmin={col.fitMin}
+                        data-fixed={/w-\[[\d.]+px\]/.test(col.className ?? "") ? "1" : undefined}
+                        className={cn("py-2.5 whitespace-nowrap", pad, i === 0 && "pl-4", !showSelect && i === set.length - 1 && (dense ? "pr-3" : "pr-4"), col.className)}
+                      >
+                        <span data-head={col.key} className={cn("inline-flex items-center", dense && "relative")}>
+                          {col.label}
+                          {col.sortable !== false && <SortIcon active={false} dir={1} overlay={dense} />}
+                        </span>
+                      </th>
                     ))}
-                    {showSelect && <td className="pr-4" />}
+                    {showSelect && <th data-fit="0" data-fixed="1" className="w-[44px] py-2.5 pr-4" />}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sample.map((row, k) => (
+                    <tr key={rowKey(row)}>
+                      {set.map((col, c) => (
+                        <td key={col.key} className={cn(td, pad, c === 0 && "pl-4", !showSelect && c === set.length - 1 && (dense ? "pr-3" : "pr-4"), col.className, col.cellClassName)}>
+                          <span className="whitespace-nowrap">{col.render(row, offset + k + 1)}</span>
+                        </td>
+                      ))}
+                      {showSelect && <td className="pr-4" />}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ))}
           </div>
         )}
         <table
           className={cn(
             "w-full border-separate",
-            dense ? "type-table-cell font-medium!" : "type-table-cell",
+            "type-table-cell font-semibold!",
             // Cards: 8px between rows (and under the header); -mt-2 drops the gap above the header.
             cards ? "-mt-2 border-spacing-x-0 border-spacing-y-2" : "border-spacing-0",
             fitWidth && !dense && "max-[1100px]:text-[13px]",

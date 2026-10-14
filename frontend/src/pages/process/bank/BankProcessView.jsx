@@ -57,16 +57,16 @@ function AccountingDueButton({ count, onClick }) {
 // nothing wraps, scrolls or squeezes the search box until it has to:
 //   Delete loses its label -> the search box becomes an icon -> the chips go slim -> (below ~1000px screens) the
 //   chips drop to a second row at full size.
-// The date box is 330px (its original popup) when everything fits with room to spare, else the 256px box.
+// The date box is 330px (its original popup) when everything fits with room to spare, else the 268px box (the small calendar popup, as wide as the box).
 const CHIPS_WIDTH = 630; // the six chips side by side (at the largest size they take)
 const SLIM_CHIPS_WIDTH = 569; // the same chips, compact
 function toolbarLayout(width) {
-  const wideDate = width >= 330 + CHIPS_WIDTH + 180 + 120 + 30;
-  const date = wideDate ? 330 : 256;
+  const wideDate = width >= 330 + CHIPS_WIDTH + 200 + 120 + 30;
+  const date = wideDate ? 330 : 268;
   const fits = (chips, search, del, gaps = 30) => width >= date + chips + search + del + gaps;
   const base = { wideDate, slim: false, wrap: false };
-  if (fits(CHIPS_WIDTH, 120, 120)) return { ...base, search: "box", deleteLabel: true };
-  if (fits(CHIPS_WIDTH, 120, 44)) return { ...base, search: "box", deleteLabel: false };
+  if (fits(CHIPS_WIDTH, 140, 120)) return { ...base, search: "box", deleteLabel: true };
+  if (fits(CHIPS_WIDTH, 140, 44)) return { ...base, search: "box", deleteLabel: false };
   if (fits(CHIPS_WIDTH, 36, 44)) return { ...base, search: "icon", deleteLabel: false };
   if (fits(SLIM_CHIPS_WIDTH, 36, 36, 24)) return { ...base, slim: true, search: "icon", deleteLabel: false };
   return { ...base, search: "box", deleteLabel: false, wrap: true };
@@ -92,7 +92,7 @@ const searchShell =
 function SearchBox({ value, onChange }) {
   const { t } = useTranslation("process");
   return (
-    <label className={cn(searchShell, "order-2 min-w-[120px] max-w-[180px] flex-[1_1_120px]")}>
+    <label className={cn(searchShell, "order-2 min-w-[140px] max-w-[200px] flex-[1_1_140px]")}>
       <Search className="size-4 flex-none text-dash-faint" strokeWidth={2.2} />
       <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full min-w-0 bg-transparent uppercase placeholder:normal-case outline-none placeholder:text-dash-faint" placeholder={t("bank.page.search")} />
     </label>
@@ -419,7 +419,7 @@ export default function BankProcessView({ scope, readOnly }) {
       <section ref={toolbarRef} className={cn("flex-none rounded-xl border border-dash-line bg-white shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
         <div className={cn("flex items-center px-4 pt-2.5 pb-2.5 short:pt-2", layout.wrap ? "flex-wrap" : "flex-nowrap", layout.slim ? "gap-2" : "gap-2.5")}>
           <div className="order-1 flex-none">
-            <DateRangePicker from={dateRange.from} to={dateRange.to} onChange={setDateRange} compact={!layout.wideDate} />
+            <DateRangePicker from={dateRange.from} to={dateRange.to} onChange={setDateRange} small={!layout.wideDate} className={layout.wideDate ? undefined : "w-[268px] type-table-cell"} />
           </div>
           {layout.search === "icon" ? (
             <SearchIcon value={view.search} onChange={view.setSearch} />
@@ -453,7 +453,7 @@ export default function BankProcessView({ scope, readOnly }) {
         </div>
       </section>
 
-      <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" loading={loading} boxedPager fitWidth dense minWidth="min-w-0" {...view.table} />
+      <DataTable columns={columns} altColumns={twoLineColumns} onAltChange={setTwoLine} selectColumn={false} noun="processes" loading={loading} boxedPager fitWidth dense stableColumns measureRows={view.table.allRows} minWidth="min-w-0" {...view.table} />
       {actions.dialogs}
       <BankRemarkDialog
         row={remarkRow}
