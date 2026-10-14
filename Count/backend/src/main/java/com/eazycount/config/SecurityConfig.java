@@ -39,6 +39,7 @@ public class SecurityConfig {
             "/auth/login",
             "/auth/logout",
             "/auth/send-reset-tac",
+            "/auth/verify-reset-tac",
             "/auth/reset-password",
             "/api/announcement/getMaintenanceInLogin",
             "/api/settings/getTelegramLink",

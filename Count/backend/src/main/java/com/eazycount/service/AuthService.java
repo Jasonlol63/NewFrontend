@@ -52,6 +52,9 @@ public interface AuthService {
     // The account is found by loginId, or (when loginId is blank) by name + email.
     void sendResetTac(String role, String tenantCode, String loginId, String name, String email);
 
+    // Checks the TAC without using it up (the reset page's code step); throws if it is wrong or expired.
+    void verifyResetTac(String role, String tenantCode, String loginId, String name, String email, String tac);
+
     // Verifies the TAC (one-time use), sets the new primary password and ends the account's sessions. The secondary password is never touched.
     void resetPassword(String role, String tenantCode, String loginId, String name, String email, String tac, String newPassword);
 }

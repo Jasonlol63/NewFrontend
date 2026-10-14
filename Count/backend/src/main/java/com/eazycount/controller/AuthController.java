@@ -175,6 +175,16 @@ public class AuthController {
         return Map.of("success", true, "message", "Verification code has been sent.");
     }
 
+    // Only checks the code; it is spent by /reset-password together with the new password.
+    @PostMapping("/verify-reset-tac")
+    public Map<String, Object> verifyResetTac(@RequestParam String role, @RequestParam("tenant_code") String tenantCode,
+                                              @RequestParam(value = "login_id", required = false) String loginId,
+                                              @RequestParam(required = false) String name, @RequestParam String email,
+                                              @RequestParam String tac) {
+        authService.verifyResetTac(role, tenantCode, loginId, name, email, tac);
+        return Map.of("success", true, "message", "Verified");
+    }
+
     @PostMapping("/reset-password")
     public Map<String, Object> resetPassword(@RequestParam String role, @RequestParam("tenant_code") String tenantCode,
                                              @RequestParam(value = "login_id", required = false) String loginId,

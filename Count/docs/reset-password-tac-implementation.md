@@ -123,7 +123,7 @@ resetPassword(tenantCode, email, tac, newPassword):
   走 `Owner` 相关查询（`authDao.findOwnerByOwnerCode`/邮箱）即可复用同一套 `PasswordResetTacStore`
   和 `PasswordResetMailService`，`AuthController` 需要一个方式区分是 admin 还是 owner 在重置
   （目前前端 `ResetPasswordPage.jsx` 只有 tenant_code + email，没有角色选择）。
-- **没有独立的"仅验证 TAC 不消费"接口**：验证和改密码在同一次 `resetPassword` 调用里原子完成。
+- **验证码校验接口（2026-10 新增）**：`POST /auth/verify-reset-tac`（参数同 `reset-password`，不含新密码）只检查验证码、不消耗，错误次数与最终重置共用同一个失败上限（5 次）；`reset-password` 仍会再校验一次并消耗验证码，所以绕过第 2 步直接调重置也没有用。
   讨论过是否要做成"TAC 验证成功才显示密码框"的分步 UI，结论是不做——分步需要额外接口和状态管理，
   且不提升实际安全性，见前端文档第 5 节。
 - **`password_reset_tac` / `password_reset_tac_owner` 表**：保留未删，Redis 化后已经不需要，
@@ -140,6 +140,7 @@ resetPassword(tenantCode, email, tac, newPassword):
 | 路径 | 参数 |
 |---|---|
 | `POST /auth/send-reset-tac` | `role`(`admin`\|`owner`), `tenant_code`, `login_id` **或** `name`, `email` |
+| `POST /auth/verify-reset-tac` | 同上 + `tac`（只检查验证码，不消耗） |
 | `POST /auth/reset-password` | 同上 + `tac`, `new_password` |
 
 - 账号怎么找：`login_id` 非空时按登录 ID（admin：该公司下的 `login_id`；owner：`owner_code`）；为空则按 `name` + `email`。**两种方式邮箱都必须和账号登记的邮箱一致**，并且账号要对该 `tenant_code` 有访问权限。

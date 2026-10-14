@@ -39,6 +39,23 @@ public class PasswordResetTacStore {
         redis.delete(ATTEMPTS_PREFIX + scope + ":" + identity);
     }
 
+    /**
+     * Only checks the code (it stays valid), so the page can reject a wrong code before asking for the new password.
+     * A wrong guess counts towards the same failure limit as {@link #verifyAndConsume}.
+     */
+    public boolean verify(String scope, String identity, String code) {
+        String codeKey = CODE_PREFIX + scope + ":" + identity;
+        String stored = redis.opsForValue().get(codeKey);
+        if (stored == null) {
+            return false;
+        }
+        if (!stored.equals(code)) {
+            registerFailure(scope, identity, codeKey);
+            return false;
+        }
+        return true;
+    }
+
     /** Verifies the code and consumes it (one-time use) on success. */
     public boolean verifyAndConsume(String scope, String identity, String code) {
         String codeKey = CODE_PREFIX + scope + ":" + identity;

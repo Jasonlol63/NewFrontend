@@ -540,6 +540,26 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void verifyResetTac(String role, String tenantCode, String loginId, String name, String email, String tac) {
+        String scope = resetScope(role);
+        String code = normalize(tenantCode);
+        String normalizedEmail = normalizeEmail(email);
+        String trimmedTac = tac == null ? "" : tac.trim();
+
+        if (code.isBlank() || normalizedEmail.isBlank() || trimmedTac.isBlank()) {
+            throw new BusinessException("Group/Company ID, email and TAC are required");
+        }
+        if (normalize(loginId).isBlank() && isBlank(name)) {
+            throw new BusinessException("Login ID or name is required");
+        }
+
+        ResetTarget target = resolveResetTarget(scope, code, loginId, name, normalizedEmail, false);
+        if (target == null || !passwordResetTacStore.verify(target.scope(), String.valueOf(target.id()), trimmedTac)) {
+            throw new BusinessException("Verification code is invalid or expired");
+        }
+    }
+
+    @Override
     public void resetPassword(String role, String tenantCode, String loginId, String name, String email, String tac, String newPassword) {
         String scope = resetScope(role);
         String code = normalize(tenantCode);

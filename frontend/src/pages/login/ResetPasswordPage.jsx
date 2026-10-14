@@ -114,16 +114,27 @@ export default function ResetPasswordPage() {
 
   const onResendCode = () => sendCode(null);
 
-  // The code is only checked by the backend together with the new password (it is one-time use).
-  const onVerifyCode = (e) => {
+  // Checks the code with the backend (it stays valid); the final reset checks it again and spends it.
+  const onVerifyCode = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     if (otp.length < 6) {
       setOtpError(true);
       showError(t("reset.codeIncomplete"));
       return;
     }
-    setOtpError(false);
-    setStep(3);
+    setSubmitting(true);
+    try {
+      await postForm("/auth/verify-reset-tac", { ...accountParams(), tac: otp });
+      setOtpError(false);
+      setStep(3);
+    } catch (err) {
+      setOtpError(true);
+      if (err.message === INVALID_CODE) setOtp("");
+      showError(loginErrorTitle(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const onResetPassword = async (e) => {
@@ -290,7 +301,8 @@ export default function ResetPasswordPage() {
 
                 <button
                   type="submit"
-                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99]"
+                  disabled={submitting}
+                  className="h-11 w-full cursor-pointer rounded-full border-none bg-[linear-gradient(100deg,#0a3fc9_0%,#2f8dff_55%,#3fc4ff_100%)] text-sm font-semibold text-white shadow-[0_14px_24px_-8px_rgba(20,90,220,0.55),inset_0_-3px_8px_rgba(0,0,0,0.08),inset_0_2px_4px_rgba(255,255,255,0.35)] transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {t("reset.continue")}
                 </button>
