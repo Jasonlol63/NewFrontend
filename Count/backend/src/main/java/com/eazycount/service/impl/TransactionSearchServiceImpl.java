@@ -56,8 +56,26 @@ public class TransactionSearchServiceImpl implements TransactionSearchService {
         SearchSlice winLoss = buildWinLossSearchSlice(tenantId, dateFrom, dateTo, currencyCodes, categories);
         SearchSlice domain = buildDomainPaymentSearchSlice(tenantId, dateFrom, dateTo, currencyCodes, categories);
 
+        Set<String> manualKeys = loadManualActivityKeys(tenantId, dateFrom, dateTo, currencyCodes, categories);
+
         boolean showAllZeroBalance = Boolean.TRUE.equals(request.getShowAllZeroBalance());
-        return mergeSearchSlices(tenantId, winLoss, domain, currencyCodes, categories, showAllZeroBalance, dateTo);
+        return mergeSearchSlices(tenantId, winLoss, domain, currencyCodes, categories, showAllZeroBalance, dateTo, manualKeys);
+    }
+
+    // accountDbId|CURRENCY keys that have a manual transaction in the period (Type Search flag on each row).
+    private Set<String> loadManualActivityKeys(Integer tenantId, LocalDate dateFrom, LocalDate dateTo,
+                                               List<String> currencyCodes, List<String> categories) {
+        List<TransactionSearchAggregateRow> rows = transactionSearchDao.findManualActivityKeys(
+                tenantId, dateFrom, dateTo, currencyCodes, categories);
+        Set<String> keys = new HashSet<>();
+        if (rows != null) {
+            for (TransactionSearchAggregateRow row : rows) {
+                if (row != null && row.getAccountDbId() != null) {
+                    keys.add(mergeKey(row));
+                }
+            }
+        }
+        return keys;
     }
 
     // ── Win/Loss: Bank Process + Data Capture + manual Adjustment/Profit/Rate-middleman ─────────
@@ -167,7 +185,7 @@ public class TransactionSearchServiceImpl implements TransactionSearchService {
     // ── Merge / present ───────────────────────────────────────────────────────
     private TransactionSearchResult mergeSearchSlices(
             Integer tenantId, SearchSlice winLoss, SearchSlice domain, List<String> currencyCodes,
-            List<String> categories, boolean showAllZeroBalance, LocalDate dateTo) {
+            List<String> categories, boolean showAllZeroBalance, LocalDate dateTo, Set<String> manualKeys) {
         Map<String, MergedAccount> merged = new HashMap<>();
         applyWinLossAggregates(merged, winLoss.aggregates());
         applyDomainAggregates(merged, domain.aggregates());
@@ -219,6 +237,8 @@ public class TransactionSearchServiceImpl implements TransactionSearchService {
             row.setHasWinLossInPeriod(agg.periodWinLossCount > 0);
             // Includes NET PROFIT self-leg (period count > 0 even when Cr/Dr nets to 0.00)
             row.setHasCrDrInPeriod(agg.periodCrDrCount > 0);
+            row.setHasManualInPeriod(manualKeys.contains(
+                    agg.accountDbId + "|" + NormalizeUtils.trimToEmpty(agg.currencyCode).toUpperCase(Locale.ROOT)));
             row.setNeverTransacted(agg.neverTransacted);
             row.setAlertActive(computeIsAlert(balance, accountsById.get(agg.accountDbId), dateTo));
             rows.add(row);

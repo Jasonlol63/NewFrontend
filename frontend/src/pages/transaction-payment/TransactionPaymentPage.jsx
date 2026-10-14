@@ -19,7 +19,7 @@ import FilterCard from "./FilterCard.jsx";
 import ManualForm from "./ManualForm.jsx";
 import { openPaymentHistory } from "./paymentHistoryRules";
 import ReportBlocks from "./ReportBlocks.jsx";
-import { buildBlocks, buildSearchRequest } from "./transactionPaymentRules";
+import { buildBlocks, buildSearchRequest, rangeAroundToday } from "./transactionPaymentRules";
 import { useTenantCurrencies, useTransactionSearch } from "./useTransactionData";
 
 /**
@@ -75,18 +75,61 @@ export default function TransactionPaymentPage() {
   const search = useTransactionSearch(request);
   const today = toIsoDate(new Date());
   const todayOnly = filters.range.from === today && filters.range.to === today;
-  const blocks = useMemo(() => buildBlocks(search.rows, shown, filters.pills, todayOnly), [search.rows, shown, filters.pills, todayOnly]);
+
+  // Type Search: only the accounts with a manual transaction in the Capture Date. null = off; otherwise { snapshot, discover, focus }.
+  // The left filters at entry are kept in the snapshot and come back on exit. `discover` waits for the first result (today, every
+  // currency) to select the currencies that have manual transactions. `focus` ({ MYR: [account ids] }) is set by approved submits:
+  // each currency then lists only the accounts the submits of the session touched.
+  const [typeSearch, setTypeSearch] = useState(null);
+  const typeSearchOn = typeSearch !== null;
+  const blocks = useMemo(() => buildBlocks(search.rows, shown, filters.pills, todayOnly, typeSearch ?? false), [search.rows, shown, filters.pills, todayOnly, typeSearch]);
+
+  // Another company has other accounts: leave Type Search (adjusting state while rendering, no effect needed).
+  const [seenTenant, setSeenTenant] = useState(tenantId);
+  if (seenTenant !== tenantId) {
+    setSeenTenant(tenantId);
+    if (typeSearch) setTypeSearch(null);
+  }
+  if (typeSearch?.discover && !search.loading) {
+    const found = new Set(search.rows.filter((r) => r.hasManual).map((r) => r.currency));
+    setSel(orderKey.split(",").filter((c) => found.has(c)));
+    setTypeSearch({ ...typeSearch, discover: false });
+  }
+
+  const enterTypeSearch = () => {
+    const snapshot = typeSearch?.snapshot ?? { filters, sel: shown };
+    setFilters({ categories: new Set(), range: { from: today, to: today }, pills: {} });
+    setTypeSearch({ snapshot, discover: true, focus: null });
+  };
+  const exitTypeSearch = () => {
+    if (!typeSearch) return;
+    setFilters(typeSearch.snapshot.filters);
+    setSel(typeSearch.snapshot.sel);
+    setTypeSearch(null);
+  };
 
   const { reload: reloadSearch } = search;
   const { reload: reloadInbox } = inbox;
+  // An approved submit goes into the Type Search view showing only the accounts that submit touched, per currency (each submit
+  // replaces the last; the Search button lists everything), with the Capture Date from the transaction date to today. One waiting
+  // in the Contra Inbox (PENDING) is not in the list yet, so the view stays as it is.
   const onSubmitted = useCallback(
-    (status) => {
+    (status, { date, accounts = {} } = {}) => {
+      if (status === "APPROVED" && date) {
+        setTypeSearch({ snapshot: typeSearch?.snapshot ?? { filters, sel: shown }, discover: false, focus: accounts });
+        setFilters((cur) => ({
+          ...cur,
+          ...(typeSearchOn ? {} : { categories: new Set(), pills: {} }),
+          range: rangeAroundToday(date, toIsoDate(new Date())),
+        }));
+        setSel(Object.keys(accounts));
+      }
       reloadSearch();
       if (status === "PENDING") reloadInbox();
     },
-    [reloadSearch, reloadInbox]
+    [reloadSearch, reloadInbox, shown, filters, typeSearch, typeSearchOn]
   );
-  const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range, currencies: shown });
+  const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range, currencies: [row.currency] });
 
   useErrorToasts(push, [
     [scope.error, t("errors.scope")],
@@ -121,7 +164,7 @@ export default function TransactionPaymentPage() {
           scope={scope}
           currency={{ options: currencyOptions, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: setCurrencyOrder }}
         />
-        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} notify={push} />
+        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
       </div>
       <div className={cn("transition-opacity", search.loading && "opacity-60")}>
         <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} />

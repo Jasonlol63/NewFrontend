@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Repeat2, Search } from "lucide-react";
+import { Repeat2, RotateCw, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { SelectBox } from "@/components/shared/list/DataTable.jsx";
@@ -61,10 +61,13 @@ const DATE_POPUP = "max-w-[260px]";
  * other type (Contra, Payment, Claim, Profit, Clear) shares the standard one. Submit posts to /api/transaction/submit.
  * `accounts` are the active accounts of the current company, `currencies` its currencies ([{ id, code }]) and `shown`
  * the currency codes shown in the report. An account can only be picked for a currency it holds. onSubmitted(status)
- * runs after a successful submit (status is APPROVED, or PENDING when it waits in the Contra Inbox). notify(message, level, detail):
+ * runs after a successful submit with (status, { date, accounts }): status is APPROVED, or PENDING when it waits in the Contra
+ * Inbox, date the transaction date and accounts the ids it touched per currency ({ MYR: [1, 2] }). typeSearch = { active, on, busy,
+ * onEnter, onExit } drives the Search button (lit while Type Search lists by manual activity) and the exit button beside it
+ * (while Type Search or the focus after a submit is on). notify(message, level, detail):
  * what a submit did, as a toast over the page (push of hooks/useNotice).
  */
-export default function ManualForm({ tenantId, accounts, currencies, shown, onSubmitted, notify }) {
+export default function ManualForm({ tenantId, accounts, currencies, shown, onSubmitted, notify, typeSearch }) {
   const { t } = useTranslation("transaction");
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const [type, setType] = useState("CONTRA");
@@ -188,7 +191,15 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
       setF((cur) => ({ ...INITIAL, date: toIsoDate(new Date()), ...Object.fromEntries(KEEP.map((k) => [k, cur[k]])) }));
       setConfirm(false);
       notify?.(status === "PENDING" ? t("toast.submittedPending") : t("toast.submitted"));
-      onSubmitted?.(status);
+      // The accounts the submit touched, per currency (Rate: leg 1 in the first currency, leg 2 and the Middle-Man in the second).
+      const touched =
+        type === "RATE"
+          ? { [code.rate1]: [picked.rTo1, picked.rFrom1], [code.rate2]: [picked.rTo2, picked.rFrom2, picked.rMid] }
+          : layout === "adj"
+            ? { [code.adj]: [picked.aAcc] }
+            : { [code.std]: [picked.to, picked.from] };
+      const accounts = Object.fromEntries(Object.entries(touched).map(([ccy, ids]) => [ccy, ids.filter(Boolean).map(Number)]));
+      onSubmitted?.(status, { date: body.transactionDate, accounts });
     } catch (err) {
       notify?.(t("toast.submitFailed"), "error", err.message);
     } finally {
@@ -325,13 +336,31 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
         </PrimaryButton>
         <button
           type="button"
-          disabled
-          title={t("form.comingSoon")}
-          className="inline-flex h-[30px] min-w-[104px] cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-[rgba(13,96,255,0.45)] bg-white px-[18px] type-table-cell font-semibold! text-[#0d60ff] shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors hover:border-[#0d60ff] hover:bg-[#eef5ff]"
+          aria-pressed={typeSearch.active}
+          disabled={typeSearch.busy}
+          onClick={typeSearch.onEnter}
+          className={cn(
+            "inline-flex h-[30px] min-w-[104px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-[18px] type-table-cell font-semibold! shadow-[0_2px_6px_rgba(13,96,255,0.12)] transition-colors disabled:cursor-wait disabled:opacity-60",
+            typeSearch.active
+              ? "border-[#0d60ff] bg-[#eef5ff] text-[#0d60ff]"
+              : "border-[rgba(13,96,255,0.45)] bg-white text-[#0d60ff] hover:border-[#0d60ff] hover:bg-[#eef5ff]"
+          )}
         >
           <Search className="size-[15px]" strokeWidth={2.4} />
           {t("form.search")}
         </button>
+        {typeSearch.on && (
+          <button
+            type="button"
+            title={t("form.exitSearch")}
+            aria-label={t("form.exitSearch")}
+            disabled={typeSearch.busy}
+            onClick={typeSearch.onExit}
+            className="inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-white/80 bg-white/65 text-brand-navy hover:bg-white disabled:cursor-wait disabled:opacity-60"
+          >
+            <RotateCw className="size-[15px]" strokeWidth={2.3} />
+          </button>
+        )}
       </div>
     </section>
   );

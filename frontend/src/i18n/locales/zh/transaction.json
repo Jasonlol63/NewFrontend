@@ -52,7 +52,7 @@
     "confirm": "确认提交",
     "submit": "提交",
     "search": "搜索",
-    "comingSoon": "即将推出"
+    "exitSearch": "退出搜索并刷新"
   },
   "types": {
     "CONTRA": "对冲",

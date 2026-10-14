@@ -85,6 +85,7 @@ export function normalizeSearchRow(dto) {
     balance: moneyText(dto.balance),
     hasWinLoss: Boolean(dto.hasWinLossInPeriod),
     hasCrDr: Boolean(dto.hasCrDrInPeriod),
+    hasManual: Boolean(dto.hasManualInPeriod),
     alert: Boolean(dto.alertActive),
   };
 }
@@ -110,12 +111,26 @@ function passes(row, { zero, payment, winLoss, today }) {
 
 const totalsOf = (rows) => ({ bf: sum(rows, "bf"), winLoss: sum(rows, "winLoss"), crDr: sum(rows, "crDr"), balance: sum(rows, "balance") });
 
-/** The rows of every shown currency, split into the left (Balance >= 0) and right (Balance < 0) tables, with their totals. */
-export function buildBlocks(rows, currencies, pills, today) {
-  const options = { zero: Boolean(pills.zero), payment: Boolean(pills.payment), winLoss: Boolean(pills.winLoss), today };
+/**
+ * The rows of every shown currency, split into the left (Balance >= 0) and right (Balance < 0) tables, with their totals.
+ * Type Search (`typeSearch` is an object, false = off) keeps only the accounts with a manual transaction in the period, 0 balance
+ * rows included; the Win/Loss Only / Payment Only pills still narrow it, and All 0 balance adds every account at 0.00. Its `focus` ({ MYR: [account ids] },
+ * set by the submits of the session) narrows a currency further to the accounts those submits touched.
+ */
+export function buildBlocks(rows, currencies, pills, today, typeSearch = false) {
+  const payment = Boolean(pills.payment);
+  const winLoss = Boolean(pills.winLoss);
+  // Type Search lists 0 balance rows too (a Contra that cancels out); Win/Loss Only / Payment Only narrow its rows further.
+  const options = typeSearch
+    ? { zero: Boolean(pills.zero) || (!payment && !winLoss), payment, winLoss, today }
+    : { zero: Boolean(pills.zero), payment, winLoss, today };
   return Object.fromEntries(
     currencies.map((code) => {
-      const shown = rows.filter((r) => r.currency === code && passes(r, options)).sort(compareByRole);
+      const focusIds = typeSearch?.focus?.[code];
+      const focus = focusIds?.length ? new Set(focusIds.map(String)) : null;
+      // All 0 balance adds every account that nets to 0.00 to the Type Search accounts, as it does on the normal list.
+      const inView = (r) => (!typeSearch ? true : (focus ? focus.has(String(r.id)) : r.hasManual) || (pills.zero && isZero(r.balance)));
+      const shown = rows.filter((r) => r.currency === code && inView(r) && passes(r, options)).sort(compareByRole);
       const left = shown.filter((r) => moneySign(r.balance) >= 0);
       const right = shown.filter((r) => moneySign(r.balance) < 0);
       return [code, { left, right, totals: totalsOf(shown), leftTotals: totalsOf(left), rightTotals: totalsOf(right) }];
@@ -126,6 +141,11 @@ export function buildBlocks(rows, currencies, pills, today) {
 // ---------------------------------------------------------------------------
 // Submit
 // ---------------------------------------------------------------------------
+
+/** After an approved submit the Capture Date spans the transaction date and today (13th -> 13-14, a future 20th -> 14-20). */
+export function rangeAroundToday(date, today) {
+  return date < today ? { from: date, to: today } : { from: today, to: date };
+}
 
 export const accountLabel = (a) => `${a.accountId}[${a.name || a.accountId}]`;
 export const accountOptions = (accounts) => [...accounts].sort(compareByRole).map((a) => ({ value: String(a.id), label: accountLabel(a) }));

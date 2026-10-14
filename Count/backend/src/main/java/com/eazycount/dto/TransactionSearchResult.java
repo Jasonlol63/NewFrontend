@@ -30,6 +30,7 @@ public class TransactionSearchResult {
         private String balance;
         private boolean hasWinLossInPeriod;
         private boolean hasCrDrInPeriod;
+        private boolean hasManualInPeriod;
         private boolean neverTransacted;
         private boolean alertActive;
     }

@@ -67,6 +67,15 @@ public interface TransactionSearchDao {
             @Param("currencyCodes") List<String> currencyCodes,
             @Param("categories") List<String> categories);
 
+    // Account × currency that have a manual transaction (any of the 7 types, approved) in the period; Type Search flag.
+    // Only accountDbId + currencyCode are filled.
+    List<TransactionSearchAggregateRow> findManualActivityKeys(
+            @Param("tenantId") Integer tenantId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo,
+            @Param("currencyCodes") List<String> currencyCodes,
+            @Param("categories") List<String> categories);
+
     // Account × currency shells for tenant, used by "Show all 0 balance" to include never-transacted rows.
     List<TransactionSearchAggregateRow> findAccountCurrencyShells(
             @Param("tenantId") Integer tenantId,

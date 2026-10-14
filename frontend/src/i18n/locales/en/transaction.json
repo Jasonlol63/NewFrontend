@@ -52,7 +52,7 @@
     "confirm": "Confirm Submit",
     "submit": "Submit",
     "search": "Search",
-    "comingSoon": "Coming soon"
+    "exitSearch": "Exit Search and refresh"
   },
   "types": {
     "CONTRA": "Contra",
