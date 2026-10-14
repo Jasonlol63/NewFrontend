@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -197,8 +198,8 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
         BigDecimal amountFrom = parsePositiveRateAmount(request.getLeg1Amount(), "Leg1 amount");
         BigDecimal exchangeRate = parsePositiveExchangeRate(request.getExchangeRate());
         // leg2（to account）永远记 flat 毛额，不用前端传的 leg2Amount——这样 Fee/Platform Fee/Rate-Mul才不会碰到 to account。
-        BigDecimal grossTo = TransactionMoneyFormat.normalizeComputedRate(amountFrom.multiply(exchangeRate));
         String rateExpression = NormalizeUtils.trimToNull(request.getRateExpression());
+        BigDecimal grossTo = computeGrossTo(amountFrom, exchangeRate, rateExpression);
 
         MiddlemanSpec middleman = resolveMiddleman(request, tenantId, leg2, amountFrom, exchangeRate, rateExpression, grossTo);
 
@@ -668,6 +669,18 @@ public class TransactionSubmitServiceImpl implements TransactionSubmitService {
             throw new BusinessException(label + " must be greater than zero");
         }
         return amount;
+    }
+
+    /*
+     * leg2 毛额。"/N" 写法直接 amount ÷ N（截断到 8 位）；前端传来的 exchangeRate 是 1/N 先截到 8 位的倒数，
+     * 再乘 amount 会把误差放大（1334993595 ÷ 17870 会差 0.39），所以除法写法不用它。乘法写法/纯数字仍是 amount × exchangeRate。
+     */
+    static BigDecimal computeGrossTo(BigDecimal amountFrom, BigDecimal exchangeRate, String rateExpression) {
+        BigDecimal divisor = RateMulCalculator.parseSimpleDivisionDivisor(rateExpression);
+        BigDecimal gross = divisor != null
+                ? amountFrom.divide(divisor, TransactionMoneyFormat.RATE_AMOUNT_SCALE, RoundingMode.DOWN)
+                : amountFrom.multiply(exchangeRate);
+        return TransactionMoneyFormat.normalizeComputedRate(gross);
     }
 
     private static BigDecimal parsePositiveExchangeRate(BigDecimal raw) {
