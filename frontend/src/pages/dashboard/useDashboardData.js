@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getJson, postForm } from "@/lib/api";
+import { REALTIME_DOMAINS, touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { loadSessionUser } from "@/hooks/useSavedState";
 
 export const ALL = "ALL";
@@ -244,44 +245,105 @@ export function useCurrencyOptions(tenantIds) {
 
 const EMPTY = { kpi: null, trend: [], breakdown: [], error: "" };
 
-// While a new request is in flight the previous result stays on screen (cards dim via `loading`).
+const requestKeyOf = (scope, dateFrom, dateTo, currency) =>
+  scope && currency && dateFrom && dateTo ? `${scope.kind}|${JSON.stringify(scope.params)}|${dateFrom}|${dateTo}|${currency}` : "";
+
+// Results remembered by request (scope, dates, currency), so a company seen before shows its numbers at once while the fresh answer
+// loads (it always replaces them). The three answers of a request are kept together and shown together. A request already on its
+// way is shared, so a head-start prefetch and the page's own load are one request. Short-lived: it is only a head start.
+// A result younger than FRESH_MS is used as it is (switching back to a company just seen asks nothing); an older one is shown and
+// asked for again. The backend's ledger / data capture news empties the cache: those numbers are out of date then.
+const RESULT_MS = 5 * 60 * 1000;
+const FRESH_MS = 60 * 1000;
+const RESULT_MAX = 30;
+const results = new Map(); // key -> { value, at }
+const inflight = new Map(); // key -> promise
+let epoch = 0; // bumped when the cache is emptied: an answer asked for before that is not kept
+
+function peekResult(key, maxAge = RESULT_MS) {
+  const hit = results.get(key);
+  if (!hit) return null;
+  const age = Date.now() - hit.at;
+  if (age > RESULT_MS) {
+    results.delete(key);
+    return null;
+  }
+  return age > maxAge ? null : hit.value;
+}
+
+function loadResult(key, scope, dateFrom, dateTo, currency) {
+  if (inflight.has(key)) return inflight.get(key);
+  const [kpiUrl, chartUrl, breakdownUrl] = ENDPOINTS[scope.kind];
+  const range = { date_from: dateFrom, date_to: dateTo };
+  const asked = epoch;
+  const request = Promise.all([
+    getJson(kpiUrl, { ...scope.params, ...range, currency }),
+    getJson(chartUrl, { ...scope.params, ...range, currency }),
+    getJson(breakdownUrl, { ...scope.params, ...range, base_currency: currency }),
+  ])
+    .then(([kpi, chart, breakdown]) => {
+      const value = { kpi: kpi.data, trend: chart.data || [], breakdown: breakdown.data || [] };
+      if (asked === epoch) {
+        results.delete(key);
+        results.set(key, { value, at: Date.now() });
+        if (results.size > RESULT_MAX) results.delete(results.keys().next().value);
+      }
+      return value;
+    })
+    .finally(() => {
+      if (inflight.get(key) === request) inflight.delete(key);
+    });
+  inflight.set(key, request);
+  return request;
+}
+
+/** Warms the cache for a scope the page may switch to (its currency list too). Nothing on screen changes; errors are ignored. */
+export function prefetchDashboard(scope, dateFrom, dateTo, currency) {
+  const key = requestKeyOf(scope, dateFrom, dateTo, currency);
+  if (!key) return;
+  scope.tenantIds.forEach((id) => fetchTenantCurrencies(id).catch(() => {}));
+  if (peekResult(key) == null && !inflight.has(key)) loadResult(key, scope, dateFrom, dateTo, currency).catch(() => {});
+}
+
+/** Whether the scope's result for these dates and currency is remembered already. */
+export const hasDashboardResult = (scope, dateFrom, dateTo, currency) => peekResult(requestKeyOf(scope, dateFrom, dateTo, currency)) != null;
+
+// While a new request is in flight the previous result stays on screen, or the remembered one of that request when there is one.
 export function useDashboardData(scope, dateFrom, dateTo, currency) {
-  const requestKey =
-    scope && currency && dateFrom && dateTo
-      ? `${scope.kind}|${JSON.stringify(scope.params)}|${dateFrom}|${dateTo}|${currency}`
-      : "";
+  const requestKey = requestKeyOf(scope, dateFrom, dateTo, currency);
   const [result, setResult] = useState({ key: "", ...EMPTY });
+  // Bumped by the backend's news: the remembered numbers are dropped and the current ones asked for again.
+  const [pushed, setPushed] = useState(0);
+  useRealtime((event) => touchesLedger(event) || event.domain === REALTIME_DOMAINS.DATACAPTURE, () => {
+    results.clear();
+    inflight.clear();
+    epoch += 1;
+    setPushed((n) => n + 1);
+  });
 
   useEffect(() => {
-    if (!requestKey) return;
-    const controller = new AbortController();
-    const { signal } = controller;
-    const [kpiUrl, chartUrl, breakdownUrl] = ENDPOINTS[scope.kind];
-    const range = { date_from: dateFrom, date_to: dateTo };
-
-    Promise.all([
-      getJson(kpiUrl, { ...scope.params, ...range, currency }, { signal }),
-      getJson(chartUrl, { ...scope.params, ...range, currency }, { signal }),
-      getJson(breakdownUrl, { ...scope.params, ...range, base_currency: currency }, { signal }),
-    ])
-      .then(([kpi, chart, breakdown]) =>
-        setResult({
-          key: requestKey,
-          kpi: kpi.data,
-          trend: chart.data || [],
-          breakdown: breakdown.data || [],
-          error: "",
-        })
-      )
-      .catch((err) => {
-        if (err.name !== "AbortError") setResult({ key: requestKey, ...EMPTY, error: err.message });
-      });
-
-    return () => controller.abort();
-  }, [requestKey, scope, dateFrom, dateTo, currency]);
+    if (!requestKey) return undefined;
+    let cancelled = false;
+    const fresh = peekResult(requestKey, FRESH_MS);
+    if (fresh) {
+      setResult({ key: requestKey, ...fresh, error: "" });
+      return undefined;
+    }
+    loadResult(requestKey, scope, dateFrom, dateTo, currency)
+      .then((value) => !cancelled && setResult({ key: requestKey, ...value, error: "" }))
+      .catch((err) => !cancelled && setResult({ key: requestKey, ...EMPTY, error: err.message }));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `requestKey` holds the scope, dates and currency
+  }, [requestKey, pushed]);
 
   if (!requestKey) return { ...EMPTY, loading: false, initialLoading: false };
-  // initialLoading: the very first load of this page visit (no result has arrived yet), as opposed
-  // to `loading`, which is also true every time a filter change triggers a re-fetch.
-  return { ...result, loading: result.key !== requestKey, initialLoading: result.key === "" };
+  const current = result.key === requestKey;
+  const remembered = current ? null : peekResult(requestKey);
+  const shown = remembered ? { ...remembered, error: "" } : result;
+  // initialLoading: nothing to show yet (no result has arrived and none is remembered), as opposed to `loading`, which is also
+  // true every time a filter change triggers a re-fetch.
+  // dataKey: the request the numbers on screen belong to (the chart redraws when it changes).
+  return { ...shown, dataKey: remembered ? requestKey : result.key, loading: !current, initialLoading: !current && !remembered && result.key === "" };
 }

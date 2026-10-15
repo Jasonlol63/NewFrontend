@@ -78,12 +78,7 @@ export default function CurrencyBreakdownCard({ breakdown, currency, loading }) 
   const total = rows.reduce((sum, r) => sum + (r.amount || 0), 0);
 
   return (
-    <div
-      className={cn(
-        "flex h-[460px] min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity lg:h-auto",
-        loading && "opacity-60"
-      )}
-    >
+    <div className="flex h-[460px] min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card lg:h-auto">
       <div className="mb-4 short:mb-2 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="mb-1 type-label tracking-wider text-[#374151]">

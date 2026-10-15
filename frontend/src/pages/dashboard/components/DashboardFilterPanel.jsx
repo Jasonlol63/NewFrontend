@@ -21,16 +21,11 @@ export default function DashboardFilterPanel({
   currency,
   onCurrencyChange,
   onCurrencyReorder,
-  loading,
+  onCompanyPressStart,
 }) {
   const { t } = useTranslation("dashboard");
   return (
-    <section
-      className={cn(
-        "flex-none rounded-xl border border-dash-line bg-white shadow-dash-filter transition-opacity",
-        loading && "opacity-60"
-      )}
-    >
+    <section className="flex-none rounded-xl border border-dash-line bg-white shadow-dash-filter">
       <div className="flex flex-col gap-2 px-4 py-2.5">
         <FilterRow label={t("filter.dateRange")}>
           <DateRangePicker from={dateRange.from} to={dateRange.to} onChange={onDateRangeChange} />
@@ -47,6 +42,7 @@ export default function DashboardFilterPanel({
               value={company}
               onChange={onCompanyChange}
               allowDeselect={allowNoCompany}
+              onPressStart={onCompanyPressStart}
             />
           </FilterRow>
         )}

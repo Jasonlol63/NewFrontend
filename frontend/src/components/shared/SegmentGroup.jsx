@@ -59,7 +59,7 @@ function SortableItem({ option, active, onSelect }) {
 // With `wrap` the chips continue on the next line when they do not fit (each line is its own bar, still draggable
 // across lines) instead of scrolling sideways; `value` may then be an array (several chips lit). `itemClassName`
 // adjusts the chips of a wrapped group (e.g. tighter padding).
-export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, leading = [], className, wrap = false, itemClassName }) {
+export default function SegmentGroup({ options, value, onChange, allowDeselect = false, onReorder, leading = [], className, wrap = false, itemClassName, onPressStart }) {
   // A chip must move 5px before a drag starts, so a plain click still just selects it.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   if (wrap) {
@@ -93,6 +93,7 @@ export default function SegmentGroup({ options, value, onChange, allowDeselect =
             key={opt.value}
             type="button"
             disabled={opt.disabled}
+            onPointerDown={onPressStart ? () => onPressStart(opt.value) : undefined}
             onClick={() => select(opt)}
             className={cn(itemClass, itemTone(opt.value === value), "cursor-pointer")}
           >

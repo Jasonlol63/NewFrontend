@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChartLine, DollarSign, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ import {
   sessionSelection,
   useCurrencyOptions,
   useDashboardData,
+  hasDashboardResult,
+  prefetchDashboard,
   useTenantDirectory,
 } from "./useDashboardData";
 
@@ -108,8 +110,9 @@ export default function DashboardPage() {
   const [pending, setPending] = useState(null);
   const { group, company } = pending && pending.from === sessionTenantId ? pending : resolved;
 
-  // The data follows the session, not the pending pick.
-  const scope = useMemo(() => resolveScope(directory, resolved.group, resolved.company), [directory, resolved]);
+  // The data follows what is picked, not the session: every request carries its own tenant ids, so it starts at the click, in
+  // parallel with the company switch (the Dashboard has no per-company view that depends on the session).
+  const scope = useMemo(() => resolveScope(directory, group, company), [directory, group, company]);
   const currencyCodes = useCurrencyOptions(scope?.tenantIds);
   const currency = currencyCodes.includes(saved?.currency)
     ? saved.currency
@@ -117,7 +120,7 @@ export default function DashboardPage() {
       ? "MYR"
       : (currencyCodes[0] ?? "");
 
-  const { kpi, trend, breakdown, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
+  const { kpi, trend, breakdown, dataKey, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
 
   // Independent companies: clicking the active company again switches to the first Group, when
   // this login can open one.
@@ -132,6 +135,38 @@ export default function DashboardPage() {
   // Clicking the active Group again switches to the independent companies, when there are any.
   const allowNoGroup = group !== ALL && group !== INDEPENDENT && hasIndependentCompanies(directory);
   const groupCompanies = useMemo(() => companiesInGroup(directory, group), [directory, group]);
+
+  // A company chip pressed down: its numbers start loading before the click is finished.
+  const prefetchCompany = useCallback(
+    (code) => {
+      if (code === company) return;
+      prefetchDashboard(resolveScope(directory, group, code), dateRange.from, dateRange.to, currency);
+    },
+    [directory, group, company, dateRange, currency]
+  );
+  // Once this view has loaded, the other companies of the group load in the background, one by one (not while the tab is hidden,
+  // not what is remembered already), so the first switch to them is quick too.
+  useEffect(() => {
+    if (loading || !currency) return undefined;
+    const others = groupCompanies
+      .map((c) => resolveScope(directory, group, c.code))
+      .filter((s) => s && !hasDashboardResult(s, dateRange.from, dateRange.to, currency));
+    if (!others.length) return undefined;
+    let cancelled = false;
+    let timer = setTimeout(async () => {
+      for (const s of others) {
+        if (cancelled || document.hidden) return;
+        prefetchDashboard(s, dateRange.from, dateRange.to, currency);
+        await new Promise((resolve) => {
+          timer = setTimeout(resolve, 1500);
+        });
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [loading, directory, group, groupCompanies, dateRange, currency]);
   // A Group with no companies has nothing to pick, so the Company row is hidden.
   const showCompany = groupCompanies.length > 0;
   const companyOptions = useMemo(
@@ -216,18 +251,18 @@ export default function DashboardPage() {
         currency={currency}
         onCurrencyChange={handleCurrencyChange}
         onCurrencyReorder={setCurrencyOrder}
-        loading={initialLoading}
+        onCompanyPressStart={prefetchCompany}
       />
 
       <section className={cn("grid flex-none grid-cols-1 gap-[clamp(8px,1.5dvh,12px)]", showEarnings ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3")}>
         {cards.map((card) => (
-          <KpiCard key={card.id} {...card} compareLabel={compareLabel} loading={loading} />
+          <KpiCard key={card.id} {...card} compareLabel={compareLabel} loading={initialLoading} />
         ))}
       </section>
 
       <section className="grid grid-cols-1 gap-[clamp(8px,1.5dvh,12px)] lg:min-h-0 lg:flex-1 lg:grid-cols-[1.6fr_1fr]">
-        <TrendChartCard trend={trend} dateFrom={dateRange.from} dateTo={dateRange.to} loading={loading} />
-        <CurrencyBreakdownCard breakdown={breakdown} currency={currency} loading={loading} />
+        <TrendChartCard trend={trend} dateFrom={dateRange.from} dateTo={dateRange.to} loading={initialLoading} drawKey={dataKey} />
+        <CurrencyBreakdownCard breakdown={breakdown} currency={currency} loading={initialLoading} />
       </section>
     </div>
   );

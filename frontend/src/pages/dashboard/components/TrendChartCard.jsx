@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -14,8 +15,8 @@ const SERIES = [
 
 const AXIS_TICK = { fontSize: "0.75rem", fill: "#94a3b8" };
 
-// Lines and fills draw in left to right when data first arrives, and glide to the new shape when
-// a filter changes. Skipped for people who ask their system for reduced motion.
+// Lines and fills draw in left to right every time the chart shows another request (company, currency, dates), also when its data
+// comes from the cache; a refresh of the same request just updates in place. Skipped for people who ask their system for reduced motion.
 const ANIMATE = typeof window === "undefined" || !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DRAW_MS = 1200;
 
@@ -37,9 +38,10 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
-export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
+export default function TrendChartCard({ trend, dateFrom, dateTo, loading, drawKey }) {
   const { t } = useTranslation("dashboard");
   const [hidden, setHidden] = useState(() => new Set());
+  const { t: tc } = useTranslation("common");
 
   const { rows, series, multiMonth } = useMemo(() => {
     const hasEarnings = trend.some((p) => p.earnings != null);
@@ -68,13 +70,7 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
   const formatDay = (iso) => (multiMonth ? formatDisplayDate(iso).slice(0, 5) : String(Number(iso.slice(8, 10))));
 
   return (
-    // Whole card fades while loading (same as the KPI and currency cards), so the glass background shows through.
-    <div
-      className={cn(
-        "flex min-h-[360px] lg:min-h-[240px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card transition-opacity",
-        loading && "opacity-60"
-      )}
-    >
+    <div className="flex min-h-[360px] lg:min-h-[240px] flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-dash-card">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h3 className="type-card-title text-dash-ink">{t("trend.title")}</h3>
         <div className="flex flex-wrap gap-4">
@@ -99,8 +95,14 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading }) {
       </div>
 
       <div className="relative min-h-0 flex-1">
+        {loading && !rows.length && (
+          <div className="absolute inset-0 z-[1] flex items-center justify-center gap-2 type-body text-dash-faint">
+            <Loader2 className="size-5 animate-spin" />
+            {tc("loading")}
+          </div>
+        )}
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={rows} accessibilityLayer={false} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
+          <AreaChart key={drawKey} data={rows} accessibilityLayer={false} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
             <defs>
               {series.map((s) => (
                 <linearGradient key={s.key} id={`trend-fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">

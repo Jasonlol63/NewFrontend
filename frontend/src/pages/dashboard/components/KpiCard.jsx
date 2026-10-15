@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatSignedMoney, periodDelta } from "../dashboardFormat";
 
@@ -12,8 +12,7 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
     <div
       style={{ "--kpi-tint": tint }}
       className={cn(
-        "relative flex flex-col gap-2.5 short:gap-1.5 overflow-hidden rounded-2xl border border-slate-200/90 bg-[linear-gradient(135deg,var(--kpi-tint)_0%,#ffffff_62%)] px-4 py-4 short:py-3 shadow-dash-card transition-opacity",
-        loading && "opacity-60"
+        "relative flex flex-col gap-2.5 short:gap-1.5 overflow-hidden rounded-2xl border border-slate-200/90 bg-[linear-gradient(135deg,var(--kpi-tint)_0%,#ffffff_62%)] px-4 py-4 short:py-3 shadow-dash-card"
       )}
     >
       {/* big faint icon in the corner */}
@@ -33,7 +32,7 @@ export default function KpiCard({ label, icon: Icon, color, tint, value, previou
 
       <div className="relative flex flex-wrap items-center gap-2.5">
         <span className="type-kpi short:text-[1.5rem] leading-none tracking-tight text-dash-ink tabular-nums">
-          {hasValue ? formatMoney(value) : "—"}
+          {hasValue ? formatMoney(value) : loading ? <Loader2 className="size-6 animate-spin text-dash-faint" /> : "—"}
         </span>
         {showDelta && (
           <span
