@@ -17,7 +17,7 @@ const ALERT = "bg-[#dc2626] font-semibold text-white hover:bg-[#b91c1c]";
 const TD = "h-5 border-b border-[rgba(130,155,195,0.2)] px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-[#374151] tabular-nums max-[1024px]:h-[18px] max-[1024px]:text-[12px]";
 const TOTAL = "h-[22px] border-t border-[rgba(47,111,239,0.35)] bg-white/40 px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-brand-navy tabular-nums max-[1024px]:h-5 max-[1024px]:text-[12px]";
 
-function AccountTable({ rows, totals, showName, onOpen }) {
+function AccountTable({ rows, totals, showName, onOpen, onPick }) {
   const { t } = useTranslation("transaction");
   const headers = ["account", ...(showName ? ["name"] : []), "bf", "winLoss", "crDr", "balance"];
   return (
@@ -47,7 +47,16 @@ function AccountTable({ rows, totals, showName, onOpen }) {
                 <td className={cn(TD, tone(r.bf))}>{fmt(r.bf)}</td>
                 <td className={cn(TD, tone(r.winLoss))}>{fmt(r.winLoss)}</td>
                 <td className={cn(TD, tone(r.crDr))}>{fmt(r.crDr)}</td>
-                <td className={cn(TD, tone(r.balance))}>{fmt(r.balance)}</td>
+                <td className={cn(TD, tone(r.balance))}>
+                  {/* A balance that shows 0.00 but holds a remainder is still clickable; only a real 0 is not. */}
+                  {onPick && moneySign(r.balance) !== 0 ? (
+                    <button type="button" onClick={() => onPick(r)} className="cursor-pointer font-semibold tabular-nums hover:underline">
+                      {fmt(r.balance)}
+                    </button>
+                  ) : (
+                    fmt(r.balance)
+                  )}
+                </td>
               </tr>
             );
           })}
@@ -65,7 +74,7 @@ function AccountTable({ rows, totals, showName, onOpen }) {
 }
 
 /** One block per shown currency: a foldable "Currency: XXX" heading with its balance, the two account tables and a Total. */
-export default function ReportBlocks({ blocks, currencies, showName, shut, onToggle, onOpen }) {
+export default function ReportBlocks({ blocks, currencies, showName, shut, onToggle, onOpen, onPick }) {
   const { t } = useTranslation("transaction");
   return currencies.map((c) => {
     const block = blocks[c];
@@ -87,8 +96,8 @@ export default function ReportBlocks({ blocks, currencies, showName, shut, onTog
         {!shut[c] && (
           <>
             <div className="grid grid-cols-1 items-start gap-(--gap) min-[1024px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <AccountTable rows={block.left} totals={block.leftTotals} showName={showName} onOpen={onOpen} />
-              <AccountTable rows={block.right} totals={block.rightTotals} showName={showName} onOpen={onOpen} />
+              <AccountTable rows={block.left} totals={block.leftTotals} showName={showName} onOpen={onOpen} onPick={onPick} />
+              <AccountTable rows={block.right} totals={block.rightTotals} showName={showName} onOpen={onOpen} onPick={onPick} />
             </div>
             <div className="mt-(--gap) flex justify-center">
               <div className="w-[min(clamp(260px,19.8vw,380px),100%)] overflow-hidden rounded-lg">

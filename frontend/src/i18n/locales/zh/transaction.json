@@ -65,6 +65,7 @@
   },
   "toast": {
     "submitted": "已提交",
+    "filled": "已填入 {{account}} {{currency}} {{amount}}",
     "submittedPending": "已提交，等待在对冲收件箱中审批",
     "submitFailed": "无法提交交易"
   },

@@ -19,7 +19,7 @@ import FilterCard from "./FilterCard.jsx";
 import ManualForm from "./ManualForm.jsx";
 import { openPaymentHistory } from "./paymentHistoryRules";
 import ReportBlocks from "./ReportBlocks.jsx";
-import { buildBlocks, buildSearchRequest, rangeAroundToday } from "./transactionPaymentRules";
+import { buildBlocks, buildSearchRequest, fmt, rangeAroundToday } from "./transactionPaymentRules";
 import { useTenantCurrencies, useTransactionSearch } from "./useTransactionData";
 
 /**
@@ -129,6 +129,14 @@ export default function TransactionPaymentPage() {
     },
     [reloadSearch, reloadInbox, shown, filters, typeSearch, typeSearchOn]
   );
+  // A click on a Balance fills the manual form (nonce: clicking the same balance again fills it again). The page may be scrolled
+  // far from the form, so a toast says what went in.
+  const readOnly = Boolean(useCurrentUser()?.readOnly);
+  const [fill, setFill] = useState(null);
+  const pickBalance = (row) => {
+    setFill((cur) => ({ row, nonce: (cur?.nonce ?? 0) + 1 }));
+    push(t("toast.filled", { account: row.accountId, currency: row.currency, amount: fmt(row.balance) }));
+  };
   const openHistory = (row) => openPaymentHistory({ account: row.accountId, accountDbId: row.id, tenantId, range: filters.range, currencies: [row.currency] });
 
   useErrorToasts(push, [
@@ -164,10 +172,10 @@ export default function TransactionPaymentPage() {
           scope={scope}
           currency={{ options: currencyOptions, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: setCurrencyOrder }}
         />
-        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
+        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} fill={fill} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
       </div>
       <div className={cn("transition-opacity", search.loading && "opacity-60")}>
-        <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} />
+        <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} onPick={readOnly ? undefined : pickBalance} />
       </div>
       {inboxOpen && <ContraInboxModal inbox={inbox} onClose={closeInbox} notify={push} />}
     </div>

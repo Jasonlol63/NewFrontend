@@ -31,7 +31,13 @@
     "permissions": "权限",
     "readOnly": "只读",
     "account": "账户",
-    "process": "合同"
+    "process": "合同",
+    "companyAccess": "公司权限",
+    "group": "集团",
+    "noGroup": "暂无集团",
+    "noGroupAccess": "你没有 {{code}} 集团的权限，无法授予",
+    "company": "公司",
+    "currentCompany": "{{code}} 是你正在管理的公司，该用户保留它的权限"
   },
   "permission": {
     "home": "首页",
@@ -58,7 +64,8 @@
     "search": "搜索",
     "searchOf": "搜索{{title}}",
     "closeSearch": "关闭搜索",
-    "noMatches": "没有匹配项"
+    "noMatches": "没有匹配项",
+    "loading": "加载中…"
   },
   "toast": {
     "added": "用户已新增：{{id}}",

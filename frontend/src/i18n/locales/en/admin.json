@@ -31,7 +31,13 @@
     "permissions": "Permissions",
     "readOnly": "Read only",
     "account": "Account",
-    "process": "Process"
+    "process": "Process",
+    "companyAccess": "Company access",
+    "group": "Group",
+    "noGroup": "No Group",
+    "noGroupAccess": "You can't grant {{code}}: your login has no access to this Group",
+    "company": "Company",
+    "currentCompany": "{{code}} is the company you are managing, so the user keeps access to it"
   },
   "permission": {
     "home": "Home",
@@ -58,7 +64,8 @@
     "search": "Search",
     "searchOf": "Search {{title}}",
     "closeSearch": "Close search",
-    "noMatches": "No matches"
+    "noMatches": "No matches",
+    "loading": "Loading…"
   },
   "toast": {
     "added": "User added: {{id}}",

@@ -65,6 +65,7 @@
   },
   "toast": {
     "submitted": "Submitted",
+    "filled": "Filled {{account}} {{currency}} {{amount}}",
     "submittedPending": "Submitted, waiting for approval in the Contra Inbox",
     "submitFailed": "Couldn't submit the transaction"
   },

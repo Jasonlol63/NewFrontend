@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserPen, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,9 @@ import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import Toast from "@/components/shared/Toast.jsx";
 import { useNotice } from "@/hooks/useNotice";
 import { Field, PasswordInput, SelectField, TextInput, ToggleSwitch } from "@/components/shared/form-modal/fields.jsx";
+import { useTenantDirectory } from "@/pages/dashboard/useDashboardData";
 import AccessListCard, { Count } from "./AccessListCard.jsx";
+import CompanyAccessBar from "./CompanyAccessBar.jsx";
 import { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, roleOptionsFor } from "./addUserOptions";
 import { SECOND_PASSWORD_LENGTH, buildOwnerPayload, buildUserPayload, sameSet, validateUserForm } from "./userFormRules";
 import { useAccountItems, useProcessItems, useUserDetail } from "./useUserFormData";
@@ -63,14 +65,33 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
   const [perms, setPerms] = useState(() => new Set());
   const [accounts, setAccounts] = useState(() => new Set());
   const [processes, setProcesses] = useState(() => new Set());
+  // The Groups / Companies the user may enter (tenant ids). The company being managed is always in it.
+  const [grants, setGrants] = useState(() => new Set(tenantId ? [tenantId] : []));
   const [saving, setSaving] = useState(false);
+  const toggleGrant = (id) =>
+    setGrants((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // What the lists and the record being edited need before the form is usable. The Owner row
   // needs none of it.
   const accountData = useAccountItems(isOwnerRow ? null : tenantId);
   const processData = useProcessItems(isOwnerRow ? null : tenantId);
   const { detail, error: detailError, loading: detailLoading } = useUserDetail(user?.id, tenantId, isEdit && !isOwnerRow);
-  const loadError = accountData.error || processData.error || detailError;
+  // Company access: the Groups / Companies this login can see. A Group listed only because one of its companies points at it has
+  // no tenantId: it is shown (the Group row is always there) but can't be granted.
+  const { directory, error: directoryError } = useTenantDirectory();
+  const grantGroups = useMemo(() => directory?.groups ?? [], [directory]);
+  const grantCompanies = directory?.companies ?? [];
+  // Grants of this user that this login can't see: they are sent back as they are, so saving never revokes them.
+  const hiddenGrants = useMemo(() => {
+    const visible = new Set([...grantGroups, ...grantCompanies].map((c) => c.tenantId).filter(Boolean));
+    return (detail?.tenantIds ?? []).filter((id) => !visible.has(id));
+  }, [grantGroups, grantCompanies, detail]);
+  const loadError = accountData.error || processData.error || detailError || directoryError;
   const ready =
     isOwnerRow || (!accountData.loading && !processData.loading && !detailLoading && !loadError && (!isEdit || Boolean(detail)));
   // A list that did not load is an error toast (once per error).
@@ -94,6 +115,7 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
       // null = everything (also anything added later)
       setAccounts(detail.accountPermissions == null ? everyAccount : new Set(detail.accountPermissions.map((a) => a.id)));
       setProcesses(detail.processPermissions == null ? everyProcess : new Set(detail.processPermissions.map((p) => p.id)));
+      setGrants(new Set([...(detail.tenantIds ?? []), tenantId].filter(Boolean)));
     } else {
       setAccounts(everyAccount);
       setProcesses(everyProcess);
@@ -156,6 +178,7 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
           body: buildUserPayload({
             mode, userId: user?.id, tenantId, form, showSecondPassword, readOnly, perms, accounts, processes,
             accountItems: accountData.items, processItems: processData.items,
+            tenantIds: directory ? [...new Set([...grants, ...hiddenGrants, tenantId].filter(Boolean))] : null,
           }),
         };
     try {
@@ -194,10 +217,11 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
       bodyClassName={cn(
         "grid",
         isOwnerRow && "grid-cols-1! grid-rows-none! content-start overflow-y-auto",
-        "grid-cols-[clamp(300px,22cqw,380px)_minmax(0,1fr)_minmax(0,1fr)]",
+        // Wide: the info card spans two rows on the left; the Company access bar sits over the two lists.
+        "grid-cols-[clamp(300px,22cqw,380px)_minmax(0,1fr)_minmax(0,1fr)] grid-rows-[max-content_minmax(0,1fr)]",
         "@min-[900px]/main:@max-[1099px]/main:grid-cols-[clamp(256px,27cqw,280px)_minmax(0,1fr)_minmax(0,1fr)]",
-        "@max-[899px]/main:grid-cols-2 @max-[899px]/main:grid-rows-[max-content_minmax(420px,62dvh)] @max-[899px]/main:content-start @max-[899px]/main:overflow-y-auto",
-        "@max-[599px]/main:grid-cols-1 @max-[599px]/main:grid-rows-[max-content_440px_440px]"
+        "@max-[899px]/main:grid-cols-2 @max-[899px]/main:grid-rows-[max-content_max-content_minmax(420px,62dvh)] @max-[899px]/main:content-start @max-[899px]/main:overflow-y-auto",
+        "@max-[599px]/main:grid-cols-1 @max-[599px]/main:grid-rows-[max-content_max-content_440px_440px]"
       )}
     >
       <UserInfoCard
@@ -219,6 +243,15 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
       />
       {!isOwnerRow && (
         <>
+          <CompanyAccessBar
+            groups={grantGroups}
+            companies={grantCompanies}
+            selected={grants}
+            onToggle={toggleGrant}
+            lockedId={tenantId}
+            loading={!directory}
+            className="col-span-2 @max-[899px]/main:col-span-full"
+          />
           <AccessListCard title={t("form.account")} items={accountData.items} selected={accounts} onChange={setAccounts} />
           <AccessListCard title={t("form.process")} items={processData.items} selected={processes} onChange={setProcesses} />
         </>
@@ -234,7 +267,7 @@ function UserInfoCard({ form, setField, setLoginId, setRole, setSecondaryPasswor
     // The body scrolls on its own if the screen is too short, so nothing is ever clipped.
     <FormCard
       title={t("form.info")}
-      className={cn("@max-[899px]/main:col-span-full", isOwnerRow && "mx-auto w-full max-w-[720px]")}
+      className={cn(!isOwnerRow && "row-span-2 @max-[899px]/main:row-span-1", "@max-[899px]/main:col-span-full", isOwnerRow && "mx-auto w-full max-w-[720px]")}
       bodyClassName="@container/info flex flex-col @max-[899px]/main:block @max-[899px]/main:overflow-visible"
     >
         <div className="grid flex-none grid-cols-2 gap-x-3 gap-y-2.5 modal-compact:gap-x-2.5 modal-compact:gap-y-1.5 modal-tiny:gap-x-2 modal-tiny:gap-y-1 @min-[560px]/info:grid-cols-3">

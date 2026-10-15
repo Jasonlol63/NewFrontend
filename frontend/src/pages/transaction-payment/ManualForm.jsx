@@ -7,7 +7,8 @@ import { PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { postJson } from "@/lib/api";
 import { formatDisplayDate, toIsoDate } from "@/lib/date";
-import { formatMoney } from "@/lib/money";
+import Decimal from "@/lib/decimal";
+import { formatMoney, moneySign, roundMoney } from "@/lib/money";
 import DateField from "@/components/shared/form-modal/DateField.jsx";
 import { INPUT, LABEL, Select } from "./fields.jsx";
 import {
@@ -64,10 +65,11 @@ const DATE_POPUP = "max-w-[260px]";
  * runs after a successful submit with (status, { date, accounts }): status is APPROVED, or PENDING when it waits in the Contra
  * Inbox, date the transaction date and accounts the ids it touched per currency ({ MYR: [1, 2] }). typeSearch = { active, on, busy,
  * onEnter, onExit } drives the Search button (lit while Type Search lists by manual activity) and the exit button beside it
- * (while Type Search or the focus after a submit is on). notify(message, level, detail):
+ * (while Type Search or the focus after a submit is on). fill = { row, nonce }: a clicked Balance of the report (a new nonce
+ * fills again); its account, currency and amount go into the form of the current Type (see the effect below). notify(message, level, detail):
  * what a submit did, as a toast over the page (push of hooks/useNotice).
  */
-export default function ManualForm({ tenantId, accounts, currencies, shown, onSubmitted, notify, typeSearch }) {
+export default function ManualForm({ tenantId, accounts, currencies, shown, fill, onSubmitted, notify, typeSearch }) {
   const { t } = useTranslation("transaction");
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const [type, setType] = useState("CONTRA");
@@ -77,6 +79,10 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
   const set = (key, value) => {
     setF((cur) => ({ ...cur, [key]: value }));
   };
+  // A filled Balance shows 2 decimals in its box but keeps the backend's full figure: exact[key] = { shown, full }. It counts only
+  // while the box still holds `shown`; once the user types, the typed text is the amount.
+  const [exact, setExact] = useState({});
+  const effective = (state, key) => (exact[key] && state[key] === exact[key].shown ? exact[key].full : state[key]);
 
   // A different company has different accounts and currencies: clear them (adjusting state while rendering, no effect needed).
   const [seenTenant, setSeenTenant] = useState(tenantId);
@@ -148,7 +154,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
   const setRateField = (key, value) => {
     setF((cur) => {
       const next = { ...cur, [key]: value };
-      next.rAmt2 = rateAmount2(next.rAmt1, next.rRate);
+      next.rAmt2 = rateAmount2(effective(next, "rAmt1"), next.rRate);
       return next;
     });
   };
@@ -166,10 +172,42 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
   const input = (key, props) => <input className={INPUT} value={f[key]} onChange={(e) => set(key, e.target.value)} autoComplete="off" {...props} />;
   const rateInput = (key, props) => <input className={INPUT} value={f[key]} onChange={(e) => setRateField(key, e.target.value)} autoComplete="off" {...props} />;
 
+  // A clicked Balance: positive -> the To side, negative -> the From side (Rate: leg 1; Adjustment has one Account and keeps the
+  // sign), with its currency and amount. Remark, date and the other fields stay as they are.
+  useEffect(() => {
+    if (!fill?.row) return;
+    const { row } = fill;
+    const neg = moneySign(row.balance) < 0;
+    const fullAbs = new Decimal(row.balance).abs().toFixed();
+    const shownText = roundMoney(fullAbs);
+    const sign = neg ? "-" : "";
+    const id = String(row.id);
+    setF((cur) => {
+      if (layout === "rate") {
+        const [mine, rest] = neg ? ["rFrom1", "rTo1"] : ["rTo1", "rFrom1"];
+        const next = { ...cur, [mine]: id, [rest]: cur[rest] === id ? null : cur[rest], rCur1: row.currency, rAmt1: shownText };
+        next.rAmt2 = rateAmount2(fullAbs, next.rRate);
+        return next;
+      }
+      if (layout === "adj") return { ...cur, aAcc: id, aCur: row.currency, aAmt: sign + shownText };
+      const [mine, rest] = neg ? ["from", "to"] : ["to", "from"];
+      return { ...cur, [mine]: id, [rest]: cur[rest] === id ? null : cur[rest], cur: row.currency, amount: shownText };
+    });
+    setExact(
+      layout === "rate"
+        ? { rAmt1: { shown: shownText, full: fullAbs } }
+        : layout === "adj"
+          ? { aAmt: { shown: sign + shownText, full: sign + fullAbs } }
+          : { amount: { shown: shownText, full: fullAbs } }
+    );
+    // Runs once per click (nonce); layout is the Type of that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fill?.nonce]);
+
   const submit = async () => {
     let body;
     try {
-      body = buildSubmitRequest({ tenantId, type, f: { ...f, ...picked }, cur: code, t });
+      body = buildSubmitRequest({ tenantId, type, f: { ...f, ...picked, amount: effective(f, "amount"), rAmt1: effective(f, "rAmt1"), aAmt: effective(f, "aAmt") }, cur: code, t });
     } catch (err) {
       notify?.(err.message, "error");
       return;
@@ -190,6 +228,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
       const status = reply.data?.approvalStatus ?? "APPROVED";
       setF((cur) => ({ ...INITIAL, date: toIsoDate(new Date()), ...Object.fromEntries(KEEP.map((k) => [k, cur[k]])) }));
       setConfirm(false);
+      setExact({});
       notify?.(status === "PENDING" ? t("toast.submittedPending") : t("toast.submitted"));
       // The accounts the submit touched, per currency (Rate: leg 1 in the first currency, leg 2 and the Middle-Man in the second).
       const touched =
@@ -220,10 +259,10 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
 
   const valid =
     layout === "rate"
-      ? picked.rTo1 && picked.rFrom1 && picked.rTo2 && picked.rFrom2 && positive(f.rAmt1) && parseRate(f.rRate)
+      ? picked.rTo1 && picked.rFrom1 && picked.rTo2 && picked.rFrom2 && positive(effective(f, "rAmt1")) && parseRate(f.rRate)
       : layout === "adj"
-        ? picked.aAcc && isNonZeroAmount(f.aAmt)
-        : picked.to && picked.from && positive(f.amount);
+        ? picked.aAcc && isNonZeroAmount(effective(f, "aAmt"))
+        : picked.to && picked.from && positive(effective(f, "amount"));
 
   return (
     <section ref={cardRef} className="@container flex min-h-0 min-w-0 flex-col justify-between gap-[5px] rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter [--revw:104px] max-[1500px]:[--revw:42px]">
@@ -299,7 +338,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
                 {input("rMul", { placeholder: t("form.rateMul") })}
                 {input("rFee", { inputMode: "decimal", placeholder: t("form.fee") })}
                 {input("rPT", { inputMode: "decimal", placeholder: t("form.ptFee") })}
-                <input className={INPUT} value={fmtTotal(middleManTotal({ amount1: f.rAmt1, rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT }))} readOnly aria-label={t("form.middleAmount")} placeholder={t("form.amount")} />
+                <input className={INPUT} value={fmtTotal(middleManTotal({ amount1: effective(f, "rAmt1"), rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT }))} readOnly aria-label={t("form.middleAmount")} placeholder={t("form.amount")} />
               </div>
             </div>
           </>
@@ -312,9 +351,9 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, onSu
             <span className={LABEL}>{t("form.currency")}</span>
             {cur("aCur")}
             <span className={LABEL}>{t("form.amount")}</span>
-            {input("aAmt", { inputMode: "decimal", disabled: !picked.aAcc, placeholder: "+ / -" })}
+            {input("aAmt", { inputMode: "decimal", placeholder: "0.00" })}
             <span className={LABEL}>{t("form.remark")}</span>
-            {input("aRemark", { disabled: !picked.aAcc, placeholder: t("form.optional") })}
+            {input("aRemark", { placeholder: t("form.optional") })}
           </>
         )}
       </div>

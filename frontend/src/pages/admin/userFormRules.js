@@ -32,7 +32,7 @@ export function validateUserForm({ mode, form, perms, isOwnerRow }) {
 
 // Request body of /add (Add User) and /update (Edit User).
 export function buildUserPayload({
-  mode, userId, tenantId, form, showSecondPassword, readOnly, perms, accounts, processes, accountItems, processItems,
+  mode, userId, tenantId, form, showSecondPassword, readOnly, perms, accounts, processes, accountItems, processItems, tenantIds,
 }) {
   const common = {
     scopeTenantId: tenantId,
@@ -51,8 +51,11 @@ export function buildUserPayload({
     ...(form.password ? { password: form.password } : {}),
     ...(showSecondPassword && form.secondaryPassword ? { secondaryPassword: form.secondaryPassword } : {}),
   };
-  if (mode === "edit") return { ...common, id: userId };
-  return { ...common, loginId: form.loginId.trim().toUpperCase(), homeTenantId: tenantId, tenantIds: [tenantId] };
+  // tenantIds = every Group / Company the user may enter; the backend revokes the ones left out, so it is only sent once the
+  // company list has loaded (without it Edit User changes just the company being managed).
+  const grants = tenantIds?.length ? tenantIds : null;
+  if (mode === "edit") return { ...common, id: userId, ...(grants ? { tenantIds: grants } : {}) };
+  return { ...common, loginId: form.loginId.trim().toUpperCase(), homeTenantId: tenantId, tenantIds: grants ?? [tenantId] };
 }
 
 // Request body of /update-owner-profile: the Owner row only has these fields.
