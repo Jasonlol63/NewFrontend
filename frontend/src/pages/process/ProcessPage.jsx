@@ -16,7 +16,10 @@ import { postJson } from "@/lib/api";
 import BankProcessView from "./bank/BankProcessView.jsx";
 import ProcessFormModal from "./games/ProcessFormModal.jsx";
 import { DAYS, filterProcesses, sortProcesses } from "./games/processRules";
-import { useProcessList } from "./games/useProcessList";
+import { hasProcesses, prefetchProcesses, useProcessList } from "./games/useProcessList";
+
+// The big companies: once the page has settled they are loaded in the background, one by one, so the first switch to them is quick too.
+const PREFETCH_COMPANIES = ["95", "AG"];
 
 // Only the weekdays the process runs on, each as a three-letter chip (MON, TUE ...; 周一 in Chinese) at every screen size.
 function DayUse({ days }) {
@@ -54,6 +57,34 @@ export default function ProcessPage() {
   const isBank = scope.company !== null && Boolean(session?.tenant_has_bank);
   const { rows: allRows, error: listError, loading, toggleStatus, deleteRows, reload } = useProcessList(isBank ? null : scope.tenantId);
   const rows = useMemo(() => allRows.filter((p) => p.category === "GAME"), [allRows]);
+
+  // A company chip pressed down: its list starts loading before the click is finished.
+  const prefetchCompany = useCallback(
+    (code) => prefetchProcesses(scope.companyOptions.find((c) => c.value === code)?.tenantId),
+    [scope.companyOptions]
+  );
+  // The big companies in the background once this one has loaded (not while the tab is hidden, not what is remembered already).
+  useEffect(() => {
+    if (isBank || loading) return undefined;
+    const ids = PREFETCH_COMPANIES.map((code) => scope.companyOptions.find((c) => c.value === code)?.tenantId).filter(
+      (id) => id && id !== scope.tenantId && !hasProcesses(id)
+    );
+    if (!ids.length) return undefined;
+    let cancelled = false;
+    let timer = setTimeout(async () => {
+      for (const id of ids) {
+        if (cancelled || document.hidden) return;
+        prefetchProcesses(id);
+        await new Promise((resolve) => {
+          timer = setTimeout(resolve, 1500);
+        });
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isBank, loading, scope.companyOptions, scope.tenantId]);
 
   // Sends what the modal built ([{ url, key, label, body }], several with Multi-Process) one after another; on success
   // the modal closes, the list is fetched again and a toast says so. A failure goes back to the modal, which shows it as a toast:
@@ -157,9 +188,10 @@ export default function ProcessPage() {
         chips={view.chips}
         onChipChange={view.setChip}
         scope={scope}
+        onCompanyPressStart={prefetchCompany}
       />
 
-      <DataTable columns={columns} noun="processes" loading={loading} boxedPager fitWidth stableColumns measureRows={view.table.allRows} minWidth="min-w-0" {...view.table} />
+      <DataTable columns={columns} noun="processes" loading={loading && rows.length === 0} boxedPager fitWidth stableColumns measureRows={view.table.allRows} minWidth="min-w-0" {...view.table} />
 
       {actions.dialogs}
 

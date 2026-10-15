@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "@/lib/api";
+import { makeCache } from "@/lib/sharedCache";
 import { touchesLedger, useRealtime } from "@/lib/realtime/realtimeEvents";
 import { normalizeAccountRow } from "@/pages/account/accountRules";
 import { HISTORY_URL, normalizeHistoryRow } from "./paymentHistoryRules";
@@ -10,44 +11,6 @@ const enc = encodeURIComponent;
 // What each company's page needs, remembered per company so switching back to one shows it at once while the fresh answer loads
 // (the server answer always replaces it). A request already on its way is shared, so a head-start prefetch and the page's own
 // load are one request. Short-lived: it is only a head start.
-const CACHE_MS = 5 * 60 * 1000;
-const CACHE_MAX = 20;
-
-function makeCache(load) {
-  const store = new Map(); // key -> { value, at }
-  const inflight = new Map(); // key -> promise
-  const peek = (key) => {
-    const hit = store.get(key);
-    if (!hit) return null;
-    if (Date.now() - hit.at > CACHE_MS) {
-      store.delete(key);
-      return null;
-    }
-    return hit.value;
-  };
-  // fresh: ask the server again even if a request is on its way (after a change it could not have seen).
-  const fetchShared = (key, fresh = false) => {
-    if (!fresh && inflight.has(key)) return inflight.get(key);
-    const request = load(key)
-      .then((value) => {
-        store.delete(key);
-        store.set(key, { value, at: Date.now() });
-        if (store.size > CACHE_MAX) store.delete(store.keys().next().value);
-        return value;
-      })
-      .finally(() => {
-        if (inflight.get(key) === request) inflight.delete(key);
-      });
-    inflight.set(key, request);
-    return request;
-  };
-  // Warms the cache for a key not remembered yet; errors are ignored (the page asks again when it needs it).
-  const prefetch = (key) => {
-    if (peek(key) == null && !inflight.has(key)) fetchShared(key).catch(() => {});
-  };
-  return { peek, fetchShared, prefetch, clear: () => store.clear() };
-}
-
 const currencyCache = makeCache((tenantId) =>
   postJson(`/api/currency/list?tenant_id=${enc(tenantId)}`, null).then((body) =>
     (body.data || [])

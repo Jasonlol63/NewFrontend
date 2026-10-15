@@ -80,6 +80,7 @@ export default function ListToolbar({
   chips,
   onChipChange,
   scope,
+  onCompanyPressStart,
 }) {
   const { t } = useTranslation();
   return (
@@ -131,6 +132,7 @@ export default function ListToolbar({
               value={scope.company}
               onChange={scope.onCompanyChange}
               allowDeselect={scope.allowNoCompany}
+              onPressStart={onCompanyPressStart}
             />
           </FilterRow>
         )}

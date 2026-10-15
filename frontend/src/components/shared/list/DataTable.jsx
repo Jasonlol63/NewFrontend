@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Square, SquareCheck, SquareMinus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Square, SquareCheck, SquareMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCellTip } from "./CellTip.jsx";
 
@@ -817,7 +817,10 @@ export default function DataTable({
               {loadingMore && (
                 <tr>
                   <td colSpan={cols.length + (showSelect ? 1 : 0)} className="py-3 text-center text-dash-faint">
-                    {t("loading")}
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      {t("loading")}
+                    </span>
                   </td>
                 </tr>
               )}
@@ -825,7 +828,14 @@ export default function DataTable({
             ) : (
               <tr>
                 <td colSpan={cols.length + (showSelect ? 1 : 0)} className="py-10 text-center text-dash-faint">
-                  {loading ? t("loading") : (emptyMessage ?? t("table.empty", { noun: nounText }))}
+                  {loading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      {t("loading")}
+                    </span>
+                  ) : (
+                    (emptyMessage ?? t("table.empty", { noun: nounText }))
+                  )}
                 </td>
               </tr>
             )}
