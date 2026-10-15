@@ -5,9 +5,10 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Bell, ChevronRight, Clock, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PillSwitch from "@/components/shared/PillSwitch.jsx";
+import AvatarPicker from "./AvatarPicker.jsx";
+import { useAvatar } from "./useAvatar";
 import {
   ACTIVE_ITEM_CLASS,
-  DEFAULT_AVATAR,
   IDLE_ITEM_CLASS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
@@ -93,8 +94,9 @@ function SubmenuFlyout({ index, label, icon: Icon, items, holdsCurrent, pathname
 // the drawer behind the icon rail below 1200px (onNavigate closes it). The bell opens the notification panel
 // (onOpenNotifications) and shows how many announcements are unread.
 // badges: { [menu key]: number } shown as a red count at the end of that menu item (Auto Renew: requests waiting).
-export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNavigate, onOpenNotifications, unreadCount = 0, badges, className }) {
+export default function Sidebar({ onLogout, onNavigate, onOpenNotifications, unreadCount = 0, badges, className }) {
   const { loading, items, userName, userRole, expiryLabel } = useSidebarData();
+  const [avatarSrc, setAvatarSrc] = useAvatar();
   const { t, i18n } = useTranslation();
   const { pathname } = useLocation();
   // The submenu panel that is open (at most one) and the single timer that closes it.
@@ -112,6 +114,7 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
 
   return (
     <aside
+      data-avatar-boundary
       className={cn(
         "relative flex h-full w-[clamp(220px,15.5vw,236px)] flex-none flex-col overflow-hidden px-3 pb-[clamp(10px,1.6dvh,14px)] pt-[clamp(12px,1.8dvh,16px)] text-[#eaf1ff]",
         "shadow-[6px_0_24px_-8px_rgba(4,15,40,0.55)]",
@@ -151,17 +154,27 @@ export default function Sidebar({ avatarSrc = DEFAULT_AVATAR, onLogout, onNaviga
       {/* Profile card: avatar + name, language switch underneath */}
       <div className="z-10 mb-[clamp(10px,2dvh,16px)] flex flex-col gap-2.5 rounded-2xl border border-[rgba(90,160,255,0.3)] bg-[rgba(23,45,95,0.55)] p-3 short:gap-2 short:px-2.5 short:py-[9px]">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className="relative size-11 flex-none rounded-full p-[2px] shadow-[0_0_10px_1px_rgba(56,189,248,0.5)] short:size-9"
-            style={{ backgroundImage: "conic-gradient(from 180deg, #38bdf8, #0a3fc9, #38bdf8)" }}
+          {/* The avatar opens the avatar chooser (the pick is kept in this browser). */}
+          <AvatarPicker
+            value={avatarSrc}
+            onSave={setAvatarSrc}
+            label={t("sidebar:avatarChange", { name: userName })}
+            className="relative size-11 flex-none rounded-full transition-transform hover:scale-105 short:size-9"
           >
+            {/* A soft glow that breathes around the avatar, and a bright arc that slowly travels round its ring. */}
+            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-full animate-avatar-glow motion-reduce:animate-none" />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full animate-avatar-spin motion-reduce:animate-none"
+              style={{ backgroundImage: "conic-gradient(from 0deg, #0a3fc9 0%, #38bdf8 28%, #d9f3ff 42%, #38bdf8 56%, #0a3fc9 100%)" }}
+            />
             <img
               src={avatarSrc}
               alt={t("sidebar:avatarOf", { name: userName })}
-              className="h-full w-full rounded-full border-2 border-[#0c2452] object-cover"
+              className="pointer-events-none relative h-full w-full rounded-full border-2 border-[#0c2452] object-cover"
             />
             <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#12305f] bg-[#31d67a] short:size-2.5" />
-          </div>
+          </AvatarPicker>
           <div className="min-w-0 flex-1">
             {loading ? (
               <div className="flex animate-pulse flex-col gap-1.5">

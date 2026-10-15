@@ -625,3 +625,17 @@ body {
   font-weight: 600;
   line-height: 1.1;
 }
+
+/* Sidebar avatar: a soft glow that breathes, and a bright arc that slowly circles the ring */
+@theme {
+  --animate-avatar-glow: avatar-glow 3.6s ease-in-out infinite;
+  --animate-avatar-spin: avatar-spin 9s linear infinite;
+
+  @keyframes avatar-glow {
+    0%, 100% { box-shadow: 0 0 7px 0 rgba(56, 189, 248, 0.4); }
+    50% { box-shadow: 0 0 16px 4px rgba(56, 189, 248, 0.62); }
+  }
+  @keyframes avatar-spin {
+    to { transform: rotate(360deg); }
+  }
+}

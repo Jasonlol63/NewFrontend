@@ -47,5 +47,17 @@
   "openMenu": "Open menu",
   "profile": "Profile",
   "profileOf": "{{name}} profile",
-  "avatarOf": "{{name}} avatar"
+  "avatarOf": "{{name}} avatar",
+  "avatarChange": "Change {{name}} avatar",
+  "avatar": {
+    "title": "Choose avatar",
+    "preview": "Preview",
+    "previewHint": "This is how you appear in the sidebar",
+    "male": "Male",
+    "female": "Female",
+    "current": "Current avatar",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close"
+  }
 }

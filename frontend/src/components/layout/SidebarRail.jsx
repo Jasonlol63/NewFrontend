@@ -3,9 +3,9 @@ import { Tooltip } from "radix-ui";
 import { useTranslation } from "react-i18next";
 import { LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAvatar } from "./useAvatar";
 import {
   ACTIVE_ITEM_CLASS,
-  DEFAULT_AVATAR,
   IDLE_ITEM_CLASS,
   SIDEBAR_BG_STYLE,
 } from "./sidebarConfig";
@@ -34,8 +34,9 @@ function RailTip({ label, children }) {
 
 // Icon-only sidebar used below 1200px. Items with a submenu (and the menu
 // button) open the full sidebar as a drawer instead of navigating.
-export default function SidebarRail({ avatarSrc = DEFAULT_AVATAR, onOpenMenu, onLogout, badges }) {
+export default function SidebarRail({ onOpenMenu, onLogout, badges }) {
   const { loading, items, userName } = useSidebarData();
+  const [avatarSrc] = useAvatar();
   const { t } = useTranslation();
   const { pathname } = useLocation();
 

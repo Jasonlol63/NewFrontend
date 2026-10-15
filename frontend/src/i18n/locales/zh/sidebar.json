@@ -47,5 +47,17 @@
   "openMenu": "打开菜单",
   "profile": "个人资料",
   "profileOf": "{{name}} 的个人资料",
-  "avatarOf": "{{name}} 的头像"
+  "avatarOf": "{{name}} 的头像",
+  "avatarChange": "更换 {{name}} 的头像",
+  "avatar": {
+    "title": "选择头像",
+    "preview": "预览",
+    "previewHint": "这是你在侧边栏里的样子",
+    "male": "男",
+    "female": "女",
+    "current": "当前头像",
+    "cancel": "取消",
+    "save": "保存",
+    "close": "关闭"
+  }
 }
