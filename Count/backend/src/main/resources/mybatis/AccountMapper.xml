@@ -94,7 +94,7 @@
         ORDER BY ata.id
     </select>
 
-    <select id="findAccountIdByTenantIdAndCode"resultType="int">
+    <select id="findAccountIdByTenantIdAndCode" resultType="int">
         SELECT a.id
         FROM account a
         INNER JOIN account_tenant_access ata ON ata.account_id = a.id
