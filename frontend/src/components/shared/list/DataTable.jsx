@@ -284,7 +284,9 @@ function useRowWindow({ enabled, ref, rowHeight, rowCount, hasMore, loadingMore,
 // from a different set of rows on every scroll step and the whole table would shift sideways. This measures the columns
 // once (after the first rows are drawn and the fit has run), then freezes them: the table gets a <colgroup> and a fixed
 // layout. It measures again when the card is resized, the columns change or the list is reset (new filters).
-function useFrozenColumns(enabled, ref, key, ready) {
+const FROZEN_MIN_FIT = 48;
+const FROZEN_CELL_PAD = 14;
+function useFrozenColumns(enabled, ref, key, ready, fitWidth) {
   const [widths, setWidths] = useState(null);
   useLayoutEffect(() => {
     setWidths(null);
@@ -316,13 +318,32 @@ function useFrozenColumns(enabled, ref, key, ready) {
     // ... then the room that is left is shared by every column in proportion to its natural width, exactly as the
     // browser's own layout does while the list is empty — except columns with an explicit width class (No., the select
     // column), which keep it. That way the columns do not jump when the first rows arrive.
+    // A column with fitMax never gets wider than that many px (plus its cell padding), even when the card has room.
+    const maxes = new Map();
+    table.querySelectorAll("tbody span[data-fit-max]").forEach((s) => maxes.set(s.dataset.fit, Number(s.dataset.fitMax)));
+    const keyOf = (h) => h.querySelector("[data-head]")?.dataset.head;
+    heads.forEach((h, i) => {
+      const max = maxes.get(keyOf(h));
+      if (max) natural[i] = Math.min(natural[i], max + FROZEN_CELL_PAD);
+    });
     const extra = body.clientWidth - natural.reduce((a, b) => a + b, 0);
     let out = natural;
     if (extra > 1) {
       const fixed = heads.map((h) => /w-\[[\d.]+px\]/.test(h.className));
-      const targets = fixed.some((f) => !f) ? fixed.map((f) => !f) : fixed.map(() => true);
-      const base = natural.reduce((sum, w, i) => (targets[i] ? sum + w : sum), 0);
-      out = natural.map((w, i) => (targets[i] ? w + extra * (w / base) : w));
+      // `grow` (th data-grow) weighs how much of the spare room a column takes: 1 by default.
+      const grow = heads.map((h) => (maxes.has(keyOf(h)) ? 0 : Number(h.dataset.grow ?? 1)));
+      const targets = fixed.some((f, i) => !f && grow[i] > 0) ? fixed.map((f, i) => !f && grow[i] > 0) : fixed.map(() => true);
+      const weight = (w, i) => w * (grow[i] || 1);
+      const base = natural.reduce((sum, w, i) => (targets[i] ? sum + weight(w, i) : sum), 0);
+      out = natural.map((w, i) => (targets[i] ? w + extra * (weight(w, i) / base) : w));
+    } else if (extra < -1 && fitWidth) {
+      // Too wide for the card: the `fit` columns give way (their cells are cut with "..."), so there is no sideways scroll.
+      const shrinkable = heads.map((h) => Boolean(h.querySelector("[data-head]")));
+      const room = natural.reduce((sum, w, i) => (shrinkable[i] ? sum + Math.max(0, w - FROZEN_MIN_FIT) : sum), 0);
+      if (room > 0) {
+        const cut = Math.min(-extra, room);
+        out = natural.map((w, i) => (shrinkable[i] ? w - cut * (Math.max(0, w - FROZEN_MIN_FIT) / room) : w));
+      }
     }
     setWidths(out);
   });
@@ -557,7 +578,7 @@ export default function DataTable({
     if (stable && altColumns) onAltChange?.(stableAlt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stable, stableAlt]);
-  const virtualFrozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0);
+  const virtualFrozen = useFrozenColumns(virtual, scrollRef, `${cols.map((c) => c.key).join("|")}|${selectColumn}|${scrollResetKey}|${String(total).length}`, rows.length > 0, fitWidth);
   const frozen = virtualFrozen ?? stableWidths;
   useRowSweep(cards, scrollRef, rows);
   const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(fitWidth || stable);
@@ -598,7 +619,7 @@ export default function DataTable({
     >
       <div
         ref={scrollRef}
-        style={virtual ? { overflowAnchor: "none" } : undefined}
+        style={virtual ? { overflowAnchor: "none", scrollbarGutter: "stable" } : undefined}
         onScroll={() => {
           hideCellTip();
           updateWindow();
@@ -688,6 +709,7 @@ export default function DataTable({
                   <th
                     key={col.key}
                     onClick={sortable ? () => onSortChange(col.key) : undefined}
+                    data-grow={col.grow}
                     className={cn(
                       "py-2.5 whitespace-nowrap",
                       cards && "bg-[#e4eefc] first:rounded-l-[10px] last:rounded-r-[10px]",
