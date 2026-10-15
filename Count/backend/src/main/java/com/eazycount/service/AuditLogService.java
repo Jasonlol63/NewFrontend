@@ -17,4 +17,7 @@ public interface AuditLogService {
 
     /** IT-only; same filters as {@link #search}, no pagination. Returns a DTO with the count fields populated. */
     AuditLogDTO summary(AuditLogDTO query);
+
+    /** IT-only; the company codes and module names present in the log, for the filter dropdowns. */
+    java.util.Map<String, java.util.List<String>> filterOptions();
 }

@@ -54,6 +54,11 @@ public class AuditLogController {
         return ResponseEntity.ok(Map.of("success", true, "message", "OK", "data", result));
     }
 
+    @GetMapping("/audit-log/options")
+    public ResponseEntity<Map<String, Object>> options() {
+        return ResponseEntity.ok(Map.of("success", true, "message", "OK", "data", auditLogService.filterOptions()));
+    }
+
     private static AuditLogDTO toQuery(
             String dateFrom, String dateTo, String tenantCode, String module, String action, String keyword
     ) {

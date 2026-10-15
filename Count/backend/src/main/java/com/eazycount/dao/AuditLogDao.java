@@ -19,4 +19,10 @@ public interface AuditLogDao {
     long countSearch(@Param("q") AuditLogDTO query);
 
     AuditLogDTO summary(@Param("q") AuditLogDTO query);
+
+    /** Companies that appear in the log, for the filter's dropdown. */
+    List<String> distinctTenantCodes();
+
+    /** Modules that appear in the log, for the filter's dropdown. */
+    List<String> distinctModules();
 }

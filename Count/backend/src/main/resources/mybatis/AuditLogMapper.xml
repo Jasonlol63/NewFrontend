@@ -83,4 +83,16 @@
         FROM audit_log
         <include refid="whereClause"/>
     </select>
+
+    <select id="distinctTenantCodes" resultType="string">
+        SELECT DISTINCT tenant_code FROM audit_log
+        WHERE tenant_code IS NOT NULL AND tenant_code != ''
+        ORDER BY tenant_code
+    </select>
+
+    <select id="distinctModules" resultType="string">
+        SELECT DISTINCT module FROM audit_log
+        WHERE module IS NOT NULL AND module != ''
+        ORDER BY module
+    </select>
 </mapper>

@@ -92,6 +92,10 @@ public class SessionUser implements Serializable {
         this.menu = "member".equals(userType)
                 ? buildMemberMenu()
                 : buildMenu(this.permissions, tenantHasGame, tenantHasBank, "group".equals(loginScope), isCurrentTenantC168);
+        // The IT console is not part of any role / company rule: only an IT operator sees it.
+        if ("it".equals(role)) {
+            this.menu.put("auditLog", true);
+        }
     }
 
     /**
@@ -144,6 +148,7 @@ public class SessionUser implements Serializable {
         menu.put("maintenancePayment", maintenancePayment);
         menu.put("maintenanceFormula", maintenanceFormula);
         menu.put("maintenanceBankProcess", maintenanceBankProcess);
+        menu.put("auditLog", false);
         // Parent entry: shown only if at least one child is.
         menu.put("maintenance", maintenanceDataCapture || maintenanceTransaction || maintenancePayment
                 || maintenanceFormula || maintenanceBankProcess);

@@ -23,6 +23,7 @@ import PaymentHistoryPage from "./pages/transaction-payment/PaymentHistoryPage.j
 import MemberWinLossPage from "./pages/member/MemberWinLossPage.jsx";
 import AutoRenewPage from "./pages/auto-renew/AutoRenewPage.jsx";
 import AnnouncementPage from "./pages/announcement/AnnouncementPage.jsx";
+import AuditLogPage from "./pages/audit-log/AuditLogPage.jsx";
 import RealtimeConnection from "./lib/realtime/RealtimeConnection.jsx";
 import { RequireSession } from "./context/session";
 
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/maintenance/payment" element={<PaymentMaintenancePage />} />
           <Route path="/maintenance/formula" element={<FormulaMaintenancePage />} />
           <Route path="/maintenance/bank-process" element={<BankProcessMaintenancePage />} />
+          <Route path="/audit-log" element={<AuditLogPage />} />
         </Route>
 
         {/* unknown URL: the login page sends a logged-in user on to the dashboard */}

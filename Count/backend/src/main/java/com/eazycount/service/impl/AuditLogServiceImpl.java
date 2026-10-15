@@ -95,6 +95,14 @@ public class AuditLogServiceImpl implements AuditLogService {
         return auditLogDao.summary(query);
     }
 
+    @Override
+    public java.util.Map<String, List<String>> filterOptions() {
+        AccessControlUtils.requireItOperator(SecurityUtils.currentUser());
+        return java.util.Map.of(
+                "tenantCodes", auditLogDao.distinctTenantCodes(),
+                "modules", auditLogDao.distinctModules());
+    }
+
     /**
      * The writing method's own {@link com.eazycount.audit.AuditContext#captureSummary} wins when
      * present; otherwise {@link AuditSummaryDefaults} builds a generic one. Either way, the
