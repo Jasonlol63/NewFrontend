@@ -175,7 +175,7 @@ export default function TransactionPaymentPage() {
         <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} fill={fill} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
       </div>
       <div className={cn("transition-opacity", search.loading && "opacity-60")}>
-        <ReportBlocks blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} onPick={readOnly ? undefined : pickBalance} />
+        <ReportBlocks skeleton={search.loading && search.rows.length === 0} blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} onPick={readOnly ? undefined : pickBalance} />
       </div>
       {inboxOpen && <ContraInboxModal inbox={inbox} onClose={closeInbox} notify={push} />}
     </div>

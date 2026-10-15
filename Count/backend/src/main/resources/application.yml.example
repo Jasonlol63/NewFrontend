@@ -61,6 +61,11 @@ spring:
 
 server:
   port: 8082
+  # JSON of the list pages (Transaction Search is ~100KB) shrinks to a fraction on the wire
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 1024
 
 mybatis:
   mapper-locations: classpath:mybatis/*.xml

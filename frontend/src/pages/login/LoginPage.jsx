@@ -53,11 +53,12 @@ export default function LoginPage() {
     "/images/count_logo_puzzle_animation.webp"
   );
 
-  // Already logged in (and past the secondary password): no need to see the login form again.
+  // Already logged in (and past the secondary password): no need to see the login form again. A session saved before the
+  // current menu format (no "home" key) does not count: SessionProvider sends it back here, so redirecting it would loop.
   useEffect(() => {
     let cancelled = false;
     loadSessionUser().then((user) => {
-      if (!cancelled && user?.menu && !user.needs_owner_secondary && !user.needs_user_secondary) {
+      if (!cancelled && user?.menu && "home" in user.menu && !user.needs_owner_secondary && !user.needs_user_secondary) {
         navigate(homePath(user), { replace: true });
       }
     });

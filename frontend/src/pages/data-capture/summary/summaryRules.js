@@ -83,8 +83,38 @@ export const rowName = (row, t) => [idLabel(row) || t("summary.table.noIdProduct
 // captured = { rows } with rows[r][n] = the text of column n of sheet row r (n = 1 is the Id Product, so $2 is the first
 // data column), the same numbering the formulas use.
 
-export function capturedFromTable(table) {
-  return { rows: (table?.rows ?? []).map((row) => row.map((cell) => String(cell?.value ?? ""))) };
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The Id Product text after Remove Word ("FREE,=BONUS": a plain word is cut out wherever it stands, "=WORD" only when it is
+ * the whole text) and Replace Word (from -> to). Both ignore case.
+ */
+export function cleanIdProduct(text, { removeWord = "", replaceFrom = "", replaceTo = "" } = {}) {
+  let out = String(text ?? "");
+  for (const word of String(removeWord).split(",").map((w) => w.trim()).filter(Boolean)) {
+    if (word.startsWith("=")) {
+      const exact = word.slice(1).trim();
+      if (exact && out.trim().toUpperCase() === exact.toUpperCase()) out = "";
+    } else {
+      out = out.replace(new RegExp(escapeRegExp(word), "gi"), " ");
+    }
+  }
+  out = out.replace(/\s+/g, " ").trim();
+  const from = String(replaceFrom).trim();
+  if (from) out = out.replace(new RegExp(escapeRegExp(from), "gi"), () => String(replaceTo).trim());
+  return out.trim();
+}
+
+/** capture = { removeWord, replaceFrom, replaceTo }: applied to the Id Product column (column 1) only. */
+export function capturedFromTable(table, capture) {
+  return {
+    rows: (table?.rows ?? []).map((row) =>
+      row.map((cell, i) => {
+        const value = String(cell?.value ?? "");
+        return i === 1 && capture ? cleanIdProduct(value, capture) : value;
+      })
+    ),
+  };
 }
 
 const looksLikeAmount = (value) => {

@@ -328,13 +328,21 @@ function extractCellLines(sourceCell) {
   return lines;
 }
 
+/**
+ * Only stacked totals ("SUB TOTAL" over "GRAND TOTAL" in one cell) are split into two rows. Any other cell that holds two lines
+ * ("TitanXGaming" and "- Clotplay") is one name: its lines are joined with a space, as 4.RETURN does.
+ */
+function linesAreStackedTotals(lines) {
+  return lines.some((line) => /\btotal\b/i.test(line));
+}
+
 /** First-cell BR/SPAN check used for required row count pre-detection. */
 function sourceRowNeedsVerticalSplit(sourceCells) {
   if (sourceCells.length === 0) return false;
   const lines = extractCellLines(sourceCells[0]);
   // Agent-period collapsed rows are HORIZONTAL field dumps, not 2-line vertical splits.
   if (nestedFieldsLookLikeReportRow(lines)) return false;
-  return lines.length >= 2;
+  return lines.length >= 2 && linesAreStackedTotals(lines);
 }
 
 /** Count tbody rows after vertical splits (SUB TOTAL / GRAND TOTAL). */
@@ -372,10 +380,11 @@ function detectRowVerticalSplit(sourceCells) {
 }
 
 function extractPlainText(sourceCell) {
-  const cellHtml = sourceCell.innerHTML || "";
+  const cellHtml = (sourceCell.innerHTML || "").replace(/<br\s*\/?>/gi, "\n");
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = cellHtml;
-  return (tempDiv.textContent || tempDiv.innerText || "").trim();
+  // A cell of several lines is one text: the lines are joined with a space.
+  return (tempDiv.textContent || tempDiv.innerText || "").trim().replace(/\s*[\r\n]+\s*/g, " ");
 }
 
 /** Material report status classes often carry color without inline style. */
@@ -605,10 +614,10 @@ function expandSourceRowToMatrixRows(sourceRow, maxCols) {
   }
 
   if (isFirstCellWithBrOrSpan && hasVerticalSplit && cellsWithSplit.length > 0) {
-    // True vertical split (e.g. two stacked labels in one Excel cell) — only top/bottom.
+    // True vertical split (stacked SUB TOTAL / GRAND TOTAL in one Excel cell) — only top/bottom.
     // Do not use this path for 9-field agent dumps.
     const firstLines = cellsWithSplit[0]?.allLines || [];
-    if (firstLines.length <= 2) {
+    if (firstLines.length <= 2 && linesAreStackedTotals(firstLines)) {
       const topRow = emptyRowPatch(maxCols);
       const bottomRow = emptyRowPatch(maxCols);
 

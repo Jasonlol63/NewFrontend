@@ -66,12 +66,12 @@ export default function AccountPage() {
     normalize: normalizeAccountRow,
   });
 
-  // What the Add / Edit modal offers: every Group first (greyed when this login has no access to it), then the picked Group's
-  // companies; with the Group's own view picked, just the Groups.
-  const modalCompanyOptions = [
-    ...scope.allGroupOptions.map((g) => ({ ...g, value: `group:${g.value}`, isGroup: true })),
-    ...(scope.company === null && scope.group ? [] : scope.companyOptions),
-  ];
+  // What the Add / Edit modal offers follows what the session is in: in a Group (its own view) only Groups, every one of them
+  // (greyed when this login has no access to it); in a company only the companies of the picked Group.
+  const inGroup = scope.company === null && Boolean(scope.group);
+  const modalCompanyOptions = inGroup
+    ? scope.allGroupOptions.map((g) => ({ ...g, value: `group:${g.value}`, isGroup: true }))
+    : scope.companyOptions;
 
   // Posts what the modal built ({ url, body }); on success the modal closes, the list is fetched again and a toast says so.
   // A failure is thrown back to the modal, which shows it as a toast.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import Toast from "@/components/shared/Toast.jsx";
@@ -18,7 +18,7 @@ import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
 import { cardClass } from "../shared/cardParts.jsx";
 import { CAPTURE_MODES, GAME_GRID } from "../shared/dataCaptureRules";
 import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
-import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
+import { buildSubmission, saveCaptureSession, saveCaptureView, clearCaptureView, viewToRestore } from "../shared/submitSnapshot";
 import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
 import { useGameProcesses } from "../shared/useGameProcesses";
@@ -36,14 +36,18 @@ const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "",
  */
 export default function GameCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const { t } = useTranslation(["capture", "common"]);
 
+  // Back from the summary: the page comes back as it was left at Submit.
+  const [restored] = useState(() => viewToRestore("game", location, navigationType));
   const { dates, today } = useDateOptions();
-  const [date, setDate] = useState(today);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [descriptions, setDescriptions] = useState(() => new Set());
+  const [date, setDate] = useState(restored?.date ?? today);
+  const [form, setForm] = useState(restored?.form ?? EMPTY_FORM);
+  const [descriptions, setDescriptions] = useState(() => new Set(restored?.descriptions ?? []));
   const [picker, setPicker] = useState(false);
-  const [mode, setMode] = useState(CAPTURE_MODES[0].value);
+  const [mode, setMode] = useState(restored?.mode ?? CAPTURE_MODES[0].value);
   const sheet = useCaptureGrid(GAME_GRID);
   const { toasts, push, dismiss } = useNotice(5000);
   const pushNotice = (message, level) => push(message, level);
@@ -64,6 +68,8 @@ export default function GameCaptureView({ scope, readOnly }) {
 
   // Another company means another process list: start the form again.
   useEffect(() => {
+    // The restored page belongs to this company (the scope may still be loading).
+    if (restored && (scope.tenantId == null || scope.tenantId === restored.tenantId)) return;
     setForm(EMPTY_FORM);
     setDescriptions(new Set());
     sheet.resetGrid();
@@ -101,6 +107,12 @@ export default function GameCaptureView({ scope, readOnly }) {
     onLoadError: (err) => push(t("errors.draftLoad"), "error", [err.message, t("errors.draftLoadDetail")]),
   });
 
+  // Declared after the draft hook so it runs after that hook's "new pick starts empty" on mount and the restored sheet wins.
+  useEffect(() => {
+    if (restored?.grid) sheet.resetGrid(restored.grid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
+
   const deleteDraft = async () => {
     const ok = await draft.remove();
     if (ok === true) push(t("toast.draftDeleted"), "success", t("toast.draftDeletedDetail"));
@@ -109,6 +121,7 @@ export default function GameCaptureView({ scope, readOnly }) {
 
   // Reset keeps the draft (Delete Draft removes it) and starts the whole form again.
   const reset = () => {
+    clearCaptureView();
     draft.flush();
     setDate(today);
     setForm(EMPTY_FORM);
@@ -140,6 +153,7 @@ export default function GameCaptureView({ scope, readOnly }) {
       table,
     };
     saveCaptureSession(capture);
+    saveCaptureView({ kind: "game", tenantId: scope.tenantId, date, form, descriptions: [...descriptions], mode, grid: sheet.grid });
     navigate("/data-capture/summary", { state: capture });
   };
 

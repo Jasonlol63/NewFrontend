@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
 import { cardClass } from "../shared/cardParts.jsx";
 import { ADD_COL_OPTIONS, ADD_ROW_OPTIONS, BANK_DRAFT_PROCESSES, BANK_GRID, BANK_PROCESSES } from "../shared/dataCaptureRules";
 import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
-import { buildSubmission, saveCaptureSession } from "../shared/submitSnapshot";
+import { buildSubmission, saveCaptureSession, saveCaptureView, clearCaptureView, viewToRestore } from "../shared/submitSnapshot";
 import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
@@ -34,10 +34,14 @@ const EMPTY_FORM = { process: "", currency: "", remark: "" };
  */
 export default function BankCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const { t } = useTranslation(["capture", "common"]);
+  // Back from the summary: the page comes back as it was left at Submit.
+  const [restored] = useState(() => viewToRestore("bank", location, navigationType));
   const { dates, today } = useDateOptions();
-  const [date, setDate] = useState(today);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [date, setDate] = useState(restored?.date ?? today);
+  const [form, setForm] = useState(restored?.form ?? EMPTY_FORM);
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const sheet = useCaptureGrid(BANK_GRID);
   const { toasts, push, dismiss } = useNotice(5000);
@@ -67,13 +71,22 @@ export default function BankCaptureView({ scope, readOnly }) {
 
   // Another company: start the form again.
   useEffect(() => {
+    // The restored page belongs to this company (the scope may still be loading).
+    if (restored && (scope.tenantId == null || scope.tenantId === restored.tenantId)) return;
     setForm(EMPTY_FORM);
     sheet.resetGrid();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new company starts again
   }, [scope.tenantId]);
 
+  // After the draft hook's "new pick starts empty" on mount, so the restored sheet wins.
+  useEffect(() => {
+    if (restored?.grid) sheet.resetGrid(restored.grid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
+
   // Another date (or Reset) starts the form again on an empty sheet; the drafts stay.
   const startAgain = (nextDate = date) => {
+    clearCaptureView();
     draft.flush();
     setDate(nextDate);
     setForm(EMPTY_FORM);
@@ -99,6 +112,7 @@ export default function BankCaptureView({ scope, readOnly }) {
       table,
     };
     saveCaptureSession(capture);
+    saveCaptureView({ kind: "bank", tenantId: scope.tenantId, date, form, grid: sheet.grid });
     navigate("/data-capture/summary", { state: capture });
   };
 

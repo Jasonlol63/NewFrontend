@@ -22,6 +22,20 @@ import {
 
 const MAX_HISTORY = 50;
 
+// A cell is one line (typing already turns a line break into a space): a pasted cell of several lines is joined with spaces.
+const ONE_LINE = /\s*[\r\n]+\s*/g;
+function oneLineCells(grid) {
+  let changed = false;
+  const cells = grid.cells.map((row) =>
+    row.map((cell) => {
+      if (typeof cell?.value !== "string" || !/[\r\n]/.test(cell.value)) return cell;
+      changed = true;
+      return { ...cell, value: cell.value.trim().replace(ONE_LINE, " "), html: undefined };
+    })
+  );
+  return changed ? { ...grid, cells } : grid;
+}
+
 // Grid + undo stack. Typing goes straight into the grid ("set", no history: the browser undoes text inside a cell);
 // everything else (clear, delete, insert, paste, add rows) is one undo step ("do").
 function reducer(state, action) {
@@ -181,10 +195,10 @@ export function useCaptureGrid({ rows, cols }) {
       const from = at ?? (live.length ? { r: bounds(live).r1, c: bounds(live).c1 } : { r: rowAt, c: colAt });
       // What does not fit under the caps (702 rows, 50 columns) is left out.
       const fit = matrix.slice(0, Math.max(0, MAX_GRID_ROWS - from.r)).map((line) => line.slice(0, Math.max(0, MAX_GRID_COLS - from.c)));
-      run((g) => writeMatrix(g, from.r, from.c, fit));
+      run((g) => oneLineCells(writeMatrix(g, from.r, from.c, fit)));
     },
     // A finished paste hands the whole new grid over: one undo step.
-    replaceGrid: (next) => run(() => next),
+    replaceGrid: (next) => run(() => oneLineCells(next)),
     undo: () => dispatch({ type: "undo" }),
     copyText: () => (live.length ? rangesToText(grid, live) : ""),
   };

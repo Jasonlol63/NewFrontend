@@ -11,7 +11,7 @@ import { pasteIntoSheet } from "./paste/pasteRouter";
 import { translatePasteNotice } from "./paste/pasteNotice";
 import { safeCellHtml } from "./safeHtml";
 
-const COL_W = 55; // table-fixed column width the sheet scrolls horizontally at
+const COL_W = 55; // the least width of a column; a column grows to show its longest text in full, the sheet scrolls sideways
 const headBase = "sticky z-2 h-[27px] border-r border-b border-white/25 text-center type-table-cell font-semibold! text-white select-none";
 const headBg = "bg-[linear-gradient(180deg,#60c1fe,#0f61ff)]";
 const headHot = "bg-[linear-gradient(180deg,#3a9bf0,#0a46c7)]";
@@ -80,7 +80,7 @@ const Cell = memo(function Cell({ r, c, cell, selected, active, editing }) {
       contentEditable="plaintext-only"
       suppressContentEditableWarning
       className={cn(
-        "h-[27px] scroll-ml-16 scroll-mt-8 cursor-cell overflow-hidden border-r border-b border-[rgba(130,155,195,0.22)] px-1.5 text-ellipsis whitespace-nowrap outline-none select-none",
+        "h-[27px] min-w-[55px] scroll-ml-16 scroll-mt-8 cursor-cell border-r border-b border-[rgba(130,155,195,0.22)] px-1.5 whitespace-nowrap outline-none select-none",
         selected ? "bg-[#cfe2ff] shadow-[inset_0_0_0_9999px_rgba(59,130,246,0.16)]" : "bg-white hover:bg-[#f1f6ff]",
         className,
         active && "outline-2 -outline-offset-2 outline-[#3b82f6]",
@@ -388,7 +388,7 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
       onBlur={onBlur}
       className="min-h-0 flex-1 overflow-auto border-t border-modal-input-line bg-white outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]"
     >
-      <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell" style={{ minWidth: 56 + grid.cols * COL_W }}>
+      <table className="w-full table-auto border-separate border-spacing-0 type-table-cell" style={{ minWidth: 56 + grid.cols * COL_W }}>
         <thead>
           <tr>
             <th data-corner="" title={t("sheet.selectAll")} className={cn(headBase, headBg, "top-0 left-0 z-3 w-14 cursor-pointer")} />

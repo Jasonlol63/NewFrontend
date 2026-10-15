@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Popover } from "radix-ui";
 import { ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useListNav } from "./useListNav";
 
 /**
  * Single-choice dropdown that looks like the DateRangePicker box. options: [{ value, label }].
@@ -39,6 +40,7 @@ export default function DropdownSelect({
     onChange(option.value);
     setOpen(false);
   };
+  const nav = useListNav({ items: shown, selectedIndex: shown.findIndex((o) => o.value === value), open, query, onPick: pick });
 
   return (
     <Popover.Root
@@ -52,6 +54,14 @@ export default function DropdownSelect({
         <button
           type="button"
           aria-label={ariaLabel}
+          onKeyDown={(e) => {
+            // Arrow Down / Up on the closed box opens the list.
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              e.preventDefault();
+              setQuery("");
+              setOpen(true);
+            }
+          }}
           className={cn(
             "inline-flex max-w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-slate-400/50 bg-white px-3 py-[7px] text-left type-table-cell font-semibold! text-[#374151] shadow-[0_2px_8px_rgba(15,23,42,0.06)]",
             className
@@ -89,6 +99,7 @@ export default function DropdownSelect({
         <Popover.Content
           align="start"
           sideOffset={6}
+          onKeyDown={nav.onKeyDown}
           className={cn("z-50 w-(--radix-popover-trigger-width) min-w-[200px] overflow-hidden rounded-xl border border-dash-line bg-white shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]", panelClassName)}
         >
           {searchable && (
@@ -97,9 +108,6 @@ export default function DropdownSelect({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && shown[0]) pick(shown[0]);
-                }}
                 placeholder={searchPlaceholder}
                 autoComplete="off"
                 // Typed letters show in capitals (the match ignores case anyway); the hint stays as written.
@@ -107,18 +115,21 @@ export default function DropdownSelect({
               />
             </label>
           )}
-          <div className={cn("max-h-[260px] overflow-y-auto p-1", listClassName)}>
-            {shown.map((option) => (
+          <div ref={nav.listRef} className={cn("max-h-[260px] overflow-y-auto p-1", listClassName)}>
+            {shown.map((option, i) => (
               <button
                 key={option.value}
                 type="button"
+                tabIndex={-1}
+                data-active={nav.active === i}
                 onClick={() => pick(option)}
+                onMouseMove={() => nav.active !== i && nav.setActive(i)}
                 className={cn(
                   "block w-full cursor-pointer truncate rounded-lg px-2.5 py-1.5 text-left type-table-cell font-semibold! transition-colors",
                   optionClassName,
                   option.value === value
                     ? "bg-seg-active text-white shadow-[0_4px_10px_-3px_rgba(13,96,255,0.55)]"
-                    : "text-[#1e3a6e] hover:bg-slate-100"
+                    : "text-[#1e3a6e] data-[active=true]:bg-[#cfe2ff] data-[active=true]:text-brand-navy data-[active=true]:shadow-[inset_3px_0_0_#2563eb]"
                 )}
               >
                 {option.label}

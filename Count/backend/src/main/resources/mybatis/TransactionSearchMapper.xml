@@ -59,41 +59,53 @@
     </sql>
 
     <select id="aggregateBankProcessWinLoss" resultType="com.eazycount.dto.TransactionSearchAggregateRow">
+        <!-- Sum per (account, currency) on the ids first, then join the names: grouping by account name / role / currency code made
+             the database sort strings for every one of the ~30k WIN/LOSE rows. -->
         SELECT
             a.id AS accountDbId,
             a.account_id AS accountCode,
             a.name AS accountName,
             a.role AS role,
             UPPER(c.code) AS currencyCode,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &lt; #{dateFrom} THEN
-                        CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
-                    ELSE 0
-                END
-            ), 0) AS bfAmount,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &gt;= #{dateFrom}
-                     AND t.transaction_date &lt;= #{dateTo} THEN
-                        CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
-                    ELSE 0
-                END
-            ), 0) AS winLossAmount,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &gt;= #{dateFrom}
-                     AND t.transaction_date &lt;= #{dateTo} THEN 1
-                    ELSE 0
-                END
-            ), 0) AS periodTxnCount
-        FROM transactions t
-        INNER JOIN account a ON a.id = t.account_id
-        INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
-        WHERE t.tenant_id = #{tenantId}
-          AND <include refid="isBankLine"><property name="t" value="t"/></include>
-          AND t.approval_status = 'APPROVED'
-          AND t.transaction_type IN ('WIN', 'LOSE')
+            x.bfAmount AS bfAmount,
+            x.winLossAmount AS winLossAmount,
+            x.periodTxnCount AS periodTxnCount
+        FROM (
+            SELECT
+                t.account_id AS accountId,
+                t.currency_id AS currencyId,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &lt; #{dateFrom} THEN
+                            CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
+                        ELSE 0
+                    END
+                ), 0) AS bfAmount,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &gt;= #{dateFrom}
+                         AND t.transaction_date &lt;= #{dateTo} THEN
+                            CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
+                        ELSE 0
+                    END
+                ), 0) AS winLossAmount,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &gt;= #{dateFrom}
+                         AND t.transaction_date &lt;= #{dateTo} THEN 1
+                        ELSE 0
+                    END
+                ), 0) AS periodTxnCount
+            FROM transactions t
+            WHERE t.tenant_id = #{tenantId}
+              AND <include refid="isBankLine"><property name="t" value="t"/></include>
+              AND t.approval_status = 'APPROVED'
+              AND t.transaction_type IN ('WIN', 'LOSE')
+            GROUP BY t.account_id, t.currency_id
+        ) x
+        INNER JOIN account a ON a.id = x.accountId
+        INNER JOIN currency c ON c.id = x.currencyId AND c.tenant_id = #{tenantId}
+        WHERE 1 = 1
         <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
             AND UPPER(c.code) IN
             <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
@@ -106,47 +118,58 @@
                 UPPER(#{cat})
             </foreach>
         </if>
-        GROUP BY a.id, a.account_id, a.name, a.role, c.code
         ORDER BY currencyCode ASC, accountCode ASC
     </select>
 
     <!-- 数据录入汇总提交的输赢（未过账，区别于上面的银行处理流程） -->
     <select id="aggregateDataCaptureWinLoss" resultType="com.eazycount.dto.TransactionSearchAggregateRow">
+        <!-- Sum per (account, currency) on the ids first, then join the names: grouping by account name / role / currency code made
+             the database sort strings for every one of the ~30k WIN/LOSE rows. -->
         SELECT
             a.id AS accountDbId,
             a.account_id AS accountCode,
             a.name AS accountName,
             a.role AS role,
             UPPER(c.code) AS currencyCode,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &lt; #{dateFrom} THEN
-                        CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
-                    ELSE 0
-                END
-            ), 0) AS bfAmount,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &gt;= #{dateFrom}
-                     AND t.transaction_date &lt;= #{dateTo} THEN
-                        CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
-                    ELSE 0
-                END
-            ), 0) AS winLossAmount,
-            COALESCE(SUM(
-                CASE
-                    WHEN t.transaction_date &gt;= #{dateFrom}
-                     AND t.transaction_date &lt;= #{dateTo} THEN 1
-                    ELSE 0
-                END
-            ), 0) AS periodTxnCount
-        FROM transactions t
-        INNER JOIN account a ON a.id = t.account_id
-        INNER JOIN currency c ON c.id = t.currency_id AND c.tenant_id = t.tenant_id
-        WHERE t.tenant_id = #{tenantId}
-          AND <include refid="notBankLine"><property name="t" value="t"/></include>
-          AND t.approval_status = 'APPROVED'
-          AND t.transaction_type IN ('WIN', 'LOSE')
+            x.bfAmount AS bfAmount,
+            x.winLossAmount AS winLossAmount,
+            x.periodTxnCount AS periodTxnCount
+        FROM (
+            SELECT
+                t.account_id AS accountId,
+                t.currency_id AS currencyId,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &lt; #{dateFrom} THEN
+                            CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
+                        ELSE 0
+                    END
+                ), 0) AS bfAmount,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &gt;= #{dateFrom}
+                         AND t.transaction_date &lt;= #{dateTo} THEN
+                            CASE WHEN t.transaction_type = 'WIN' THEN t.amount ELSE -t.amount END
+                        ELSE 0
+                    END
+                ), 0) AS winLossAmount,
+                COALESCE(SUM(
+                    CASE
+                        WHEN t.transaction_date &gt;= #{dateFrom}
+                         AND t.transaction_date &lt;= #{dateTo} THEN 1
+                        ELSE 0
+                    END
+                ), 0) AS periodTxnCount
+            FROM transactions t
+            WHERE t.tenant_id = #{tenantId}
+              AND <include refid="notBankLine"><property name="t" value="t"/></include>
+              AND t.approval_status = 'APPROVED'
+              AND t.transaction_type IN ('WIN', 'LOSE')
+            GROUP BY t.account_id, t.currency_id
+        ) x
+        INNER JOIN account a ON a.id = x.accountId
+        INNER JOIN currency c ON c.id = x.currencyId AND c.tenant_id = #{tenantId}
+        WHERE 1 = 1
         <if test="currencyCodes != null and currencyCodes.size() &gt; 0">
             AND UPPER(c.code) IN
             <foreach collection="currencyCodes" item="code" open="(" separator="," close=")">
@@ -159,7 +182,6 @@
                 UPPER(#{cat})
             </foreach>
         </if>
-        GROUP BY a.id, a.account_id, a.name, a.role, c.code
         ORDER BY currencyCode ASC, accountCode ASC
     </select>
 

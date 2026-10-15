@@ -32,6 +32,28 @@ export function useTenantCurrencies(tenantId) {
  * The Search result of `request` (null = nothing to ask yet), as normalized rows. The previous result stays on screen
  * while a new request is in flight (`loading` dims it). reload() asks again, e.g. after a submit.
  */
+// The last results by request, so the same Search (same company, dates, categories) shows its previous rows at once while the fresh
+// ones load (the rows are dimmed meanwhile). Short-lived and small: it is only a head start, the server answer always replaces it.
+const SEARCH_CACHE = new Map();
+const SEARCH_CACHE_MS = 5 * 60 * 1000;
+const SEARCH_CACHE_MAX = 20;
+
+function cachedRows(key) {
+  const hit = SEARCH_CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > SEARCH_CACHE_MS) {
+    SEARCH_CACHE.delete(key);
+    return null;
+  }
+  return hit.rows;
+}
+
+function rememberRows(key, rows) {
+  SEARCH_CACHE.delete(key);
+  SEARCH_CACHE.set(key, { rows, at: Date.now() });
+  if (SEARCH_CACHE.size > SEARCH_CACHE_MAX) SEARCH_CACHE.delete(SEARCH_CACHE.keys().next().value);
+}
+
 export function useTransactionSearch(request) {
   const requestKey = request ? JSON.stringify(request) : "";
   const [version, setVersion] = useState(0);
@@ -43,7 +65,11 @@ export function useTransactionSearch(request) {
     if (!requestKey) return undefined;
     const controller = new AbortController();
     postJson(SEARCH_URL, JSON.parse(requestKey), { signal: controller.signal })
-      .then((body) => setState({ key: `${requestKey}#${version}`, rows: (body.data?.rows || []).map(normalizeSearchRow), error: "" }))
+      .then((body) => {
+        const rows = (body.data?.rows || []).map(normalizeSearchRow);
+        rememberRows(requestKey, rows);
+        setState({ key: `${requestKey}#${version}`, rows, error: "" });
+      })
       .catch((err) => {
         if (err.name !== "AbortError") setState({ key: `${requestKey}#${version}`, rows: [], error: err.message });
       });
@@ -54,7 +80,8 @@ export function useTransactionSearch(request) {
   const reload = useCallback(() => setVersion((v) => v + 1), []);
   if (!requestKey) return { rows: [], loading: false, error: "", reload };
   const current = state.key === `${requestKey}#${version}`;
-  return { rows: state.rows, loading: !current, error: current ? state.error : "", reload };
+  // A request that was not loaded yet in this view: its remembered rows (if any) stand in for the previous request's rows.
+  return { rows: current ? state.rows : (cachedRows(requestKey) ?? state.rows), loading: !current, error: current ? state.error : "", reload };
 }
 
 const linkedCache = new Map();

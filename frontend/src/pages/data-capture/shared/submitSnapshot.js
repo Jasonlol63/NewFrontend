@@ -205,9 +205,57 @@ export function loadCaptureSession() {
 
 /** The copy is of no use once the summary was submitted. */
 export function clearCaptureSession() {
+  clearCaptureView();
   try {
     sessionStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
   }
 }
+
+// ---- the capture page as it was left at Submit ----
+// Back from the summary (or the browser's back button) puts the page together again: Date, Process, Currency, words, the sheet.
+// Coming from any other page starts it fresh (clearCaptureView).
+const VIEW_KEY = "dc-capture-view";
+
+/** view: { kind: "game" | "bank", tenantId, date, form, grid, ...whatever else the view keeps } */
+export function saveCaptureView(view) {
+  try {
+    sessionStorage.setItem(VIEW_KEY, JSON.stringify(view));
+  } catch {
+    /* storage full or blocked: the page just starts empty after Back */
+  }
+}
+
+/** The saved view of this kind, or null. */
+export function loadCaptureView(kind) {
+  try {
+    const view = JSON.parse(sessionStorage.getItem(VIEW_KEY) ?? "null");
+    return view?.kind === kind ? view : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCaptureView() {
+  try {
+    sessionStorage.removeItem(VIEW_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * The view to restore on this visit, or null for a fresh page: only when the visit is a Back from the summary
+ * (router state { restore: true }) or a history step (POP). Any other visit drops the saved view.
+ */
+export function viewToRestore(kind, location, navigationType) {
+  // A restoring visit never drops the view: the page may first render as the other kind (Bank / Game follows the session,
+  // which can still be loading) and that one must leave it for the right one.
+  if (location.state?.restore || navigationType === "POP") return loadCaptureView(kind);
+  clearCaptureView();
+  return null;
+}
+
+// A reload (F5) starts the capture page fresh: this line runs once per page load, not on a move inside the app.
+clearCaptureView();

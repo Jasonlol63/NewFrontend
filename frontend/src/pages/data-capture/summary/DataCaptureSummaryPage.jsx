@@ -232,7 +232,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const { user } = useSession();
   const { toasts, push, dismiss } = useNotice(5500);
-  const captured = useMemo(() => capturedFromTable(capture.table), [capture.table]);
+  const captured = useMemo(() => capturedFromTable(capture.table, capture), [capture.table, capture.removeWord, capture.replaceFrom, capture.replaceTo]);
   const signature = draftSignature(capture);
   const defaultCurrency = data.currencies.find((c) => c.id === capture.currencyId)?.code ?? String(capture.currency ?? "");
   const companyCode = String(user?.tenant_code ?? capture.tenantId);
@@ -553,7 +553,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
           </PrimaryButton>
           <button
             type="button"
-            onClick={() => navigate("/data-capture")}
+            onClick={() => navigate("/data-capture", { state: { restore: true } })}
             className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-white/80 bg-white/55 px-4 type-body font-semibold! text-brand-navy hover:bg-white/75"
           >
             {t("summary.back")}

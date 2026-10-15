@@ -1162,6 +1162,8 @@ CREATE TABLE `transactions` (
     KEY `idx_txn_approval` (`tenant_id`, `approval_status`),
     KEY `idx_txn_currency` (`currency_id`),
     KEY `idx_txn_tenant_group` (`tenant_id`, `group_id`),
+    KEY `idx_txn_tenant_type_date` (`tenant_id`, `transaction_type`, `approval_status`, `transaction_date`),
+    KEY `idx_txn_winlose_cover` (`tenant_id`, `transaction_type`, `approval_status`, `account_id`, `currency_id`, `transaction_date`, `amount`, `group_id`),
 
     CONSTRAINT `fk_txn_tenant`
         FOREIGN KEY (`tenant_id`) REFERENCES `tenant` (`id`) ON DELETE CASCADE,
