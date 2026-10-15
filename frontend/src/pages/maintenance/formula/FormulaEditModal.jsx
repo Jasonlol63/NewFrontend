@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { postJson } from "@/lib/api";
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
-import { Field, SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
+import { Field, SearchSelectField, SelectField, TextInput } from "@/components/shared/form-modal/fields.jsx";
 import {
   FORMULA_UPDATE_URL,
   INPUT_METHOD_OPTIONS,
@@ -100,7 +100,7 @@ export default function FormulaEditModal({ row, tenantId, accounts, onClose, onS
               />
             </Field>
             <Field label={t("formula.account")} optional className="col-span-full">
-              <SelectField
+              <SearchSelectField
                 value={form.accountId}
                 onChange={(v) => set("accountId", v)}
                 onClear={() => set("accountId", "")}

@@ -27,13 +27,13 @@ const dash = (v) => v || "-";
 const baseColumns = [
   { key: "no", label: "no", sortable: false, cellClassName: "text-dash-sub tabular-nums", render: (_, n) => n },
   { key: "process", label: "process", sortable: false, fit: true, cellClassName: "font-semibold whitespace-nowrap", render: (r) => r.process },
-  { key: "account", label: "account", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
+  { key: "account", label: "account", sortable: false, fit: true, grow: 4, cellClassName: "whitespace-nowrap", render: (r) => dash(r.account) },
   { key: "currency", label: "currency", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.currency) },
   { key: "source", label: "source", sortable: false, cellClassName: "whitespace-nowrap", render: (r) => dash(r.source) },
   { key: "product", label: "product", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => r.product },
   { key: "inputMethod", label: "inputMethod", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.inputMethod) },
   { key: "formula", label: "formula", sortable: false, fit: true, cellClassName: "whitespace-nowrap", render: (r) => dash(r.formula) },
-  { key: "description", label: "description", sortable: false, fit: true, fitMax: 200, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
+  { key: "description", label: "description", sortable: false, fit: true, fitMax: 160, cellClassName: "whitespace-nowrap", render: (r) => dash(r.description) },
 ];
 
 export default function FormulaMaintenancePage() {
