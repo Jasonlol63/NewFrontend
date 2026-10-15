@@ -484,6 +484,8 @@ public class AuthServiceImpl implements AuthService {
         data.put("company_id", tenant.getId());
         data.put("company_code", code);
         data.put("has_gambling", hasGame);
+        // The rebuilt session, same shape as /auth/current-user, so the front end need not fetch it again.
+        data.put("user", rebuilt);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", true);
