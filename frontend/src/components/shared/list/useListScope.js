@@ -80,6 +80,15 @@ export function useListScope({ onChange } = {}) {
       ? groupTenantId(directory, resolved.group)
       : null;
 
+  // The tenant of what is picked right now, which is ahead of the session while a switch is on its way. For pages whose data
+  // requests carry their own tenant_id and have no per-company view (Transaction Payment): they start loading at the click.
+  const dataTenantId = company
+    ? (companiesOf(directory, group).find((c) => c.code === company)?.tenantId ?? null)
+    : company === null
+      ? groupTenantId(directory, group)
+      : null;
+  const switchPending = Boolean(pending && pending.from === sessionTenantId);
+
   const hasIndependent = hasIndependentCompanies(directory);
   const switchGroup = group === INDEPENDENT ? firstOpenableGroup(directory) : null;
   // A Group listed only because one of its companies points at it is not a Group permission.
@@ -137,6 +146,8 @@ export function useListScope({ onChange } = {}) {
 
   return {
     tenantId,
+    dataTenantId,
+    switching: switchPending,
     group,
     company: company ?? null,
     groupOptions,

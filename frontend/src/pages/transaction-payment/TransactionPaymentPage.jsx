@@ -1,16 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Inbox } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Toast from "@/components/shared/Toast.jsx";
 import { useListScope } from "@/components/shared/list/useListScope";
-import { useTenantList } from "@/components/shared/list/useTenantList";
 import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useNotice } from "@/hooks/useNotice";
 import { useOrderedCurrencies } from "@/hooks/useOrderedCurrencies";
 import { toIsoDate } from "@/lib/date";
-import { normalizeAccountRow } from "@/pages/account/accountRules";
 import ContraInboxModal from "./contra-inbox/ContraInboxModal.jsx";
 import { canApproveContra } from "./contra-inbox/contraInboxRules";
 import { useContraInbox } from "./contra-inbox/useContraInbox";
@@ -19,7 +17,10 @@ import ManualForm from "./ManualForm.jsx";
 import { openPaymentHistory } from "./paymentHistoryRules";
 import ReportBlocks from "./ReportBlocks.jsx";
 import { buildBlocks, buildSearchRequest, fmt, rangeAroundToday } from "./transactionPaymentRules";
-import { useTenantCurrencies, useTransactionSearch } from "./useTransactionData";
+import { hasSearchFor, prefetchTenant, useTenantAccounts, useTenantCurrencies, useTransactionSearch } from "./useTransactionData";
+
+// The big companies: once the page has settled they are loaded in the background, one by one, so the first switch to them is quick too.
+const PREFETCH_COMPANIES = ["95", "AG"];
 
 /**
  * Transaction Payment (design B): two cards on top (filters, manual transaction form), then one block per selected
@@ -45,9 +46,12 @@ export default function TransactionPaymentPage() {
   const closeInbox = useCallback(() => setInboxOpen(false), []);
 
   const scope = useListScope();
-  const { tenantId } = scope;
+  // The data follows what is picked, not the session: a switch is on its way for a few hundred ms and nothing here depends on it
+  // being done (every request carries its own tenant_id), so the lists start loading at the click. Submit waits for the switch.
+  const tenantId = scope.dataTenantId;
+  const { switching } = scope;
   const { currencies, error: currencyError } = useTenantCurrencies(tenantId);
-  const { rows: accountRows, error: accountError } = useTenantList("/api/account", tenantId, { normalize: normalizeAccountRow });
+  const { rows: accountRows, error: accountError } = useTenantAccounts(tenantId);
   const accounts = useMemo(() => accountRows.filter((a) => a.status === "active"), [accountRows]);
 
   // Chips in the order the user dragged them into (shared with the Dashboard); the default is MYR, else the first currency.
@@ -72,6 +76,37 @@ export default function TransactionPaymentPage() {
     [tenantId, filters.range, filters.categories, filters.pills.zero]
   );
   const search = useTransactionSearch(request);
+
+  // A company's chip pressed down: its data starts loading before the click is finished.
+  const prefetchCompany = useCallback(
+    (code) => {
+      const id = scope.companyOptions.find((c) => c.value === code)?.tenantId;
+      if (id && id !== tenantId) prefetchTenant(request, id);
+    },
+    [scope.companyOptions, tenantId, request]
+  );
+  // The big companies in the background once this one has loaded (not while the tab is hidden, not what is remembered already).
+  useEffect(() => {
+    if (!request || search.loading) return undefined;
+    const ids = PREFETCH_COMPANIES.map((code) => scope.companyOptions.find((c) => c.value === code)?.tenantId).filter(
+      (id) => id && id !== request.tenantId && !hasSearchFor(request, id)
+    );
+    if (!ids.length) return undefined;
+    let cancelled = false;
+    let timer = setTimeout(async function next() {
+      for (const id of ids) {
+        if (cancelled || document.hidden) return;
+        prefetchTenant(request, id);
+        await new Promise((resolve) => {
+          timer = setTimeout(resolve, 1500);
+        });
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [request, search.loading, scope.companyOptions]);
   const today = toIsoDate(new Date());
   const todayOnly = filters.range.from === today && filters.range.to === today;
 
@@ -169,9 +204,10 @@ export default function TransactionPaymentPage() {
           filters={filters}
           onChange={(patch) => setFilters((cur) => ({ ...cur, ...patch }))}
           scope={scope}
+          onPrefetchCompany={prefetchCompany}
           currency={{ options: currencyOptions, selected: shown, allOn, onToggle: toggleCur, onAll: pickAll, onReorder: setCurrencyOrder }}
         />
-        <ManualForm tenantId={tenantId} accounts={accounts} currencies={currencies} shown={shown} fill={fill} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
+        <ManualForm tenantId={tenantId} switching={switching} accounts={accounts} currencies={currencies} shown={shown} fill={fill} onSubmitted={onSubmitted} notify={push} typeSearch={{ active: typeSearchOn && !typeSearch.focus, on: typeSearchOn, busy: typeSearch?.discover || search.loading, onEnter: enterTypeSearch, onExit: exitTypeSearch }} />
       </div>
       <div>
         <ReportBlocks skeleton={search.loading && search.rows.length === 0} blocks={blocks} currencies={shown} showName={Boolean(filters.pills.name)} shut={shut} onToggle={(c) => setShut((cur) => ({ ...cur, [c]: !cur[c] }))} onOpen={openHistory} onPick={readOnly ? undefined : pickBalance} />

@@ -10,13 +10,14 @@ import { CATEGORY_ITEMS, PILLS } from "./transactionPaymentRules";
 
 // Joined row of text chips (Group ID / Company), single choice. With allowDeselect, clicking the active chip again
 // sends null (the Group's own data / the independent companies), like the other pages.
-function Seg({ options, value, onChange, allowDeselect }) {
+function Seg({ options, value, onChange, allowDeselect, onPressStart }) {
   return (
     <div className="inline-flex max-w-full overflow-x-auto rounded-[10px] border border-dash-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
       {options.map(({ value: v, label }) => (
         <button
           key={v}
           type="button"
+          onPointerDown={onPressStart ? () => onPressStart(v) : undefined}
           onClick={() => onChange(allowDeselect && v === value ? null : v)}
           className={cn(
             "flex-none cursor-pointer border-r border-dash-line px-2.5 py-1 type-table-cell @min-[770px]:px-3.5 @min-[770px]:py-1.5 @min-[770px]:type-body font-semibold! whitespace-nowrap transition-colors last:border-r-0",
@@ -71,7 +72,7 @@ function Pill({ label, checked, onChange }) {
 }
 
 /** Left top card: Category + Capture Date, the Show toggles, then Group ID / Company / Currency. */
-export default function FilterCard({ filters, onChange, scope, currency }) {
+export default function FilterCard({ filters, onChange, scope, currency, onPrefetchCompany }) {
   const { t } = useTranslation(["transaction", "common", "account"]);
   const { categories, range, pills } = filters;
   // Wide card (the 770px layout of the top block): the picked categories are chips on as many lines as they need; on a narrow
@@ -141,7 +142,7 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
       <div className="flex flex-col gap-3 @min-[770px]:mt-auto @min-[770px]:gap-2">
       {scope.companyOptions.length > 0 && (
         <Row label={t("common:list.company")}>
-          <Seg options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />
+          <Seg options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} onPressStart={onPrefetchCompany} />
         </Row>
       )}
       <Row label={t("filter.currency")} grow>

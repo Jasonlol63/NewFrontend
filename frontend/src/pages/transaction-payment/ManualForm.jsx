@@ -69,7 +69,7 @@ const DATE_POPUP = "max-w-[260px]";
  * fills again); its account, currency and amount go into the form of the current Type (see the effect below). notify(message, level, detail):
  * what a submit did, as a toast over the page (push of hooks/useNotice).
  */
-export default function ManualForm({ tenantId, accounts, currencies, shown, fill, onSubmitted, notify, typeSearch }) {
+export default function ManualForm({ tenantId, switching = false, accounts, currencies, shown, fill, onSubmitted, notify, typeSearch }) {
   const { t } = useTranslation("transaction");
   const readOnly = Boolean(useCurrentUser()?.readOnly);
   const [type, setType] = useState("CONTRA");
@@ -367,7 +367,7 @@ export default function ManualForm({ tenantId, accounts, currencies, shown, fill
         </div>
         <PrimaryButton
           className="h-[30px]! min-w-[104px] justify-center rounded-lg! py-0! type-table-cell font-semibold!"
-          disabled={readOnly || !confirm || !valid || busy}
+          disabled={readOnly || !confirm || !valid || busy || switching}
           title={readOnly ? t("readOnly") : undefined}
           onClick={submit}
         >
