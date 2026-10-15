@@ -72,6 +72,7 @@
     "left": "{{pct}} left to allocate",
     "over": "{{pct}} over-allocated",
     "addAccount": "Add Account",
+    "ownerMain": "{{label}} - Main",
     "noMore": "No more accounts to add",
     "externalPartner": "External Partner",
     "partnerPlaceholder": "Login ID/Group ID",

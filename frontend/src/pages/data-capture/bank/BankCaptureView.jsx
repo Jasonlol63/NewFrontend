@@ -20,6 +20,7 @@ import { useCaptureDraft } from "../shared/useCaptureDraft";
 import { useDateOptions } from "../shared/useDateOptions";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
+import { useSubmittedProcesses } from "../shared/useSubmittedProcesses";
 
 const EMPTY_FORM = { process: "", currency: "", remark: "" };
 
@@ -28,8 +29,8 @@ const EMPTY_FORM = { process: "", currency: "", remark: "" };
  * description / replace / remove word, just Date, Process, Currency and Remark above the sheet. The sheet has 11 columns
  * (no column menu) and "Add Row" / "Add Col" append more.
  * SALARY, COMMISSION and BONUS keep their sheet as a draft per currency, PROFIT never does.
- * The process list is fixed (BANK_PROCESSES): unlike a Game process, a Bank process can be submitted again on the same date, so
- * there is no "submitted" list here (the card stays empty).
+ * The process list is fixed (BANK_PROCESSES): unlike a Game process, a Bank process can be submitted again on the same date, so it
+ * is never taken off the list; the Submitted Processes card lists every capture of the date (deleted ones drop out).
  */
 export default function BankCaptureView({ scope, readOnly }) {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function BankCaptureView({ scope, readOnly }) {
   const fullscreen = useFullscreen();
 
   const currencies = useProcessCurrencies(scope.tenantId);
+  const submitted = useSubmittedProcesses(scope.tenantId, date, true, "bank");
   const currencyLabel = currencies.options.find((o) => o.value === form.currency)?.label ?? "";
 
   // SALARY / COMMISSION / BONUS keep a draft per currency on the server, PROFIT never does.
@@ -113,6 +115,7 @@ export default function BankCaptureView({ scope, readOnly }) {
   useErrorToasts(push, [
     [scope.error, t("errors.scope")],
     [currencies.error, t("errors.currencies")],
+    [submitted.error, t("errors.submitted")],
   ]);
 
   return (
@@ -148,7 +151,7 @@ export default function BankCaptureView({ scope, readOnly }) {
           </div>
         </section>
 
-        <SubmittedProcesses items={[]} />
+        <SubmittedProcesses items={submitted.items} />
       </div>
 
       <SheetCard

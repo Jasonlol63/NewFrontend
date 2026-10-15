@@ -93,7 +93,7 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
       {/* Top block. Narrow card: Category and Capture Date side by side, the four chips as one full row under them. Wide card
           (770px+): Category takes the whole row, then the Capture Date box (at most 290px) and the four chips share a row.
           The chips are always one row, 32px high like the date box. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_clamp(236px,15.5vw,290px)] items-end gap-x-2.5 gap-y-2.5 @min-[770px]:grid-cols-[minmax(0,290px)_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_clamp(236px,15.5vw,290px)] items-end gap-x-2.5 gap-y-3 @min-[770px]:grid-cols-[minmax(0,290px)_minmax(0,1fr)] @min-[770px]:gap-y-2.5 @max-[769px]:mb-1.5">
         <div className="min-w-0 @min-[770px]:col-span-2">
           <span className={cn(LABEL, "mb-0.5 ml-0.5 block")}>{t("filter.category")}</span>
           <MultiSelectField
@@ -124,16 +124,21 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
         </div>
       </div>
 
-      {/* The divider sits right under the top block. A Group row (when there is one) goes under it; the spare height of the
-          card is the gap below, so Company and Currency stay at the bottom. No Group: that gap is just empty. */}
-      <div className="h-px bg-[rgba(130,155,195,0.3)]" />
+      {/* Wide card (770px+): the divider sits right under the top block, a Group row (when there is one) goes under it, and the spare
+          height of the card is the gap below, so Company and Currency stay at the bottom.
+          Narrow card (under 770px): the top block is a little roomier (an extra 6px above the divider, 4px under it) and Group, Company
+          and Currency sit together with the same 12px gap (the spare height ends up as space under Currency) instead of a hole between
+          Group and Company. The extra margins are on the children: the card is itself the @container, so its own @max- classes would not match. */}
+      <div className="h-px bg-[rgba(130,155,195,0.3)] @max-[769px]:mb-1" />
       {scope.showGroups && (
-        <Row label={t("common:list.group")}>
-          <Seg options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
-        </Row>
+        <div className="@max-[769px]:mb-0.5">
+          <Row label={t("common:list.group")}>
+            <Seg options={scope.groupOptions} value={scope.group} onChange={scope.onGroupChange} allowDeselect={scope.allowNoGroup} />
+          </Row>
+        </div>
       )}
 
-      <div className="mt-auto flex flex-col gap-3 @min-[770px]:gap-2">
+      <div className="flex flex-col gap-3 @min-[770px]:mt-auto @min-[770px]:gap-2">
       {scope.companyOptions.length > 0 && (
         <Row label={t("common:list.company")}>
           <Seg options={scope.companyOptions} value={scope.company} onChange={scope.onCompanyChange} allowDeselect={scope.allowNoCompany} />

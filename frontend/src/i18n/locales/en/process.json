@@ -87,6 +87,7 @@
     "info": "Information",
     "copyFrom": "Copy From",
     "copyPlaceholder": "Select Process to Copy From",
+    "copySearch": "Search Process ID, Description",
     "code": "Process ID",
     "codePlaceholder": "Enter process ID",
     "multi": "Multi-Process",

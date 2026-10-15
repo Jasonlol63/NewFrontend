@@ -66,8 +66,8 @@
     "role": "Select a role",
     "password": "Enter a password",
     "currency": "Select at least one currency",
-    "company": "Select at least one company",
-    "currentCompany": "The current company must stay selected"
+    "company": "Select at least one Group/Company",
+    "currentCompany": "The current Group/Company must stay selected"
   },
   "form": {
     "add": "Add Account",
@@ -99,9 +99,11 @@
     "done": "Done",
     "deleteCode": "Delete {{code}}",
     "deleteHint": "Click × to delete an unticked currency. Ticked currencies, and ones synced from a subsidiary, can't be deleted.",
-    "company": "Company",
+    "company": "Group/Company",
     "companySelected": "{{selected}}/{{total}} selected",
-    "searchCompany": "Search company",
+    "group": "Group",
+    "noGroupAccess": "You can't pick {{code}}: your login has no access to this Group",
+    "searchCompany": "Search Group/Company",
     "current": "Current",
     "loading": "Loading…"
   },

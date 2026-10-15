@@ -66,11 +66,12 @@ export default function AccountPage() {
     normalize: normalizeAccountRow,
   });
 
-  // Companies the Add / Edit modal offers: the picked Group's companies, or just the Group when its own view is picked.
-  const modalCompanyOptions =
-    scope.company === null && scope.group
-      ? [{ value: scope.group, label: scope.group, tenantId: scope.tenantId }]
-      : scope.companyOptions;
+  // What the Add / Edit modal offers: every Group first (greyed when this login has no access to it), then the picked Group's
+  // companies; with the Group's own view picked, just the Groups.
+  const modalCompanyOptions = [
+    ...scope.allGroupOptions.map((g) => ({ ...g, value: `group:${g.value}`, isGroup: true })),
+    ...(scope.company === null && scope.group ? [] : scope.companyOptions),
+  ];
 
   // Posts what the modal built ({ url, body }); on success the modal closes, the list is fetched again and a toast says so.
   // A failure is thrown back to the modal, which shows it as a toast.

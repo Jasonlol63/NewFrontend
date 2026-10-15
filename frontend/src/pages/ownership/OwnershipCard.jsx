@@ -154,10 +154,10 @@ export default function OwnershipCard({ entity, month, historicalLabel, allocate
         return next;
       })
     );
+  // A new row starts with no account: the user picks it (Confirm asks for one on every row).
   const addRow = () => {
-    const choice = choicesFor(null)[0];
-    if (!choice) return;
-    setRows((list) => [...list, { id: newRowId(), accountId: choice.accountId, label: choice.label, role: choice.role, pct: String(+Math.max(0, remaining).toFixed(2)), readOnly: choice.readOnly ?? 1, external: false, ownershipId: null }]);
+    if (choicesFor(null).length === 0) return;
+    setRows((list) => [...list, { id: newRowId(), accountId: "", label: "", role: "", pct: String(+Math.max(0, remaining).toFixed(2)), readOnly: 1, external: false, ownershipId: null }]);
   };
   const close = () => {
     setDraft(null);
@@ -278,7 +278,7 @@ export default function OwnershipCard({ entity, month, historicalLabel, allocate
                 <AccountRow
                   key={row.id}
                   row={row}
-                  options={choicesFor(row.id).map((c) => ({ value: c.accountId, label: c.label }))}
+                  options={choicesFor(row.id).map((c) => ({ value: c.accountId, label: c.role === "OWNER" ? t("card.ownerMain", { label: c.label }) : c.label }))}
                   canSetReadOnly={canSetReadOnly}
                   onChange={(patch) => update(row.id, patch)}
                   onRemove={() => setRows((list) => list.filter((r) => r.id !== row.id))}

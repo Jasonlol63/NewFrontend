@@ -15,7 +15,7 @@ const FILTERS = [
  * The card is a container (@container/card) so the header and the 2- or 3-column grid
  * adapt to the width the column really gets, not to the screen width.
  */
-export default function AccessListCard({ title, items, selected, onChange }) {
+export default function AccessListCard({ title, items, selected, onChange, className }) {
   const { t } = useTranslation("admin");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -68,7 +68,7 @@ export default function AccessListCard({ title, items, selected, onChange }) {
   );
 
   return (
-    <section className="@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card">
+    <section className={cn("@container/card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-modal-line bg-modal-card shadow-modal-card", className)}>
       <div
         className={cn(
           "relative flex flex-none items-center gap-2 border-b border-modal-divider px-3.5 pb-2.5 pt-3",

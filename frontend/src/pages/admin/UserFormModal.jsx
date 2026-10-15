@@ -38,13 +38,15 @@ const PERMISSION_KEYS = new Set(PERMISSIONS.map((p) => p.key));
  * Mount it only while open so every opening starts from its initial values.
  * mode: "add" | "edit"; user: the list row being edited (edit mode).
  * tenantId / companyCode: the company picked on the Admin page (companyCode null when a Group itself is picked).
+ * showProcess: false (a Group, C168 or a Bank company, which have no Game processes) leaves the Process card out: only Account access is
+ * set, and no Process list is loaded or sent (the backend then keeps Process access unrestricted).
  * viewer: the logged-in account, to offer only the roles it may assign.
  * Edit loads the full record (permissions, account / process access); Account and Process come from the
  * company's own lists. Save hands { url, body } to onSave, which posts it and closes the modal; if it
  * throws, the message is shown in the footer. The Owner row only edits its own profile (name, email,
  * passwords), so it shows just the information card.
  */
-export default function UserFormModal({ mode = "add", user, tenantId, companyCode, viewer, onClose, onSave }) {
+export default function UserFormModal({ mode = "add", user, tenantId, companyCode, showProcess = true, viewer, onClose, onSave }) {
   const { t } = useTranslation(["admin", "common", "sidebar"]);
   const { toasts, push, dismiss } = useNotice(5000);
   const isEdit = mode === "edit";
@@ -79,7 +81,7 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
   // What the lists and the record being edited need before the form is usable. The Owner row
   // needs none of it.
   const accountData = useAccountItems(isOwnerRow ? null : tenantId);
-  const processData = useProcessItems(isOwnerRow ? null : tenantId);
+  const processData = useProcessItems(isOwnerRow || !showProcess ? null : tenantId);
   const { detail, error: detailError, loading: detailLoading } = useUserDetail(user?.id, tenantId, isEdit && !isOwnerRow);
   // Company access: the Groups / Companies this login can see. A Group listed only because one of its companies points at it has
   // no tenantId: it is shown (the Group row is always there) but can't be granted.
@@ -221,7 +223,8 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
         "grid-cols-[clamp(300px,22cqw,380px)_minmax(0,1fr)_minmax(0,1fr)] grid-rows-[max-content_minmax(0,1fr)]",
         "@min-[900px]/main:@max-[1099px]/main:grid-cols-[clamp(256px,27cqw,280px)_minmax(0,1fr)_minmax(0,1fr)]",
         "@max-[899px]/main:grid-cols-2 @max-[899px]/main:grid-rows-[max-content_max-content_minmax(420px,62dvh)] @max-[899px]/main:content-start @max-[899px]/main:overflow-y-auto",
-        "@max-[599px]/main:grid-cols-1 @max-[599px]/main:grid-rows-[max-content_max-content_440px_440px]"
+        "@max-[599px]/main:grid-cols-1",
+        showProcess ? "@max-[599px]/main:grid-rows-[max-content_max-content_440px_440px]" : "@max-[599px]/main:grid-rows-[max-content_max-content_440px]"
       )}
     >
       <UserInfoCard
@@ -252,8 +255,8 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
             loading={!directory}
             className="col-span-2 @max-[899px]/main:col-span-full"
           />
-          <AccessListCard title={t("form.account")} items={accountData.items} selected={accounts} onChange={setAccounts} />
-          <AccessListCard title={t("form.process")} items={processData.items} selected={processes} onChange={setProcesses} />
+          <AccessListCard title={t("form.account")} items={accountData.items} selected={accounts} onChange={setAccounts} className={cn(!showProcess && "col-span-2 @max-[899px]/main:col-span-full")} />
+          {showProcess && <AccessListCard title={t("form.process")} items={processData.items} selected={processes} onChange={setProcesses} />}
         </>
       )}
       <Toast toasts={toasts} onClose={dismiss} />

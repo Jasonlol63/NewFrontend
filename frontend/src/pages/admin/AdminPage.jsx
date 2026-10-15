@@ -9,7 +9,9 @@ import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import Toast from "@/components/shared/Toast.jsx";
+import { useSession } from "@/context/session";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usesBankForm } from "@/pages/data-capture/shared/dataCaptureRules";
 import { useNotice } from "@/hooks/useNotice";
 import { postJson } from "@/lib/api";
 import { ROLE_BADGE, filterUsers, normalizeUserRow, roleLabel, rowCapabilities, sortUsers } from "./userListRules";
@@ -23,6 +25,7 @@ export default function AdminPage() {
   const { t } = useTranslation(["admin", "common", "sidebar"]);
   const { toasts, push, dismiss } = useNotice(5000);
   const viewer = useCurrentUser();
+  const { user: session } = useSession();
   // null = closed, { mode: "add" } or { mode: "edit", user } = open
   const [userForm, setUserForm] = useState(null);
   const closeUserForm = useCallback(() => setUserForm(null), []);
@@ -154,6 +157,8 @@ export default function AdminPage() {
           user={userForm.user}
           tenantId={scope.tenantId}
           companyCode={scope.company}
+          // Process access only matters for Game processes: a Group, C168 and a Bank company have none, so the card is left out.
+          showProcess={!usesBankForm(session, scope)}
           viewer={viewer}
           onClose={closeUserForm}
           onSave={submitUser}

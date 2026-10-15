@@ -6,7 +6,7 @@ import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import FormCard from "@/components/shared/form-modal/FormCard.jsx";
 import Toast from "@/components/shared/Toast.jsx";
 import { useNotice } from "@/hooks/useNotice";
-import { Field, SelectField, SoftButton, TextInput, ToggleSwitch, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
+import { Field, SearchSelectField, SelectField, SoftButton, TextInput, ToggleSwitch, inputClass, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
 import { ByTag } from "@/components/shared/form-modal/RecordBar.jsx";
 import { formatRecordTime } from "@/components/shared/form-modal/recordTime.js";
@@ -158,7 +158,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
         <div className="flex min-h-0 flex-1 flex-col gap-3 modal-compact:gap-2 modal-tiny:gap-1.5">
           {!isEdit && (
             <Field label={t("form.copyFrom")} optional>
-              <SelectField value={form.copyFrom} onChange={pickCopyFrom} onClear={() => setForm((f) => ({ ...f, copyFrom: "" }))} options={copyOptions} placeholder={t("form.copyPlaceholder")} />
+              <SearchSelectField value={form.copyFrom} onChange={pickCopyFrom} onClear={() => setForm((f) => ({ ...f, copyFrom: "" }))} options={copyOptions} placeholder={t("form.copyPlaceholder")} searchPlaceholder={t("form.copySearch")} />
             </Field>
           )}
 

@@ -73,7 +73,12 @@ export default function AccountFormModal({ mode = "add", account, defaultRole = 
     setPickedCurrencies(new Set(start.map((c) => c.id)));
   }, [currenciesLoading, currencyError, currencies, isEdit]);
 
-  const companyItems = companyOptions.map((c) => ({ ...c, tag: c.tenantId === tenantId ? t("form.current") : undefined }));
+  // Groups come first and carry a "Group" tag; a Group this login has no access to (no tenantId) is greyed and can not be ticked.
+  const companyItems = companyOptions.map((c) => ({
+    ...c,
+    tag: c.tenantId === tenantId ? t("form.current") : c.isGroup ? t("form.group") : undefined,
+    title: c.disabled ? t("form.noGroupAccess", { code: c.label }) : undefined,
+  }));
   // The account's own companies; an account the list doesn't say anything about starts from the current one.
   const ownTenantIds = isEdit && account?.tenantIds?.length ? account.tenantIds : [tenantId];
   const [companies, setCompanies] = useState(
@@ -483,7 +488,7 @@ function CompanyCard({ items, selected, onChange }) {
           {t("form.company")} <i className="not-italic text-[#ef4444]">*</i>
         </>
       }
-      right={<CardCount>{t("form.companySelected", { selected: selected.size, total: items.length })}</CardCount>}
+      right={<CardCount>{t("form.companySelected", { selected: selected.size, total: items.filter((it) => !it.disabled).length })}</CardCount>}
       className="flex-1"
       body={false}
     >
@@ -491,7 +496,7 @@ function CompanyCard({ items, selected, onChange }) {
         query={query}
         onQuery={setQuery}
         placeholder={t("form.searchCompany")}
-        onSelectAll={() => onChange(new Set([...selected, ...shown.map((it) => it.value)]))}
+        onSelectAll={() => onChange(new Set([...selected, ...shown.filter((it) => !it.disabled).map((it) => it.value)]))}
         onClear={() => onChange(new Set())}
         className="border-b border-modal-divider px-3.5 py-2.5 modal-compact:px-3 modal-compact:py-2"
       />
@@ -519,9 +524,10 @@ function CompanyChipsBox({ items, selected, onChange }) {
               type="button"
               onClick={() => onChange(toggleIn(selected, it.value))}
               aria-pressed={on}
-              title={it.label}
+              disabled={it.disabled}
+              title={it.title ?? it.label}
               className={cn(
-                "inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 fm-btn-sm transition-colors",
+                "inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 fm-btn-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 on
                   ? "border-[#7fb2ff] bg-row-stripe text-brand-navy shadow-[inset_0_0_0_1px_#7fb2ff]"
                   : "border-modal-off-line bg-modal-off text-[#374151] hover:border-[#93c5fd] hover:bg-white/85"

@@ -9,6 +9,7 @@ import Toast from "@/components/shared/Toast.jsx";
 import { useNotice } from "@/hooks/useNotice";
 import { filterItems, toggleIn } from "@/components/shared/form-modal/listSelection";
 import { TextInput, primaryButtonClass } from "@/components/shared/form-modal/fields.jsx";
+import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 
 // Layout: >= 900px two cards side by side (Selected | Add + Available), < 900px one column (Available, Selected).
 const link = "flex-none cursor-pointer whitespace-nowrap rounded-md border-none bg-transparent px-1.5 py-1 fm-btn-sm hover:bg-[#eef4ff]";
@@ -22,6 +23,8 @@ const link = "flex-none cursor-pointer whitespace-nowrap rounded-md border-none 
 export default function DescriptionPickerModal({ items, selected: initialSelected, onAdd, onDelete, onClose, onConfirm }) {
   const { t } = useTranslation(["process", "common"]);
   const { toasts, push, dismiss } = useNotice(5000);
+  // A description that is cut off shows in full in the same hover card as the tables (not the browser tooltip).
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
   const [selected, setSelected] = useState(() => new Set(initialSelected));
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
@@ -99,11 +102,11 @@ export default function DescriptionPickerModal({ items, selected: initialSelecte
             </span>
           </div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
+          <div {...cellTipHandlers} onScroll={hideCellTip} className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
             <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-1.5">
               {picked.map((it) => (
                 <div key={it.value} className="flex min-h-[34px] items-center gap-2.5 rounded-[9px] border border-[#bfd8ff] bg-row-stripe pl-2.5 pr-1 fm-btn-sm modal-tiny:min-h-[30px]">
-                  <span title={it.label} className="min-w-0 flex-1 truncate text-brand-navy">{it.label}</span>
+                  <span data-fit="label" className="min-w-0 flex-1 truncate text-brand-navy">{it.label}</span>
                   <button
                     type="button"
                     aria-label={t("desc.removeOf", { label: it.label })}
@@ -155,7 +158,7 @@ export default function DescriptionPickerModal({ items, selected: initialSelecte
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
+        <div {...cellTipHandlers} onScroll={hideCellTip} className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
           {shown.length === 0 ? (
             <div className="py-6 text-center fm-empty text-dash-faint">{t("desc.noMatches")}</div>
           ) : (
@@ -174,14 +177,13 @@ export default function DescriptionPickerModal({ items, selected: initialSelecte
                       type="button"
                       role="checkbox"
                       aria-checked={on}
-                      title={it.label}
                       onClick={() => setSelected((s) => toggleIn(s, it.value))}
                       className="flex min-h-[32px] min-w-0 flex-1 cursor-pointer items-center gap-2 border-none bg-transparent pl-2.5 pr-1 text-left"
                     >
                       <span className={cn("flex size-4 flex-none items-center justify-center rounded-[5px] border-[1.5px] text-white", on ? "border-transparent bg-brand-sweep" : "border-[#cbd5e1] bg-white")}>
                         {on && <Check className="size-2.5" strokeWidth={4} />}
                       </span>
-                      <span className={cn("min-w-0 flex-1 truncate", on ? "text-brand-navy" : "text-[#374151]")}>{it.label}</span>
+                      <span data-fit="label" className={cn("min-w-0 flex-1 truncate", on ? "text-brand-navy" : "text-[#374151]")}>{it.label}</span>
                     </button>
                     {/* A ticked description is in use here, so it can't be deleted. */}
                     <button
@@ -202,6 +204,7 @@ export default function DescriptionPickerModal({ items, selected: initialSelecte
         </div>
       </FormCard>
 
+      {cellTip}
       <Toast toasts={toasts} onClose={dismiss} />
       <DeleteDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)} names={toDelete ? [toDelete.label] : []} noun="description" onConfirm={confirmDelete} />
     </FormModal>

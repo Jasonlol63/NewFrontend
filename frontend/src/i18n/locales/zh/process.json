@@ -87,6 +87,7 @@
     "info": "基本信息",
     "copyFrom": "复制自",
     "copyPlaceholder": "选择要复制的合同",
+    "copySearch": "搜索合同编号、描述",
     "code": "合同ID",
     "codePlaceholder": "请输入合同ID",
     "multi": "多个合同",

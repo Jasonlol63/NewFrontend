@@ -56,9 +56,12 @@ export function CheckRows({ items, selected, onToggle, boxed, className }) {
             type="button"
             role="checkbox"
             aria-checked={on}
+            aria-disabled={it.disabled || undefined}
+            disabled={it.disabled}
+            title={it.title}
             onClick={() => onToggle(it.value)}
             className={cn(
-              "flex min-h-[34px] w-full flex-none cursor-pointer items-center gap-2.5 rounded-[9px] border px-2.5 text-left fm-input transition-colors modal-tiny:min-h-[30px]",
+              "flex min-h-[34px] w-full flex-none cursor-pointer items-center disabled:cursor-not-allowed disabled:opacity-50 gap-2.5 rounded-[9px] border px-2.5 text-left fm-input transition-colors modal-tiny:min-h-[30px]",
               on
                 ? "border-[#bfd8ff] bg-row-stripe"
                 : boxed

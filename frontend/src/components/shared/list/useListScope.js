@@ -86,6 +86,11 @@ export function useListScope({ onChange } = {}) {
     () => (groupAccess ? directory.groups.map((g) => ({ value: g.code, label: g.code })) : []),
     [directory, groupAccess]
   );
+  // Every Group, whatever this login can open (not a filter): one it has no access to has no tenantId and is marked disabled.
+  const allGroupOptions = useMemo(
+    () => (directory?.groups ?? []).map((g) => ({ value: g.code, label: g.code, tenantId: g.tenantId, disabled: !g.tenantId })),
+    [directory]
+  );
   const companyOptions = useMemo(
     () => companiesOf(directory, group).map((c) => ({ value: c.code, label: c.code, tenantId: c.tenantId, menu: c.menu })),
     [directory, group]
@@ -130,6 +135,7 @@ export function useListScope({ onChange } = {}) {
     group,
     company: company ?? null,
     groupOptions,
+    allGroupOptions,
     // One Group with independent companies still needs its chip, to switch between the two.
     showGroups: groupAccess && (groupOptions.length > 1 || (groupOptions.length > 0 && hasIndependent)),
     allowNoGroup: groupAccess && group !== INDEPENDENT && hasIndependent,

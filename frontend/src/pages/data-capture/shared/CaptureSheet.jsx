@@ -81,7 +81,7 @@ const Cell = memo(function Cell({ r, c, cell, selected, active, editing }) {
       suppressContentEditableWarning
       className={cn(
         "h-[27px] scroll-ml-16 scroll-mt-8 cursor-cell overflow-hidden border-r border-b border-[rgba(130,155,195,0.22)] px-1.5 text-ellipsis whitespace-nowrap outline-none select-none",
-        selected ? "bg-[#cfe2ff] shadow-[inset_0_0_0_9999px_rgba(59,130,246,0.16)]" : "bg-white/50 group-even/row:bg-white/30 hover:bg-white/80",
+        selected ? "bg-[#cfe2ff] shadow-[inset_0_0_0_9999px_rgba(59,130,246,0.16)]" : "bg-white hover:bg-[#f1f6ff]",
         className,
         active && "outline-2 -outline-offset-2 outline-[#3b82f6]",
         editing && "bg-white text-clip select-text"
@@ -386,7 +386,7 @@ export default function CaptureSheet({ sheet, columnEdit = true, captureType = "
       onContextMenu={onContextMenu}
       onInput={onInput}
       onBlur={onBlur}
-      className="min-h-0 flex-1 overflow-auto border-t border-modal-input-line outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]"
+      className="min-h-0 flex-1 overflow-auto border-t border-modal-input-line bg-white outline-none [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]"
     >
       <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell" style={{ minWidth: 56 + grid.cols * COL_W }}>
         <thead>

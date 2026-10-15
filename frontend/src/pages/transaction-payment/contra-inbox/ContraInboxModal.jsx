@@ -8,6 +8,7 @@ import FormCard, { CardCount } from "@/components/shared/form-modal/FormCard.jsx
 import FormModal from "@/components/shared/form-modal/FormModal.jsx";
 import { SoftButton } from "@/components/shared/form-modal/fields.jsx";
 import { SelectBox } from "@/components/shared/list/DataTable.jsx";
+import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 import { daysBack, money, OLD_AFTER_DAYS, rowLabel, totalsByCurrency, typeLabel, typeTone } from "./contraInboxRules";
 
 // Contra Inbox: the manual transactions a role below Manager backdated, waiting for an Owner / Admin / Manager.
@@ -102,6 +103,8 @@ const presetClass =
 
 export default function ContraInboxModal({ inbox, onClose, notify }) {
   const { t } = useTranslation(["transaction", "common"]);
+  // A cut-off description / remark shows in full in the same hover card as the tables.
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
   const typeText = (type) => t(`types.${type}`, { defaultValue: typeLabel(type) });
   const label = (r) => rowLabel(r, typeText);
   const { rows, loading, reload, approve, reject } = inbox;
@@ -201,8 +204,8 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
       case "desc":
         return (
           <td key={key} className={cn(td, "text-left")}>
-            <div className="truncate" title={r.description}>{r.description || "—"}</div>
-            <div className={subText} title={r.remark}>{r.remark ? t("inbox.remark", { remark: r.remark }) : t("inbox.noRemark")}</div>
+            <div data-fit="description" className="truncate">{r.description || "—"}</div>
+            <div data-fit="remark" className={subText}>{r.remark ? t("inbox.remark", { remark: r.remark }) : t("inbox.noRemark")}</div>
           </td>
         );
       case "action":
@@ -315,7 +318,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
             </CardCount>
           }
         >
-          <div ref={tableRef} className="min-h-0 flex-1 overflow-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
+          <div ref={tableRef} {...cellTipHandlers} onScroll={hideCellTip} className="min-h-0 flex-1 overflow-auto [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin]">
             {visible.length > 0 && (
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
@@ -352,6 +355,7 @@ export default function ContraInboxModal({ inbox, onClose, notify }) {
             )}
           </div>
         </FormCard>
+        {cellTip}
       </FormModal>
 
       <DeleteDialog

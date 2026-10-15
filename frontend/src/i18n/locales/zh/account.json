@@ -66,8 +66,8 @@
     "role": "请选择角色",
     "password": "请输入密码",
     "currency": "请至少选择一种货币",
-    "company": "请至少选择一个公司",
-    "currentCompany": "当前公司必须保持选中"
+    "company": "请至少选择一个集团/公司",
+    "currentCompany": "当前集团/公司必须保持选中"
   },
   "form": {
     "add": "新增账户",
@@ -99,9 +99,11 @@
     "done": "完成",
     "deleteCode": "删除 {{code}}",
     "deleteHint": "点击 × 可删除未勾选的货币。已勾选的货币以及从子公司同步的货币无法删除。",
-    "company": "公司",
+    "company": "集团/公司",
     "companySelected": "已选 {{selected}}/{{total}}",
-    "searchCompany": "搜索公司",
+    "group": "集团",
+    "noGroupAccess": "你没有 {{code}} 集团的权限，无法选择",
+    "searchCompany": "搜索集团/公司",
     "current": "当前",
     "loading": "加载中…"
   },

@@ -37,6 +37,26 @@ export async function fetchSubmittedProcesses({ tenantId, captureDate }, { signa
   });
 }
 
+/**
+ * The Bank captures of the date (a Bank process can be submitted again on the same date, so every one is listed), newest first, in the
+ * shape of the Submitted Processes card: the Process as the title and the currency beside it. It reads the Capture Maintenance list;
+ * a deleted capture comes back flagged and is left out, because deleting it removes it from the card too.
+ */
+export async function fetchSubmittedBankCaptures({ tenantId, captureDate }, { signal } = {}) {
+  const body = await postJson(
+    "/api/maintenance/capture-maintenance/list",
+    { tenantId, dateFrom: captureDate, dateTo: captureDate, process: null, category: "bank", limit: 100 },
+    { signal }
+  );
+  return (body.data ?? [])
+    .filter((r) => !r.deleted)
+    .map((r) => {
+      const [day = "", time = ""] = String(r.dtsCreated ?? "").split("T");
+      const [y, m, d] = day.split("-");
+      return { id: r.id, code: String(r.process ?? ""), name: String(r.currency ?? ""), by: String(r.createdBy ?? ""), date: y ? `${d}/${m}/${y}` : "", time: time.slice(0, 8) };
+    });
+}
+
 // ---- drafts ----
 // A draft is the filled cells of the sheet: { rowIndex (0 = A), colIndex (1 = first column), cellValue }. Saving a sheet with
 // no cell empties the draft on the server.
