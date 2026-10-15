@@ -489,6 +489,7 @@ const never = () => false;
  *    (pass the same gap to useListView's `rowGap`), plain header labels with a colon, and a boxed pager.
  *    Never scrolls: rows that don't fit go to the next page.
  *  - boxedPager: the sky-gradient square pager of the cards variant, on a table-variant list too.
+ *  - onRowClick(row): the whole row is clickable (Audit Log opens the detail panel).
  *  - virtual: a long list that loads in batches and scrolls to the end (no pager). Rows must be rowHeight tall; only the rows
  *    on screen are drawn. hasMore / loadingMore / onLoadMore load the next batch near the bottom; `total` is the full count
  *    (the footer reads "Showing N of total" while more is coming); scrollResetKey scrolls back to the top when it changes.
@@ -533,6 +534,7 @@ export default function DataTable({
   loadingMore = false,
   onLoadMore,
   scrollResetKey,
+  onRowClick,
 }) {
   const cards = variant === "cards";
   // The cell look of a body row. Cards: a sky-blue sweep, white on the left to light blue on the right, runs
@@ -762,8 +764,10 @@ export default function DataTable({
                   <tr
                     key={rowKey(row)}
                     style={{ height: rowHeight }}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
                     className={cn(
                       "transition-colors",
+                      onRowClick && "cursor-pointer",
                       rowClassName?.(row),
                       cards
                         ? cn(

@@ -1,0 +1,45 @@
+{
+  "filter": {
+    "date": "Date",
+    "company": "Company",
+    "module": "Module",
+    "allCompanies": "All companies",
+    "allModules": "All modules",
+    "search": "Operator / Record ID",
+    "type": "Type",
+    "all": "All",
+    "restorable": "Restorable",
+    "restorableTip": "Rows that could be restored (Restore is not available yet)"
+  },
+  "cols": {
+    "no": "No.",
+    "time": "Time",
+    "operator": "Operator",
+    "company": "Company",
+    "module": "Module",
+    "type": "Type",
+    "summary": "Summary"
+  },
+  "empty": "No audit records match the filters",
+  "toast": {
+    "loadFailed": "Could not load the audit log"
+  },
+  "detail": {
+    "title": "Record detail",
+    "prev": "Previous",
+    "next": "Next",
+    "sourceTable": "Source table",
+    "recordId": "Record ID",
+    "createdContent": "Created content",
+    "deletedContent": "Content before delete",
+    "changes": "Changes",
+    "fieldCount": "{{count}} fields",
+    "fields": "Fields",
+    "json": "JSON",
+    "copy": "Copy",
+    "before": "Before",
+    "after": "After",
+    "noChanges": "No field changed",
+    "noData": "No content was saved for this record"
+  }
+}

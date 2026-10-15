@@ -12,6 +12,7 @@ import {
   Megaphone,
   RefreshCw,
   TrendingUp,
+  ScrollText,
 } from "lucide-react";
 
 // Shared by the full sidebar and the icon rail. Submenus live only in the
@@ -52,6 +53,8 @@ export const MENU_ITEMS = [
       { label: "Bank Process", path: "/maintenance/bank-process", menu: "maintenanceBankProcess" },
     ],
   },
+  // IT accounts only (the back end turns this key on for role "it").
+  { menu: "auditLog", label: "Audit Log", icon: ScrollText, path: "/audit-log" },
 ];
 
 // Where a user lands after login and when a page is not theirs: a Member has only Win/Loss, everyone else the Dashboard.

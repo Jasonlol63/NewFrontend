@@ -19,7 +19,8 @@
     "maintenanceTransaction": "Transaction",
     "maintenancePayment": "Payment",
     "maintenanceFormula": "Formula",
-    "maintenanceBankProcess": "Bank Process"
+    "maintenanceBankProcess": "Bank Process",
+    "auditLog": "Audit Log"
   },
   "role": {
     "owner": "Owner",

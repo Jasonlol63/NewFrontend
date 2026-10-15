@@ -19,7 +19,8 @@
     "maintenanceTransaction": "数据明细",
     "maintenancePayment": "交易明细",
     "maintenanceFormula": "公式明细",
-    "maintenanceBankProcess": "银行明细"
+    "maintenanceBankProcess": "银行明细",
+    "auditLog": "操作日志"
   },
   "role": {
     "owner": "户主",

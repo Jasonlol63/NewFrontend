@@ -1,0 +1,45 @@
+{
+  "filter": {
+    "date": "日期",
+    "company": "公司",
+    "module": "模块",
+    "allCompanies": "全部公司",
+    "allModules": "全部模块",
+    "search": "操作人 / 记录 ID",
+    "type": "类型",
+    "all": "全部",
+    "restorable": "可复原",
+    "restorableTip": "可复原的记录数（复原功能尚未开放）"
+  },
+  "cols": {
+    "no": "序号",
+    "time": "时间",
+    "operator": "操作人",
+    "company": "公司",
+    "module": "模块",
+    "type": "类型",
+    "summary": "摘要"
+  },
+  "empty": "没有符合条件的操作记录",
+  "toast": {
+    "loadFailed": "操作日志加载失败"
+  },
+  "detail": {
+    "title": "操作详情",
+    "prev": "上一条",
+    "next": "下一条",
+    "sourceTable": "来源表",
+    "recordId": "记录 ID",
+    "createdContent": "创建内容",
+    "deletedContent": "删除前内容",
+    "changes": "变更内容",
+    "fieldCount": "{{count}} 个字段",
+    "fields": "字段",
+    "json": "JSON",
+    "copy": "复制",
+    "before": "变更前",
+    "after": "变更后",
+    "noChanges": "没有字段变化",
+    "noData": "这条记录没有保存内容"
+  }
+}

@@ -7,7 +7,7 @@ const NO_CHIPS = { showAll: false, showActive: false, showInactive: false };
 // ends exactly at the bottom: the space left over after whole ROW_HEIGHT rows is shared out
 // between them (re-measured when the body resizes). With a gap (DataTable variant="cards") the rows are
 // spaced apart, and one gap also sits under the header.
-function useFitRows(ref, gap, rowMin) {
+export function useFitRows(ref, gap, rowMin) {
   const [fit, setFit] = useState({ count: 10, rowHeight: rowMin });
   useEffect(() => {
     const el = ref.current;
