@@ -1,6 +1,7 @@
 package com.eazycount.dao;
 
 import com.eazycount.dto.ProcessDTO;
+import com.eazycount.dto.ProcessDescriptionRow;
 import com.eazycount.entity.Process;
 import com.eazycount.entity.ProcessDay;
 import com.eazycount.entity.ProcessDescriptionLink;
@@ -12,7 +13,14 @@ import java.util.List;
 @Mapper
 public interface ProcessDao {
 
+    /** The processes of a tenant, without their descriptions and days (see findDescriptionRowsByTenantId / findDayRowsByTenantId). */
     List<ProcessDTO> findProcessByTenantId(@Param("tenantId") Integer tenantId);
+
+    /** Every process description link of the tenant, each with the id of its process. */
+    List<ProcessDescriptionRow> findDescriptionRowsByTenantId(@Param("tenantId") Integer tenantId);
+
+    /** Every process day of the tenant. */
+    List<ProcessDay> findDayRowsByTenantId(@Param("tenantId") Integer tenantId);
 
     List<Process> findProcessesCodeByTenantId(@Param("tenantId") Integer tenantId, @Param("category") Process.Category category, @Param("code") String code);
 

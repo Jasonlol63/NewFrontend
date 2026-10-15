@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,8 +59,29 @@ public class ProcessServiceImpl implements ProcessService {
         SessionUser sessionUser = AccessControlUtils.requireLoggedIn();
         AccessControlUtils.requireValidTenantId(tenantId);
 
-        List<ProcessDTO> rows = processDao.findProcessByTenantId(tenantId);
-        return filterByProcessAcl(rows, sessionUser, tenantId);
+        List<ProcessDTO> rows = filterByProcessAcl(processDao.findProcessByTenantId(tenantId), sessionUser, tenantId);
+        attachDescriptionsAndDays(rows, tenantId);
+        return rows;
+    }
+
+    // The descriptions and days of all the rows come from two queries for the whole tenant, not two per process.
+    private void attachDescriptionsAndDays(List<ProcessDTO> rows, Integer tenantId) {
+        if (rows.isEmpty()) {
+            return;
+        }
+        java.util.Map<Integer, List<com.eazycount.entity.ProcessDescription>> descriptions = new HashMap<>();
+        for (com.eazycount.dto.ProcessDescriptionRow r : processDao.findDescriptionRowsByTenantId(tenantId)) {
+            descriptions.computeIfAbsent(r.getProcessId(), k -> new ArrayList<>())
+                    .add(new com.eazycount.entity.ProcessDescription(r.getId(), r.getTenantId(), r.getName(), r.getCreatedAt()));
+        }
+        java.util.Map<Integer, List<com.eazycount.entity.ProcessDay>> days = new HashMap<>();
+        for (com.eazycount.entity.ProcessDay d : processDao.findDayRowsByTenantId(tenantId)) {
+            days.computeIfAbsent(d.getProcessId(), k -> new ArrayList<>()).add(d);
+        }
+        for (ProcessDTO row : rows) {
+            row.setProcessDescriptions(descriptions.getOrDefault(row.getId(), new ArrayList<>()));
+            row.setProcessDays(days.getOrDefault(row.getId(), new ArrayList<>()));
+        }
     }
 
     private List<ProcessDTO> filterByProcessAcl(List<ProcessDTO> rows, SessionUser session, Integer tenantId) {

@@ -25,15 +25,8 @@
             <result property="updatedAt" column="processUpdatedAt"/>
         </association>
 
-        <collection property="processDescriptions"
-                    column="processId"
-                    ofType="com.eazycount.entity.ProcessDescription"
-                    select="findDescriptionsByProcessId"/>
-
-        <collection property="processDays"
-                    column="processId"
-                    ofType="com.eazycount.entity.ProcessDay"
-                    select="findDaysByProcessId"/>
+        <!-- processDescriptions / processDays are not mapped here (one nested select per process = hundreds of queries for a
+             big company): the service fills them from the two batched selects below. -->
     </resultMap>
 
     <resultMap id="ProcessEntityMap" type="com.eazycount.entity.Process">
@@ -79,6 +72,32 @@
                  LEFT JOIN currency c ON c.id = p.currency_id
         WHERE p.tenant_id = #{tenantId}
         ORDER BY p.code ASC
+    </select>
+
+    <!-- Every description / day of the tenant is fetched in one query each and handed to its process by the service. -->
+    <select id="findDescriptionRowsByTenantId" resultType="com.eazycount.dto.ProcessDescriptionRow">
+        SELECT
+            pdl.process_id AS processId,
+            d.id           AS id,
+            d.tenant_id    AS tenantId,
+            d.name         AS name,
+            d.created_at   AS createdAt
+        FROM process_description_link pdl
+                 INNER JOIN process p ON p.id = pdl.process_id
+                 INNER JOIN process_description d ON d.id = pdl.description_id
+        WHERE p.tenant_id = #{tenantId}
+        ORDER BY d.name ASC
+    </select>
+
+    <select id="findDayRowsByTenantId" resultType="com.eazycount.entity.ProcessDay">
+        SELECT
+            pd.id          AS id,
+            pd.process_id  AS processId,
+            pd.day_of_week AS dayOfWeek
+        FROM process_day pd
+                 INNER JOIN process p ON p.id = pd.process_id
+        WHERE p.tenant_id = #{tenantId}
+        ORDER BY pd.day_of_week ASC
     </select>
 
     <select id="findDescriptionsByProcessId" resultType="com.eazycount.entity.ProcessDescription">
