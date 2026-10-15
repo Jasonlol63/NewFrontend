@@ -18,6 +18,9 @@ public interface UserDao {
 
     List<Integer> findTenantIdsByUserId(@Param("id") int id);
 
+    /** Every (accountId, tenantId) access row of the accounts that are in the tenant: one query for the whole list. */
+    List<java.util.Map<String, Object>> findTenantAccessByTenantId(@Param("tenantId") int tenantId);
+
     /** account.id for one tenant + account_id code (case-insensitive) — Domain Fee charge payer/profit account lookup. */
     Integer findAccountIdByTenantIdAndCode(@Param("tenantId") int tenantId, @Param("code") String code);
 

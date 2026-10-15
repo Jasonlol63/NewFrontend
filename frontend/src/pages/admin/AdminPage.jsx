@@ -7,6 +7,7 @@ import { Badge, DateText, IconAction, StatusBadge } from "@/components/shared/li
 import { useListScope } from "@/components/shared/list/useListScope";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
+import { useListPrefetch } from "@/components/shared/list/useListPrefetch";
 import { useTenantList } from "@/components/shared/list/useTenantList";
 import Toast from "@/components/shared/Toast.jsx";
 import { useSession } from "@/context/session";

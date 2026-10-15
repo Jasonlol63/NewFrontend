@@ -85,7 +85,16 @@
         WHERE account_id = #{id}
     </select>
 
-    <select id="findAccountIdByTenantIdAndCode" resultType="int">
+    <select id="findTenantAccessByTenantId" resultType="map">
+        SELECT ata.account_id AS accountId, ata.tenant_id AS tenantId
+        FROM account_tenant_access ata
+        WHERE ata.account_id IN (
+            SELECT account_id FROM account_tenant_access WHERE tenant_id = #{tenantId}
+        )
+        ORDER BY ata.id
+    </select>
+
+    <select id="findAccountIdByTenantIdAndCode"resultType="int">
         SELECT a.id
         FROM account a
         INNER JOIN account_tenant_access ata ON ata.account_id = a.id

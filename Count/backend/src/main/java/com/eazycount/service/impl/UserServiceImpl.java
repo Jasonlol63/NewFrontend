@@ -90,8 +90,16 @@ public class UserServiceImpl implements UserService {
     public List<UserListDTO> findUserByTenantId(Integer tenantId) {
         AccessControlUtils.requireValidTenantId(tenantId);
         List<UserListDTO> rows = userDao.findUserByTenantId(tenantId);
+        // One query for the companies of every account in the list (not one per account).
+        Map<Integer, List<Integer>> tenantsByAccount = new HashMap<>();
+        for (Map<String, Object> access : userDao.findTenantAccessByTenantId(tenantId)) {
+            tenantsByAccount
+                    .computeIfAbsent(((Number) access.get("accountId")).intValue(), k -> new ArrayList<>())
+                    .add(((Number) access.get("tenantId")).intValue());
+        }
         for (UserListDTO row : rows) {
-            row.setTenantIds(userDao.findTenantIdsByUserId(row.getId()));
+            row.setTenantIds(tenantsByAccount.getOrDefault(row.getId(), new ArrayList<>()));
+            row.setPassword(null); // the list never needs the password hash
         }
         return filterByAccountAcl(rows, tenantId);
     }
