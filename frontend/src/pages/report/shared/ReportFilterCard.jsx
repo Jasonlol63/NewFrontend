@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
+import { menuKeyForPath } from "@/components/layout/sidebarConfig";
 import { cn } from "@/lib/utils";
 import SegmentGroup from "@/components/shared/SegmentGroup.jsx";
 import FilterRow from "@/components/shared/FilterRow.jsx";
@@ -20,6 +22,11 @@ export function Field({ label, children }) {
  */
 export default function ReportFilterCard({ scope, children, extraRows }) {
   const { t } = useTranslation("common");
+  // Only the companies that have this page (a Games company has no Bank Process, a Bank company has no Report ...).
+  // The company the session is in always has it; a company whose menu is unknown stays listed.
+  const { pathname } = useLocation();
+  const menuKey = /^\/(report|maintenance)(\/|$)/.test(pathname) ? menuKeyForPath(pathname) : null;
+  const companyOptions = scope.companyOptions.filter((c) => !menuKey || !c.menu || c.menu[menuKey] !== false || c.value === scope.company);
   return (
     <section
       className={cn(
@@ -42,10 +49,10 @@ export default function ReportFilterCard({ scope, children, extraRows }) {
           </FilterRow>
         )}
         {/* A Group with no companies has nothing to pick, so the Company row is hidden. */}
-        {scope.companyOptions.length > 0 && (
+        {companyOptions.length > 0 && (
           <FilterRow label={t("list.company")}>
             <SegmentGroup
-              options={scope.companyOptions}
+              options={companyOptions}
               value={scope.company}
               onChange={scope.onCompanyChange}
               allowDeselect={scope.allowNoCompany}

@@ -353,6 +353,9 @@ public class AuthServiceImpl implements AuthService {
             ui.put("native_parent_tenant_code", isGroup ? code : parentTenantCode);
             ui.put("expiration_date", tenant.getExpirationDate());
             ui.put("granted_at", grantedAtByTenantId.get(tenant.getId()));
+            // The sidebar menu this login would get inside that company (same rules as switch-tenant), so the
+            // Report / Maintenance Company filters list only the companies that have the page.
+            ui.put("menu", menuForTenant(user, tenant, TenantDtoHelper.featureModulesForTenant(rows, tenant.getId())));
             data.add(ui);
 
             if (isGroup && !code.isBlank()) {
@@ -368,6 +371,15 @@ public class AuthServiceImpl implements AuthService {
         body.put("data", data);
         body.put("accessible_parent_tenant_codes", new ArrayList<>(parentTenantCodes));
         return body;
+    }
+
+    // null when the menu can't be built; the frontend then keeps the company in the list.
+    private Map<String, Boolean> menuForTenant(SessionUser current, Tenant tenant, List<FeatureModule> featureModules) {
+        try {
+            return rebuildSessionUserWithTenant(current, tenant, featureModules).menu;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     @Override

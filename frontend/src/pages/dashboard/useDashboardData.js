@@ -21,7 +21,8 @@ function buildDirectory(rows, loginTenant) {
     if (row.tenant_type === "GROUP") {
       groups.set(code, { code, tenantId: row.tenant_id });
     } else {
-      companies.push({ code, tenantId: row.tenant_id, groupCode: row.parent_tenant_code || null });
+      // menu: the sidebar entries this login gets inside the company (null = unknown, treated as open).
+      companies.push({ code, tenantId: row.tenant_id, groupCode: row.parent_tenant_code || null, menu: row.menu ?? null });
       // A company can point at a Group whose own ledger this login can't open: still list it
       // for navigation, just without a tenantId (so its "Group view" can't be requested).
       if (row.parent_tenant_code && !groups.has(row.parent_tenant_code)) {
