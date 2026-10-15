@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { postForm } from "@/lib/api";
-import { clearSession, loadSessionUser } from "@/hooks/useSavedState";
+import { clearSession, loadSessionUser, setSessionUser } from "@/hooks/useSavedState";
 
 // The logged-in session from /auth/current-user. It always describes the company you are in right
 // now: `user.menu` is the backend's sidebar visibility for this role in this company, and
@@ -21,9 +21,16 @@ export function SessionProvider({ children }) {
     };
   }, []);
 
-  // Switch the session to another company, then reload it so the sidebar and page guard follow.
+  // Switch the session to another company so the sidebar and page guard follow. The reply carries the rebuilt session
+  // (`data.user`); an older backend does not, then it is fetched again.
   const switchCompany = useCallback(async (tenantId) => {
-    await postForm("/auth/switch-tenant", { tenant_id: tenantId });
+    const body = await postForm("/auth/switch-tenant", { tenant_id: tenantId });
+    const next = body?.data?.user;
+    if (next?.menu) {
+      setSessionUser(next);
+      setState({ user: next, ready: true });
+      return;
+    }
     clearSession();
     setState({ user: await loadSessionUser(), ready: true });
   }, []);

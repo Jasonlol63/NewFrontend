@@ -66,16 +66,18 @@ export function useListScope({ onChange } = {}) {
   // Hold back until the session (and so its company) is known, so the defaults never flash.
   const directory = user ? loadedDirectory : null;
   const sessionTenantId = user?.tenant_id ?? null;
-  const { group, company } = useMemo(
-    () => resolveSelection(directory, sessionTenantId),
-    [directory, sessionTenantId]
-  );
+  const resolved = useMemo(() => resolveSelection(directory, sessionTenantId), [directory, sessionTenantId]);
+  // What was just picked while the switch is still on its way. The chips show it at once; it stops counting as soon as the
+  // session has moved on (the session company then is the selection) or the switch failed (cleared below).
+  const [pending, setPending] = useState(null);
+  const { group, company } = pending && pending.from === sessionTenantId ? pending : resolved;
   const error = directoryError || switchError;
 
-  const tenantId = company
-    ? (companiesOf(directory, group).find((c) => c.code === company)?.tenantId ?? null)
-    : company === null
-      ? groupTenantId(directory, group)
+  // The data follows the session, not the pending pick: a page decides its view (Bank / Games) from the session's company.
+  const tenantId = resolved.company
+    ? (companiesOf(directory, resolved.group).find((c) => c.code === resolved.company)?.tenantId ?? null)
+    : resolved.company === null
+      ? groupTenantId(directory, resolved.group)
       : null;
 
   const hasIndependent = hasIndependentCompanies(directory);
@@ -108,15 +110,18 @@ export function useListScope({ onChange } = {}) {
     if (!id || switching.current) return;
     if (id !== sessionTenantId) {
       switching.current = true;
+      setPending({ group: target.group, company: target.company, from: sessionTenantId });
       try {
         await switchCompany(id);
         setSwitchError("");
       } catch (err) {
         setSwitchError(err.message);
+        setPending(null); // back to the company the session is still in
         return;
       } finally {
         switching.current = false;
       }
+      setPending(null);
     }
     onChange?.();
   };

@@ -99,12 +99,17 @@ export default function DashboardPage() {
   // (or fire requests) before the restored selection takes over.
   const directory = savedReady && user ? loadedDirectory : null;
   const sessionTenantId = user?.tenant_id ?? null;
-  const { group, company } = useMemo(
+  const resolved = useMemo(
     () => resolveSelection(directory, saved, sessionTenantId),
     [directory, saved, sessionTenantId]
   );
+  // What was just picked while the company switch is still on its way: the chips show it at once, and it stops counting as
+  // soon as the session has moved on or the switch failed.
+  const [pending, setPending] = useState(null);
+  const { group, company } = pending && pending.from === sessionTenantId ? pending : resolved;
 
-  const scope = useMemo(() => resolveScope(directory, group, company), [directory, group, company]);
+  // The data follows the session, not the pending pick.
+  const scope = useMemo(() => resolveScope(directory, resolved.group, resolved.company), [directory, resolved]);
   const currencyCodes = useCurrencyOptions(scope?.tenantIds);
   const currency = currencyCodes.includes(saved?.currency)
     ? saved.currency
@@ -144,15 +149,18 @@ export default function DashboardPage() {
     const target = { group, company, ...next };
     const id = singleTenantId(directory, target.group, target.company);
     if (id && id !== sessionTenantId) {
+      setPending({ group: target.group, company: target.company, from: sessionTenantId });
       try {
         await switchCompany(id);
         setSwitchError("");
       } catch (err) {
         setSwitchError(err.message);
+        setPending(null); // back to the company the session is still in
         return;
       }
     }
     setSaved({ currency: saved?.currency ?? currency, loginStamp: currentLoginStamp(), ...target });
+    setPending(null);
   };
   const handleGroupChange = (picked) => {
     const next = picked ?? INDEPENDENT;

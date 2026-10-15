@@ -14,6 +14,11 @@ export function loadSessionUser() {
   return sessionRequest;
 }
 
+// Replaces the cached session with one the server just handed back (switching company returns it), so it need not be fetched again.
+export function setSessionUser(user) {
+  sessionRequest = Promise.resolve(user);
+}
+
 // Called on logout so the next login doesn't see the previous user's session.
 export function clearSession() {
   sessionRequest = null;
