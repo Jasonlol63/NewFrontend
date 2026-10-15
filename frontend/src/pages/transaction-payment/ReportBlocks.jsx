@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 import { cn } from "@/lib/utils";
@@ -22,11 +22,11 @@ const ALERT = "bg-[#dc2626] font-semibold text-white hover:bg-[#b91c1c]";
 const TD = "h-5 border-b border-[rgba(130,155,195,0.2)] px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-[#374151] tabular-nums max-[1024px]:h-[18px] max-[1024px]:text-[12px]";
 const TOTAL = "h-[22px] border-t border-[rgba(47,111,239,0.35)] bg-white/40 px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-brand-navy tabular-nums max-[1024px]:h-5 max-[1024px]:text-[12px]";
 
-// Placeholder rows while the first result is on its way: the page then keeps about the height of the real tables, so the
+// While the first result is on its way each currency block shows a spinner of about the height of the real tables, so the
 // content below does not jump down when the rows arrive (layout shift).
-const SKELETON_ROWS = 12;
+const LOADING_HEIGHT = 260;
 
-function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
+function AccountTable({ rows, totals, showName, onOpen, onPick }) {
   const { t } = useTranslation("transaction");
   const headers = ["account", ...(showName ? ["name"] : []), "bf", "winLoss", "crDr", "balance"];
   const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
@@ -50,20 +50,7 @@ function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
           </tr>
         </thead>
         <tbody {...cellTipHandlers}>
-          {skeleton &&
-            Array.from({ length: SKELETON_ROWS }, (_, i) => (
-              <tr key={`sk${i}`} className={rowTone(i)}>
-                {headers.map((h) => {
-                  const left = h === "account" || h === "name";
-                  return (
-                    <td key={h} className={TD}>
-                      <span className={cn("block h-2.5 animate-pulse rounded bg-slate-300/60", !left && "ml-auto")} style={{ width: left ? "70%" : "55%" }} />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          {!skeleton && rows.map((r, i) => {
+          {rows.map((r, i) => {
             const [bg, fg] = ROLE_COLORS[r.role] ?? DEBTOR;
             const tone = (n) => (r.alert ? "" : amountTone(n));
             return (
@@ -105,7 +92,7 @@ function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
 
 /** One block per shown currency: a foldable "Currency: XXX" heading with its balance, the two account tables and a Total. */
 export default function ReportBlocks({ blocks, currencies, showName, shut, onToggle, onOpen, onPick, skeleton = false }) {
-  const { t } = useTranslation("transaction");
+  const { t } = useTranslation(["transaction", "common"]);
   return currencies.map((c) => {
     const block = blocks[c];
     const net = block.totals.balance;
@@ -123,11 +110,17 @@ export default function ReportBlocks({ blocks, currencies, showName, shut, onTog
             <ChevronDown className={cn("size-4 transition-transform", shut[c] && "-rotate-90")} strokeWidth={2.6} />
           </span>
         </button>
-        {!shut[c] && (
+        {!shut[c] && skeleton && (
+          <div className="flex items-center justify-center gap-2 type-body text-dash-faint" style={{ height: LOADING_HEIGHT }}>
+            <Loader2 className="size-5 animate-spin" />
+            {t("common:loading")}
+          </div>
+        )}
+        {!shut[c] && !skeleton && (
           <>
             <div className="grid grid-cols-1 items-start gap-(--gap) min-[1024px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <AccountTable rows={block.left} totals={block.leftTotals} showName={showName} onOpen={onOpen} onPick={onPick} skeleton={skeleton} />
-              <AccountTable rows={block.right} totals={block.rightTotals} showName={showName} onOpen={onOpen} onPick={onPick} skeleton={skeleton} />
+              <AccountTable rows={block.left} totals={block.leftTotals} showName={showName} onOpen={onOpen} onPick={onPick} />
+              <AccountTable rows={block.right} totals={block.rightTotals} showName={showName} onOpen={onOpen} onPick={onPick} />
             </div>
             <div className="mt-(--gap) flex justify-center">
               <div className="w-[min(clamp(260px,19.8vw,380px),100%)] overflow-hidden rounded-lg">

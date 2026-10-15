@@ -104,10 +104,12 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
 
   // Fill the form once everything has arrived: the saved values when editing; for a new user every
   // account and process (the admin unticks what they shouldn't see).
-  const seeded = useRef(false);
+  // `seeded` is state, not a ref: the lists stay on their loading note until the form is filled, so the cards show up once,
+  // already ticked, instead of first as untouched white cards.
+  const [seeded, setSeeded] = useState(false);
   useEffect(() => {
-    if (seeded.current || !ready || isOwnerRow) return;
-    seeded.current = true;
+    if (seeded || !ready || isOwnerRow) return;
+    setSeeded(true);
     const everyAccount = new Set(accountData.items.map((a) => a.id));
     const everyProcess = new Set(processData.items.map((p) => p.id));
     if (isEdit && detail) {
@@ -122,7 +124,8 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
       setAccounts(everyAccount);
       setProcesses(everyProcess);
     }
-  }, [ready, isOwnerRow, isEdit, detail, accountData.items, processData.items]);
+  }, [seeded, ready, isOwnerRow, isEdit, detail, accountData.items, processData.items]);
+  const listsLoading = !seeded && !loadError;
 
   const roleOptions = roleOptionsFor(viewer?.role).map((o) => ({ ...o, label: t(`sidebar:role.${o.value}`, { defaultValue: o.label }) }));
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -255,8 +258,8 @@ export default function UserFormModal({ mode = "add", user, tenantId, companyCod
             loading={!directory}
             className="col-span-2 @max-[899px]/main:col-span-full"
           />
-          <AccessListCard title={t("form.account")} items={accountData.items} selected={accounts} onChange={setAccounts} className={cn(!showProcess && "col-span-2 @max-[899px]/main:col-span-full")} />
-          {showProcess && <AccessListCard title={t("form.process")} items={processData.items} selected={processes} onChange={setProcesses} />}
+          <AccessListCard title={t("form.account")} loading={listsLoading} items={accountData.items} selected={accounts} onChange={setAccounts} className={cn(!showProcess && "col-span-2 @max-[899px]/main:col-span-full")} />
+          {showProcess && <AccessListCard title={t("form.process")} loading={listsLoading} items={processData.items} selected={processes} onChange={setProcesses} />}
         </>
       )}
       <Toast toasts={toasts} onClose={dismiss} />

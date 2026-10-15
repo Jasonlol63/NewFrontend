@@ -43,17 +43,50 @@ function buildDirectory(rows, loginTenant) {
   return { groups: [...groups.values()].sort(byCode), companies: companies.sort(byGroupThenCode), loginTenant: loginTenant || null };
 }
 
+// The accessible-tenant rows are the same for every page and every modal of one login, so they are fetched once and shared
+// (Add User opens with its Company access already there). Kept per login and for a few minutes; a failed request is not kept.
+const DIRECTORY_TTL_MS = 5 * 60_000;
+let directoryRows = null; // { userKey, at, rows | null, promise }
+
+const userKeyOf = (user) => (user ? `${user.user_type ?? "user"}:${user.user_id ?? "unknown"}` : null);
+
+function loadDirectoryRows(user) {
+  const userKey = userKeyOf(user);
+  const fresh = directoryRows && directoryRows.userKey === userKey && Date.now() - directoryRows.at < DIRECTORY_TTL_MS;
+  if (fresh) return directoryRows;
+  const entry = { userKey, at: Date.now(), rows: null, promise: null };
+  entry.promise = getJson("/auth/tenant-accessible", { all: 1 }).then(
+    (body) => {
+      entry.rows = body.data || [];
+      return entry.rows;
+    },
+    (err) => {
+      if (directoryRows === entry) directoryRows = null;
+      throw err;
+    }
+  );
+  directoryRows = entry;
+  return entry;
+}
+
 export function useTenantDirectory() {
   const [state, setState] = useState({ directory: null, error: "" });
 
   useEffect(() => {
-    const controller = new AbortController();
-    Promise.all([getJson("/auth/tenant-accessible", { all: 1 }, { signal: controller.signal }), loadSessionUser()])
-      .then(([body, user]) => setState({ directory: buildDirectory(body.data || [], user?.tenant_code), error: "" }))
+    let cancelled = false;
+    loadSessionUser()
+      .then((user) => {
+        const entry = loadDirectoryRows(user);
+        const build = (rows) => !cancelled && setState({ directory: buildDirectory(rows, user?.tenant_code), error: "" });
+        if (entry.rows) build(entry.rows);
+        else return entry.promise.then(build);
+      })
       .catch((err) => {
-        if (err.name !== "AbortError") setState({ directory: null, error: err.message });
+        if (!cancelled && err.name !== "AbortError") setState({ directory: null, error: err.message });
       });
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return state;

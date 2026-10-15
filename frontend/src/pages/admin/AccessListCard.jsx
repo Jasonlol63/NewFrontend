@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Minus, Search, X } from "lucide-react";
+import { Check, Loader2, Minus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
@@ -15,7 +15,7 @@ const FILTERS = [
  * The card is a container (@container/card) so the header and the 2- or 3-column grid
  * adapt to the width the column really gets, not to the screen width.
  */
-export default function AccessListCard({ title, items, selected, onChange, className }) {
+export default function AccessListCard({ title, items, selected, onChange, className, loading = false }) {
   const { t } = useTranslation("admin");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -35,13 +35,16 @@ export default function AccessListCard({ title, items, selected, onChange, class
   const someMatched = matchedSelected > 0 && !allMatched;
 
   // onChange is a state setter: update from the latest set so quick clicks don't overwrite each other.
-  const toggle = (id) =>
-    onChange((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggle = useCallback(
+    (id) =>
+      onChange((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    [onChange]
+  );
 
   const toggleAll = () =>
     onChange((prev) => {
@@ -97,7 +100,7 @@ export default function AccessListCard({ title, items, selected, onChange, class
           <h2 className="m-0 whitespace-nowrap fm-section text-brand-navy @max-[380px]/card:text-[14px]">
             {title}
           </h2>
-          <Count value={selected.size} total={items.length} />
+          {!loading && <Count value={selected.size} total={items.length} />}
         </div>
 
         <div className="ml-auto flex min-w-0 items-center gap-1.5 @max-[380px]/card:gap-[5px] @max-[340px]/card:gap-1">
@@ -159,22 +162,28 @@ export default function AccessListCard({ title, items, selected, onChange, class
           "@min-[900px]/main:@max-[1099px]/main:auto-rows-[40px] @min-[900px]/main:@max-[1099px]/main:gap-[5px] @min-[900px]/main:@max-[1099px]/main:pb-2.5"
         )}
       >
-        {shown.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full flex items-center justify-center gap-2 py-9 fm-empty text-dash-faint">
+            <Loader2 className="size-4 animate-spin" />
+            {t("common:loading")}
+          </div>
+        ) : shown.length === 0 ? (
           <div className="col-span-full py-9 text-center fm-empty text-dash-faint">{t("access.noMatches")}</div>
         ) : (
-          shown.map((it) => <AccessItem key={it.id} item={it} on={selected.has(it.id)} onToggle={() => toggle(it.id)} />)
+          shown.map((it) => <AccessItem key={it.id} item={it} on={selected.has(it.id)} onToggle={toggle} />)
         )}
       </div>
     </section>
   );
 }
 
-function AccessItem({ item, on, onToggle }) {
+// Memoised: ticking one card redraws only that card, not the hundreds around it.
+const AccessItem = memo(function AccessItem({ item, on, onToggle }) {
   // One line each; a code too long for the card ends in "…" and the tooltip shows it in full.
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={() => onToggle(item.id)}
       title={`${item.code} · ${item.name}`}
       aria-pressed={on}
       className={cn(
@@ -208,7 +217,7 @@ function AccessItem({ item, on, onToggle }) {
       )}
     </button>
   );
-}
+});
 
 // Small blue "12/76" next to a title (shared with the Permissions heading).
 export function Count({ value, total }) {

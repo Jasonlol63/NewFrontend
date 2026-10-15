@@ -89,7 +89,7 @@ export default function FilterCard({ filters, onChange, scope, currency }) {
   }, []);
   const categoryItems = useMemo(() => CATEGORY_ITEMS.map((c) => ({ value: c.value, label: t(`account:role.${c.value}`, { defaultValue: c.label }) })), [t]);
   return (
-    <section ref={cardRef} className={cn("@container flex min-h-0 min-w-0 flex-col gap-2.5 rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter transition-opacity", scope.loading && "opacity-60")}>
+    <section ref={cardRef} className={cn("@container flex min-h-0 min-w-0 flex-col gap-2.5 rounded-xl border border-dash-line bg-white px-4 py-2 shadow-dash-filter")}>
       {/* Top block. Narrow card: Category and Capture Date side by side, the four chips as one full row under them. Wide card
           (770px+): Category takes the whole row, then the Capture Date box (at most 290px) and the four chips share a row.
           The chips are always one row, 32px high like the date box. */}
