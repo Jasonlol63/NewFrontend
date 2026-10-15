@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useCellTip } from "@/components/shared/list/CellTip.jsx";
 import { cn } from "@/lib/utils";
 import { moneySign } from "@/lib/money";
 import { ROLE_COLORS, fmt } from "./transactionPaymentRules";
@@ -12,6 +14,9 @@ const rowTone = (i) => cn(i % 2 ? "bg-white/90" : "bg-row-stripe", "hover:bg-row
 
 const TH =
   "h-[22px] border-r border-white/25 bg-brand-head px-[clamp(4px,0.3vw,6px)] text-right type-table-head whitespace-nowrap text-white first:rounded-tl-lg first:text-left last:rounded-tr-lg last:border-r-0 max-[1024px]:h-5 max-[1024px]:text-[12px]";
+// The Account cell has its own role colour (inline `background`, which also resets background-image), hiding the row's hover
+// shade: on row hover a blue wash goes over it. `!` is needed to beat the inline style.
+const ACCOUNT_HOVER = "group-hover:[background-image:linear-gradient(rgba(37,99,235,0.16),rgba(37,99,235,0.16))]!";
 // A red row (Payment Alert) keeps its white bold text on hover too.
 const ALERT = "bg-[#dc2626] font-semibold text-white hover:bg-[#b91c1c]";
 const TD = "h-5 border-b border-[rgba(130,155,195,0.2)] px-[clamp(4px,0.3vw,6px)] text-right font-semibold text-[#374151] tabular-nums max-[1024px]:h-[18px] max-[1024px]:text-[12px]";
@@ -24,8 +29,16 @@ const SKELETON_ROWS = 12;
 function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
   const { t } = useTranslation("transaction");
   const headers = ["account", ...(showName ? ["name"] : []), "bf", "winLoss", "crDr", "balance"];
+  const { cellTipHandlers, hideCellTip, cellTip } = useCellTip(true);
+  // The page scrolls under a fixed card: close it when anything scrolls.
+  useEffect(() => {
+    window.addEventListener("scroll", hideCellTip, true);
+    return () => window.removeEventListener("scroll", hideCellTip, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="overflow-hidden rounded-lg">
+      {cellTip}
       <table className="w-full table-fixed border-separate border-spacing-0 type-table-cell">
         <thead>
           <tr>
@@ -36,7 +49,7 @@ function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody {...cellTipHandlers}>
           {skeleton &&
             Array.from({ length: SKELETON_ROWS }, (_, i) => (
               <tr key={`sk${i}`} className={rowTone(i)}>
@@ -54,13 +67,13 @@ function AccountTable({ rows, totals, showName, onOpen, onPick, skeleton }) {
             const [bg, fg] = ROLE_COLORS[r.role] ?? DEBTOR;
             const tone = (n) => (r.alert ? "" : amountTone(n));
             return (
-              <tr key={r.key} className={r.alert ? ALERT : rowTone(i)}>
-                <td className={cn(TD, "overflow-hidden text-left font-semibold text-ellipsis whitespace-nowrap")} style={r.alert ? undefined : { background: bg, color: fg }}>
-                  <button type="button" title={t("table.history")} onClick={() => onOpen(r)} className="block w-full cursor-pointer truncate text-left font-semibold hover:underline">
+              <tr key={r.key} className={cn("group", r.alert ? ALERT : rowTone(i))}>
+                <td className={cn(TD, "overflow-hidden text-left font-semibold text-ellipsis whitespace-nowrap", !r.alert && ACCOUNT_HOVER)} style={r.alert ? undefined : { background: bg, color: fg }}>
+                  <button type="button" data-fit onClick={() => onOpen(r)} className="block w-full cursor-pointer truncate text-left font-semibold hover:underline">
                     {r.accountId}
                   </button>
                 </td>
-                {showName && <td className={cn(TD, "overflow-hidden text-left text-ellipsis whitespace-nowrap uppercase")} title={r.name}>{r.name}</td>}
+                {showName && <td data-fit data-tip={r.name?.toUpperCase()} className={cn(TD, "overflow-hidden text-left text-ellipsis whitespace-nowrap uppercase")}>{r.name}</td>}
                 <td className={cn(TD, tone(r.bf))}>{fmt(r.bf)}</td>
                 <td className={cn(TD, tone(r.winLoss))}>{fmt(r.winLoss)}</td>
                 <td className={cn(TD, tone(r.crDr))}>{fmt(r.crDr)}</td>

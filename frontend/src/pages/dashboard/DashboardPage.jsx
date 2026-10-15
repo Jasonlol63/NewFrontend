@@ -11,7 +11,7 @@ import DashboardFilterPanel from "./components/DashboardFilterPanel.jsx";
 import KpiCard from "./components/KpiCard.jsx";
 import TrendChartCard from "./components/TrendChartCard.jsx";
 import CurrencyBreakdownCard from "./components/CurrencyBreakdownCard.jsx";
-import { currentMonthRange, isFullMonth } from "./dashboardFormat";
+import { isFullMonth, monthToDateRange } from "./dashboardFormat";
 import {
   ALL,
   canViewGroupItself,
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const { directory: loadedDirectory, error: directoryError } = useTenantDirectory();
   const { user, switchCompany } = useSession();
   const [switchError, setSwitchError] = useState("");
-  const [dateRange, setDateRange] = useState(currentMonthRange);
+  const [dateRange, setDateRange] = useState(monthToDateRange);
   // The "All" Group / Company view and the Currency the user picked last; saved in the browser so a
   // refresh keeps them. A single company / Group is not saved here: it is the session's company.
   const [saved, setSaved, savedReady] = useSavedState("dashboard.filters");

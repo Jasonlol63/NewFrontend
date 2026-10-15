@@ -56,9 +56,9 @@ export function DateText({ value, variant, separator = "-" }) {
               side="bottom"
               sideOffset={7}
               collisionPadding={8}
-              className="z-50 flex items-center gap-1.5 rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 type-body font-semibold! tracking-[0.2px] tabular-nums text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
+              className="z-50 flex items-center gap-1 rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-2 py-1 type-caption font-semibold! tracking-[0.2px] tabular-nums text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
             >
-              <Clock className="size-3.5 opacity-85" strokeWidth={2.2} />
+              <Clock className="size-3 opacity-85" strokeWidth={2.2} />
               {time}
               <Tooltip.Arrow width={11} height={5} className="fill-[#3f6ec9]" />
             </Tooltip.Content>

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import DataTable, { SelectBox } from "@/components/shared/list/DataTable.jsx";
 import FilterChip from "@/components/shared/list/FilterChip.jsx";
 import { DeleteButton, PrimaryButton } from "@/components/shared/list/ListToolbar.jsx";
-import { Badge, IconAction } from "@/components/shared/list/cells.jsx";
+import { Badge, DateText, IconAction } from "@/components/shared/list/cells.jsx";
 import { useListView } from "@/components/shared/list/useListView";
 import { useRowActions } from "@/components/shared/list/useRowActions.jsx";
 import DateRangePicker from "@/components/shared/DateRangePicker.jsx";
@@ -275,6 +275,8 @@ export default function BankProcessView({ scope, readOnly }) {
 
   const money = (key) => (p) => formatMoney(p[key]);
   const contract = (p) => <ContractBadge row={p} />;
+  // The Date is the contract's start day; the time on hover is when the process was created.
+  const dateCell = (p) => <DateText value={p.createdAt ? `${p.date}${String(p.createdAt).slice(10)}` : p.date} variant="gradient" />;
   // The backend also opens or closes the process's accounting dues for the new status; a refusal is an error toast.
   const pickStatus = async (p, next) => {
     if (next === p.status) return;
@@ -366,7 +368,7 @@ export default function BankProcessView({ scope, readOnly }) {
     { key: "price", label: t("bank.col.price"), cellClassName: "tabular-nums", render: money("price") },
     { key: "profit", label: t("bank.col.profit"), cellClassName: "tabular-nums", render: money("profit") },
     { key: "status", label: t("bank.col.status"), render: status },
-    { key: "date", label: t("bank.col.date"), cellClassName: "tabular-nums whitespace-nowrap", render: (p) => p.date },
+    { key: "date", label: t("bank.col.date"), cellClassName: "tabular-nums whitespace-nowrap", render: dateCell },
     actionColumn,
   ];
 
@@ -392,7 +394,7 @@ export default function BankProcessView({ scope, readOnly }) {
     { key: "cost", label: t("bank.col.cost"), cellClassName: "tabular-nums", render: money("cost") },
     { key: "price", label: t("bank.col.price"), cellClassName: "tabular-nums", render: money("price") },
     { key: "profit", label: t("bank.col.profit"), cellClassName: "tabular-nums", render: money("profit") },
-    { key: "status", label: head2(t("bank.col.status"), t("bank.col.date")), render: (p) => stacked(status(p), p.date) },
+    { key: "status", label: head2(t("bank.col.status"), t("bank.col.date")), render: (p) => stacked(status(p), dateCell(p)) },
     actionColumn,
   ];
 

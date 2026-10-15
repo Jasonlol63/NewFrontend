@@ -28,7 +28,7 @@ function CellTipCard({ text, rect }) {
       ref={ref}
       role="tooltip"
       style={{ position: "fixed", left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: pos ? "visible" : "hidden" }}
-      className="pointer-events-none z-50 w-max max-w-[320px] rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-3 py-1.5 type-body leading-snug font-semibold! tracking-[0.2px] break-words text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
+      className="pointer-events-none z-50 w-max max-w-[320px] rounded-[10px] bg-[linear-gradient(135deg,#3a63c4_0%,#4f8fd9_100%)] px-2 py-1 type-caption leading-snug font-semibold! tracking-[0.2px] break-words text-[#f4f8ff] shadow-[0_10px_22px_-8px_rgba(40,80,170,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] animate-in fade-in-0 zoom-in-95"
     >
       {text}
       {pos && (

@@ -85,12 +85,13 @@ export function sortBankProcesses(rows, key, dir) {
 }
 
 // With no chip ticked the list shows only Active processes. The status chips choose what else to see: each ticked one adds
-// its status (Active, Inactive, Official, E-Invoice, Blocked), and "Show All" shows every status, Waiting included.
+// its status (Active, Inactive, Official, E-Invoice, Blocked). "Show All" does not touch the status: it only turns paging
+// into one scrolling list (see useListView).
 const CHIP_STATUS = { showActive: "ACTIVE", showInactive: "INACTIVE", showOfficial: "OFFICIAL", showEInvoice: "E_INVOICE", showBlocked: "BLOCK" };
 
 export function filterBankProcesses(rows, { search, ...chips }) {
   const picked = Object.entries(CHIP_STATUS).filter(([key]) => chips[key]).map(([, status]) => status);
-  const statusShown = (status) => chips.showAll || (picked.length ? picked.includes(status) : status === "ACTIVE");
+  const statusShown = (status) => (picked.length ? picked.includes(status) : status === "ACTIVE");
   return rows.filter(
     (p) =>
       matchesSearch([p.supplier, p.country, p.bank, p.cardOwner, p.contract, p.customer, p.status, p.date], search) && statusShown(p.status)

@@ -21,6 +21,12 @@ export function addDays(date, days) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
+// 1st of the current month up to today (the dashboard's default: it grows by a day each day).
+export function monthToDateRange(today = new Date()) {
+  const from = new Date(today.getFullYear(), today.getMonth(), 1);
+  return { from: toIsoDate(from), to: toIsoDate(today) };
+}
+
 export function currentMonthRange(today = new Date()) {
   const from = new Date(today.getFullYear(), today.getMonth(), 1);
   const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);

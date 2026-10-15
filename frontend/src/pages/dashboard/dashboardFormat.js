@@ -50,7 +50,7 @@ export function periodDelta(current, previous) {
 
 // ---- dates ----
 
-export { currentMonthRange, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date";
+export { currentMonthRange, monthToDateRange, formatDisplayDate, parseIsoDate, toIsoDate } from "@/lib/date";
 
 export function isFullMonth(fromIso, toIso) {
   if (!fromIso || !toIso) return false;
