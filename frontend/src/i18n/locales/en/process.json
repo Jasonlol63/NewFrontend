@@ -78,7 +78,11 @@
     "currencyRequired": "Currency is required",
     "descriptionRequired": "Select at least one description",
     "inUse": "Process ID {{code}} already in use: {{list}}",
-    "copyFromSameAsMulti": "The Copy From process ({{code}}) cannot be the same as a Multi-Process ID"
+    "copyFromSameAsMulti": "The Copy From process ({{code}}) cannot be the same as a Multi-Process ID",
+    "autoFetchSite": "Auto Fetch needs the website address",
+    "autoFetchSiteFormat": "The Auto Fetch website address must start with http:// or https://",
+    "autoFetchUsername": "Auto Fetch needs the website username",
+    "autoFetchPassword": "Auto Fetch needs the website password"
   },
   "form": {
     "add": "Add Process",
@@ -127,7 +131,19 @@
     "noMatches": "No matches",
     "noExisting": "No existing processes yet",
     "ofSelected": "<b>{{count}}</b> of {{total}} selected",
-    "done": "Done"
+    "done": "Done",
+    "autoFetch": "Auto Fetch",
+    "autoFetchSite": "Website",
+    "autoFetchSiteHint": "Where the Payment Report is read from on this process Day Use.",
+    "autoFetchUsername": "Username",
+    "autoFetchUsernamePlaceholder": "Website login",
+    "autoFetchPassword": "Password",
+    "autoFetchPasswordPlaceholder": "Website password",
+    "autoFetchPin": "PIN",
+    "autoFetchPinPlaceholder": "Website PIN",
+    "autoFetchKept": "Saved - leave empty to keep",
+    "autoFetchSecretHint": "The password and the PIN are stored encrypted and are never shown again.",
+    "autoFetchSavedHint": "A password is saved. Type a new one only to replace it."
   },
   "desc": {
     "title": "Select or Add Description",

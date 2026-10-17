@@ -25,10 +25,12 @@ export function buildMaintenanceRequest({ tenantId, dateFrom, dateTo, processId,
  * `request` is the body of the list call (null until there is something to ask).
  * dated: false drops the Date Range (config lists such as Formula): no `range`, no dates in the request.
  * onChange runs when Group / Company, Process or the dates change, e.g. to clear a row selection.
+ * allByDefault: false leaves Process empty until the user picks one (Formula); otherwise it starts on, and falls
+ * back to, All Process. `allProcessRequest` is the All Process body whatever is picked (Formula's search uses it).
  */
-export function useMaintenanceFilters({ onChange, dated = true } = {}) {
+export function useMaintenanceFilters({ onChange, dated = true, allByDefault = true } = {}) {
   const { t } = useTranslation("report");
-  // null = nothing picked yet: the user chooses All Process or one process before any list loads.
+  // null = nothing picked: All Process, or with allByDefault false no list until the user picks one.
   const [processPick, setProcessPick] = useState(null);
   const [search, setSearch] = useState("");
   const [range, setRangeState] = useState(() => {
@@ -55,8 +57,9 @@ export function useMaintenanceFilters({ onChange, dated = true } = {}) {
     [bankForm, processes, t]
   );
   // A pick that no longer exists (other Group / Company) counts as none.
-  const processSelected = processChoices.some((o) => o.value === processPick);
-  const processId = processSelected ? processPick : null;
+  const pick = processChoices.some((o) => o.value === processPick) ? processPick : allByDefault ? "" : null;
+  const processSelected = pick !== null && processChoices.some((o) => o.value === pick);
+  const processId = processSelected ? pick : null;
 
   const request = useMemo(
     () =>
@@ -70,6 +73,19 @@ export function useMaintenanceFilters({ onChange, dated = true } = {}) {
           })
         : null,
     [tenantId, dated, range, processId, processSelected, bankForm]
+  );
+  const allProcessRequest = useMemo(
+    () =>
+      tenantId
+        ? buildMaintenanceRequest({
+            tenantId,
+            dateFrom: dated ? range.from : null,
+            dateTo: dated ? range.to : null,
+            processId: "",
+            bankForm,
+          })
+        : null,
+    [tenantId, dated, range, bankForm]
   );
 
   return {
@@ -91,6 +107,7 @@ export function useMaintenanceFilters({ onChange, dated = true } = {}) {
       onChange?.();
     },
     request,
+    allProcessRequest,
     error: scope.error || processError,
   };
 }

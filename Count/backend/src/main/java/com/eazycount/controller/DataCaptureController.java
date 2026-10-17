@@ -1,7 +1,9 @@
 package com.eazycount.controller;
 
+import com.eazycount.dto.AutoFetchDTO;
 import com.eazycount.dto.DataCaptureBankDTO;
 import com.eazycount.dto.DataCaptureGameDTO;
+import com.eazycount.service.AutoFetchService;
 import com.eazycount.service.DataCaptureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,22 @@ public class DataCaptureController {
 
     @Autowired
     private DataCaptureService dataCaptureService;
+
+    @Autowired
+    private AutoFetchService autoFetchService;
+
+    /**
+     * Auto Fetch of the picked process: the Payment Report of its week, or the report website's validation-code image
+     * when its session has to be opened first (the typed code comes back here with the ticket).
+     */
+    @PostMapping("/autofetch/report")
+    public ResponseEntity<Map<String, Object>> autoFetchReport(@RequestBody AutoFetchDTO request) {
+        AutoFetchDTO data = autoFetchService.fetch(request);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "success",
+                "data", data));
+    }
 
     @PostMapping("/games/form")
     public ResponseEntity<Map<String, Object>> loadGameCaptureForm(@RequestBody DataCaptureGameDTO request) {

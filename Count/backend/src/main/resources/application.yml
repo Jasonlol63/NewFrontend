@@ -100,3 +100,8 @@ app:
     # TEMP (post-migration cleanup): false → Refresh no longer deletes SKIPPED rows, so dues
     # removed via Delete stay gone. Flip back to true once due generation is stable.
     restore-skipped-enabled: false
+  autofetch:
+    # Process > Auto Fetch: AES-256 key (base64 of 32 random bytes) that encrypts the report-site passwords / PINs.
+    # Set AUTOFETCH_SECRET_KEY on the server (or app.autofetch.secret-key in application-site-local.yml); never commit it.
+    # Without it Auto Fetch cannot be saved or used. Changing it makes the saved passwords unreadable (type them again).
+    secret-key: ${AUTOFETCH_SECRET_KEY:}

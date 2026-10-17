@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eazycount.dao.ProcessAutoFetchDao">
+
+    <sql id="columns">
+        id, process_id, tenant_id, provider, enabled, site_url, login_username,
+        login_password_enc, login_pin_enc, created_by, updated_by, created_at, updated_at
+    </sql>
+
+    <select id="findByTenantId" resultType="com.eazycount.entity.ProcessAutoFetch">
+        SELECT <include refid="columns"/>
+        FROM process_auto_fetch
+        WHERE tenant_id = #{tenantId}
+    </select>
+
+    <select id="findByProcessId" resultType="com.eazycount.entity.ProcessAutoFetch">
+        SELECT <include refid="columns"/>
+        FROM process_auto_fetch
+        WHERE process_id = #{processId}
+          AND tenant_id = #{tenantId}
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO process_auto_fetch
+            (process_id, tenant_id, provider, enabled, site_url, login_username,
+             login_password_enc, login_pin_enc, created_by, updated_by)
+        VALUES
+            (#{processId}, #{tenantId}, #{provider}, #{enabled}, #{siteUrl}, #{loginUsername},
+             #{loginPasswordEnc}, #{loginPinEnc}, #{createdBy}, #{updatedBy})
+        ON DUPLICATE KEY UPDATE
+            provider = VALUES(provider),
+            enabled = VALUES(enabled),
+            site_url = VALUES(site_url),
+            login_username = VALUES(login_username),
+            login_password_enc = VALUES(login_password_enc),
+            login_pin_enc = VALUES(login_pin_enc),
+            updated_by = VALUES(updated_by),
+            updated_at = NOW()
+    </insert>
+
+    <update id="updateEnabled">
+        UPDATE process_auto_fetch
+        SET enabled = #{enabled},
+            updated_by = #{updatedBy},
+            updated_at = NOW()
+        WHERE process_id = #{processId}
+          AND tenant_id = #{tenantId}
+    </update>
+</mapper>

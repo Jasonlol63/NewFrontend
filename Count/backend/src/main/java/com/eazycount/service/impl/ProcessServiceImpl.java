@@ -7,10 +7,12 @@ import com.eazycount.common.BusinessException;
 import com.eazycount.dao.AdminDao;
 import com.eazycount.dao.CurrencyDao;
 import com.eazycount.dao.DataCaptureSummaryDao;
+import com.eazycount.dao.ProcessAutoFetchDao;
 import com.eazycount.dao.ProcessDao;
 import com.eazycount.dao.ProcessDescDao;
 import com.eazycount.dao.TransactionDao;
 import com.eazycount.dto.AdminDTO;
+import com.eazycount.dto.ProcessAutoFetchDTO;
 import com.eazycount.dto.ProcessDTO;
 import com.eazycount.entity.*;
 import com.eazycount.entity.Process;
@@ -41,6 +43,12 @@ public class ProcessServiceImpl implements ProcessService {
 
     @Autowired
     private ProcessDescDao processDescDao;
+
+    @Autowired
+    private ProcessAutoFetchDao processAutoFetchDao;
+
+    @Autowired
+    private com.eazycount.util.CredentialCipher credentialCipher;
 
     @Autowired
     private DataCaptureSummaryDao dataCaptureSummaryDao;
@@ -78,9 +86,15 @@ public class ProcessServiceImpl implements ProcessService {
         for (com.eazycount.entity.ProcessDay d : processDao.findDayRowsByTenantId(tenantId)) {
             days.computeIfAbsent(d.getProcessId(), k -> new ArrayList<>()).add(d);
         }
+        // Auto Fetch of the whole tenant in one query too, without the password / PIN.
+        java.util.Map<Integer, ProcessAutoFetchDTO> autoFetch = new HashMap<>();
+        for (com.eazycount.entity.ProcessAutoFetch f : processAutoFetchDao.findByTenantId(tenantId)) {
+            autoFetch.put(f.getProcessId(), AutoFetchServiceImpl.toDto(f));
+        }
         for (ProcessDTO row : rows) {
             row.setProcessDescriptions(descriptions.getOrDefault(row.getId(), new ArrayList<>()));
             row.setProcessDays(days.getOrDefault(row.getId(), new ArrayList<>()));
+            row.setAutoFetch(autoFetch.get(row.getId()));
         }
     }
 
@@ -215,6 +229,8 @@ public class ProcessServiceImpl implements ProcessService {
             }
         }
 
+        saveAutoFetch(process.getId(), processDTO.getTenantId(), category, processDTO.getAutoFetch(), sessionUser.login_id);
+
         processDTO.setId(process.getId());
         processDTO.setCategory(category);
         // CREATE's audit "after" defaults to the method's return value — but that's this same
@@ -308,6 +324,8 @@ public class ProcessServiceImpl implements ProcessService {
             }
         }
 
+        saveAutoFetch(processId, processDTO.getTenantId(), existed.getCategory(), processDTO.getAutoFetch(), sessionUser.login_id);
+
         return processDTO;
     }
 
@@ -373,6 +391,70 @@ public class ProcessServiceImpl implements ProcessService {
         AuditContext.captureAfter(id, AuditSnapshots.process(updated));
         AuditContext.captureSummary(id, "更新流程 " + updated.getCode() + " 状态");
         return updated;
+    }
+
+    /*
+     * Process > Auto Fetch. The password / PIN are stored as ciphertext (CredentialCipher); a blank one on an edit keeps
+     * what is saved, so the form never has to show or resend them. Switching Auto Fetch off keeps the account, so
+     * switching it back on needs no retyping. GAME only: a BANK process captures fixed codes, not a report website.
+     */
+    private void saveAutoFetch(Integer processId, Integer tenantId, Process.Category category,
+                               ProcessAutoFetchDTO request, String loginId) {
+        if (request == null) {
+            return;
+        }
+        if (category != Process.Category.GAME) {
+            throw new BusinessException("Auto Fetch is only for Game processes");
+        }
+        ProcessAutoFetch existing = processAutoFetchDao.findByProcessId(processId, tenantId);
+
+        // Off, and nothing set up yet: nothing to save.
+        boolean enabled = !Boolean.FALSE.equals(request.getEnabled());
+        if (existing == null && !enabled && isBlank(request.getSiteUrl()) && isBlank(request.getUsername())) {
+            return;
+        }
+        // Only the switch changed on an existing setup.
+        if (existing != null && isBlank(request.getSiteUrl()) && isBlank(request.getUsername())
+                && isBlank(request.getPassword()) && isBlank(request.getPin())) {
+            processAutoFetchDao.updateEnabled(processId, tenantId, enabled, loginId);
+            return;
+        }
+
+        String siteUrl = trimOr(request.getSiteUrl(), existing == null ? null : existing.getSiteUrl());
+        String username = trimOr(request.getUsername(), existing == null ? null : existing.getLoginUsername());
+        if (isBlank(siteUrl) || isBlank(username)) {
+            throw new BusinessException("Auto Fetch needs the website address and the username");
+        }
+        String password = isBlank(request.getPassword())
+                ? (existing == null ? null : existing.getLoginPasswordEnc())
+                : credentialCipher.encrypt(request.getPassword());
+        if (isBlank(password)) {
+            throw new BusinessException("Auto Fetch needs the website password");
+        }
+        String pin = isBlank(request.getPin())
+                ? (existing == null ? null : existing.getLoginPinEnc())
+                : credentialCipher.encrypt(request.getPin().trim());
+
+        ProcessAutoFetch row = new ProcessAutoFetch();
+        row.setProcessId(processId);
+        row.setTenantId(tenantId);
+        row.setProvider(ProcessAutoFetch.Provider.CITIBET);
+        row.setEnabled(enabled);
+        row.setSiteUrl(siteUrl);
+        row.setLoginUsername(username);
+        row.setLoginPasswordEnc(password);
+        row.setLoginPinEnc(pin);
+        row.setCreatedBy(existing == null ? loginId : existing.getCreatedBy());
+        row.setUpdatedBy(loginId);
+        processAutoFetchDao.upsert(row);
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String trimOr(String value, String fallback) {
+        return isBlank(value) ? fallback : value.trim();
     }
 
     // Save Draft is GAME-only (opt-in switch); BANK draft eligibility is decided by a fixed process-code

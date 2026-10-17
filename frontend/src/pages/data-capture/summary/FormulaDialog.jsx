@@ -63,6 +63,8 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
   const [accountModal, setAccountModal] = useState(false);
   const [flash, setFlash] = useState(null);
   const fxRef = useRef(null);
+  const dialogRef = useRef(null);
+  const saveRef = useRef(null);
 
   // The Id Products of the sheet; the same id on several sheet rows is told apart by the row letter.
   const dataRows = useMemo(() => {
@@ -105,9 +107,19 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
   }, [fx, own, captured, dataRow]);
 
   // Escape closes the dialog unless the Account modal (or an open dropdown, which prevents its own Escape) is on top.
+  // Enter saves (like the Save button) while typing in the dialog's fields; not on a button (the keypad, a closed
+  // dropdown: Enter clicks / opens it), not in an open dropdown list (rendered outside the dialog), not mid-IME.
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === "Escape" && !e.defaultPrevented && !accountModal) onClose();
+      if (e.defaultPrevented || accountModal) return;
+      if (e.key === "Escape") onClose();
+      else if (e.key === "Enter" && !e.isComposing && !e.repeat) {
+        const target = e.target;
+        const inDialog = target === document.body || dialogRef.current?.contains(target);
+        if (!inDialog || target.closest?.("button, [role='button']")) return;
+        e.preventDefault();
+        saveRef.current();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -141,7 +153,12 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
   const stamp = [fx, account, currency, source, method].join("");
   const error = failed?.stamp === stamp ? failed.message : "";
 
-  const accountOptions = useMemo(() => accounts.map((a) => ({ value: a.label, label: a.label })), [accounts]);
+  // A Profit account is shown by its account alone ("1SLOT", not "1SLOT [1SLOT]"); the value stays the full label,
+  // which is what is saved and matched against the rows.
+  const accountOptions = useMemo(
+    () => accounts.map((a) => ({ value: a.label, label: a.row?.role === "PROFIT" ? String(a.row.accountId || a.label) : a.label })),
+    [accounts]
+  );
   const currencyOptions = useMemo(() => currencies.map((c) => ({ value: c.code, label: c.code })), [currencies]);
   const picked = accounts.find((a) => a.label === account);
 
@@ -170,6 +187,11 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
     }
   };
 
+  // Enter goes through the same gate as the Save button (a formula typed, not already saving).
+  saveRef.current = () => {
+    if (fx.trim() && !saving) save();
+  };
+
   const hasAccount = Boolean(picked);
 
   return (
@@ -177,6 +199,7 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
       <div className="absolute inset-0 z-30 flex animate-dialog-overlay items-center justify-center p-4 motion-reduce:animate-none">
         <div aria-hidden="true" onClick={onClose} className="absolute inset-0 bg-[rgba(214,230,252,0.72)] backdrop-blur-[12px]" />
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={title}
@@ -233,10 +256,10 @@ export default function FormulaDialog({ mode = "fill", row, captured, accounts, 
             <span className={gl} style={{ gridArea: "ldt" }}>{t("summary.dialog.data")}</span>
             <div className="flex min-w-0 items-center gap-[5px]" style={{ gridArea: "cdt" }}>
               <div className="min-w-[104px] flex-[1.25_1_0]">
-                <SelectField value={dataRow} onChange={changeDataRow} options={dataRows} placeholder={t("summary.dialog.selectIdProduct")} />
+                <SelectField wide value={dataRow} onChange={changeDataRow} options={dataRows} placeholder={t("summary.dialog.selectIdProduct")} />
               </div>
               <div className="min-w-0 flex-[1_1_0]">
-                <SelectField value={dataCol} onChange={setDataCol} options={colOptions} placeholder={t("summary.dialog.selectRowData")} />
+                <SelectField wide value={dataCol} onChange={setDataCol} options={colOptions} placeholder={t("summary.dialog.selectRowData")} />
               </div>
               <button
                 type="button"

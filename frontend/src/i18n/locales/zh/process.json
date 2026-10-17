@@ -78,7 +78,11 @@
     "currencyRequired": "请选择货币",
     "descriptionRequired": "请至少选择一个描述",
     "inUse": "合同ID {{code}} 已被使用：{{list}}",
-    "copyFromSameAsMulti": "Copy From 的合同（{{code}}）不能和 Multi-Process 所选的合同ID相同"
+    "copyFromSameAsMulti": "Copy From 的合同（{{code}}）不能和 Multi-Process 所选的合同ID相同",
+    "autoFetchSite": "自动抓取需要填写网站地址",
+    "autoFetchSiteFormat": "自动抓取的网站地址必须以 http:// 或 https:// 开头",
+    "autoFetchUsername": "自动抓取需要填写网站用户名",
+    "autoFetchPassword": "自动抓取需要填写网站密码"
   },
   "form": {
     "add": "新增合同",
@@ -127,7 +131,19 @@
     "noMatches": "没有匹配项",
     "noExisting": "暂无已有合同",
     "ofSelected": "已选 <b>{{count}}</b>/{{total}}",
-    "done": "完成"
+    "done": "完成",
+    "autoFetch": "自动抓取",
+    "autoFetchSite": "网站",
+    "autoFetchSiteHint": "在该流程的使用日从这个网站读取 Payment Report。",
+    "autoFetchUsername": "用户名",
+    "autoFetchUsernamePlaceholder": "网站登录名",
+    "autoFetchPassword": "密码",
+    "autoFetchPasswordPlaceholder": "网站密码",
+    "autoFetchPin": "PIN",
+    "autoFetchPinPlaceholder": "网站 PIN",
+    "autoFetchKept": "已保存，留空即不修改",
+    "autoFetchSecretHint": "密码和 PIN 加密保存，不会再显示出来。",
+    "autoFetchSavedHint": "已保存密码。只有需要更换时才重新输入。"
   },
   "desc": {
     "title": "选择或添加描述",

@@ -98,7 +98,7 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               }}
               autoComplete="off"
               placeholder={t("bank.adder.newPlaceholder", { noun: nounText })}
-              className="h-8 min-w-0 flex-1 uppercase placeholder:normal-case"
+              className="h-8 min-w-0 flex-1 px-2 uppercase placeholder:normal-case"
             />
             <button
               type="button"
@@ -108,18 +108,12 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
             >
               {t("bank.adder.add")}
             </button>
-          </div>
-
-          <div className="mt-3 mb-2 flex items-center justify-between gap-2">
-            <p className="m-0 fm-opt font-semibold! text-dash-sub">
-              {!items.length ? t("bank.adder.none") : removing ? t("bank.adder.removeMode") : t("bank.adder.existing")}
-            </p>
             {items.length > 0 && (
               <button
                 type="button"
                 onClick={() => setRemoving((v) => !v)}
                 className={cn(
-                  "inline-flex h-7 flex-none cursor-pointer items-center gap-1 rounded-lg border px-2 fm-btn-sm transition-colors",
+                  "inline-flex h-8 flex-none cursor-pointer items-center gap-1 rounded-lg border px-2 fm-btn-sm transition-colors",
                   removing ? "border-transparent bg-[#fee2e2] text-[#dc2626] hover:bg-[#fecaca]" : "border-[#d5deea] bg-white text-dash-sub hover:border-[#fca5a5] hover:text-[#ef4444]"
                 )}
               >
@@ -128,6 +122,10 @@ export default function CountryBankAdder({ noun, title, hint, items, onAdd, onRe
               </button>
             )}
           </div>
+
+          <p className="m-0 mt-3 mb-2 fm-opt font-semibold! text-dash-sub">
+            {!items.length ? t("bank.adder.none") : removing ? t("bank.adder.removeMode") : t("bank.adder.existing")}
+          </p>
           {items.length > 0 && (
             <div className="flex max-h-[180px] flex-wrap gap-2 overflow-y-auto p-0.5">
               {items.map((item) => {

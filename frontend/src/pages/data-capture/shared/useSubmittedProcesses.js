@@ -20,5 +20,6 @@ export function useSubmittedProcesses(tenantId, captureDate, enabled = true, kin
   }, [enabled, tenantId, captureDate, kind, key, version]);
 
   const current = enabled && state.key === key;
-  return { items: current ? state.items : [], error: current ? state.error : "", reload };
+  // loaded: the list answered for this tenant / date (false while it loads or after it failed).
+  return { items: current ? state.items : [], loaded: current && !state.error, error: current ? state.error : "", reload };
 }

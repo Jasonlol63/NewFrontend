@@ -46,6 +46,7 @@ export default function FormulaMaintenancePage() {
 
   const filters = useMaintenanceFilters({
     dated: false,
+    allByDefault: false,
     onChange: () => setSelected(new Set()),
   });
   const [query, setQuery] = useState("");
@@ -53,7 +54,9 @@ export default function FormulaMaintenancePage() {
     const timer = setTimeout(() => setQuery(filters.search.trim()), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [filters.search]);
-  const request = useMemo(() => filters.request && { ...filters.request, ...(query ? { q: query } : {}) }, [filters.request, query]);
+  // With no process picked, a search still looks through All Process.
+  const base = filters.request ?? (query ? filters.allProcessRequest : null);
+  const request = useMemo(() => base && { ...base, ...(query ? { q: query } : {}) }, [base, query]);
   const list = useInfiniteMaintenanceList(FORMULA_LIST_URL, request, normalizeFormulaRow);
   const rows = list.rows;
 
@@ -91,7 +94,7 @@ export default function FormulaMaintenancePage() {
   const selectedRows = rows.filter((r) => canSelect(r) && selected.has(r.id));
   const actions = useRowActions({
     deleteRows: async (picked) => {
-      await postJson(FORMULA_DELETE_URL, { tenantId: filters.request.tenantId, formulaIds: picked.map((r) => Number(r.id)) });
+      await postJson(FORMULA_DELETE_URL, { tenantId: request.tenantId, formulaIds: picked.map((r) => Number(r.id)) });
       await list.refreshLoaded();
     },
     noun: "formula",
@@ -131,7 +134,7 @@ export default function FormulaMaintenancePage() {
         canSelect={canSelect}
         fitWidth
         minWidth="min-w-0"
-        emptyMessage={filters.processSelected ? t("empty.noData") : t("empty.pickProcess")}
+        emptyMessage={request ? t("empty.noData") : t("empty.pickProcess")}
       />
 
       {actions.dialogs}

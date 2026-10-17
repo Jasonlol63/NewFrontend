@@ -157,10 +157,19 @@
     "enterRemark": "请输入备注",
     "removeHint": "多个词请用逗号（,）分隔。只想匹配完整的某个词，请在它前面加 =。"
   },
-  "weekdays": ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+  "weekdays": [
+    "星期日",
+    "星期一",
+    "星期二",
+    "星期三",
+    "星期四",
+    "星期五",
+    "星期六"
+  ],
   "submitted": {
     "title": "已提交合同",
-    "empty": "该日期还没有提交的合同"
+    "empty": "该日期还没有提交的合同",
+    "countTitle_other": "该日期已提交 {{count}} 个合同"
   },
   "sheet": {
     "title": "数据采集表",
@@ -241,5 +250,20 @@
     "labels": {
       "invoice": "发票"
     }
+  },
+  "autoFetch": {
+    "title": "验证码",
+    "hint": "{{site}} 需要输入一次验证码，之后 Data Capture Table 会自动填好。",
+    "imageAlt": "报表网站显示的验证码",
+    "placeholder": "验证码",
+    "refresh": "换一张验证码",
+    "working": "处理中…",
+    "button": "自动抓取",
+    "buttonTitle": "重新从报表网站读取 Payment Report",
+    "filled": "已从报表网站填入 Data Capture Table",
+    "filledDetail": "{{from}} 至 {{to}} 的 Payment Report。",
+    "notUnderstood": "报表已取到，但无法自动排版，这次请手动复制。",
+    "failed": "自动抓取没有成功",
+    "empty": "报表网站这一周没有数据。"
   }
 }

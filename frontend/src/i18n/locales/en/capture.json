@@ -157,10 +157,20 @@
     "enterRemark": "Enter remark",
     "removeHint": "For multiple words, use commas (,). To match only one exact word, put = before it."
   },
-  "weekdays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "weekdays": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
   "submitted": {
     "title": "Submitted Processes",
-    "empty": "No processes submitted for this date"
+    "empty": "No processes submitted for this date",
+    "countTitle_one": "{{count}} process submitted for this date",
+    "countTitle_other": "{{count}} processes submitted for this date"
   },
   "sheet": {
     "title": "Data Capture Table",
@@ -241,5 +251,20 @@
     "labels": {
       "invoice": "Invoice"
     }
+  },
+  "autoFetch": {
+    "title": "Validation Code",
+    "hint": "{{site}} asks for this code once. The Data Capture Table then fills on its own.",
+    "imageAlt": "The validation code shown by the report website",
+    "placeholder": "Code",
+    "refresh": "Show another code",
+    "working": "Working...",
+    "button": "Auto Fetch",
+    "buttonTitle": "Read the Payment Report from the report website again",
+    "filled": "Data Capture Table filled from the report website",
+    "filledDetail": "Payment Report of {{from}} to {{to}}.",
+    "notUnderstood": "The report came through but could not be laid out. Copy it in by hand this time.",
+    "failed": "Auto Fetch did not go through",
+    "empty": "The report website sent no rows for this week."
   }
 }

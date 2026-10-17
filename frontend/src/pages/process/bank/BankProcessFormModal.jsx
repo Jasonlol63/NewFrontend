@@ -562,9 +562,11 @@ export default function BankProcessFormModal({ mode = "add", process, tenantId, 
                       </button>
                     )}
                   </div>
-                  <span className="mt-1 ml-0.5 block fm-help italic leading-snug text-[#8a96a8]">
-                    {billingLocked ? t("bank.form.balanceLockedHint") : t("bank.form.balanceSettled")}
-                  </span>
+                  {billingLocked && (
+                    <span className="mt-1 ml-0.5 block fm-help italic leading-snug text-[#8a96a8]">
+                      {t("bank.form.balanceLockedHint")}
+                    </span>
+                  )}
                 </Field>
               ) : (
                 <Field label={t("bank.form.bankBalance")} optional>

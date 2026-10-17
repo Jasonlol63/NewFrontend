@@ -17,18 +17,30 @@ const headBg = "bg-[linear-gradient(180deg,#60c1fe,#0f61ff)]";
 const headHot = "bg-[linear-gradient(180deg,#3a9bf0,#0a46c7)]";
 const rowHeadBase = "sticky left-0 z-1 h-[27px] w-14 cursor-pointer border-r border-b border-[rgba(130,155,195,0.22)] text-center type-table-cell font-semibold! text-brand-navy select-none";
 
-// Puts the caret back where it was after the text of a cell was rewritten (typing in lower case becomes upper case).
-function setTextKeepCaret(el, text) {
+// Where the caret is, counted in characters over the whole text of the cell (a pasted cell holds several
+// spans / text nodes, so the offset inside the caret's own node is not enough). null when it is not in `el`.
+function caretOffset(el) {
   const sel = window.getSelection();
-  const at = sel?.rangeCount && el.contains(sel.anchorNode) ? sel.anchorOffset : text.length;
+  if (!sel?.rangeCount || !el.contains(sel.focusNode)) return null;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.setEnd(sel.focusNode, sel.focusOffset);
+  return range.toString().length;
+}
+
+// Rewrites the text of a cell and puts the caret back at the same character (typing in lower case becomes
+// upper case; a pasted cell's spans are flattened on the first key) instead of wherever the browser drops it.
+function setTextKeepCaret(el, text) {
+  const at = caretOffset(el);
   el.textContent = text;
-  if (el.firstChild && sel) {
-    const range = document.createRange();
-    range.setStart(el.firstChild, Math.min(at, text.length));
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
+  const sel = window.getSelection();
+  if (at === null || !sel) return;
+  const range = document.createRange();
+  if (el.firstChild) range.setStart(el.firstChild, Math.min(at, text.length));
+  else range.setStart(el, 0);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function caretToEnd(el) {
@@ -59,7 +71,7 @@ const Cell = memo(function Cell({ r, c, cell, selected, active, editing }) {
     if (html) {
       const safe = safeCellHtml(html);
       if (el.innerHTML !== safe) el.innerHTML = safe;
-    } else if (el.textContent !== value || el.childElementCount) el.textContent = value;
+    } else if (el.textContent !== value || el.childElementCount) setTextKeepCaret(el, value);
   }, [value, html]);
   // What a paste copied of the look of a cell (colour, bold, ...), kept apart from the classes of the sheet.
   useLayoutEffect(() => {

@@ -344,6 +344,7 @@ export function useDashboardData(scope, dateFrom, dateTo, currency) {
   const shown = remembered ? { ...remembered, error: "" } : result;
   // initialLoading: nothing to show yet (no result has arrived and none is remembered), as opposed to `loading`, which is also
   // true every time a filter change triggers a re-fetch.
-  // dataKey: the request the numbers on screen belong to (the chart redraws when it changes).
-  return { ...shown, dataKey: remembered ? requestKey : result.key, loading: !current, initialLoading: !current && !remembered && result.key === "" };
+  // dataKey: the request the numbers on screen belong to; requestKey: the request the user is asking for. The chart redraws when
+  // the request changes and its numbers are there (dataKey === requestKey), however they got here (cache or network).
+  return { ...shown, dataKey: remembered ? requestKey : result.key, requestKey, loading: !current, initialLoading: !current && !remembered && result.key === "" };
 }

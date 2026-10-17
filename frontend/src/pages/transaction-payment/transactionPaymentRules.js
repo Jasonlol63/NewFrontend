@@ -200,6 +200,34 @@ export function middleManTotal({ amount1, rate, mul, fee, pt }) {
   return total.gt(0) ? total.toFixed() : "";
 }
 
+// Amount 2 as the Rate form shows it: the converted amount minus what the Middle-Man takes (the Rate-Mul commission and the
+// Fee), plus the PT-Fee (which only lowers the Middle-Man's own total, so the amount above gets it back). Display only, the submit still sends Amount 1 and the Rate. { text } is the figure ("" while there is none),
+// { error: true } when the Rate-Mul points the wrong way (multiply needs Rate-Mul <= Rate, divide needs Rate-Mul >= Rate).
+export function rateAmount2Shown({ amount1, rate, mul, fee, pt }) {
+  const base = rateAmount2(amount1, rate);
+  if (!base) return { text: "" };
+  const dec = (v) => new Decimal(plain(v).replace(/^-/, "") || "0");
+  const from = dec(amount1);
+  const fx = parseRate(rate);
+  const text = plain(mul).replace("÷", "/");
+  let commission = new Decimal(0);
+  if (text && fx) {
+    if (/^\/\d*\.?\d+$/.test(text) && fx.divisor) {
+      const divisor = dec(text.slice(1));
+      if (divisor.gt(0)) {
+        if (divisor.lt(fx.divisor)) return { error: true };
+        commission = new Decimal(base).minus(from.div(divisor).toDecimalPlaces(20, Decimal.ROUND_HALF_UP));
+      }
+    } else if (/^\d*\.?\d+$/.test(text) && !fx.divisor && dec(text).gt(0)) {
+      if (dec(text).gt(dec(rate))) return { error: true };
+      commission = from.mul(dec(rate).minus(dec(text)));
+    }
+  }
+  const eight = (d) => d.toDecimalPlaces(8, Decimal.ROUND_HALF_UP);
+  const left = new Decimal(base).minus(eight(commission)).minus(eight(dec(fee))).plus(eight(dec(pt)));
+  return { text: left.toFixed() };
+}
+
 /** The /api/transaction/submit body of the form, or throws the message to show (written with t, the `transaction` namespace's t). `f` is the form state, `cur` the resolved currencies. */
 export function buildSubmitRequest({ tenantId, type, f, cur, t }) {
   const base = { tenantId, transactionType: type, transactionDate: f.date };

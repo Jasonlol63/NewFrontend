@@ -57,8 +57,12 @@ export const MENU_ITEMS = [
   { menu: "auditLog", label: "Audit Log", icon: ScrollText, path: "/audit-log" },
 ];
 
-// Where a user lands after login and when a page is not theirs: a Member has only Win/Loss, everyone else the Dashboard.
-export const homePath = (user) => (user?.menu?.winLoss === true ? "/member/win-loss" : "/dashboard");
+// Where a user lands after login and when a page is not theirs: the first page of their menu (the Dashboard when they have
+// Home, Win/Loss for a Member, else e.g. Admin). The Dashboard only when the menu has nothing at all.
+export const homePath = (user) => {
+  const first = buildSidebarMenu(user?.menu)[0];
+  return (first?.children?.[0] ?? first)?.path ?? "/dashboard";
+};
 
 // The menu the user may see, numbered 1..n. `menu` is user.menu from /auth/current-user; a missing
 // key counts as hidden, so an incomplete session never shows more than it should.

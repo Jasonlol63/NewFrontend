@@ -12,6 +12,7 @@ import { ByTag } from "@/components/shared/form-modal/RecordBar.jsx";
 import { formatRecordTime } from "@/components/shared/form-modal/recordTime.js";
 import { DAYS } from "./processRules";
 import { buildAddRequests, buildProcessRequest, findProcessIdInUse, validateProcessForm } from "./processFormRules";
+import AutoFetchCard from "./AutoFetchCard.jsx";
 import { useProcessCurrencies } from "./useProcessCurrencies";
 import { useProcessDescriptions } from "./useProcessDescriptions";
 import DescriptionPickerModal from "./DescriptionPickerModal.jsx";
@@ -50,6 +51,18 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
   });
   const [descriptions, setDescriptions] = useState(() => new Set(isEdit ? (process?.descriptionIds ?? []) : []));
   const [days, setDays] = useState(() => new Set(isEdit ? (process?.days ?? []) : []));
+  // Auto Fetch. existed: the process already has a setup, so switching it off still has to be saved. hasPassword /
+  // hasPin: one is saved on the server, so the boxes can stay empty (they are never sent back here).
+  const [autoFetch, setAutoFetch] = useState(() => ({
+    existed: Boolean(isEdit && process?.autoFetch),
+    enabled: Boolean(isEdit && process?.autoFetch?.enabled),
+    siteUrl: (isEdit && process?.autoFetch?.siteUrl) || "",
+    username: (isEdit && process?.autoFetch?.username) || "",
+    password: "",
+    pin: "",
+    hasPassword: Boolean(isEdit && process?.autoFetch?.hasPassword),
+    hasPin: Boolean(isEdit && process?.autoFetch?.hasPin),
+  }));
   const descriptionList = useProcessDescriptions(tenantId);
   const currencies = useProcessCurrencies(tenantId);
   // Lists that did not load are error toasts (once per error).
@@ -105,6 +118,17 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
     if (source) {
       setDescriptions(new Set(source.descriptionIds));
       setDays(new Set(source.days));
+      // The website and its username come along; the password and the PIN never leave the server, so they are typed again.
+      setAutoFetch((a) => ({
+        ...a,
+        enabled: Boolean(source.autoFetch?.enabled),
+        siteUrl: source.autoFetch?.siteUrl ?? "",
+        username: source.autoFetch?.username ?? "",
+        password: "",
+        pin: "",
+        hasPassword: false,
+        hasPin: false,
+      }));
     }
   };
 
@@ -112,7 +136,7 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
     if (saving) return;
     const codes = isEdit ? [process.code] : multi ? [...multiCodes] : [form.code.trim().toUpperCase()].filter(Boolean);
     const copySourceCode = form.copyFrom ? processes.find((p) => String(p.id) === form.copyFrom)?.code : "";
-    const problem = validateProcessForm({ isEdit, multi, codes, currencyId: form.currency, descriptionCount: descriptions.size, copySourceCode });
+    const problem = validateProcessForm({ isEdit, multi, codes, currencyId: form.currency, descriptionCount: descriptions.size, copySourceCode, autoFetch });
     if (problem) {
       push(problem, "error");
       return;
@@ -127,8 +151,8 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
     }
     setSaving(true);
     const requests = isEdit
-      ? [{ ...buildProcessRequest({ isEdit, id: process?.id, code: process.code, tenantId, form, descriptions, days }), label: process.code }]
-      : buildAddRequests({ codes, multi, descriptions, labelById, tenantId, form, days }).filter((r) => !doneKeys.current.has(r.key));
+      ? [{ ...buildProcessRequest({ isEdit, id: process?.id, code: process.code, tenantId, form, descriptions, days, autoFetch }), label: process.code }]
+      : buildAddRequests({ codes, multi, descriptions, labelById, tenantId, form, days, autoFetch }).filter((r) => !doneKeys.current.has(r.key));
     try {
       await onSave(requests); // closes the modal on success
     } catch (err) {
@@ -233,6 +257,8 @@ export default function ProcessFormModal({ mode = "add", process, tenantId, proc
             </div>
           </div>
         </FormCard>
+
+        <AutoFetchCard value={autoFetch} onChange={setAutoFetch} />
 
         <FormCard title={t("form.schedule")} className="flex-[1.15] @max-[899px]/main:flex-none @max-[899px]/main:overflow-visible" bodyClassName="flex flex-col @max-[899px]/main:overflow-visible">
           <Field label={t("form.dayUse")} as="div">

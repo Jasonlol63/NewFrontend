@@ -639,3 +639,12 @@ body {
     to { transform: rotate(360deg); }
   }
 }
+
+/* Dashboard Trend Chart: the lines and fills (not the grid / axes) draw in left to right. The wrapper flips data-reveal between 1 and 0
+   for every request it shows, so the other animation name restarts the draw even when the data comes from the cache. */
+@media (prefers-reduced-motion: no-preference) {
+  .trend-plot[data-reveal="1"] .recharts-area { animation: trend-reveal-1 1.2s cubic-bezier(0.22, 0.61, 0.36, 1); }
+  .trend-plot[data-reveal="0"] .recharts-area { animation: trend-reveal-0 1.2s cubic-bezier(0.22, 0.61, 0.36, 1); }
+}
+@keyframes trend-reveal-1 { from { clip-path: inset(-10px 100% -10px 0); } to { clip-path: inset(-10px 0 -10px 0); } }
+@keyframes trend-reveal-0 { from { clip-path: inset(-10px 100% -10px 0); } to { clip-path: inset(-10px 0 -10px 0); } }

@@ -16,7 +16,7 @@ import RemoveWordInput from "../shared/RemoveWordInput.jsx";
 import SheetCard, { SubmitBar, textButtonClass } from "../shared/SheetCard.jsx";
 import SubmittedProcesses from "../shared/SubmittedProcesses.jsx";
 import { cardClass } from "../shared/cardParts.jsx";
-import { CAPTURE_MODES, GAME_GRID } from "../shared/dataCaptureRules";
+import { CAPTURE_MODES, GAME_GRID, MAX_GRID_COLS } from "../shared/dataCaptureRules";
 import { useCaptureGrid } from "../shared/grid/useCaptureGrid";
 import { buildSubmission, saveCaptureSession, saveCaptureView, clearCaptureView, viewToRestore } from "../shared/submitSnapshot";
 import { useCaptureDraft } from "../shared/useCaptureDraft";
@@ -25,6 +25,10 @@ import { useGameProcesses } from "../shared/useGameProcesses";
 import { useSubmittedProcesses } from "../shared/useSubmittedProcesses";
 import { useErrorToasts } from "@/hooks/useErrorToasts";
 import { useFullscreen } from "../shared/useFullscreen";
+import AutoFetchCaptchaDialog from "../shared/AutoFetchCaptchaDialog.jsx";
+import { useAutoFetch } from "../shared/useAutoFetch";
+import { pasteIntoSheet } from "../shared/paste/pasteRouter";
+import { translatePasteNotice } from "../shared/paste/pasteNotice";
 
 const EMPTY_FORM = { process: "", currency: "", removeWord: "", replaceFrom: "", replaceTo: "", remark: "" };
 
@@ -129,6 +133,26 @@ export default function GameCaptureView({ scope, readOnly }) {
     sheet.resetGrid();
   };
 
+  // Auto Fetch: a process set up with a report website fills the sheet from it instead of it being pasted in by hand.
+  // Only on a day the process runs (the process list of the date is already only those), and only onto an empty sheet,
+  // so a draft or anything typed is never written over.
+  const autoFetchOn = !readOnly && Boolean(allProcesses.find((p) => String(p.id) === form.process)?.autoFetch?.enabled);
+  const autoFetchSetup = useMemo(
+    () => (autoFetchOn && form.process && scope.tenantId ? { tenantId: scope.tenantId, processId: Number(form.process), captureDate: date } : null),
+    [autoFetchOn, form.process, scope.tenantId, date]
+  );
+  const autoFetch = useAutoFetch({
+    setup: autoFetchSetup,
+    canFill: () => !sheet.filled,
+    onReport: (text, { weekStart, weekEnd }) => {
+      const notify = (message, level) => pushNotice(translatePasteNotice(message, t), level === "danger" ? "error" : "success");
+      const taken = pasteIntoSheet({ clip: { text }, grid: sheet.grid, anchor: { row: 0, col: 0 }, captureType: mode, maxCols: MAX_GRID_COLS, notify, commit: sheet.actions.replaceGrid });
+      if (taken) push(t("autoFetch.filled"), "success", t("autoFetch.filledDetail", { from: weekStart, to: weekEnd }));
+      else push(t("autoFetch.notUnderstood"), "error");
+    },
+    onError: (message) => push(t("autoFetch.failed"), "error", message || t("autoFetch.empty")),
+  });
+
   const fullscreen = useFullscreen();
 
   // Submit opens the Data Capture Summary with what was chosen here and the sheet (the captured rows come from the submit API).
@@ -148,7 +172,7 @@ export default function GameCaptureView({ scope, readOnly }) {
       removeWord: form.removeWord,
       replaceFrom: form.replaceFrom,
       replaceTo: form.replaceTo,
-      remark: form.remark,
+      remark: form.remark.trim().toUpperCase(),
       captureType: mode,
       table,
     };
@@ -220,14 +244,16 @@ export default function GameCaptureView({ scope, readOnly }) {
 
             <Field label={t("form.removeWord")} optional className="col-span-3 max-[899px]:col-span-1">
               <RemoveWordInput value={form.removeWord} onChange={(removeWord) => setForm((f) => ({ ...f, removeWord }))} />
+              {/* How the words are written, as in the old page (and the Process form). */}
+              <span className="mt-1 ml-0.5 block type-caption italic leading-snug text-[#8a96a8] short:mt-0.5">{t("form.removeHint")}</span>
             </Field>
             <Field label={t("form.remark")} optional className="col-span-3 max-[899px]:col-span-1">
-              <TextInput value={form.remark} onChange={setField("remark")} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
+              <TextInput value={form.remark} onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value.toUpperCase() }))} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
             </Field>
           </div>
         </section>
 
-        <SubmittedProcesses items={submitted.items} />
+        <SubmittedProcesses items={submitted.items} loaded={submitted.loaded} />
       </div>
 
       <SheetCard
@@ -245,6 +271,11 @@ export default function GameCaptureView({ scope, readOnly }) {
                 {t("sheet.deleteDraft")}
               </button>
             )}
+            {autoFetch.enabled && (
+              <button type="button" onClick={autoFetch.refresh} disabled={autoFetch.loading} title={t("autoFetch.buttonTitle")} className={textButtonClass}>
+                {autoFetch.loading ? t("autoFetch.working") : t("autoFetch.button")}
+              </button>
+            )}
           </>
         }
       >
@@ -252,6 +283,17 @@ export default function GameCaptureView({ scope, readOnly }) {
       </SheetCard>
 
       <SubmitBar disabled={!canSubmit} readOnly={readOnly} onSubmit={submit} />
+
+      {/* Auto Fetch: the report website's validation code, asked once per website session. */}
+      {autoFetch.captcha && (
+        <AutoFetchCaptchaDialog
+          captcha={autoFetch.captcha}
+          loading={autoFetch.loading}
+          onSubmit={autoFetch.submit}
+          onRefresh={autoFetch.refresh}
+          onClose={autoFetch.dismiss}
+        />
+      )}
 
       {/* The same modal as the "Add" of Add Process: what is ticked here becomes this page's Description. */}
       {picker && (

@@ -21,7 +21,7 @@
   },
   "empty": {
     "noData": "No data found. Please adjust your search criteria and try again.",
-    "pickProcess": "Select a process to view the records."
+    "pickProcess": "Select a process or search to view the records."
   },
   "cols": {
     "no": "No.",

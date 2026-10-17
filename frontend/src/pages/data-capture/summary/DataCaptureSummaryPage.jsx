@@ -150,7 +150,7 @@ function LoadingFrame({ capture }) {
           <InfoChip label={t("form.process")} value={capture.process} />
           <InfoChip label={t("form.description")} value={capture.description} />
           <InfoChip label={t("form.currency")} value={capture.currency} />
-          <InfoChip label={t("form.remark")} value={capture.remark} />
+          <InfoChip label={t("form.remark")} value={capture.remark?.toUpperCase()} />
         </div>
         <div className="flex h-[42px] flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 type-label text-brand-navy">{t("summary.rate.label")}</div>
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/85 bg-white/80 shadow-[0_8px_22px_-16px_rgba(20,51,107,0.5)]">
@@ -304,7 +304,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
     } catch {
       return push(t("summary.toast.formulaInvalid"), "error", t("summary.toast.formulaInvalidDetail"));
     }
-    if (text === formulaDisplay(row.formula, captured, row.rowIndex)) return undefined;
+    if (text === row.formula) return undefined;
     return storeInline(row, { formula: text });
   };
 
@@ -408,7 +408,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
           <InfoChip label={t("form.process")} value={info.process} />
           <InfoChip label={t("form.description")} value={info.description} />
           <InfoChip label={t("form.currency")} value={info.currency} />
-          <InfoChip label={t("form.remark")} value={info.remark} />
+          <InfoChip label={t("form.remark")} value={info.remark?.toUpperCase()} />
         </div>
 
         <div className="flex flex-none items-center gap-2 rounded-[10px] border border-white/80 bg-white/55 px-2.5 py-1.5 short:py-1">
@@ -496,7 +496,7 @@ function SummaryBoard({ capture, data, onRefresh }) {
                         </td>
                         <td className={cn(td, isEditing("formula") && "p-0.5")}>
                           {isEditing("formula") ? (
-                            <InlineInput value={formulaDisplay(r.formula, captured, r.rowIndex)} onSave={(text) => commitInline(r, "formula", text)} onCancel={() => setEditing(null)} />
+                            <InlineInput value={r.formula} onSave={(text) => commitInline(r, "formula", text)} onCancel={() => setEditing(null)} />
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <code

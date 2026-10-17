@@ -76,7 +76,7 @@ export function PasswordInput({ value, onChange, className, ...props }) {
  * uppercase: the shown value, the placeholder and the options are all upper case (the popup is outside the modal, so it
  * needs the class itself).
  */
-export function SelectField({ value, onChange, options, placeholder: placeholderProp, disabled = false, onClear, uppercase = false, capped = false }) {
+export function SelectField({ value, onChange, options, placeholder: placeholderProp, disabled = false, onClear, uppercase = false, capped = false, wide = false }) {
   const { t } = useTranslation();
   const placeholder = placeholderProp ?? t("select");
   const label = options.find((o) => o.value === value)?.label;
@@ -111,7 +111,9 @@ export function SelectField({ value, onChange, options, placeholder: placeholder
           collisionPadding={8}
           style={capped ? { maxHeight: `min(${capped === true ? 280 : capped}px, var(--radix-select-content-available-height))` } : undefined}
           className={cn(
-            "z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
+            "z-50 overflow-hidden rounded-xl",
+            wide ? "w-max min-w-(--radix-select-trigger-width) max-w-[calc(100vw-16px)]" : "w-(--radix-select-trigger-width)",
+            " border border-modal-line bg-modal-float shadow-[0_14px_32px_-10px_rgba(20,51,107,0.32)] backdrop-blur-xl",
             !capped && "max-h-(--radix-select-content-available-height)",
             uppercase && "uppercase"
           )}
@@ -122,6 +124,7 @@ export function SelectField({ value, onChange, options, placeholder: placeholder
                 key={o.value}
                 value={o.value}
                 className={cn(
+                  wide && "whitespace-nowrap",
                   "flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-[9px] border border-transparent py-1.5 pl-2.5 pr-2 fm-input font-semibold! text-[#374151] outline-none",
                   "modal-compact:min-h-[30px] modal-compact:py-1 modal-tiny:min-h-7",
                   "data-highlighted:border-[#3b82f6] data-highlighted:bg-[#cfe2ff] data-highlighted:text-brand-navy data-highlighted:shadow-[inset_3px_0_0_#2563eb]",

@@ -15,6 +15,10 @@ export function normalizePasteSummaryLabel(text) {
 export function isKeptPasteSummaryLabel(text) {
   const normalized = normalizePasteSummaryLabel(text);
   if (!normalized) return false;
+  // Excel report footers name the currency: "GRAND TOTAL (MYR)", "SUBTOTAL (USD)". Without this the row
+  // was not a summary label, was narrower than the body, and got dropped as trailing junk.
+  const withoutCurrency = normalized.replace(/\s*\([A-Z]{3}\)$/, "");
+  if (withoutCurrency !== normalized && withoutCurrency !== "SUB" && isKeptPasteSummaryLabel(withoutCurrency)) return true;
   // iview allGames footer uses Total(1) / Total(12).
   if (/^TOTAL\(\d+\)$/.test(normalized)) return true;
   // Citibet Downline / Upline Payment footer: "Total : (Ringgit Malaysia (RM))" + the amount, two cells against a 12 column body.

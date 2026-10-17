@@ -43,6 +43,17 @@ export function normalizeProcessRow(dto) {
     updatedAt: process.updatedAt ?? null,
     updatedBy: process.updatedBy ?? "",
     days: [...new Set((dto.processDays ?? []).map((d) => Number(d?.dayOfWeek)))].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b),
+    // Auto Fetch: the report website this process reads its Data Capture Table from. The password / PIN never leave the
+    // server; hasPassword / hasPin only say whether one is saved. null when the process has no Auto Fetch.
+    autoFetch: dto.autoFetch
+      ? {
+          enabled: Boolean(dto.autoFetch.enabled),
+          siteUrl: dto.autoFetch.siteUrl ?? "",
+          username: dto.autoFetch.username ?? "",
+          hasPassword: Boolean(dto.autoFetch.hasPassword),
+          hasPin: Boolean(dto.autoFetch.hasPin),
+        }
+      : null,
   };
 }
 

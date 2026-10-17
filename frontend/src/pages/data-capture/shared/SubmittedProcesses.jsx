@@ -2,12 +2,26 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { cardClass, CardTitle } from "./cardParts.jsx";
 
-/** Right card of Data Capture: the processes already submitted for the picked date, newest first. Scrolls inside itself. */
-export default function SubmittedProcesses({ items }) {
+/**
+ * Right card of Data Capture: the processes already submitted for the picked date, newest first. Scrolls inside itself.
+ * The title shows how many there are once the date's list has loaded (`loaded`), so it never flashes a 0 while loading.
+ */
+export default function SubmittedProcesses({ items, loaded = true }) {
   const { t } = useTranslation("capture");
+  const count = loaded ? (
+    <span
+      title={t("submitted.countTitle", { count: items.length })}
+      className={cn(
+        "inline-flex h-6 min-w-[28px] items-center justify-center rounded-full border px-2 type-caption font-semibold! tabular-nums",
+        items.length ? "border-[#bfd8ff] bg-[linear-gradient(90deg,#d6ebff,#f0f8ff)] text-[#1d4ed8]" : "border-modal-input-line bg-white/50 text-dash-faint"
+      )}
+    >
+      {items.length}
+    </span>
+  ) : null;
   return (
     <section className={cn(cardClass, "flex min-h-0 flex-col px-4 pt-3 pb-3.5")}>
-      <CardTitle>{t("submitted.title")}</CardTitle>
+      <CardTitle aside={count}>{t("submitted.title")}</CardTitle>
       {items.length === 0 ? (
         <div className="mt-3 grid min-h-[84px] flex-1 place-items-center rounded-[10px] border border-dashed border-modal-input-line bg-white/35 p-2.5 text-center type-table-cell italic text-dash-sub">
           {t("submitted.empty")}

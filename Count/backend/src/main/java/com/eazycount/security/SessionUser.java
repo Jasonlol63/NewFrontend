@@ -128,7 +128,9 @@ public class SessionUser implements Serializable {
                 && (hasGame || hasBank || currentIsGroup);
 
         Map<String, Boolean> menu = new LinkedHashMap<>();
-        menu.put("home", true);
+        // Home follows the HOME permission like every other entry. The key is always present (false when off):
+        // the frontend treats a session without it as one saved in an older format.
+        menu.put("home", unrestricted || keys.contains("home"));
         menu.put("winLoss", false);
         menu.put("domain", c168);
         menu.put("announcement", c168);

@@ -21,6 +21,7 @@ import {
   parseRate,
   positive,
   rateAmount2,
+  rateAmount2Shown,
   isNonZeroAmount,
 } from "./transactionPaymentRules";
 import { useLinkedAccounts } from "./useTransactionData";
@@ -170,6 +171,20 @@ export default function ManualForm({ tenantId, switching = false, accounts, curr
     />
   );
   const input = (key, props) => <input className={INPUT} value={f[key]} onChange={(e) => set(key, e.target.value)} autoComplete="off" {...props} />;
+  // Amount 2 box of the Rate layout: the converted amount less the Middle-Man's Rate-Mul, Fee and PT-Fee ("Error" when the Rate-Mul is wrong).
+  const amount2Box = () => {
+    const shownAmt = rateAmount2Shown({ amount1: effective(f, "rAmt1"), rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT });
+    return (
+      <input
+        className={cn(INPUT, shownAmt.error && "text-red-600!")}
+        value={shownAmt.error ? "Error" : shownAmt.text ? formatMoney(shownAmt.text) : ""}
+        readOnly
+        tabIndex={-1}
+        placeholder={t("form.amount")}
+        aria-label={t("form.amount")}
+      />
+    );
+  };
   const rateInput = (key, props) => <input className={INPUT} value={f[key]} onChange={(e) => setRateField(key, e.target.value)} autoComplete="off" {...props} />;
 
   // A clicked Balance: positive -> the To side, negative -> the From side (Rate: leg 1; Adjustment has one Account and keeps the
@@ -310,7 +325,7 @@ export default function ManualForm({ tenantId, switching = false, accounts, curr
                 <span className={LABEL}>{t("form.currency")}</span>
                 <div className="grid grid-cols-[66px_minmax(0,1fr)] gap-1.5">
                   {cur("rCur2", true)}
-                  <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
+                  {amount2Box()}
                 </div>
               </>
             ) : (
@@ -321,7 +336,7 @@ export default function ManualForm({ tenantId, switching = false, accounts, curr
                   {rateInput("rAmt1", { inputMode: "decimal", placeholder: t("form.amount") })}
                   {rateInput("rRate", { placeholder: t("form.rate") })}
                   {cur("rCur2", true)}
-                  <input className={INPUT} value={f.rAmt2 ? formatMoney(f.rAmt2) : ""} readOnly tabIndex={-1} placeholder={t("form.amount")} aria-label={t("form.amount")} />
+                  {amount2Box()}
                 </div>
               </>
             )}
@@ -337,7 +352,15 @@ export default function ManualForm({ tenantId, switching = false, accounts, curr
               <div className={stacked ? "grid grid-cols-[repeat(4,minmax(0,1fr))] gap-1.5 [&>input]:px-1.5" : compact ? MIDDLE_COMPACT_FIELDS : MIDDLE_FIELDS}>
                 {input("rMul", { placeholder: t("form.rateMul") })}
                 {input("rFee", { inputMode: "decimal", placeholder: t("form.fee") })}
-                {input("rPT", { inputMode: "decimal", placeholder: t("form.ptFee") })}
+                {/* PT-Fee is always a deduction: the box shows it with a "-" in front, the state keeps the plain number. */}
+                <input
+                  className={INPUT}
+                  value={f.rPT ? `-${f.rPT}` : ""}
+                  onChange={(e) => set("rPT", e.target.value.replace(/[^\d.]/g, ""))}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder={t("form.ptFee")}
+                />
                 <input className={INPUT} value={fmtTotal(middleManTotal({ amount1: effective(f, "rAmt1"), rate: f.rRate, mul: f.rMul, fee: f.rFee, pt: f.rPT }))} readOnly aria-label={t("form.middleAmount")} placeholder={t("form.amount")} />
               </div>
             </div>

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -15,10 +14,9 @@ const SERIES = [
 
 const AXIS_TICK = { fontSize: "0.75rem", fill: "#94a3b8" };
 
-// Lines and fills draw in left to right every time the chart shows another request (company, currency, dates), also when its data
-// comes from the cache; a refresh of the same request just updates in place. Skipped for people who ask their system for reduced motion.
-const ANIMATE = typeof window === "undefined" || !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const DRAW_MS = 1200;
+// The lines and fills are revealed left to right (CSS clip on .recharts-area, see .trend-plot in index.css) every time the chart shows
+// another request (company, currency, dates), also when its data comes from the cache; a refresh of the same request just updates in
+// place. The frame (legend, grid, axes) never leaves. Skipped for people who ask their system for reduced motion.
 
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -38,10 +36,12 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
-export default function TrendChartCard({ trend, dateFrom, dateTo, loading, drawKey }) {
+export default function TrendChartCard({ trend, dateFrom, dateTo, drawKey, ready }) {
   const { t } = useTranslation("dashboard");
   const [hidden, setHidden] = useState(() => new Set());
-  const { t: tc } = useTranslation("common");
+  // Until the asked-for numbers are there the previous ones stay as they are; once they arrive (or are remembered) the draw restarts.
+  const [reveal, setReveal] = useState({ key: null, n: 0 });
+  if (ready && reveal.key !== drawKey) setReveal({ key: drawKey, n: reveal.n + 1 });
 
   const { rows, series, multiMonth } = useMemo(() => {
     const hasEarnings = trend.some((p) => p.earnings != null);
@@ -95,14 +95,10 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading, drawK
       </div>
 
       <div className="relative min-h-0 flex-1">
-        {loading && !rows.length && (
-          <div className="absolute inset-0 z-[1] flex items-center justify-center gap-2 type-body text-dash-faint">
-            <Loader2 className="size-5 animate-spin" />
-            {tc("loading")}
-          </div>
-        )}
+        {/* The draw follows the request, not the data: a refresh that lands mid-draw only swaps the lines underneath. */}
+        <div className="trend-plot size-full" data-reveal={reveal.n ? reveal.n % 2 : undefined}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart key={drawKey} data={rows} accessibilityLayer={false} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
+          <AreaChart data={rows} accessibilityLayer={false} margin={{ top: 10, right: 12, bottom: 0, left: 4 }}>
             <defs>
               {series.map((s) => (
                 <linearGradient key={s.key} id={`trend-fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -144,13 +140,12 @@ export default function TrendChartCard({ trend, dateFrom, dateTo, loading, drawK
                   fill={`url(#trend-fill-${s.key})`}
                   dot={false}
                   activeDot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
-                  isAnimationActive={ANIMATE}
-                  animationDuration={DRAW_MS}
-                  animationEasing="ease-out"
+                  isAnimationActive={false}
                 />
               ))}
           </AreaChart>
         </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

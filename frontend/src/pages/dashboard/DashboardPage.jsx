@@ -120,7 +120,7 @@ export default function DashboardPage() {
       ? "MYR"
       : (currencyCodes[0] ?? "");
 
-  const { kpi, trend, breakdown, dataKey, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
+  const { kpi, trend, breakdown, dataKey, requestKey, loading, initialLoading, error } = useDashboardData(scope, dateRange.from, dateRange.to, currency);
 
   // Independent companies: clicking the active company again switches to the first Group, when
   // this login can open one.
@@ -261,7 +261,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-[clamp(8px,1.5dvh,12px)] lg:min-h-0 lg:flex-1 lg:grid-cols-[1.6fr_1fr]">
-        <TrendChartCard trend={trend} dateFrom={dateRange.from} dateTo={dateRange.to} loading={initialLoading} drawKey={dataKey} />
+        <TrendChartCard trend={trend} dateFrom={dateRange.from} dateTo={dateRange.to} drawKey={requestKey} ready={Boolean(requestKey) && dataKey === requestKey} />
         <CurrencyBreakdownCard breakdown={breakdown} currency={currency} loading={initialLoading} />
       </section>
     </div>

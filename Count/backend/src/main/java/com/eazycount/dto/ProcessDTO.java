@@ -36,4 +36,10 @@ public class ProcessDTO {
 
     /** Copy From: id of an existing process to deep-copy fields/descriptions/days/formulas from. Add-process only. */
     private Integer copyFromProcessId;
+
+    /**
+     * Process > Auto Fetch: the report website this process reads its Data Capture Table from. Sent by the form to set
+     * it up (or with enabled=false to switch it off); read back without the password / PIN. null leaves it as it is.
+     */
+    private ProcessAutoFetchDTO autoFetch;
 }

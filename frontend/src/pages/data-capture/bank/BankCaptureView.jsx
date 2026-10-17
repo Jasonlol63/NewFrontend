@@ -107,7 +107,7 @@ export default function BankCaptureView({ scope, readOnly }) {
       descriptionIds: [],
       currencyId: Number(form.currency),
       currency: currencyLabel,
-      remark: form.remark,
+      remark: form.remark.trim().toUpperCase(),
       captureType: "1.Text",
       table,
     };
@@ -160,12 +160,12 @@ export default function BankCaptureView({ scope, readOnly }) {
               <SearchSelectField value={form.currency} onChange={set("currency")} options={currencies.options} placeholder={t("form.selectCurrency")} searchPlaceholder={t("form.searchCurrency")} />
             </Field>
             <Field label={t("form.remark")} optional>
-              <TextInput value={form.remark} onChange={(e) => set("remark")(e.target.value)} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
+              <TextInput value={form.remark} onChange={(e) => set("remark")(e.target.value.toUpperCase())} autoComplete="off" placeholder={t("form.enterRemark")} className="uppercase" />
             </Field>
           </div>
         </section>
 
-        <SubmittedProcesses items={submitted.items} />
+        <SubmittedProcesses items={submitted.items} loaded={submitted.loaded} />
       </div>
 
       <SheetCard
